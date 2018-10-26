@@ -47,3 +47,7 @@ func (msg MsgUnjail) ValidateBasic() sdk.Error {
 	}
 	return nil
 }
+
+func (msg MsgUnjail) GetInvolvedAddresses() []sdk.AccAddress {
+	return msg.GetSigners()
+}

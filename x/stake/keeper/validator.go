@@ -12,7 +12,7 @@ import (
 // Cache the amino decoding of validators, as it can be the case that repeated slashing calls
 // cause many calls to GetValidator, which were shown to throttle the state machine in our
 // simulation. Note this is quite biased though, as the simulator does more slashes than a
-// live chain should, however we require the slashing to be fast as noone pays gas for it.
+// live chain should.
 type cachedValidator struct {
 	val        types.Validator
 	marshalled string // marshalled amino bytes for the validator object (not operator address)

@@ -161,11 +161,6 @@ func (st *iavlStore) Prefix(prefix []byte) KVStore {
 	return prefixStore{st, prefix}
 }
 
-// Implements KVStore
-func (st *iavlStore) Gas(meter GasMeter, config GasConfig) KVStore {
-	return NewGasKVStore(meter, config, st)
-}
-
 // Implements KVStore.
 func (st *iavlStore) Iterator(start, end []byte) Iterator {
 	return newIAVLIterator(st.tree.ImmutableTree, start, end, true)

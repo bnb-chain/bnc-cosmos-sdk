@@ -29,8 +29,7 @@ type App struct {
 	KeyAccount *sdk.KVStoreKey
 
 	// TODO: Abstract this out from not needing to be auth specifically
-	AccountKeeper       auth.AccountKeeper
-	FeeCollectionKeeper auth.FeeCollectionKeeper
+	AccountKeeper auth.AccountKeeper
 
 	GenesisAccounts  []auth.Account
 	TotalCoinsSupply sdk.Coins
@@ -50,7 +49,7 @@ func NewApp() *App {
 
 	// Create your application object
 	app := &App{
-		BaseApp:          bam.NewBaseApp("mock", logger, db, auth.DefaultTxDecoder(cdc)),
+		BaseApp:          bam.NewBaseApp("mock", logger, db, auth.DefaultTxDecoder(cdc), false),
 		Cdc:              cdc,
 		KeyMain:          sdk.NewKVStoreKey("main"),
 		KeyAccount:       sdk.NewKVStoreKey("acc"),
@@ -67,7 +66,7 @@ func NewApp() *App {
 	// Initialize the app. The chainers and blockers can be overwritten before
 	// calling complete setup.
 	app.SetInitChainer(app.InitChainer)
-	app.SetAnteHandler(auth.NewAnteHandler(app.AccountKeeper, app.FeeCollectionKeeper))
+	app.SetAnteHandler(auth.NewAnteHandler(app.AccountKeeper))
 
 	// Not sealing for custom extension
 
@@ -143,17 +142,12 @@ func SetGenesis(app *App, accs []auth.Account) {
 
 // GenTx generates a signed mock transaction.
 func GenTx(msgs []sdk.Msg, accnums []int64, seq []int64, priv ...crypto.PrivKey) auth.StdTx {
-	// Make the transaction free
-	fee := auth.StdFee{
-		Amount: sdk.Coins{sdk.NewInt64Coin("foocoin", 0)},
-		Gas:    100000,
-	}
 
 	sigs := make([]auth.StdSignature, len(priv))
 	memo := "testmemotestmemo"
 
 	for i, p := range priv {
-		sig, err := p.Sign(auth.StdSignBytes(chainID, accnums[i], seq[i], fee, msgs, memo))
+		sig, err := p.Sign(auth.StdSignBytes(chainID, accnums[i], seq[i], msgs, memo))
 		if err != nil {
 			panic(err)
 		}
@@ -166,7 +160,7 @@ func GenTx(msgs []sdk.Msg, accnums []int64, seq []int64, priv ...crypto.PrivKey)
 		}
 	}
 
-	return auth.NewStdTx(msgs, fee, sigs, memo)
+	return auth.NewStdTx(msgs, sigs, memo)
 }
 
 // GeneratePrivKeys generates a total n Ed25519 private keys.

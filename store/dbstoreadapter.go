@@ -32,10 +32,5 @@ func (dsa dbStoreAdapter) Prefix(prefix []byte) KVStore {
 	return prefixStore{dsa, prefix}
 }
 
-// Implements KVStore
-func (dsa dbStoreAdapter) Gas(meter GasMeter, config GasConfig) KVStore {
-	return NewGasKVStore(meter, config, dsa)
-}
-
 // dbm.DB implements KVStore so we can CacheKVStore it.
 var _ KVStore = dbStoreAdapter{}

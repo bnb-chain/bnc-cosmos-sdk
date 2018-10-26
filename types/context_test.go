@@ -152,7 +152,6 @@ func TestContextWithCustom(t *testing.T) {
 	require.Panics(t, func() { ctx.TxBytes() })
 	require.Panics(t, func() { ctx.Logger() })
 	require.Panics(t, func() { ctx.VoteInfos() })
-	require.Panics(t, func() { ctx.GasMeter() })
 
 	header := abci.Header{}
 	height := int64(1)
@@ -161,8 +160,6 @@ func TestContextWithCustom(t *testing.T) {
 	txbytes := []byte("txbytes")
 	logger := NewMockLogger()
 	voteinfos := []abci.VoteInfo{{}}
-	meter := types.NewGasMeter(10000)
-	minFees := types.Coins{types.NewInt64Coin("feeCoin", 1)}
 
 	ctx = types.NewContext(nil, header, ischeck, logger)
 	require.Equal(t, header, ctx.BlockHeader())
@@ -171,15 +168,11 @@ func TestContextWithCustom(t *testing.T) {
 		WithBlockHeight(height).
 		WithChainID(chainid).
 		WithTxBytes(txbytes).
-		WithVoteInfos(voteinfos).
-		WithGasMeter(meter).
-		WithMinimumFees(minFees)
+		WithVoteInfos(voteinfos)
 	require.Equal(t, height, ctx.BlockHeight())
 	require.Equal(t, chainid, ctx.ChainID())
 	require.Equal(t, ischeck, ctx.IsCheckTx())
 	require.Equal(t, txbytes, ctx.TxBytes())
 	require.Equal(t, logger, ctx.Logger())
 	require.Equal(t, voteinfos, ctx.VoteInfos())
-	require.Equal(t, meter, ctx.GasMeter())
-	require.Equal(t, minFees, types.Coins{types.NewInt64Coin("feeCoin", 1)})
 }

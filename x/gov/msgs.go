@@ -81,6 +81,10 @@ func (msg MsgSubmitProposal) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Proposer}
 }
 
+func (msg MsgSubmitProposal) GetInvolvedAddresses() []sdk.AccAddress {
+	return msg.GetSigners()
+}
+
 //-----------------------------------------------------------
 // MsgDeposit
 type MsgDeposit struct {
@@ -142,6 +146,10 @@ func (msg MsgDeposit) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Depositer}
 }
 
+func (msg MsgDeposit) GetInvolvedAddresses() []sdk.AccAddress {
+	return msg.GetSigners()
+}
+
 //-----------------------------------------------------------
 // MsgVote
 type MsgVote struct {
@@ -198,4 +206,8 @@ func (msg MsgVote) GetSignBytes() []byte {
 // Implements Msg.
 func (msg MsgVote) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Voter}
+}
+
+func (msg MsgVote) GetInvolvedAddresses() []sdk.AccAddress {
+	return msg.GetSigners()
 }

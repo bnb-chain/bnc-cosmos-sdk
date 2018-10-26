@@ -13,8 +13,6 @@ const defaultConfigTemplate = `# This is a TOML config file.
 
 ##### main base config options #####
 
-# Validators reject any tx from the mempool with less than the minimum fee per gas.
-minimum_fees = "{{ .BaseConfig.MinFees }}"
 `
 
 var configTemplate *template.Template

@@ -30,15 +30,6 @@ func SetPruning(pruning string) func(*BaseApp) {
 	}
 }
 
-// SetMinimumFees returns an option that sets the minimum fees on the app.
-func SetMinimumFees(minFees string) func(*BaseApp) {
-	fees, err := sdk.ParseCoins(minFees)
-	if err != nil {
-		panic(fmt.Sprintf("invalid minimum fees: %v", err))
-	}
-	return func(bap *BaseApp) { bap.SetMinimumFees(fees) }
-}
-
 func (app *BaseApp) SetName(name string) {
 	if app.sealed {
 		panic("SetName() on sealed BaseApp")

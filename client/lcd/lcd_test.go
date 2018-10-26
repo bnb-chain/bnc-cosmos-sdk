@@ -2,7 +2,6 @@ package lcd
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -13,19 +12,19 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 
-	p2p "github.com/tendermint/tendermint/p2p"
+	"github.com/tendermint/tendermint/p2p"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 
-	client "github.com/cosmos/cosmos-sdk/client"
-	keys "github.com/cosmos/cosmos-sdk/client/keys"
+	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/client/rpc"
 	"github.com/cosmos/cosmos-sdk/client/tx"
 	"github.com/cosmos/cosmos-sdk/codec"
 	cryptoKeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/mintkey"
-	tests "github.com/cosmos/cosmos-sdk/tests"
+	"github.com/cosmos/cosmos-sdk/tests"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	version "github.com/cosmos/cosmos-sdk/version"
+	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authrest "github.com/cosmos/cosmos-sdk/x/auth/client/rest"
 	"github.com/cosmos/cosmos-sdk/x/gov"
@@ -275,32 +274,6 @@ func TestCoinSend(t *testing.T) {
 
 	require.Equal(t, "steak", mycoins.Denom)
 	require.Equal(t, int64(1), mycoins.Amount.Int64())
-
-	// test failure with too little gas
-	res, body, _ = doSendWithGas(t, port, seed, name, password, addr, "100", 0, "")
-	require.Equal(t, http.StatusInternalServerError, res.StatusCode, body)
-
-	// test failure with negative gas
-	res, body, _ = doSendWithGas(t, port, seed, name, password, addr, "-200", 0, "")
-	require.Equal(t, http.StatusInternalServerError, res.StatusCode, body)
-
-	// test failure with 0 gas
-	res, body, _ = doSendWithGas(t, port, seed, name, password, addr, "0", 0, "")
-	require.Equal(t, http.StatusInternalServerError, res.StatusCode, body)
-
-	// test failure with wrong adjustment
-	res, body, _ = doSendWithGas(t, port, seed, name, password, addr, "simulate", 0.1, "")
-	require.Equal(t, http.StatusInternalServerError, res.StatusCode, body)
-
-	// run simulation and test success with estimated gas
-	res, body, _ = doSendWithGas(t, port, seed, name, password, addr, "", 0, "?simulate=true")
-	require.Equal(t, http.StatusOK, res.StatusCode, body)
-	var responseBody struct {
-		GasEstimate int64 `json:"gas_estimate"`
-	}
-	require.Nil(t, json.Unmarshal([]byte(body), &responseBody))
-	res, body, _ = doSendWithGas(t, port, seed, name, password, addr, fmt.Sprintf("%v", responseBody.GasEstimate), 0, "")
-	require.Equal(t, http.StatusOK, res.StatusCode, body)
 }
 
 func DisabledTestIBCTransfer(t *testing.T) {
@@ -341,6 +314,7 @@ func TestCoinSendGenerateSignAndBroadcast(t *testing.T) {
 
 	// generate TX
 	res, body, _ := doSendWithGas(t, port, seed, name, password, addr, "simulate", 0, "?generate_only=true")
+
 	require.Equal(t, http.StatusOK, res.StatusCode, body)
 	var msg auth.StdTx
 	require.Nil(t, cdc.UnmarshalJSON([]byte(body), &msg))
@@ -348,7 +322,6 @@ func TestCoinSendGenerateSignAndBroadcast(t *testing.T) {
 	require.Equal(t, msg.Msgs[0].Route(), "bank")
 	require.Equal(t, msg.Msgs[0].GetSigners(), []sdk.AccAddress{addr})
 	require.Equal(t, 0, len(msg.Signatures))
-	gasEstimate := msg.Fee.Gas
 
 	// sign tx
 	var signedMsg auth.StdTx
@@ -388,8 +361,6 @@ func TestCoinSendGenerateSignAndBroadcast(t *testing.T) {
 	require.Nil(t, cdc.UnmarshalJSON([]byte(body), &resultTx))
 	require.Equal(t, uint32(0), resultTx.CheckTx.Code)
 	require.Equal(t, uint32(0), resultTx.DeliverTx.Code)
-	require.Equal(t, gasEstimate, resultTx.DeliverTx.GasWanted)
-	require.Equal(t, gasEstimate, resultTx.DeliverTx.GasUsed)
 }
 
 func TestTxs(t *testing.T) {

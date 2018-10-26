@@ -26,6 +26,9 @@ type Msg interface {
 	// CONTRACT: All signatures must be present to be valid.
 	// CONTRACT: Returns addrs in some deterministic order.
 	GetSigners() []AccAddress
+
+	// Get involved addresses of this msg so that we can publish account balance change
+	GetInvolvedAddresses() []AccAddress
 }
 
 //__________________________________________________________
@@ -69,5 +72,8 @@ func (msg *TestMsg) GetSignBytes() []byte {
 }
 func (msg *TestMsg) ValidateBasic() Error { return nil }
 func (msg *TestMsg) GetSigners() []AccAddress {
+	return msg.signers
+}
+func (msg *TestMsg) GetInvolvedAddresses() []AccAddress {
 	return msg.signers
 }

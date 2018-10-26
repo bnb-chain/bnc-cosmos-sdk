@@ -84,6 +84,10 @@ func (msg MsgCreateValidator) GetSignBytes() []byte {
 	return sdk.MustSortJSON(b)
 }
 
+func (msg MsgCreateValidator) GetInvolvedAddresses() []sdk.AccAddress {
+	return msg.GetSigners()
+}
+
 // quick validity check
 func (msg MsgCreateValidator) ValidateBasic() sdk.Error {
 	if msg.DelegatorAddr == nil {
@@ -163,6 +167,10 @@ func (msg MsgEditValidator) ValidateBasic() sdk.Error {
 	return nil
 }
 
+func (msg MsgEditValidator) GetInvolvedAddresses() []sdk.AccAddress {
+	return msg.GetSigners()
+}
+
 //______________________________________________________________________
 
 // MsgDelegate - struct for bonding transactions
@@ -210,6 +218,10 @@ func (msg MsgDelegate) ValidateBasic() sdk.Error {
 	return nil
 }
 
+func (msg MsgDelegate) GetInvolvedAddresses() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.DelegatorAddr, sdk.AccAddress(msg.ValidatorAddr)}
+}
+
 //______________________________________________________________________
 
 // MsgDelegate - struct for bonding transactions
@@ -255,6 +267,10 @@ func (msg MsgBeginRedelegate) GetSignBytes() []byte {
 		panic(err)
 	}
 	return sdk.MustSortJSON(b)
+}
+
+func (msg MsgBeginRedelegate) GetInvolvedAddresses() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.DelegatorAddr, sdk.AccAddress(msg.ValidatorSrcAddr), sdk.AccAddress(msg.DelegatorAddr)}
 }
 
 // quick validity check
@@ -325,4 +341,8 @@ func (msg MsgBeginUnbonding) ValidateBasic() sdk.Error {
 		return ErrBadSharesAmount(DefaultCodespace)
 	}
 	return nil
+}
+
+func (msg MsgBeginUnbonding) GetInvolvedAddresses() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.DelegatorAddr, sdk.AccAddress(msg.ValidatorAddr)}
 }

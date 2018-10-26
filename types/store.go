@@ -156,11 +156,6 @@ type KVStore interface {
 	// CONTRACT: when Prefix is called on a KVStore more than once,
 	// the concatanation of the prefixes is applied
 	Prefix(prefix []byte) KVStore
-
-	// Gas consuming store
-	// CONTRACT: when Gas is called on a KVStore more than once,
-	// the concatanation of the meters/configs is applied
-	Gas(GasMeter, GasConfig) KVStore
 }
 
 // Alias iterator to db's Iterator for convenience.

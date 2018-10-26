@@ -132,8 +132,3 @@ func (cms cacheMultiStore) GetStore(key StoreKey) Store {
 func (cms cacheMultiStore) GetKVStore(key StoreKey) KVStore {
 	return cms.stores[key].(KVStore)
 }
-
-// Implements MultiStore.
-func (cms cacheMultiStore) GetKVStoreWithGas(meter sdk.GasMeter, config sdk.GasConfig, key StoreKey) KVStore {
-	return NewGasKVStore(meter, config, cms.GetKVStore(key))
-}

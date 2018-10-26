@@ -19,7 +19,6 @@ var codeTypes = []CodeType{
 	CodeUnknownAddress,
 	CodeInsufficientCoins,
 	CodeInvalidCoins,
-	CodeOutOfGas,
 	CodeMemoTooLarge,
 }
 
@@ -37,7 +36,6 @@ var errFns = []errFn{
 	ErrUnknownAddress,
 	ErrInsufficientCoins,
 	ErrInvalidCoins,
-	ErrOutOfGas,
 	ErrMemoTooLarge,
 }
 

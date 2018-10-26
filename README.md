@@ -1,3 +1,6 @@
+# Forked FROM COSMOS-SDK 
+##(need to update README)
+
 # Cosmos SDK
 ![banner](docs/graphics/cosmos-sdk-image.png)
 

@@ -75,11 +75,6 @@ func (s prefixStore) Prefix(prefix []byte) KVStore {
 }
 
 // Implements KVStore
-func (s prefixStore) Gas(meter GasMeter, config GasConfig) KVStore {
-	return NewGasKVStore(meter, config, s)
-}
-
-// Implements KVStore
 // Check https://github.com/tendermint/tendermint/blob/master/libs/db/prefix_db.go#L106
 func (s prefixStore) Iterator(start, end []byte) Iterator {
 	newstart := cloneAppend(s.prefix, start)

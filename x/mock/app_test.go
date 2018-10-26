@@ -36,6 +36,9 @@ func (tx testMsg) ValidateBasic() sdk.Error {
 	}
 	return sdk.ErrTxDecode("positiveNum should be a non-negative integer.")
 }
+func (msg testMsg) GetInvolvedAddresses() []sdk.AccAddress {
+	return msg.GetSigners()
+}
 
 // getMockApp returns an initialized mock application.
 func getMockApp(t *testing.T) *App {

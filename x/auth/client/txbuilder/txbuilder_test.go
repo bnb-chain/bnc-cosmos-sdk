@@ -8,7 +8,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/tendermint/tendermint/crypto/ed25519"
 )
 
@@ -22,12 +21,8 @@ func TestTxBuilderBuild(t *testing.T) {
 		Codec         *codec.Codec
 		AccountNumber int64
 		Sequence      int64
-		Gas           int64
-		GasAdjustment float64
-		SimulateGas   bool
 		ChainID       string
 		Memo          string
-		Fee           string
 	}
 	defaultMsg := []sdk.Msg{sdk.NewTestMsg(addr)}
 	tests := []struct {
@@ -41,12 +36,8 @@ func TestTxBuilderBuild(t *testing.T) {
 				Codec:         codec.New(),
 				AccountNumber: 1,
 				Sequence:      1,
-				Gas:           100,
-				GasAdjustment: 1.1,
-				SimulateGas:   false,
 				ChainID:       "test-chain",
 				Memo:          "hello",
-				Fee:           "1steak",
 			},
 			defaultMsg,
 			StdSignMsg{
@@ -55,7 +46,6 @@ func TestTxBuilderBuild(t *testing.T) {
 				Sequence:      1,
 				Memo:          "hello",
 				Msgs:          defaultMsg,
-				Fee:           auth.NewStdFee(100, sdk.NewCoin("steak", sdk.NewInt(1))),
 			},
 			false,
 		},
@@ -65,12 +55,8 @@ func TestTxBuilderBuild(t *testing.T) {
 			Codec:         tc.fields.Codec,
 			AccountNumber: tc.fields.AccountNumber,
 			Sequence:      tc.fields.Sequence,
-			Gas:           tc.fields.Gas,
-			GasAdjustment: tc.fields.GasAdjustment,
-			SimulateGas:   tc.fields.SimulateGas,
 			ChainID:       tc.fields.ChainID,
 			Memo:          tc.fields.Memo,
-			Fee:           tc.fields.Fee,
 		}
 		got, err := bldr.Build(tc.msgs)
 		require.Equal(t, tc.wantErr, (err != nil), "TxBuilder.Build() error = %v, wantErr %v, tc %d", err, tc.wantErr, i)

@@ -3,11 +3,14 @@ package mock
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/server/config"
+	"github.com/tendermint/tendermint/crypto"
 	"path/filepath"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 	dbm "github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/libs/log"
+	tmtypes "github.com/tendermint/tendermint/types"
 
 	bam "github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -27,7 +30,7 @@ func NewApp(rootDir string, logger log.Logger) (abci.Application, error) {
 	capKeyMainStore := sdk.NewKVStoreKey("main")
 
 	// Create BaseApp.
-	baseApp := bam.NewBaseApp("kvstore", logger, db, decodeTx)
+	baseApp := bam.NewBaseApp("kvstore", logger, db, decodeTx, false)
 
 	// Set mounts for BaseApp's MultiStore.
 	baseApp.MountStoresIAVL(capKeyMainStore)
@@ -115,6 +118,17 @@ func AppGenState(_ *codec.Codec, _ []json.RawMessage) (appState json.RawMessage,
     }
   ]
 }`)
+	return
+}
+
+// Return a validator, not much else
+func AppGenTx(_ *codec.Codec, pk crypto.PubKey, genTxConfig config.GenTx) (
+	appGenTx, cliPrint json.RawMessage, validator tmtypes.GenesisValidator, err error) {
+
+	validator = tmtypes.GenesisValidator{
+		PubKey: pk,
+		Power:  10,
+	}
 	return
 }
 

@@ -23,7 +23,7 @@ func NewApp3(logger log.Logger, db dbm.DB) *bapp.BaseApp {
 	cdc := UpdatedCodec()
 
 	// Create the base application object.
-	app := bapp.NewBaseApp(app3Name, logger, db, auth.DefaultTxDecoder(cdc))
+	app := bapp.NewBaseApp(app3Name, logger, db, auth.DefaultTxDecoder(cdc), false)
 
 	// Create a key for accessing the account store.
 	keyAccount := sdk.NewKVStoreKey("acc")
@@ -32,9 +32,8 @@ func NewApp3(logger log.Logger, db dbm.DB) *bapp.BaseApp {
 	// Set various mappers/keepers to interact easily with underlying stores
 	accountKeeper := auth.NewAccountKeeper(cdc, keyAccount, auth.ProtoBaseAccount)
 	bankKeeper := bank.NewBaseKeeper(accountKeeper)
-	feeKeeper := auth.NewFeeCollectionKeeper(cdc, keyFees)
 
-	app.SetAnteHandler(auth.NewAnteHandler(accountKeeper, feeKeeper))
+	app.SetAnteHandler(auth.NewAnteHandler(accountKeeper))
 
 	// Register message routes.
 	// Note the handler gets access to

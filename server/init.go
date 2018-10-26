@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
+	"github.com/cosmos/cosmos-sdk/server/config"
 	"github.com/tendermint/tendermint/crypto"
 	dbm "github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/types"
@@ -17,6 +18,10 @@ import (
 
 // Core functionality passed from the application to the server init command
 type AppInit struct {
+	// create the application genesis tx
+	AppGenTx func(cdc *codec.Codec, pk crypto.PubKey, genTxConfig config.GenTx) (
+		appGenTx, cliPrint json.RawMessage, validator tmtypes.GenesisValidator, err error)
+
 	// AppGenState creates the core parameters initialization. It takes in a
 	// pubkey meant to represent the pubkey of the validator of this machine.
 	AppGenState func(cdc *codec.Codec, appGenTx []json.RawMessage) (appState json.RawMessage, err error)
