@@ -114,12 +114,12 @@ func SignStdTx(txBldr authtxb.TxBuilder, cliCtx context.CLIContext, name string,
 	return txBldr.SignStdTx(name, passphrase, stdTx, appendSig)
 }
 
-func parseQueryResponse(cdc *amino.Codec, rawRes []byte) (int64, error) {
+func parseQueryResponse(cdc *amino.Codec, rawRes []byte) error {
 	var simulationResult sdk.Result
 	if err := cdc.UnmarshalBinary(rawRes, &simulationResult); err != nil {
-		return 0, err
+		return err
 	}
-	return 0, nil
+	return nil
 }
 
 func prepareTxBuilder(txBldr authtxb.TxBuilder, cliCtx context.CLIContext) (authtxb.TxBuilder, error) {

@@ -53,8 +53,8 @@ func collectInvolvedAddresses(ctx sdk.Context, msg sdk.Msg) sdk.Context {
 
 func addInvolvedAddressesToCtx(ctx sdk.Context, addresses ...sdk.AccAddress) (newCtx sdk.Context) {
 	var newAddress []string
-	if addresses, ok := ctx.Value(InvolvedAddressKey).([]string); ok {
-		newAddress = addresses
+	if existingAddresses, ok := ctx.Value(InvolvedAddressKey).([]string); ok {
+		newAddress = existingAddresses
 	} else {
 		newAddress = make([]string, 0)
 	}

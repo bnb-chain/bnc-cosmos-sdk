@@ -11,8 +11,8 @@ import (
 func TestParseQueryResponse(t *testing.T) {
 	cdc := app.MakeCodec()
 	sdkResBytes := cdc.MustMarshalBinary(sdk.Result{})
-	_, err := parseQueryResponse(cdc, sdkResBytes)
+	err := parseQueryResponse(cdc, sdkResBytes)
 	assert.Nil(t, err)
-	_, err = parseQueryResponse(cdc, []byte("fuzzy"))
+	err = parseQueryResponse(cdc, []byte("fuzzy"))
 	assert.NotNil(t, err)
 }

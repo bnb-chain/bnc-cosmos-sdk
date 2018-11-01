@@ -31,6 +31,10 @@ func WriteErrorResponse(w http.ResponseWriter, status int, err string) {
 	w.Write([]byte(err))
 }
 
+func WriteSimulationResponse(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusOK)
+}
+
 // HasDryRunArg returns true if the request's URL query contains the dry run
 // argument and its value is set to "true".
 func HasDryRunArg(r *http.Request) bool {
@@ -184,7 +188,7 @@ func CompleteAndBroadcastTxREST(w http.ResponseWriter, r *http.Request, cliCtx c
 	}
 
 	if HasDryRunArg(r) {
-		// Todo return something here
+		WriteSimulationResponse(w)
 		return
 	}
 
