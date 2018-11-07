@@ -169,6 +169,9 @@ func NewGaiaApp(logger log.Logger, db dbm.DB, traceStore io.Writer, baseAppOptio
 		cmn.Exit(err.Error())
 	}
 
+	accountStore := app.BaseApp.GetCommitMultiStore().GetKVStore(app.keyAccount)
+	app.BaseApp.AccountStoreCache = auth.NewAccountSotreCache(app.cdc, accountStore, 10000)
+
 	return app
 }
 
@@ -235,6 +238,8 @@ func (app *GaiaApp) initChainer(ctx sdk.Context, req abci.RequestInitChain) abci
 		acc.AccountNumber = app.accountKeeper.GetNextAccountNumber(ctx)
 		app.accountKeeper.SetAccount(ctx, acc)
 	}
+
+	app.BaseApp.DeliverAccountCache.Write()
 
 	// load the initial stake information
 	validators, err := stake.InitGenesis(ctx, app.stakeKeeper, genesisState.StakeData)

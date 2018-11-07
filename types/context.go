@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
-
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
 )
@@ -137,6 +136,7 @@ const (
 	contextKeyTxBytes
 	contextKeyLogger
 	contextKeyVoteInfos
+	contextKeyAccountCache
 )
 
 // NOTE: Do not expose MultiStore.
@@ -172,6 +172,10 @@ func (c Context) IsReCheckTx() bool {
 
 func (c Context) IsDeliverTx() bool {
 	return c.Value(contextKeyRunTxMode).(RunTxMode) == RunTxModeDeliver
+}
+
+func (c Context) AccountCache() AccountCache {
+	return c.Value(contextKeyAccountCache).(AccountCache)
 }
 
 func (c Context) WithMultiStore(ms MultiStore) Context { return c.withValue(contextKeyMultiStore, ms) }
@@ -218,6 +222,10 @@ func (c Context) WithVoteInfos(VoteInfos []abci.VoteInfo) Context {
 
 func (c Context) WithRunTxMode(runTxMode RunTxMode) Context {
 	return c.withValue(contextKeyRunTxMode, runTxMode)
+}
+
+func (c Context) WithAccountCache(cache AccountCache) Context {
+	return c.withValue(contextKeyAccountCache, cache)
 }
 
 // Cache the multistore and return a new cached context. The cached context is

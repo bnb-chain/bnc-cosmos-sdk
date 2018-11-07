@@ -29,6 +29,7 @@ type Account interface {
 
 	GetCoins() sdk.Coins
 	SetCoins(sdk.Coins) error
+	Clone() Account
 }
 
 // AccountDecoder unmarshals account bytes
@@ -119,6 +120,35 @@ func (acc *BaseAccount) GetSequence() int64 {
 func (acc *BaseAccount) SetSequence(seq int64) error {
 	acc.Sequence = seq
 	return nil
+}
+
+// Implements sdk.Account.
+func (acc *BaseAccount) Clone() Account {
+	// given the fact PubKey and Address doesn't change,
+	// it should be fine if not deep copy them. if both of
+	// the two interfaces can provide a Clone() method would be terrific.
+	clonedAcc := &BaseAccount{
+		PubKey:        acc.PubKey,
+		Address:       acc.Address,
+		AccountNumber: acc.AccountNumber,
+		Sequence:      acc.Sequence,
+	}
+
+	addr := make([]byte, len(acc.Address))
+	copy(addr, acc.Address)
+	clonedAcc.Address = addr
+
+	if acc.Coins == nil {
+		clonedAcc.Coins = nil
+	} else {
+		coins := sdk.Coins{}
+		for _, coin := range acc.Coins {
+			coins = append(coins, sdk.Coin{Denom: coin.Denom, Amount: coin.Amount})
+		}
+		clonedAcc.Coins = coins
+	}
+
+	return clonedAcc
 }
 
 //----------------------------------------

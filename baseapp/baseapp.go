@@ -21,6 +21,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/version"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 )
 
 // Key to store the header in the DB itself.
@@ -64,6 +65,10 @@ type BaseApp struct {
 	// See methods SetCheckState and SetDeliverState.
 	CheckState   *state          // for CheckTx
 	DeliverState *state          // for DeliverTx
+
+	AccountStoreCache   sdk.AccountStoreCache
+	CheckAccountCache   sdk.AccountCache
+	DeliverAccountCache sdk.AccountCache
 
 	// flag for sealing
 	sealed bool
@@ -236,18 +241,22 @@ func (st *state) CacheMultiStore() sdk.CacheMultiStore {
 }
 
 func (app *BaseApp) SetCheckState(header abci.Header) {
+	app.CheckAccountCache = auth.NewAccountCache(app.AccountStoreCache)
+
 	ms := app.cms.CacheMultiStore()
 	app.CheckState = &state{
 		ms:  ms,
-		Ctx: sdk.NewContext(ms, header, sdk.RunTxModeCheck, app.Logger),
+		Ctx: sdk.NewContext(ms, header, sdk.RunTxModeCheck, app.Logger).WithAccountCache(app.CheckAccountCache),
 	}
 }
 
 func (app *BaseApp) SetDeliverState(header abci.Header) {
+	app.DeliverAccountCache = auth.NewAccountCache(app.AccountStoreCache)
+
 	ms := app.cms.CacheMultiStore()
 	app.DeliverState = &state{
 		ms:  ms,
-		Ctx: sdk.NewContext(ms, header, sdk.RunTxModeDeliver, app.Logger),
+		Ctx: sdk.NewContext(ms, header, sdk.RunTxModeDeliver, app.Logger).WithAccountCache(app.DeliverAccountCache),
 	}
 }
 
@@ -617,8 +626,17 @@ func getState(app *BaseApp, mode sdk.RunTxMode) *state {
 func (app *BaseApp) initializeContext(ctx sdk.Context, mode sdk.RunTxMode) sdk.Context {
 	if mode == sdk.RunTxModeSimulate {
 		ctx = ctx.WithMultiStore(getState(app, mode).CacheMultiStore())
+
 	}
 	return ctx
+}
+
+func getAccountCache(app *BaseApp, mode sdk.RunTxMode) sdk.AccountCache {
+	if mode == sdk.RunTxModeCheck || mode == sdk.RunTxModeSimulate {
+		return app.CheckAccountCache
+	}
+
+	return app.DeliverAccountCache
 }
 
 // runTx processes a transaction. The transactions is proccessed via an
@@ -670,7 +688,10 @@ func (app *BaseApp) runTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx) (result
 		)).(sdk.CacheMultiStore)
 	}
 
+	accountCache := auth.NewAccountCache(getAccountCache(app, mode))
+
 	ctx = ctx.WithMultiStore(msCache)
+	ctx = ctx.WithAccountCache(accountCache)
 	result = app.runMsgs(ctx, msgs, txHash, mode)
 
 	if mode == sdk.RunTxModeDeliver && app.isPublishAccountBalance {
@@ -679,6 +700,7 @@ func (app *BaseApp) runTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx) (result
 
 	// only update state if all messages pass
 	if result.IsOK() {
+		accountCache.Write()
 		msCache.Write()
 	}
 
@@ -762,6 +784,7 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	*/
 
 	// Write the Deliver state and commit the MultiStore
+	app.DeliverAccountCache.Write()
 	app.DeliverState.ms.Write()
 	commitID := app.cms.Commit()
 	// TODO: this is missing a module identifier and dumps byte array
@@ -776,6 +799,7 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 
 	// Empty the Deliver state
 	app.DeliverState = nil
+	app.DeliverAccountCache = auth.NewAccountCache(app.AccountStoreCache)
 
 	return abci.ResponseCommit{
 		Data: commitID.Hash,
