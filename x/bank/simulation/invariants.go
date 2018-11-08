@@ -36,7 +36,7 @@ func TotalCoinsInvariant(mapper auth.AccountKeeper, totalSupplyFn func() sdk.Coi
 		ctx := app.NewContext(sdk.RunTxModeDeliver, abci.Header{})
 		totalCoins := sdk.Coins{}
 
-		chkAccount := func(acc auth.Account) bool {
+		chkAccount := func(acc sdk.Account) bool {
 			coins := acc.GetCoins()
 			totalCoins = totalCoins.Plus(coins)
 			return false

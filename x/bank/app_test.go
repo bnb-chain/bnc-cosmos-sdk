@@ -6,9 +6,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/mock"
-
 	"github.com/stretchr/testify/require"
-
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/ed25519"
@@ -97,7 +95,7 @@ func TestMsgSendWithAccounts(t *testing.T) {
 		Coins:   sdk.Coins{sdk.NewCoin("foocoin", 67)},
 	}
 
-	mock.SetGenesis(mapp, []auth.Account{acc})
+	mock.SetGenesis(mapp, []sdk.Account{acc})
 
 	ctxCheck := mapp.BaseApp.NewContext(sdk.RunTxModeCheck, abci.Header{})
 
@@ -161,7 +159,7 @@ func TestMsgSendMultipleOut(t *testing.T) {
 		Coins:   sdk.Coins{sdk.NewCoin("foocoin", 42)},
 	}
 
-	mock.SetGenesis(mapp, []auth.Account{acc1, acc2})
+	mock.SetGenesis(mapp, []sdk.Account{acc1, acc2})
 
 	testCases := []appTestCase{
 		{
@@ -204,7 +202,7 @@ func TestSengMsgMultipleInOut(t *testing.T) {
 		Coins:   sdk.Coins{sdk.NewCoin("foocoin", 42)},
 	}
 
-	mock.SetGenesis(mapp, []auth.Account{acc1, acc2, acc4})
+	mock.SetGenesis(mapp, []sdk.Account{acc1, acc2, acc4})
 
 	testCases := []appTestCase{
 		{
@@ -240,7 +238,7 @@ func TestMsgSendDependent(t *testing.T) {
 		Coins:   sdk.Coins{sdk.NewCoin("foocoin", 42)},
 	}
 
-	mock.SetGenesis(mapp, []auth.Account{acc1})
+	mock.SetGenesis(mapp, []sdk.Account{acc1})
 
 	testCases := []appTestCase{
 		{

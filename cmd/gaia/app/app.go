@@ -300,7 +300,7 @@ func (app *GaiaApp) ExportAppStateAndValidators() (appState json.RawMessage, val
 
 	// iterate to get the accounts
 	accounts := []GenesisAccount{}
-	appendAccount := func(acc auth.Account) (stop bool) {
+	appendAccount := func(acc sdk.Account) (stop bool) {
 		account := NewGenesisAccountI(acc)
 		accounts = append(accounts, account)
 		return false

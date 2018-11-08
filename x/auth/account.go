@@ -8,37 +8,13 @@ import (
 	"github.com/tendermint/tendermint/crypto"
 )
 
-// Account is an interface used to store coins at a given address within state.
-// It presumes a notion of sequence numbers for replay protection,
-// a notion of account numbers for replay protection for previously pruned accounts,
-// and a pubkey for authentication purposes.
-//
-// Many complex conditions can be used in the concrete struct which implements Account.
-type Account interface {
-	GetAddress() sdk.AccAddress
-	SetAddress(sdk.AccAddress) error // errors if already set.
-
-	GetPubKey() crypto.PubKey // can return nil.
-	SetPubKey(crypto.PubKey) error
-
-	GetAccountNumber() int64
-	SetAccountNumber(int64) error
-
-	GetSequence() int64
-	SetSequence(int64) error
-
-	GetCoins() sdk.Coins
-	SetCoins(sdk.Coins) error
-	Clone() Account
-}
-
 // AccountDecoder unmarshals account bytes
-type AccountDecoder func(accountBytes []byte) (Account, error)
+type AccountDecoder func(accountBytes []byte) (sdk.Account, error)
 
 //-----------------------------------------------------------
 // BaseAccount
 
-var _ Account = (*BaseAccount)(nil)
+var _ sdk.Account = (*BaseAccount)(nil)
 
 // BaseAccount - a base account structure.
 // This can be extended by embedding within in your AppAccount.
@@ -54,7 +30,7 @@ type BaseAccount struct {
 }
 
 // Prototype function for BaseAccount
-func ProtoBaseAccount() Account {
+func ProtoBaseAccount() sdk.Account {
 	return &BaseAccount{}
 }
 
@@ -123,7 +99,7 @@ func (acc *BaseAccount) SetSequence(seq int64) error {
 }
 
 // Implements sdk.Account.
-func (acc *BaseAccount) Clone() Account {
+func (acc *BaseAccount) Clone() sdk.Account {
 	// given the fact PubKey and Address doesn't change,
 	// it should be fine if not deep copy them. if both of
 	// the two interfaces can provide a Clone() method would be terrific.
@@ -156,7 +132,7 @@ func (acc *BaseAccount) Clone() Account {
 
 // Most users shouldn't use this, but this comes in handy for tests.
 func RegisterBaseAccount(cdc *codec.Codec) {
-	cdc.RegisterInterface((*Account)(nil), nil)
+	cdc.RegisterInterface((*sdk.Account)(nil), nil)
 	cdc.RegisterConcrete(&BaseAccount{}, "cosmos-sdk/BaseAccount", nil)
 	codec.RegisterCrypto(cdc)
 }

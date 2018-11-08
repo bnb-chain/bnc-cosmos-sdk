@@ -3,13 +3,11 @@ package ibc
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/mock"
-
+	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/ed25519"
 )
@@ -43,7 +41,7 @@ func TestIBCMsgs(t *testing.T) {
 		Address: addr1,
 		Coins:   coins,
 	}
-	accs := []auth.Account{acc}
+	accs := []sdk.Account{acc}
 
 	mock.SetGenesis(mapp, accs)
 

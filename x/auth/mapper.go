@@ -4,7 +4,7 @@ import (
 	"sort"
 	"sync"
 
-	codec "github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/hashicorp/golang-lru"
 	"github.com/tendermint/tendermint/crypto"
@@ -20,7 +20,7 @@ type AccountKeeper struct {
 	key sdk.StoreKey
 
 	// The prototypical Account constructor.
-	proto func() Account
+	proto func() sdk.Account
 
 	// The codec codec for binary encoding/decoding of accounts.
 	cdc *codec.Codec
@@ -29,7 +29,7 @@ type AccountKeeper struct {
 // NewAccountKeeper returns a new sdk.AccountKeeper that
 // uses go-amino to (binary) encode and decode concrete sdk.Accounts.
 // nolint
-func NewAccountKeeper(cdc *codec.Codec, key sdk.StoreKey, proto func() Account) AccountKeeper {
+func NewAccountKeeper(cdc *codec.Codec, key sdk.StoreKey, proto func() sdk.Account) AccountKeeper {
 	return AccountKeeper{
 		key:   key,
 		proto: proto,
@@ -38,7 +38,7 @@ func NewAccountKeeper(cdc *codec.Codec, key sdk.StoreKey, proto func() Account) 
 }
 
 // Implaements sdk.AccountKeeper.
-func (am AccountKeeper) NewAccountWithAddress(ctx sdk.Context, addr sdk.AccAddress) Account {
+func (am AccountKeeper) NewAccountWithAddress(ctx sdk.Context, addr sdk.AccAddress) sdk.Account {
 	acc := am.proto()
 	err := acc.SetAddress(addr)
 	if err != nil {
@@ -54,7 +54,7 @@ func (am AccountKeeper) NewAccountWithAddress(ctx sdk.Context, addr sdk.AccAddre
 }
 
 // New Account
-func (am AccountKeeper) NewAccount(ctx sdk.Context, acc Account) Account {
+func (am AccountKeeper) NewAccount(ctx sdk.Context, acc sdk.Account) sdk.Account {
 	err := acc.SetAccountNumber(am.GetNextAccountNumber(ctx))
 	if err != nil {
 		// TODO: Handle with #870
@@ -69,32 +69,32 @@ func AddressStoreKey(addr sdk.AccAddress) []byte {
 }
 
 // Implements sdk.AccountKeeper.
-func (am AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) Account {
+func (am AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) sdk.Account {
 	cache := ctx.AccountCache()
 
 	cVal := cache.GetAccount(addr)
-	if acc, ok := cVal.(Account); ok {
+	if acc, ok := cVal.(sdk.Account); ok {
 		return acc
 	}
 	return nil
 }
 
 // Implements sdk.AccountKeeper.
-func (am AccountKeeper) SetAccount(ctx sdk.Context, acc Account) {
+func (am AccountKeeper) SetAccount(ctx sdk.Context, acc sdk.Account) {
 	addr := acc.GetAddress()
 	cache := ctx.AccountCache()
 	cache.SetAccount(addr, acc)
 }
 
 // RemoveAccount removes an account for the account mapper store.
-func (am AccountKeeper) RemoveAccount(ctx sdk.Context, acc Account) {
+func (am AccountKeeper) RemoveAccount(ctx sdk.Context, acc sdk.Account) {
 	addr := acc.GetAddress()
 	cache := ctx.AccountCache()
 	cache.Delete(addr)
 }
 
 // Implements sdk.AccountKeeper.
-func (am AccountKeeper) IterateAccounts(ctx sdk.Context, process func(Account) (stop bool)) {
+func (am AccountKeeper) IterateAccounts(ctx sdk.Context, process func(sdk.Account) (stop bool)) {
 	store := ctx.KVStore(am.key)
 	iter := sdk.KVStorePrefixIterator(store, []byte("account:"))
 	defer iter.Close()
@@ -166,7 +166,7 @@ func (am AccountKeeper) GetNextAccountNumber(ctx sdk.Context) int64 {
 //----------------------------------------
 // misc.
 
-func (am AccountKeeper) encodeAccount(acc Account) []byte {
+func (am AccountKeeper) encodeAccount(acc sdk.Account) []byte {
 	bz, err := am.cdc.MarshalBinaryBare(acc)
 	if err != nil {
 		panic(err)
@@ -174,7 +174,7 @@ func (am AccountKeeper) encodeAccount(acc Account) []byte {
 	return bz
 }
 
-func (am AccountKeeper) decodeAccount(bz []byte) (acc Account) {
+func (am AccountKeeper) decodeAccount(bz []byte) (acc sdk.Account) {
 	err := am.cdc.UnmarshalBinaryBare(bz, &acc)
 	if err != nil {
 		panic(err)
@@ -201,22 +201,22 @@ type accountStoreCache struct {
 	store sdk.KVStore
 }
 
-func (ac *accountStoreCache) getAccountFromCache(addr sdk.AccAddress) (acc interface{}, ok bool) {
+func (ac *accountStoreCache) getAccountFromCache(addr sdk.AccAddress) (acc sdk.Account, ok bool) {
 	cacc, ok := ac.cache.Get(addr.String())
 	if !ok {
 		return nil, ok
 	}
-	if acc, ok := cacc.(Account); ok {
+	if acc, ok := cacc.(sdk.Account); ok {
 		return acc.Clone(), ok
 	}
 	return nil, false
 }
 
-func (ac *accountStoreCache) setAccountToCache(addr sdk.AccAddress, acc Account) {
+func (ac *accountStoreCache) setAccountToCache(addr sdk.AccAddress, acc sdk.Account) {
 	ac.cache.Add(addr.String(), acc.Clone())
 }
 
-func (ac *accountStoreCache) GetAccount(addr sdk.AccAddress) interface{} {
+func (ac *accountStoreCache) GetAccount(addr sdk.AccAddress) sdk.Account {
 	println("cache: get account from store, ", addr.String())
 	if acc, ok := ac.getAccountFromCache(addr); ok {
 		return acc
@@ -231,8 +231,8 @@ func (ac *accountStoreCache) GetAccount(addr sdk.AccAddress) interface{} {
 	return acc
 }
 
-func (ac *accountStoreCache) SetAccount(addr sdk.AccAddress, acc interface{}) {
-	cacc, ok := acc.(Account)
+func (ac *accountStoreCache) SetAccount(addr sdk.AccAddress, acc sdk.Account) {
+	cacc, ok := acc.(sdk.Account)
 	if !ok {
 		return
 	}
@@ -248,7 +248,7 @@ func (ac *accountStoreCache) Delete(addr sdk.AccAddress) {
 	ac.store.Delete(AddressStoreKey(addr))
 }
 
-func (ac *accountStoreCache) encodeAccount(acc Account) []byte {
+func (ac *accountStoreCache) encodeAccount(acc sdk.Account) []byte {
 	bz, err := ac.cdc.MarshalBinaryBare(acc)
 	if err != nil {
 		panic(err)
@@ -256,7 +256,7 @@ func (ac *accountStoreCache) encodeAccount(acc Account) []byte {
 	return bz
 }
 
-func (ac *accountStoreCache) decodeAccount(bz []byte) (acc Account) {
+func (ac *accountStoreCache) decodeAccount(bz []byte) (acc sdk.Account) {
 	err := ac.cdc.UnmarshalBinaryBare(bz, &acc)
 	if err != nil {
 		panic(err)
@@ -265,7 +265,7 @@ func (ac *accountStoreCache) decodeAccount(bz []byte) (acc Account) {
 }
 
 type cValue struct {
-	acc     interface{}
+	acc     sdk.Account
 	deleted bool
 	dirty   bool
 }
@@ -283,23 +283,14 @@ type accountCache struct {
 	parent sdk.AccountStoreCache
 }
 
-func (ac *accountCache) GetAccount(addr sdk.AccAddress) interface{} {
+func (ac *accountCache) GetAccount(addr sdk.AccAddress) sdk.Account {
 	ac.mtx.Lock()
 	defer ac.mtx.Unlock()
 
-	cacheVal, ok := ac.cache[addr.String()]
-	if !ok {
-		acc := ac.parent.GetAccount(addr)
-		ac.setAccountToCache(addr, acc, false, false)
-		println("cache: miss cache")
-		return acc
-	} else {
-		println("cache: hit cache")
-		return cacheVal.acc
-	}
+	return ac.getAccountFromCache(addr)
 }
 
-func (ac *accountCache) SetAccount(addr sdk.AccAddress, acc interface{}) {
+func (ac *accountCache) SetAccount(addr sdk.AccAddress, acc sdk.Account) {
 	ac.mtx.Lock()
 	defer ac.mtx.Unlock()
 
@@ -350,29 +341,29 @@ func (ac *accountCache) Write() {
 	ac.cache = make(map[string]cValue)
 }
 
-func (ac *accountCache) getAccountFromCache(addr sdk.AccAddress) (acc interface{}, ok bool) {
-	var cacc interface{}
-
+func (ac *accountCache) getAccountFromCache(addr sdk.AccAddress) (acc sdk.Account) {
 	cacheVal, ok := ac.cache[addr.String()]
 	if !ok {
-		cacc = ac.parent.GetAccount(addr)
+		acc = ac.parent.GetAccount(addr)
 		ac.setAccountToCache(addr, acc, false, false)
 	} else {
-		cacc = cacheVal.acc
+		acc = cacheVal.acc
 	}
 
-	if acc, ok := cacc.(Account); ok {
-		return acc.Clone(), ok
+	if acc == nil {
+		return nil
 	}
-	return nil, false
+	return acc.Clone()
 }
 
-func (ac *accountCache) setAccountToCache(addr sdk.AccAddress, acc interface{}, deleted bool, dirty bool) {
-	if cacc, ok := acc.(Account); ok {
-		ac.cache[addr.String()] = cValue{
-			acc:     cacc.Clone(),
-			deleted: deleted,
-			dirty:   dirty,
-		}
+func (ac *accountCache) setAccountToCache(addr sdk.AccAddress, acc sdk.Account, deleted bool, dirty bool) {
+	if acc != nil {
+		acc = acc.Clone()
+	}
+
+	ac.cache[addr.String()] = cValue{
+		acc:     acc,
+		deleted: deleted,
+		dirty:   dirty,
 	}
 }

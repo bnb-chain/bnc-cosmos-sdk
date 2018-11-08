@@ -1,8 +1,8 @@
 package types
 
 type AccountStoreCache interface {
-	GetAccount(addr AccAddress) interface{}
-	SetAccount(addr AccAddress, acc interface{})
+	GetAccount(addr AccAddress) Account
+	SetAccount(addr AccAddress, acc Account)
 	Delete(addr AccAddress)
 }
 

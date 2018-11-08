@@ -3,12 +3,11 @@ package cli
 import (
 	"fmt"
 
-	"github.com/spf13/cobra"
-
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	"github.com/spf13/cobra"
 )
 
 // GetAccountCmdDefault invokes the GetAccountCmd for the auth.BaseAccount type.
@@ -18,7 +17,7 @@ func GetAccountCmdDefault(storeName string, cdc *codec.Codec) *cobra.Command {
 
 // GetAccountDecoder gets the account decoder for auth.DefaultAccount.
 func GetAccountDecoder(cdc *codec.Codec) auth.AccountDecoder {
-	return func(accBytes []byte) (acct auth.Account, err error) {
+	return func(accBytes []byte) (acct sdk.Account, err error) {
 		err = cdc.UnmarshalBinaryBare(accBytes, &acct)
 		if err != nil {
 			panic(err)
