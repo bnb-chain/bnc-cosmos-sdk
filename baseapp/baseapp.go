@@ -644,6 +644,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (result sdk
 		}
 		if !newCtx.IsZero() {
 			ctx = newCtx
+			getState(app, mode).Ctx = newCtx
 		}
 	}
 
