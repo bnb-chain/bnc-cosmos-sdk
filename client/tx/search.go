@@ -95,9 +95,9 @@ func searchTxs(cliCtx context.CLIContext, cdc *codec.Codec, tags []string) ([]In
 
 	prove := !cliCtx.TrustNode
 
-	// TODO: take these as args
+	// TODO(#262): take these as args
 	page := 0
-	perPage := 100
+	perPage := 10000
 	res, err := node.TxSearch(query, prove, page, perPage)
 	if err != nil {
 		return nil, err
