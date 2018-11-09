@@ -141,7 +141,7 @@ func SimulateFromSeed(tb testing.TB, app *baseapp.BaseApp,
 			assertAllInvariants(t, app, invariants, "BeginBlock", displayLogs)
 		}
 
-		ctx := app.NewContext(false, header)
+		ctx := app.NewContext(sdk.RunTxModeDeliver, header)
 		thisBlockSize := getBlockSize(r, blockSize)
 
 		// Run queued operations. Ignores blocksize if blocksize is too small

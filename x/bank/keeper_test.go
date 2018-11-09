@@ -32,7 +32,7 @@ func TestKeeper(t *testing.T) {
 	cdc := codec.New()
 	auth.RegisterBaseAccount(cdc)
 
-	ctx := sdk.NewContext(ms, abci.Header{}, false, log.NewNopLogger())
+	ctx := sdk.NewContext(ms, abci.Header{}, sdk.RunTxModeDeliver, log.NewNopLogger())
 	accountKeeper := auth.NewAccountKeeper(cdc, authKey, auth.ProtoBaseAccount)
 	bankKeeper := NewBaseKeeper(accountKeeper)
 
@@ -117,7 +117,7 @@ func TestSendKeeper(t *testing.T) {
 	cdc := codec.New()
 	auth.RegisterBaseAccount(cdc)
 
-	ctx := sdk.NewContext(ms, abci.Header{}, false, log.NewNopLogger())
+	ctx := sdk.NewContext(ms, abci.Header{}, sdk.RunTxModeDeliver, log.NewNopLogger())
 	accountKeeper := auth.NewAccountKeeper(cdc, authKey, auth.ProtoBaseAccount)
 	bankKeeper := NewBaseKeeper(accountKeeper)
 	sendKeeper := NewBaseSendKeeper(accountKeeper)
@@ -186,7 +186,7 @@ func TestViewKeeper(t *testing.T) {
 	cdc := codec.New()
 	auth.RegisterBaseAccount(cdc)
 
-	ctx := sdk.NewContext(ms, abci.Header{}, false, log.NewNopLogger())
+	ctx := sdk.NewContext(ms, abci.Header{}, sdk.RunTxModeDeliver, log.NewNopLogger())
 	accountKeeper := auth.NewAccountKeeper(cdc, authKey, auth.ProtoBaseAccount)
 	bankKeeper := NewBaseKeeper(accountKeeper)
 	viewKeeper := NewBaseViewKeeper(accountKeeper)

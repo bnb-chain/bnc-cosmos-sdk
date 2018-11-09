@@ -4,22 +4,23 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
 )
 
 const (
-	ed25519VerifyCost           = 59
-	secp256k1VerifyCost         = 100
-	maxMemoCharacters           = 100
+	ed25519VerifyCost   = 59
+	secp256k1VerifyCost = 100
+	maxMemoCharacters   = 100
 )
 
 // NewAnteHandler returns an AnteHandler that checks
 // and increments sequence numbers, checks signatures & account numbers
 func NewAnteHandler(am AccountKeeper) sdk.AnteHandler {
 	return func(
-		ctx sdk.Context, tx sdk.Tx, simulate bool,
+		ctx sdk.Context, tx sdk.Tx, mode sdk.RunTxMode,
 	) (newCtx sdk.Context, res sdk.Result, abort bool) {
 		newCtx = ctx
 		// This AnteHandler requires Txs to be StdTxs
@@ -34,18 +35,17 @@ func NewAnteHandler(am AccountKeeper) sdk.AnteHandler {
 				panic(r)
 			}
 		}()
-
-		err := validateBasic(stdTx)
-		if err != nil {
-			return newCtx, err.Result(), true
+		if mode != sdk.RunTxModeReCheck {
+			err := validateBasic(stdTx)
+			if err != nil {
+				return newCtx, err.Result(), true
+			}
 		}
 
 		// stdSigs contains the sequence number, account number, and signatures
 		stdSigs := stdTx.GetSignatures() // When simulating, this would just be a 0-length slice.
 		signerAddrs := stdTx.GetSigners()
 
-		// create the list of all sign bytes
-		signBytesList := getSignBytesList(newCtx.ChainID(), stdTx, stdSigs)
 		signerAccs, res := getSignerAccs(newCtx, am, signerAddrs)
 		if !res.IsOK() {
 			return newCtx, res, true
@@ -55,12 +55,21 @@ func NewAnteHandler(am AccountKeeper) sdk.AnteHandler {
 			return newCtx, res, true
 		}
 
+		var signBytesList [][]byte
+
+		if mode != sdk.RunTxModeReCheck {
+			// create the list of all sign bytes
+			signBytesList = getSignBytesList(newCtx.ChainID(), stdTx, stdSigs)
+		}
 
 		for i := 0; i < len(stdSigs); i++ {
-			// check signature, return account with incremented nonce
-			signerAccs[i], res = processSig(newCtx, signerAccs[i], stdSigs[i], signBytesList[i], simulate)
-			if !res.IsOK() {
-				return newCtx, res, true
+			if mode != sdk.RunTxModeReCheck {
+				// check signature, return account with incremented nonce
+				signerAccs[i], res = processSig(newCtx, signerAccs[i],
+					stdSigs[i], signBytesList[i], mode == sdk.RunTxModeSimulate)
+				if !res.IsOK() {
+					return newCtx, res, true
+				}
 			}
 
 			// Save the account.
@@ -192,7 +201,6 @@ func processPubKey(acc Account, sig StdSignature, simulate bool) (crypto.PubKey,
 	}
 	return pubKey, sdk.Result{}
 }
-
 
 func getSignBytesList(chainID string, stdTx StdTx, stdSigs []StdSignature) (signatureBytesList [][]byte) {
 	signatureBytesList = make([][]byte, len(stdSigs))

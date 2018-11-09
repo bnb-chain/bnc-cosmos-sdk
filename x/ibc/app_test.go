@@ -48,7 +48,7 @@ func TestIBCMsgs(t *testing.T) {
 	mock.SetGenesis(mapp, accs)
 
 	// A checkTx context (true)
-	ctxCheck := mapp.BaseApp.NewContext(true, abci.Header{})
+	ctxCheck := mapp.BaseApp.NewContext(sdk.RunTxModeCheck, abci.Header{})
 	res1 := mapp.AccountKeeper.GetAccount(ctxCheck, addr1)
 	require.Equal(t, acc, res1)
 

@@ -75,6 +75,7 @@ func CreateTestInputDefault(t *testing.T, isCheckTx bool, initCoins int64) (
 	sdk.Context, auth.AccountKeeper, Keeper, stake.Keeper, DummyFeeCollectionKeeper) {
 
 	communityTax := sdk.NewDecWithPrec(2, 2)
+
 	return CreateTestInputAdvanced(t, isCheckTx, initCoins, communityTax)
 }
 
@@ -107,8 +108,11 @@ func CreateTestInputAdvanced(t *testing.T, isCheckTx bool, initCoins int64,
 
 	cdc := MakeTestCodec()
 	pk := params.NewKeeper(cdc, keyParams, tkeyParams)
-
-	ctx := sdk.NewContext(ms, abci.Header{ChainID: "foochainid"}, isCheckTx, log.NewNopLogger())
+	mode := sdk.RunTxModeDeliver
+	if isCheckTx {
+		mode = sdk.RunTxModeCheck
+	}
+	ctx := sdk.NewContext(ms, abci.Header{ChainID: "foochainid"}, mode, log.NewNopLogger())
 	accountKeeper := auth.NewAccountKeeper(cdc, keyAcc, auth.ProtoBaseAccount)
 	ck := bank.NewBaseKeeper(accountKeeper)
 	sk := stake.NewKeeper(cdc, keyStake, tkeyStake, ck, pk.Subspace(stake.DefaultParamspace), stake.DefaultCodespace)

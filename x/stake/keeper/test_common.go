@@ -92,7 +92,12 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initCoins int64) (sdk.Context
 	err := ms.LoadLatestVersion()
 	require.Nil(t, err)
 
-	ctx := sdk.NewContext(ms, abci.Header{ChainID: "foochainid"}, isCheckTx, log.NewNopLogger())
+	mode := sdk.RunTxModeDeliver
+	if isCheckTx {
+		mode = sdk.RunTxModeCheck
+	}
+
+	ctx := sdk.NewContext(ms, abci.Header{ChainID: "foochainid"}, mode, log.NewNopLogger())
 	cdc := MakeTestCodec()
 	accountKeeper := auth.NewAccountKeeper(
 		cdc,                   // amino codec
