@@ -24,7 +24,7 @@ func defaultComponents(key sdk.StoreKey) (sdk.Context, *codec.Codec) {
 	cms := NewCommitMultiStore(db)
 	cms.MountStoreWithDB(key, sdk.StoreTypeIAVL, db)
 	cms.LoadLatestVersion()
-	ctx := sdk.NewContext(cms, abci.Header{}, false, log.NewNopLogger())
+	ctx := sdk.NewContext(cms, abci.Header{}, sdk.RunTxModeDeliver, log.NewNopLogger())
 	cdc := codec.New()
 	return ctx, cdc
 }

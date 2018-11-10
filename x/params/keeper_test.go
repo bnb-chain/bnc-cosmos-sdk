@@ -21,7 +21,7 @@ func defaultContext(key sdk.StoreKey, tkey sdk.StoreKey) sdk.Context {
 	cms.MountStoreWithDB(key, sdk.StoreTypeIAVL, db)
 	cms.MountStoreWithDB(tkey, sdk.StoreTypeTransient, db)
 	cms.LoadLatestVersion()
-	ctx := sdk.NewContext(cms, abci.Header{}, false, log.NewNopLogger())
+	ctx := sdk.NewContext(cms, abci.Header{}, sdk.RunTxModeDeliver, log.NewNopLogger())
 	return ctx
 }
 

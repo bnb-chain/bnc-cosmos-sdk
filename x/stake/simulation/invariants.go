@@ -34,7 +34,7 @@ func AllInvariants(ck bank.Keeper, k stake.Keeper, d distribution.Keeper, am aut
 // nolint: unparam
 func SupplyInvariants(ck bank.Keeper, k stake.Keeper, d distribution.Keeper, am auth.AccountKeeper) simulation.Invariant {
 	return func(app *baseapp.BaseApp) error {
-		ctx := app.NewContext(false, abci.Header{})
+		ctx := app.NewContext(sdk.RunTxModeDeliver, abci.Header{})
 		pool := k.GetPool(ctx)
 
 		loose := sdk.ZeroDec()
@@ -60,7 +60,6 @@ func SupplyInvariants(ck bank.Keeper, k stake.Keeper, d distribution.Keeper, am 
 		})
 
 		feePool := d.GetFeePool(ctx)
-
 
 		// add community pool
 		loose = loose.Add(feePool.CommunityPool.AmountOf("steak"))
@@ -92,7 +91,7 @@ func SupplyInvariants(ck bank.Keeper, k stake.Keeper, d distribution.Keeper, am 
 // PositivePowerInvariant checks that all stored validators have > 0 power
 func PositivePowerInvariant(k stake.Keeper) simulation.Invariant {
 	return func(app *baseapp.BaseApp) error {
-		ctx := app.NewContext(false, abci.Header{})
+		ctx := app.NewContext(sdk.RunTxModeDeliver, abci.Header{})
 		var err error
 		k.IterateValidatorsBonded(ctx, func(_ int64, validator sdk.Validator) bool {
 			if !validator.GetPower().GT(sdk.ZeroDec()) {

@@ -13,7 +13,7 @@ import (
 func TestTickExpiredDepositPeriod(t *testing.T) {
 	mapp, keeper, _, addrs, _, _ := getMockApp(t, 10)
 	mapp.BeginBlock(abci.RequestBeginBlock{})
-	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
 	govHandler := NewHandler(keeper)
 
 	require.Nil(t, keeper.InactiveProposalQueuePeek(ctx))
@@ -50,7 +50,7 @@ func TestTickExpiredDepositPeriod(t *testing.T) {
 func TestTickMultipleExpiredDepositPeriod(t *testing.T) {
 	mapp, keeper, _, addrs, _, _ := getMockApp(t, 10)
 	mapp.BeginBlock(abci.RequestBeginBlock{})
-	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
 	govHandler := NewHandler(keeper)
 
 	require.Nil(t, keeper.InactiveProposalQueuePeek(ctx))
@@ -101,7 +101,7 @@ func TestTickMultipleExpiredDepositPeriod(t *testing.T) {
 func TestTickPassedDepositPeriod(t *testing.T) {
 	mapp, keeper, _, addrs, _, _ := getMockApp(t, 10)
 	mapp.BeginBlock(abci.RequestBeginBlock{})
-	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
 	govHandler := NewHandler(keeper)
 
 	require.Nil(t, keeper.InactiveProposalQueuePeek(ctx))
@@ -149,7 +149,7 @@ func TestTickPassedVotingPeriod(t *testing.T) {
 	mapp, keeper, _, addrs, _, _ := getMockApp(t, 10)
 	SortAddresses(addrs)
 	mapp.BeginBlock(abci.RequestBeginBlock{})
-	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
 	govHandler := NewHandler(keeper)
 
 	require.Nil(t, keeper.InactiveProposalQueuePeek(ctx))

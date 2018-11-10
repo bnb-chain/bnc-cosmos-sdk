@@ -79,7 +79,7 @@ func runHackCmd(cmd *cobra.Command, args []string) error {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		ctx := app.NewContext(true, abci.Header{})
+		ctx := app.NewContext(sdk.RunTxModeCheck, abci.Header{})
 
 		// check for the powerkey and the validator from the store
 		store := ctx.KVStore(app.keyStake)

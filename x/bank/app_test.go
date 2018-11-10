@@ -99,7 +99,7 @@ func TestMsgSendWithAccounts(t *testing.T) {
 
 	mock.SetGenesis(mapp, []auth.Account{acc})
 
-	ctxCheck := mapp.BaseApp.NewContext(true, abci.Header{})
+	ctxCheck := mapp.BaseApp.NewContext(sdk.RunTxModeCheck, abci.Header{})
 
 	res1 := mapp.AccountKeeper.GetAccount(ctxCheck, addr1)
 	require.NotNil(t, res1)

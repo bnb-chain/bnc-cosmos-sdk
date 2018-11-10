@@ -73,7 +73,7 @@ func getInitChainer(mapp *mock.App, keeper Keeper) sdk.InitChainer {
 func checkValidator(t *testing.T, mapp *mock.App, keeper Keeper,
 	addr sdk.ValAddress, expFound bool) Validator {
 
-	ctxCheck := mapp.BaseApp.NewContext(true, abci.Header{})
+	ctxCheck := mapp.BaseApp.NewContext(sdk.RunTxModeCheck, abci.Header{})
 	validator, found := keeper.GetValidator(ctxCheck, addr)
 
 	require.Equal(t, expFound, found)
@@ -85,7 +85,7 @@ func checkDelegation(
 	validatorAddr sdk.ValAddress, expFound bool, expShares sdk.Dec,
 ) {
 
-	ctxCheck := mapp.BaseApp.NewContext(true, abci.Header{})
+	ctxCheck := mapp.BaseApp.NewContext(sdk.RunTxModeCheck, abci.Header{})
 	delegation, found := keeper.GetDelegation(ctxCheck, delegatorAddr, validatorAddr)
 	if expFound {
 		require.True(t, found)

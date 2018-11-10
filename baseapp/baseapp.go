@@ -2,10 +2,11 @@ package baseapp
 
 import (
 	"fmt"
-	"github.com/spf13/viper"
 	"io"
 	"runtime/debug"
 	"strings"
+
+	"github.com/spf13/viper"
 
 	"github.com/pkg/errors"
 
@@ -31,17 +32,7 @@ import (
 // and to avoid affecting the Merkle root.
 var dbHeaderKey = []byte("header")
 
-// Enum mode for app.runTx
-type runTxMode uint8
-
 const (
-	// Check a transaction
-	runTxModeCheck runTxMode = iota
-	// Simulate a transaction
-	runTxModeSimulate runTxMode = iota
-	// Deliver a transaction
-	runTxModeDeliver runTxMode = iota
-
 	InvolvedAddressKey = "involvedAddresses"
 	TxHashKey          = "txHash" // we pass txHash of current handling message via context so that we can publish it as metadata of Msg
 )
@@ -228,11 +219,8 @@ func (app *BaseApp) initFromStore(mainKey sdk.StoreKey) error {
 }
 
 // NewContext returns a new Context with the correct store, the given header, and nil txBytes.
-func (app *BaseApp) NewContext(isCheckTx bool, header abci.Header) sdk.Context {
-	if isCheckTx {
-		return sdk.NewContext(app.CheckState.ms, header, true, app.Logger)
-	}
-	return sdk.NewContext(app.DeliverState.ms, header, false, app.Logger)
+func (app *BaseApp) NewContext(mode sdk.RunTxMode, header abci.Header) sdk.Context {
+	return sdk.NewContext(app.CheckState.ms, header, mode, app.Logger)
 }
 
 type state struct {
@@ -248,7 +236,7 @@ func (app *BaseApp) SetCheckState(header abci.Header) {
 	ms := app.cms.CacheMultiStore()
 	app.CheckState = &state{
 		ms:  ms,
-		Ctx: sdk.NewContext(ms, header, true, app.Logger),
+		Ctx: sdk.NewContext(ms, header, sdk.RunTxModeCheck, app.Logger),
 	}
 }
 
@@ -256,7 +244,7 @@ func (app *BaseApp) SetDeliverState(header abci.Header) {
 	ms := app.cms.CacheMultiStore()
 	app.DeliverState = &state{
 		ms:  ms,
-		Ctx: sdk.NewContext(ms, header, false, app.Logger),
+		Ctx: sdk.NewContext(ms, header, sdk.RunTxModeDeliver, app.Logger),
 	}
 }
 
@@ -425,7 +413,7 @@ func handleQueryCustom(app *BaseApp, path []string, req abci.RequestQuery) (res 
 		return sdk.ErrUnknownRequest(fmt.Sprintf("no custom querier found for route %s", path[1])).QueryResult()
 	}
 
-	ctx := sdk.NewContext(app.cms.CacheMultiStore(), app.CheckState.Ctx.BlockHeader(), true, app.Logger)
+	ctx := sdk.NewContext(app.cms.CacheMultiStore(), app.CheckState.Ctx.BlockHeader(), sdk.RunTxModeCheck, app.Logger)
 	// Passes the rest of the path as an argument to the querier.
 	// For example, in the path "custom/gov/proposal/test", the gov querier gets []string{"proposal", "test"} as the path
 	resBytes, err := querier(ctx, path[2:], req)
@@ -483,7 +471,28 @@ func (app *BaseApp) CheckTx(txBytes []byte) (res abci.ResponseCheckTx) {
 	if err != nil {
 		result = err.Result()
 	} else {
-		result = app.runTx(runTxModeCheck, txBytes, tx)
+		result = app.runTx(sdk.RunTxModeCheck, txBytes, tx)
+	}
+
+	return abci.ResponseCheckTx{
+		Code: uint32(result.Code),
+		Data: result.Data,
+		Log:  result.Log,
+		Tags: result.Tags,
+	}
+}
+
+// ReCheckTx implements ABCI
+// ReCheckTx runs the "minimun checks", after the inital check,
+// to see whether or not a transaction can possibly be executed.
+func (app *BaseApp) ReCheckTx(txBytes []byte) (res abci.ResponseCheckTx) {
+	// Decode the Tx.
+	var result sdk.Result
+	var tx, err = app.TxDecoder(txBytes)
+	if err != nil {
+		result = err.Result()
+	} else {
+		result = app.reRunTx(txBytes, tx)
 	}
 
 	return abci.ResponseCheckTx{
@@ -502,7 +511,7 @@ func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
 	if err != nil {
 		result = err.Result()
 	} else {
-		result = app.runTx(runTxModeDeliver, txBytes, tx)
+		result = app.runTx(sdk.RunTxModeDeliver, txBytes, tx)
 	}
 
 	// Even though the Result.Code is not OK, there are still effects,
@@ -538,23 +547,23 @@ func validateBasicTxMsgs(msgs []sdk.Msg) sdk.Error {
 
 // retrieve the context for the ante handler and store the tx bytes; store
 // the vote infos if the tx runs within the deliverTx() state.
-func (app *BaseApp) getContextForAnte(mode runTxMode, txBytes []byte) (ctx sdk.Context) {
+func (app *BaseApp) getContextForAnte(mode sdk.RunTxMode, txBytes []byte) (ctx sdk.Context) {
 	// Get the context
 	ctx = getState(app, mode).Ctx.WithTxBytes(txBytes)
-	if mode == runTxModeDeliver {
+	if mode == sdk.RunTxModeDeliver {
 		ctx = ctx.WithVoteInfos(app.voteInfos)
 	}
 
 	// Simulate a DeliverTx
-	if mode == runTxModeSimulate {
-		ctx = ctx.WithIsCheckTx(false)
+	if mode == sdk.RunTxModeSimulate {
+		ctx = ctx.WithRunTxMode(mode)
 	}
 
 	return
 }
 
 // Iterates through msgs and executes them
-func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, txHash string, mode runTxMode) (result sdk.Result) {
+func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, txHash string, mode sdk.RunTxMode) (result sdk.Result) {
 	// accumulate results
 	logs := make([]string, 0, len(msgs))
 	var data []byte   // NOTE: we just append them all (?!)
@@ -568,7 +577,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, txHash string, mode
 			return sdk.ErrUnknownRequest("Unrecognized Msg type: " + msgRoute).Result()
 		}
 
-		msgResult := handler(ctx.WithValue(TxHashKey, txHash), msg)
+		msgResult := handler(ctx.WithValue(TxHashKey, txHash).WithRunTxMode(mode), msg)
 		msgResult.Tags = append(msgResult.Tags, sdk.MakeTag("action", []byte(msg.Type())))
 
 		// Append Data and Tags
@@ -599,17 +608,19 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, txHash string, mode
 
 // Returns the applicantion's DeliverState if app is in runTxModeDeliver,
 // otherwise it returns the application's checkstate.
-func getState(app *BaseApp, mode runTxMode) *state {
-	if mode == runTxModeCheck || mode == runTxModeSimulate {
+func getState(app *BaseApp, mode sdk.RunTxMode) *state {
+	if mode == sdk.RunTxModeCheck ||
+		mode == sdk.RunTxModeSimulate ||
+		mode == sdk.RunTxModeReCheck {
 		return app.CheckState
 	}
 
 	return app.DeliverState
 }
 
-func (app *BaseApp) initializeContext(ctx sdk.Context, mode runTxMode) sdk.Context {
-	if mode == runTxModeSimulate {
-		ctx = ctx.WithMultiStore(getState(app, runTxModeSimulate).CacheMultiStore())
+func (app *BaseApp) initializeContext(ctx sdk.Context, mode sdk.RunTxMode) sdk.Context {
+	if mode == sdk.RunTxModeSimulate {
+		ctx = ctx.WithMultiStore(getState(app, mode).CacheMultiStore())
 	}
 	return ctx
 }
@@ -617,7 +628,7 @@ func (app *BaseApp) initializeContext(ctx sdk.Context, mode runTxMode) sdk.Conte
 // runTx processes a transaction. The transactions is proccessed via an
 // anteHandler. txBytes may be nil in some cases, eg. in tests. Also, in the
 // future we may support "internal" transactions.
-func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (result sdk.Result) {
+func (app *BaseApp) runTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx) (result sdk.Result) {
 	// meter so we initialize upfront.
 	var msCache sdk.CacheMultiStore
 	ctx := app.getContextForAnte(mode, txBytes)
@@ -638,7 +649,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (result sdk
 
 	// run the ante handler
 	if app.anteHandler != nil {
-		newCtx, result, abort := app.anteHandler(ctx, tx, mode == runTxModeSimulate)
+		newCtx, result, abort := app.anteHandler(ctx, tx, mode)
 		if abort {
 			return result
 		}
@@ -649,7 +660,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (result sdk
 	}
 
 	txHash := cmn.HexBytes(tmhash.Sum(txBytes)).String()
-	if mode == runTxModeSimulate {
+	if mode == sdk.RunTxModeSimulate {
 		result = app.runMsgs(ctx, msgs, txHash, mode)
 		return
 	}
@@ -666,9 +677,60 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (result sdk
 	ctx = ctx.WithMultiStore(msCache)
 	result = app.runMsgs(ctx, msgs, txHash, mode)
 
-	if mode == runTxModeDeliver && app.isPublishAccountBalance {
+	if mode == sdk.RunTxModeDeliver && app.isPublishAccountBalance {
 		app.DeliverState.Ctx = collectInvolvedAddresses(app.DeliverState.Ctx, msgs[0])
 	}
+
+	// only update state if all messages pass
+	if result.IsOK() {
+		msCache.Write()
+	}
+
+	return
+}
+
+// runTx processes a transaction. The transactions is proccessed via an
+// anteHandler. txBytes may be nil in some cases, eg. in tests. Also, in the
+// future we may support "internal" transactions.
+func (app *BaseApp) reRunTx(txBytes []byte, tx sdk.Tx) (result sdk.Result) {
+	// meter so we initialize upfront.
+	var msCache sdk.CacheMultiStore
+	mode := sdk.RunTxModeReCheck
+	ctx := app.getContextForAnte(mode, txBytes)
+
+	defer func() {
+		if r := recover(); r != nil {
+			log := fmt.Sprintf("recovered: %v\nstack:\n%v", r, string(debug.Stack()))
+			result = sdk.ErrInternal(log).Result()
+		}
+
+	}()
+
+	// run the ante handler
+	if app.anteHandler != nil {
+		newCtx, result, abort := app.anteHandler(ctx, tx, mode)
+		if abort {
+			return result
+		}
+		if !newCtx.IsZero() {
+			ctx = newCtx
+			getState(app, mode).Ctx = newCtx
+		}
+	}
+
+	txHash := cmn.HexBytes(tmhash.Sum(txBytes)).String()
+	// Keep the state in a transient CacheWrap in case processing the messages
+	// fails.
+	msCache = getState(app, mode).CacheMultiStore()
+	if msCache.TracingEnabled() {
+		msCache = msCache.WithTracingContext(sdk.TraceContext(
+			map[string]interface{}{"txHash": txHash},
+		)).(sdk.CacheMultiStore)
+	}
+
+	ctx = ctx.WithMultiStore(msCache)
+	var msgs = tx.GetMsgs()
+	result = app.runMsgs(ctx, msgs, txHash, mode)
 
 	// only update state if all messages pass
 	if result.IsOK() {

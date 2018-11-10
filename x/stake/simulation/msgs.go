@@ -232,7 +232,7 @@ func SimulateMsgBeginRedelegate(m auth.AccountKeeper, k stake.Keeper) simulation
 // nolint: errcheck
 func Setup(mapp *mock.App, k stake.Keeper) simulation.RandSetup {
 	return func(r *rand.Rand, accs []simulation.Account) {
-		ctx := mapp.NewContext(false, abci.Header{})
+		ctx := mapp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
 		gen := stake.DefaultGenesisState()
 		stake.InitGenesis(ctx, k, gen)
 		params := k.GetParams(ctx)

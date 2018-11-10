@@ -32,7 +32,7 @@ type Context struct {
 }
 
 // create a new context
-func NewContext(ms MultiStore, header abci.Header, isCheckTx bool, logger log.Logger) Context {
+func NewContext(ms MultiStore, header abci.Header, runTxMode RunTxMode, logger log.Logger) Context {
 	c := Context{
 		Context: context.Background(),
 		pst:     newThePast(),
@@ -42,9 +42,7 @@ func NewContext(ms MultiStore, header abci.Header, isCheckTx bool, logger log.Lo
 	c = c.WithBlockHeader(header)
 	c = c.WithBlockHeight(header.Height)
 	c = c.WithChainID(header.ChainID)
-	c = c.WithIsCheckTx(isCheckTx)
-	// !IsDeliverTx() means CheckTx or Simulate.
-	c = c.WithIsDeliverTx(!isCheckTx)
+	c = c.WithRunTxMode(runTxMode)
 	c = c.WithTxBytes(nil)
 	c = c.WithLogger(logger)
 	c = c.WithVoteInfos(nil)
@@ -135,8 +133,7 @@ const (
 	contextKeyBlockHeight
 	contextKeyConsensusParams
 	contextKeyChainID
-	contextKeyIsCheckTx
-	contextKeyIsDeliverTx
+	contextKeyRunTxMode
 	contextKeyTxBytes
 	contextKeyLogger
 	contextKeyVoteInfos
@@ -167,9 +164,15 @@ func (c Context) VoteInfos() []abci.VoteInfo {
 	return c.Value(contextKeyVoteInfos).([]abci.VoteInfo)
 }
 
-func (c Context) IsCheckTx() bool { return c.Value(contextKeyIsCheckTx).(bool) }
+func (c Context) IsCheckTx() bool { return c.Value(contextKeyRunTxMode).(RunTxMode) == RunTxModeCheck }
 
-func (c Context) IsDeliverTx() bool { return c.Value(contextKeyIsDeliverTx).(bool) }
+func (c Context) IsReCheckTx() bool {
+	return c.Value(contextKeyRunTxMode).(RunTxMode) == RunTxModeReCheck
+}
+
+func (c Context) IsDeliverTx() bool {
+	return c.Value(contextKeyRunTxMode).(RunTxMode) == RunTxModeDeliver
+}
 
 func (c Context) WithMultiStore(ms MultiStore) Context { return c.withValue(contextKeyMultiStore, ms) }
 
@@ -213,12 +216,8 @@ func (c Context) WithVoteInfos(VoteInfos []abci.VoteInfo) Context {
 	return c.withValue(contextKeyVoteInfos, VoteInfos)
 }
 
-func (c Context) WithIsCheckTx(isCheckTx bool) Context {
-	return c.withValue(contextKeyIsCheckTx, isCheckTx)
-}
-
-func (c Context) WithIsDeliverTx(isCheckTx bool) Context {
-	return c.withValue(contextKeyIsDeliverTx, isCheckTx)
+func (c Context) WithRunTxMode(runTxMode RunTxMode) Context {
+	return c.withValue(contextKeyRunTxMode, runTxMode)
 }
 
 // Cache the multistore and return a new cached context. The cached context is

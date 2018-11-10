@@ -55,7 +55,7 @@ func TestCheckAndDeliverGenTx(t *testing.T) {
 	mApp.Cdc.RegisterConcrete(testMsg{}, "mock/testMsg", nil)
 
 	SetGenesis(mApp, accs)
-	ctxCheck := mApp.BaseApp.NewContext(true, abci.Header{})
+	ctxCheck := mApp.BaseApp.NewContext(sdk.RunTxModeCheck, abci.Header{})
 
 	msg := testMsg{signers: []sdk.AccAddress{addrs[0]}, positiveNum: 1}
 

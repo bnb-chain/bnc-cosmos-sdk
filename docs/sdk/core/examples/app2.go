@@ -217,7 +217,7 @@ func tx2Decoder(cdc *codec.Codec) sdk.TxDecoder {
 
 // Simple anteHandler that ensures msg signers have signed.
 // Provides no replay protection.
-func antehandler(ctx sdk.Context, tx sdk.Tx, simulate bool) (_ sdk.Context, _ sdk.Result, abort bool) {
+func antehandler(ctx sdk.Context, tx sdk.Tx, mode sdk.RunTxMode) (_ sdk.Context, _ sdk.Result, abort bool) {
 	appTx, ok := tx.(app2Tx)
 	if !ok {
 		// set abort boolean to true so that we don't continue to process failed tx

@@ -14,7 +14,7 @@ import (
 func TestGetSetProposal(t *testing.T) {
 	mapp, keeper, _, _, _, _ := getMockApp(t, 0)
 	mapp.BeginBlock(abci.RequestBeginBlock{})
-	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
 
 	proposal := keeper.NewTextProposal(ctx, "Test", "description", ProposalTypeText)
 	proposalID := proposal.GetProposalID()
@@ -27,7 +27,7 @@ func TestGetSetProposal(t *testing.T) {
 func TestIncrementProposalNumber(t *testing.T) {
 	mapp, keeper, _, _, _, _ := getMockApp(t, 0)
 	mapp.BeginBlock(abci.RequestBeginBlock{})
-	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
 
 	keeper.NewTextProposal(ctx, "Test", "description", ProposalTypeText)
 	keeper.NewTextProposal(ctx, "Test", "description", ProposalTypeText)
@@ -42,7 +42,7 @@ func TestIncrementProposalNumber(t *testing.T) {
 func TestActivateVotingPeriod(t *testing.T) {
 	mapp, keeper, _, _, _, _ := getMockApp(t, 0)
 	mapp.BeginBlock(abci.RequestBeginBlock{})
-	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
 
 	proposal := keeper.NewTextProposal(ctx, "Test", "description", ProposalTypeText)
 
@@ -59,7 +59,7 @@ func TestDeposits(t *testing.T) {
 	mapp, keeper, _, addrs, _, _ := getMockApp(t, 2)
 	SortAddresses(addrs)
 	mapp.BeginBlock(abci.RequestBeginBlock{})
-	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
 
 	proposal := keeper.NewTextProposal(ctx, "Test", "description", ProposalTypeText)
 	proposalID := proposal.GetProposalID()
@@ -149,7 +149,7 @@ func TestVotes(t *testing.T) {
 	mapp, keeper, _, addrs, _, _ := getMockApp(t, 2)
 	SortAddresses(addrs)
 	mapp.BeginBlock(abci.RequestBeginBlock{})
-	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
 
 	proposal := keeper.NewTextProposal(ctx, "Test", "description", ProposalTypeText)
 	proposalID := proposal.GetProposalID()
@@ -204,7 +204,7 @@ func TestVotes(t *testing.T) {
 func TestProposalQueues(t *testing.T) {
 	mapp, keeper, _, _, _, _ := getMockApp(t, 0)
 	mapp.BeginBlock(abci.RequestBeginBlock{})
-	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
 	mapp.InitChainer(ctx, abci.RequestInitChain{})
 
 	require.Nil(t, keeper.InactiveProposalQueuePeek(ctx))
