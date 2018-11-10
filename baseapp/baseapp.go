@@ -697,7 +697,6 @@ func (app *BaseApp) reRunTx(txBytes []byte, tx sdk.Tx) (result sdk.Result) {
 	var msCache sdk.CacheMultiStore
 	mode := sdk.RunTxModeReCheck
 	ctx := app.getContextForAnte(mode, txBytes)
-	ctx = app.initializeContext(ctx, mode)
 
 	defer func() {
 		if r := recover(); r != nil {
