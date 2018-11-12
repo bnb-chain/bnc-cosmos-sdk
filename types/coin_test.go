@@ -292,17 +292,17 @@ func TestParse(t *testing.T) {
 		expected Coins // if valid is true, make sure this is returned
 	}{
 		{"", true, nil},
-		{"1foo", true, Coins{{"foo", one}}},
-		{"10bar", true, Coins{{"bar", NewInt(10)}}},
-		{"99bar,1foo", true, Coins{{"bar", NewInt(99)}, {"foo", one}}},
-		{"98 bar , 1 foo  ", true, Coins{{"bar", NewInt(98)}, {"foo", one}}},
-		{"  55\t \t bling\n", true, Coins{{"bling", NewInt(55)}}},
-		{"2foo, 97 bar", true, Coins{{"bar", NewInt(97)}, {"foo", NewInt(2)}}},
-		{"5 mycoin,", false, nil},             // no empty coins in a list
-		{"2 3foo, 97 bar", false, nil},        // 3foo is invalid coin name
-		{"11me coin, 12you coin", false, nil}, // no spaces in coin names
-		{"1.2btc", false, nil},                // amount must be integer
-		{"5foo-bar", false, nil},              // once more, only letters in coin name
+		{"1:foo", true, Coins{{"foo", one}}},
+		{"10:bar", true, Coins{{"bar", NewInt(10)}}},
+		{"99:bar,1:foo", true, Coins{{"bar", NewInt(99)}, {"foo", one}}},
+		{"98:bar , 1:foo  ", true, Coins{{"bar", NewInt(98)}, {"foo", one}}},
+		{"  55:bling\n", true, Coins{{"bling", NewInt(55)}}},
+		{"2:foo, 97:bar", true, Coins{{"bar", NewInt(97)}, {"foo", NewInt(2)}}},
+		{"5:mycoin,", false, nil},                                                 // no empty coins in a list
+		{"2:3foo, 97:bar", true, Coins{{"3foo", NewInt(2)}, {"bar", NewInt(97)}}}, // 3foo is invalid coin name
+		{"11me:coin, 12you:coin", false, nil},                                     // no spaces in coin names
+		{"1.2:btc", false, nil},                                                   // amount must be integer
+		{"5:foo-bar", false, nil},                                                 // once more, only letters in coin name
 	}
 
 	for tcIndex, tc := range cases {
