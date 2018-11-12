@@ -220,7 +220,14 @@ func (app *BaseApp) initFromStore(mainKey sdk.StoreKey) error {
 
 // NewContext returns a new Context with the correct store, the given header, and nil txBytes.
 func (app *BaseApp) NewContext(mode sdk.RunTxMode, header abci.Header) sdk.Context {
-	return sdk.NewContext(app.CheckState.ms, header, mode, app.Logger)
+	var ms sdk.CacheMultiStore
+	switch mode {
+	case sdk.RunTxModeDeliver:
+		ms = app.DeliverState.ms
+	default:
+		ms = app.CheckState.ms
+	}
+	return sdk.NewContext(ms, header, mode, app.Logger)
 }
 
 type state struct {
