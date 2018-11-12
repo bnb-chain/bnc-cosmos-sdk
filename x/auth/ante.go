@@ -63,13 +63,17 @@ func NewAnteHandler(am AccountKeeper) sdk.AnteHandler {
 		}
 
 		for i := 0; i < len(stdSigs); i++ {
+			// check signature, return account with incremented nonce
+			var signBytes []byte
 			if mode != sdk.RunTxModeReCheck {
-				// check signature, return account with incremented nonce
-				signerAccs[i], res = processSig(newCtx, signerAccs[i],
-					stdSigs[i], signBytesList[i], mode == sdk.RunTxModeSimulate)
-				if !res.IsOK() {
-					return newCtx, res, true
-				}
+				signBytes = signBytesList[i]
+			} else {
+				signBytes = nil
+			}
+			signerAccs[i], res = processSig(newCtx, signerAccs[i],
+				stdSigs[i], signBytes, mode)
+			if !res.IsOK() {
+				return newCtx, res, true
 			}
 
 			// Save the account.
@@ -146,20 +150,19 @@ func validateAccNumAndSequence(ctx sdk.Context, accs []Account, sigs []StdSignat
 // verify the signature and increment the sequence.
 // if the account doesn't have a pubkey, set it.
 func processSig(ctx sdk.Context,
-	acc Account, sig StdSignature, signBytes []byte, simulate bool) (updatedAcc Account, res sdk.Result) {
-	pubKey, res := processPubKey(acc, sig, simulate)
+	acc Account, sig StdSignature, signBytes []byte, mode sdk.RunTxMode) (updatedAcc Account, res sdk.Result) {
+	pubKey, res := processPubKey(acc, sig, mode == sdk.RunTxModeSimulate)
 	if !res.IsOK() {
 		return nil, res
 	}
+
 	err := acc.SetPubKey(pubKey)
 	if err != nil {
 		return nil, sdk.ErrInternal("setting PubKey on signer's account").Result()
 	}
-
-	if !simulate && !pubKey.VerifyBytes(signBytes, sig.Signature) {
+	if (mode == sdk.RunTxModeCheck || mode == sdk.RunTxModeDeliver) && !pubKey.VerifyBytes(signBytes, sig.Signature) {
 		return nil, sdk.ErrUnauthorized("signature verification failed").Result()
 	}
-
 	// increment the sequence number
 	err = acc.SetSequence(acc.GetSequence() + 1)
 	if err != nil {
