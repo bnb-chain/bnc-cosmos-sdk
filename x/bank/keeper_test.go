@@ -3,18 +3,15 @@ package bank
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
-	abci "github.com/tendermint/tendermint/abci/types"
-	dbm "github.com/tendermint/tendermint/libs/db"
-	"github.com/tendermint/tendermint/libs/log"
-
 	codec "github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	abci "github.com/tendermint/tendermint/abci/types"
+	dbm "github.com/tendermint/tendermint/libs/db"
+	"github.com/tendermint/tendermint/libs/log"
 )
 
 func setupMultiStore() (sdk.MultiStore, *sdk.KVStoreKey) {
@@ -26,13 +23,20 @@ func setupMultiStore() (sdk.MultiStore, *sdk.KVStoreKey) {
 	return ms, authKey
 }
 
+func getAccountCache(cdc *codec.Codec, ms sdk.MultiStore, accountKey *sdk.KVStoreKey) sdk.AccountCache {
+	accountStore := ms.GetKVStore(accountKey)
+	accountStoreCache := auth.NewAccountStoreCache(cdc, accountStore, 10)
+	return auth.NewAccountCache(accountStoreCache)
+}
+
 func TestKeeper(t *testing.T) {
 	ms, authKey := setupMultiStore()
 
 	cdc := codec.New()
 	auth.RegisterBaseAccount(cdc)
+	accountCache := getAccountCache(cdc, ms, authKey)
 
-	ctx := sdk.NewContext(ms, abci.Header{}, sdk.RunTxModeDeliver, log.NewNopLogger())
+	ctx := sdk.NewContext(ms, abci.Header{}, sdk.RunTxModeDeliver, log.NewNopLogger()).WithAccountCache(accountCache)
 	accountKeeper := auth.NewAccountKeeper(cdc, authKey, auth.ProtoBaseAccount)
 	bankKeeper := NewBaseKeeper(accountKeeper)
 
@@ -116,8 +120,9 @@ func TestSendKeeper(t *testing.T) {
 
 	cdc := codec.New()
 	auth.RegisterBaseAccount(cdc)
+	accountCache := getAccountCache(cdc, ms, authKey)
 
-	ctx := sdk.NewContext(ms, abci.Header{}, sdk.RunTxModeDeliver, log.NewNopLogger())
+	ctx := sdk.NewContext(ms, abci.Header{}, sdk.RunTxModeDeliver, log.NewNopLogger()).WithAccountCache(accountCache)
 	accountKeeper := auth.NewAccountKeeper(cdc, authKey, auth.ProtoBaseAccount)
 	bankKeeper := NewBaseKeeper(accountKeeper)
 	sendKeeper := NewBaseSendKeeper(accountKeeper)
@@ -185,8 +190,9 @@ func TestViewKeeper(t *testing.T) {
 
 	cdc := codec.New()
 	auth.RegisterBaseAccount(cdc)
+	accountCache := getAccountCache(cdc, ms, authKey)
 
-	ctx := sdk.NewContext(ms, abci.Header{}, sdk.RunTxModeDeliver, log.NewNopLogger())
+	ctx := sdk.NewContext(ms, abci.Header{}, sdk.RunTxModeDeliver, log.NewNopLogger()).WithAccountCache(accountCache)
 	accountKeeper := auth.NewAccountKeeper(cdc, authKey, auth.ProtoBaseAccount)
 	bankKeeper := NewBaseKeeper(accountKeeper)
 	viewKeeper := NewBaseViewKeeper(accountKeeper)

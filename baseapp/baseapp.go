@@ -63,8 +63,8 @@ type BaseApp struct {
 	// CheckState is set on initialization and reset on Commit.
 	// DeliverState is set in InitChain and BeginBlock and cleared on Commit.
 	// See methods SetCheckState and SetDeliverState.
-	CheckState   *state          // for CheckTx
-	DeliverState *state          // for DeliverTx
+	CheckState   *state // for CheckTx
+	DeliverState *state // for DeliverTx
 
 	AccountStoreCache   sdk.AccountStoreCache
 	CheckAccountCache   sdk.AccountCache
@@ -228,7 +228,7 @@ func (app *BaseApp) NewContext(mode sdk.RunTxMode, header abci.Header) sdk.Conte
 	default:
 		ms = app.CheckState.ms
 	}
-	return sdk.NewContext(ms, header, mode, app.Logger)
+	return sdk.NewContext(ms, header, mode, app.Logger).WithAccountCache(app.CheckAccountCache)
 }
 
 type state struct {
@@ -260,7 +260,7 @@ func (app *BaseApp) SetDeliverState(header abci.Header) {
 	}
 }
 
-func (app *BaseApp) SetAccountCache(cdc *codec.Codec, accountStore sdk.KVStore, cap int) {
+func (app *BaseApp) SetAccountStoreCache(cdc *codec.Codec, accountStore sdk.KVStore, cap int) {
 	app.AccountStoreCache = auth.NewAccountStoreCache(cdc, accountStore, cap)
 }
 
@@ -297,6 +297,7 @@ func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitC
 	}
 	res = app.initChainer(app.DeliverState.Ctx, req)
 
+	app.DeliverAccountCache.Write()
 	// NOTE: we don't commit, but BeginBlock for block 1
 	// starts from this DeliverState
 	return
@@ -430,6 +431,8 @@ func handleQueryCustom(app *BaseApp, path []string, req abci.RequestQuery) (res 
 	}
 
 	ctx := sdk.NewContext(app.cms.CacheMultiStore(), app.CheckState.Ctx.BlockHeader(), sdk.RunTxModeCheck, app.Logger)
+	ctx = ctx.WithAccountCache(auth.NewAccountCache(app.AccountStoreCache))
+
 	// Passes the rest of the path as an argument to the querier.
 	// For example, in the path "custom/gov/proposal/test", the gov querier gets []string{"proposal", "test"} as the path
 	resBytes, err := querier(ctx, path[2:], req)

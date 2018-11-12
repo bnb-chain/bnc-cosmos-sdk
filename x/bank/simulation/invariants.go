@@ -42,6 +42,7 @@ func TotalCoinsInvariant(mapper auth.AccountKeeper, totalSupplyFn func() sdk.Coi
 			return false
 		}
 
+		app.DeliverAccountCache.Write()
 		mapper.IterateAccounts(ctx, chkAccount)
 		if !totalSupplyFn().IsEqual(totalCoins) {
 			return errors.New("total calculated coins doesn't equal expected coins")

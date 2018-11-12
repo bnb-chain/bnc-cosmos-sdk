@@ -47,6 +47,10 @@ func NewApp4(logger log.Logger, db dbm.DB) *bapp.BaseApp {
 	// Mount stores and load the latest state.
 	app.MountStoresIAVL(keyAccount, keyFees)
 	err := app.LoadLatestVersion(keyAccount)
+
+	accountStore := app.GetCommitMultiStore().GetKVStore(keyAccount)
+	app.SetAccountStoreCache(cdc, accountStore, 100)
+
 	if err != nil {
 		cmn.Exit(err.Error())
 	}

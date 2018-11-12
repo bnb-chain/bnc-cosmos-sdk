@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
 	abci "github.com/tendermint/tendermint/abci/types"
 	dbm "github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/libs/log"
@@ -25,13 +24,20 @@ func setupMultiStore() (sdk.MultiStore, *sdk.KVStoreKey, *sdk.KVStoreKey) {
 	return ms, capKey, capKey2
 }
 
+func getAccountCache(cdc *codec.Codec, ms sdk.MultiStore, accountKey *sdk.KVStoreKey) sdk.AccountCache {
+	accountStore := ms.GetKVStore(accountKey)
+	accountStoreCache := NewAccountStoreCache(cdc, accountStore, 10)
+	return NewAccountCache(accountStoreCache)
+}
+
 func TestAccountMapperGetSet(t *testing.T) {
 	ms, capKey, _ := setupMultiStore()
 	cdc := codec.New()
 	RegisterBaseAccount(cdc)
+	accountCache := getAccountCache(cdc, ms, capKey)
 
 	// make context and mapper
-	ctx := sdk.NewContext(ms, abci.Header{}, sdk.RunTxModeDeliver, log.NewNopLogger())
+	ctx := sdk.NewContext(ms, abci.Header{}, sdk.RunTxModeDeliver, log.NewNopLogger()).WithAccountCache(accountCache)
 	mapper := NewAccountKeeper(cdc, capKey, ProtoBaseAccount)
 
 	addr := sdk.AccAddress([]byte("some-address"))
@@ -65,9 +71,10 @@ func TestAccountMapperRemoveAccount(t *testing.T) {
 	ms, capKey, _ := setupMultiStore()
 	cdc := codec.New()
 	RegisterBaseAccount(cdc)
+	accountCache := getAccountCache(cdc, ms, capKey)
 
 	// make context and mapper
-	ctx := sdk.NewContext(ms, abci.Header{}, sdk.RunTxModeDeliver, log.NewNopLogger())
+	ctx := sdk.NewContext(ms, abci.Header{}, sdk.RunTxModeDeliver, log.NewNopLogger()).WithAccountCache(accountCache)
 	mapper := NewAccountKeeper(cdc, capKey, ProtoBaseAccount)
 
 	addr1 := sdk.AccAddress([]byte("addr1"))
@@ -103,9 +110,10 @@ func BenchmarkAccountMapperGetAccountFound(b *testing.B) {
 	ms, capKey, _ := setupMultiStore()
 	cdc := codec.New()
 	RegisterBaseAccount(cdc)
+	accountCache := getAccountCache(cdc, ms, capKey)
 
 	// make context and mapper
-	ctx := sdk.NewContext(ms, abci.Header{}, sdk.RunTxModeDeliver, log.NewNopLogger())
+	ctx := sdk.NewContext(ms, abci.Header{}, sdk.RunTxModeDeliver, log.NewNopLogger()).WithAccountCache(accountCache)
 	mapper := NewAccountKeeper(cdc, capKey, ProtoBaseAccount)
 
 	// assumes b.N < 2**24

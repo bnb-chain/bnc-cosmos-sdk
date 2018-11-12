@@ -6,6 +6,13 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/crypto/ed25519"
+	dbm "github.com/tendermint/tendermint/libs/db"
+	"github.com/tendermint/tendermint/libs/log"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -13,12 +20,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/params"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
-	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/ed25519"
-	dbm "github.com/tendermint/tendermint/libs/db"
-	"github.com/tendermint/tendermint/libs/log"
 )
 
 // dummy addresses used for testing
@@ -71,6 +72,12 @@ func MakeTestCodec() *codec.Codec {
 	return cdc
 }
 
+func getAccountCache(cdc *codec.Codec, ms sdk.MultiStore, accountKey *sdk.KVStoreKey) sdk.AccountCache {
+	accountStore := ms.GetKVStore(accountKey)
+	accountStoreCache := auth.NewAccountStoreCache(cdc, accountStore, 10)
+	return auth.NewAccountCache(accountStoreCache)
+}
+
 // hogpodge of all sorts of input required for testing
 func CreateTestInput(t *testing.T, isCheckTx bool, initCoins int64) (sdk.Context, auth.AccountKeeper, Keeper) {
 
@@ -102,6 +109,9 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initCoins int64) (sdk.Context
 		keyAcc,                // target store
 		auth.ProtoBaseAccount, // prototype
 	)
+
+	accountCache := getAccountCache(cdc, ms, keyAcc)
+	ctx = ctx.WithAccountCache(accountCache)
 
 	ck := bank.NewBaseKeeper(accountKeeper)
 

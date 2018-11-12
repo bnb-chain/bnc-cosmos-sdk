@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/ed25519"
@@ -16,10 +15,9 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/bank"
+	"github.com/cosmos/cosmos-sdk/x/distribution/types"
 	"github.com/cosmos/cosmos-sdk/x/params"
 	"github.com/cosmos/cosmos-sdk/x/stake"
-
-	"github.com/cosmos/cosmos-sdk/x/distribution/types"
 )
 
 var (
@@ -79,6 +77,12 @@ func CreateTestInputDefault(t *testing.T, isCheckTx bool, initCoins int64) (
 	return CreateTestInputAdvanced(t, isCheckTx, initCoins, communityTax)
 }
 
+func getAccountCache(cdc *codec.Codec, ms sdk.MultiStore, accountKey *sdk.KVStoreKey) sdk.AccountCache {
+	accountStore := ms.GetKVStore(accountKey)
+	accountStoreCache := auth.NewAccountStoreCache(cdc, accountStore, 10)
+	return auth.NewAccountCache(accountStoreCache)
+}
+
 // hogpodge of all sorts of input required for testing
 func CreateTestInputAdvanced(t *testing.T, isCheckTx bool, initCoins int64,
 	communityTax sdk.Dec) (
@@ -114,6 +118,9 @@ func CreateTestInputAdvanced(t *testing.T, isCheckTx bool, initCoins int64,
 	}
 	ctx := sdk.NewContext(ms, abci.Header{ChainID: "foochainid"}, mode, log.NewNopLogger())
 	accountKeeper := auth.NewAccountKeeper(cdc, keyAcc, auth.ProtoBaseAccount)
+	accountCache := getAccountCache(cdc, ms, keyAcc)
+	ctx = ctx.WithAccountCache(accountCache)
+
 	ck := bank.NewBaseKeeper(accountKeeper)
 	sk := stake.NewKeeper(cdc, keyStake, tkeyStake, ck, pk.Subspace(stake.DefaultParamspace), stake.DefaultCodespace)
 	sk.SetPool(ctx, stake.InitialPool())

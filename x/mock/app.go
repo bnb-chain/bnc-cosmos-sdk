@@ -92,6 +92,9 @@ func (app *App) CompleteSetup(newKeys ...sdk.StoreKey) error {
 
 	err := app.LoadLatestVersion(app.KeyMain)
 
+	accountStore := app.BaseApp.GetCommitMultiStore().GetKVStore(app.KeyAccount)
+	app.SetAccountStoreCache(app.Cdc, accountStore, 100)
+
 	return err
 }
 

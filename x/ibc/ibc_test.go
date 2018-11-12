@@ -3,26 +3,34 @@ package ibc
 import (
 	"testing"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/store"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/ed25519"
 	dbm "github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/libs/log"
+
+	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/store"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
+	"github.com/cosmos/cosmos-sdk/x/bank"
 )
 
 // AccountKeeper(/Keeper) and IBCMapper should use different StoreKey later
 
-func defaultContext(key sdk.StoreKey) sdk.Context {
+func getAccountCache(cdc *codec.Codec, accountStore sdk.KVStore) sdk.AccountCache {
+	accountStoreCache := auth.NewAccountStoreCache(cdc, accountStore, 10)
+	return auth.NewAccountCache(accountStoreCache)
+}
+
+func defaultContext(cdc *codec.Codec, key sdk.StoreKey) sdk.Context {
 	db := dbm.NewMemDB()
 	cms := store.NewCommitMultiStore(db)
 	cms.MountStoreWithDB(key, sdk.StoreTypeIAVL, db)
 	cms.LoadLatestVersion()
-	ctx := sdk.NewContext(cms, abci.Header{}, sdk.RunTxModeDeliver, log.NewNopLogger())
+
+	accountCache := getAccountCache(cdc, cms.GetKVStore(key))
+	ctx := sdk.NewContext(cms, abci.Header{}, sdk.RunTxModeDeliver, log.NewNopLogger()).WithAccountCache(accountCache)
 	return ctx
 }
 
@@ -60,7 +68,7 @@ func TestIBC(t *testing.T) {
 	cdc := makeCodec()
 
 	key := sdk.NewKVStoreKey("ibc")
-	ctx := defaultContext(key)
+	ctx := defaultContext(cdc, key)
 
 	am := auth.NewAccountKeeper(cdc, key, auth.ProtoBaseAccount)
 	ck := bank.NewBaseKeeper(am)
