@@ -260,6 +260,10 @@ func (app *BaseApp) SetDeliverState(header abci.Header) {
 	}
 }
 
+func (app *BaseApp) SetAccountCache(cdc *codec.Codec, accountStore sdk.KVStore, cap int) {
+	app.AccountStoreCache = auth.NewAccountStoreCache(cdc, accountStore, cap)
+}
+
 //______________________________________________________________________________
 
 // ABCI

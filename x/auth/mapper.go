@@ -4,10 +4,11 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/hashicorp/golang-lru"
 	"github.com/tendermint/tendermint/crypto"
+
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 var globalAccountNumberKey = []byte("globalAccountNumber")
@@ -182,7 +183,7 @@ func (am AccountKeeper) decodeAccount(bz []byte) (acc sdk.Account) {
 	return
 }
 
-func NewAccountSotreCache(cdc *codec.Codec, store sdk.KVStore, cap int) sdk.AccountStoreCache {
+func NewAccountStoreCache(cdc *codec.Codec, store sdk.KVStore, cap int) sdk.AccountStoreCache {
 	cache, err := lru.New(cap)
 	if err != nil {
 		panic(err)
@@ -217,7 +218,6 @@ func (ac *accountStoreCache) setAccountToCache(addr sdk.AccAddress, acc sdk.Acco
 }
 
 func (ac *accountStoreCache) GetAccount(addr sdk.AccAddress) sdk.Account {
-	println("cache: get account from store, ", addr.String())
 	if acc, ok := ac.getAccountFromCache(addr); ok {
 		return acc
 	}
@@ -237,7 +237,6 @@ func (ac *accountStoreCache) SetAccount(addr sdk.AccAddress, acc sdk.Account) {
 		return
 	}
 
-	println("cache: set account to store, ", addr.String())
 	bz := ac.encodeAccount(cacc)
 	ac.setAccountToCache(addr, cacc)
 	ac.store.Set(AddressStoreKey(addr), bz)
@@ -278,14 +277,14 @@ func NewAccountCache(parent sdk.AccountStoreCache) sdk.AccountCache {
 }
 
 type accountCache struct {
-	mtx    sync.Mutex
+	mtx    sync.RWMutex
 	cache  map[string]cValue
 	parent sdk.AccountStoreCache
 }
 
 func (ac *accountCache) GetAccount(addr sdk.AccAddress) sdk.Account {
-	ac.mtx.Lock()
-	defer ac.mtx.Unlock()
+	ac.mtx.RLock()
+	defer ac.mtx.RUnlock()
 
 	return ac.getAccountFromCache(addr)
 }
@@ -293,8 +292,6 @@ func (ac *accountCache) GetAccount(addr sdk.AccAddress) sdk.Account {
 func (ac *accountCache) SetAccount(addr sdk.AccAddress, acc sdk.Account) {
 	ac.mtx.Lock()
 	defer ac.mtx.Unlock()
-
-	println("cache: set account to cache, ", addr.String())
 
 	ac.setAccountToCache(addr, acc, false, true)
 }
@@ -327,7 +324,6 @@ func (ac *accountCache) Write() {
 		cacheValue := ac.cache[key]
 		addr, _ := sdk.AccAddressFromBech32(key)
 
-		println("cache: write cache to parent, ", key, cacheValue.acc == nil, cacheValue.dirty)
 		if cacheValue.deleted {
 			ac.parent.Delete(addr)
 		} else if cacheValue.acc == nil {
