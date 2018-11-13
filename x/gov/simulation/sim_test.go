@@ -50,7 +50,7 @@ func TestGovWithRandomMessages(t *testing.T) {
 	}
 
 	setup := func(r *rand.Rand, accs []simulation.Account) {
-		ctx := mapp.NewContext(false, abci.Header{})
+		ctx := mapp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
 		stake.InitGenesis(ctx, stakeKeeper, stake.DefaultGenesisState())
 		gov.InitGenesis(ctx, govKeeper, gov.DefaultGenesisState())
 	}

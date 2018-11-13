@@ -35,7 +35,7 @@ func TestParamsFromPath(t *testing.T) {
 		{&BIP44Params{44, 0, 0, true, 0}, "44'/0'/0'/1/0"},
 		{&BIP44Params{44, 0, 0, false, 1}, "44'/0'/0'/0/1"},
 		{&BIP44Params{44, 1, 1, true, 1}, "44'/1'/1'/1/1"},
-		{&BIP44Params{44, 118, 52, true, 41}, "44'/118'/52'/1/41"},
+		{&BIP44Params{44, 714, 52, true, 41}, "44'/714'/52'/1/41"},
 	}
 
 	for i, c := range goodCases {
@@ -118,7 +118,7 @@ func ExampleSomeBIP32TestVecs() {
 
 	// Output: keys from fundraiser test-vector (cosmos, bitcoin, ether)
 	//
-	// bfcb217c058d8bbafd5e186eae936106ca3e943889b0b4a093ae13822fd3170c
+	// 01dcb36acfd5de52ac1f00daf231e64637388202f1fce7bdc64f6bb3199d270d
 	// e77c3de76965ad89997451de97b95bb65ede23a6bf185a55d80363d92ee37c3d
 	// 7fc4d8a8146dea344ba04c593517d3f377fa6cded36cd55aee0a0bb968e651bc
 	//
