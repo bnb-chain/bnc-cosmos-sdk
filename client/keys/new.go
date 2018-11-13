@@ -31,7 +31,7 @@ and encrypted with the given password. The only input that is required is the en
 	}
 	cmd.Flags().Bool(flagNewDefault, false, "Skip the prompts and just use the default values for everything")
 	cmd.Flags().Bool(client.FlagUseLedger, false, "Store a local reference to a private key on a Ledger device")
-	cmd.Flags().String(flagBIP44Path, "44'/118'/0'/0/0", "BIP44 path from which to derive a private key")
+	cmd.Flags().String(flagBIP44Path, "44'/714'/0'/0/0", "BIP44 path from which to derive a private key")
 	return cmd
 }
 
