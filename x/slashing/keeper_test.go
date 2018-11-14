@@ -31,12 +31,12 @@ func TestHandleDoubleSign(t *testing.T) {
 	// validator added pre-genesis
 	ctx = ctx.WithBlockHeight(-1)
 	amtInt := int64(100)
-	operatorAddr, val, amt := addrs[0], pks[0], sdk.NewInt(amtInt)
+	operatorAddr, val, amt := addrs[0], pks[0], amtInt
 	got := stake.NewHandler(sk)(ctx, NewTestMsgCreateValidator(operatorAddr, val, amt))
 	require.True(t, got.IsOK())
 	validatorUpdates := stake.EndBlocker(ctx, sk)
 	keeper.AddValidators(ctx, validatorUpdates)
-	require.Equal(t, ck.GetCoins(ctx, sdk.AccAddress(operatorAddr)), sdk.Coins{{sk.GetParams(ctx).BondDenom, initCoins.Sub(amt)}})
+	require.Equal(t, ck.GetCoins(ctx, sdk.AccAddress(operatorAddr)), sdk.Coins{{sk.GetParams(ctx).BondDenom, initCoins - amt}})
 	require.True(t, sdk.NewDecFromInt(amt).Equal(sk.Validator(ctx, operatorAddr).GetPower()))
 
 	// handle a signature to set signing info
@@ -71,14 +71,14 @@ func TestSlashingPeriodCap(t *testing.T) {
 	// initial setup
 	ctx, ck, sk, _, keeper := createTestInput(t, DefaultParams())
 	amtInt := int64(100)
-	operatorAddr, amt := addrs[0], sdk.NewInt(amtInt)
+	operatorAddr, amt := addrs[0], amtInt
 	valConsPubKey, valConsAddr := pks[0], pks[0].Address()
 	got := stake.NewHandler(sk)(ctx, NewTestMsgCreateValidator(operatorAddr, valConsPubKey, amt))
 	require.True(t, got.IsOK())
 	validatorUpdates := stake.EndBlocker(ctx, sk)
 	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
 	keeper.AddValidators(ctx, validatorUpdates)
-	require.Equal(t, ck.GetCoins(ctx, sdk.AccAddress(operatorAddr)), sdk.Coins{{sk.GetParams(ctx).BondDenom, initCoins.Sub(amt)}})
+	require.Equal(t, ck.GetCoins(ctx, sdk.AccAddress(operatorAddr)), sdk.Coins{{sk.GetParams(ctx).BondDenom, initCoins - amt}})
 	require.True(t, sdk.NewDecFromInt(amt).Equal(sk.Validator(ctx, operatorAddr).GetPower()))
 
 	// handle a signature to set signing info
@@ -136,14 +136,14 @@ func TestHandleAbsentValidator(t *testing.T) {
 	// initial setup
 	ctx, ck, sk, _, keeper := createTestInput(t, keeperTestParams())
 	amtInt := int64(100)
-	addr, val, amt := addrs[0], pks[0], sdk.NewInt(amtInt)
+	addr, val, amt := addrs[0], pks[0], amtInt
 	sh := stake.NewHandler(sk)
 	slh := NewHandler(keeper)
 	got := sh(ctx, NewTestMsgCreateValidator(addr, val, amt))
 	require.True(t, got.IsOK())
 	validatorUpdates := stake.EndBlocker(ctx, sk)
 	keeper.AddValidators(ctx, validatorUpdates)
-	require.Equal(t, ck.GetCoins(ctx, sdk.AccAddress(addr)), sdk.Coins{{sk.GetParams(ctx).BondDenom, initCoins.Sub(amt)}})
+	require.Equal(t, ck.GetCoins(ctx, sdk.AccAddress(addr)), sdk.Coins{{sk.GetParams(ctx).BondDenom, initCoins - amt}})
 	require.True(t, sdk.NewDecFromInt(amt).Equal(sk.Validator(ctx, addr).GetPower()))
 	// will exist since the validator has been bonded
 	info, found := keeper.getValidatorSigningInfo(ctx, sdk.ConsAddress(val.Address()))
@@ -296,11 +296,11 @@ func TestHandleNewValidator(t *testing.T) {
 	ctx = ctx.WithBlockHeight(keeper.SignedBlocksWindow(ctx) + 1)
 
 	// Validator created
-	got := sh(ctx, NewTestMsgCreateValidator(addr, val, sdk.NewInt(amt)))
+	got := sh(ctx, NewTestMsgCreateValidator(addr, val, amt))
 	require.True(t, got.IsOK())
 	validatorUpdates := stake.EndBlocker(ctx, sk)
 	keeper.AddValidators(ctx, validatorUpdates)
-	require.Equal(t, ck.GetCoins(ctx, sdk.AccAddress(addr)), sdk.Coins{{sk.GetParams(ctx).BondDenom, initCoins.SubRaw(amt)}})
+	require.Equal(t, ck.GetCoins(ctx, sdk.AccAddress(addr)), sdk.Coins{{sk.GetParams(ctx).BondDenom, initCoins - amt}})
 	require.Equal(t, sdk.NewDec(amt), sk.Validator(ctx, addr).GetPower())
 
 	// Now a validator, for two blocks
@@ -329,7 +329,7 @@ func TestHandleAlreadyJailed(t *testing.T) {
 	// initial setup
 	ctx, _, sk, _, keeper := createTestInput(t, DefaultParams())
 	amtInt := int64(100)
-	addr, val, amt := addrs[0], pks[0], sdk.NewInt(amtInt)
+	addr, val, amt := addrs[0], pks[0], amtInt
 	sh := stake.NewHandler(sk)
 	got := sh(ctx, NewTestMsgCreateValidator(addr, val, amt))
 	require.True(t, got.IsOK())
@@ -381,7 +381,7 @@ func TestValidatorDippingInAndOut(t *testing.T) {
 	params.MaxValidators = 1
 	sk.SetParams(ctx, params)
 	amtInt := int64(100)
-	addr, val, amt := addrs[0], pks[0], sdk.NewInt(amtInt)
+	addr, val, amt := addrs[0], pks[0], amtInt
 	consAddr := sdk.ConsAddress(addr)
 	sh := stake.NewHandler(sk)
 	got := sh(ctx, NewTestMsgCreateValidator(addr, val, amt))
@@ -398,7 +398,7 @@ func TestValidatorDippingInAndOut(t *testing.T) {
 
 	// validator kicked out of validator set
 	newAmt := int64(101)
-	got = sh(ctx, NewTestMsgCreateValidator(addrs[1], pks[1], sdk.NewInt(newAmt)))
+	got = sh(ctx, NewTestMsgCreateValidator(addrs[1], pks[1], newAmt))
 	require.True(t, got.IsOK())
 	validatorUpdates = stake.EndBlocker(ctx, sk)
 	require.Equal(t, 2, len(validatorUpdates))
@@ -411,7 +411,7 @@ func TestValidatorDippingInAndOut(t *testing.T) {
 	ctx = ctx.WithBlockHeight(height)
 
 	// validator added back in
-	got = sh(ctx, newTestMsgDelegate(sdk.AccAddress(addrs[2]), addrs[0], sdk.NewInt(2)))
+	got = sh(ctx, newTestMsgDelegate(sdk.AccAddress(addrs[2]), addrs[0], 2))
 	require.True(t, got.IsOK())
 	validatorUpdates = stake.EndBlocker(ctx, sk)
 	require.Equal(t, 2, len(validatorUpdates))

@@ -19,7 +19,7 @@ func TestTickExpiredDepositPeriod(t *testing.T) {
 	require.Nil(t, keeper.InactiveProposalQueuePeek(ctx))
 	require.False(t, shouldPopInactiveProposalQueue(ctx, keeper))
 
-	newProposalMsg := NewMsgSubmitProposal("Test", "test", ProposalTypeText, addrs[0], sdk.Coins{sdk.NewInt64Coin("steak", 5)})
+	newProposalMsg := NewMsgSubmitProposal("Test", "test", ProposalTypeText, addrs[0], sdk.Coins{sdk.NewCoin("steak", 5)})
 
 	res := govHandler(ctx, newProposalMsg)
 	require.True(t, res.IsOK())
@@ -56,7 +56,7 @@ func TestTickMultipleExpiredDepositPeriod(t *testing.T) {
 	require.Nil(t, keeper.InactiveProposalQueuePeek(ctx))
 	require.False(t, shouldPopInactiveProposalQueue(ctx, keeper))
 
-	newProposalMsg := NewMsgSubmitProposal("Test", "test", ProposalTypeText, addrs[0], sdk.Coins{sdk.NewInt64Coin("steak", 5)})
+	newProposalMsg := NewMsgSubmitProposal("Test", "test", ProposalTypeText, addrs[0], sdk.Coins{sdk.NewCoin("steak", 5)})
 
 	res := govHandler(ctx, newProposalMsg)
 	require.True(t, res.IsOK())
@@ -73,7 +73,7 @@ func TestTickMultipleExpiredDepositPeriod(t *testing.T) {
 	require.NotNil(t, keeper.InactiveProposalQueuePeek(ctx))
 	require.False(t, shouldPopInactiveProposalQueue(ctx, keeper))
 
-	newProposalMsg2 := NewMsgSubmitProposal("Test2", "test2", ProposalTypeText, addrs[1], sdk.Coins{sdk.NewInt64Coin("steak", 5)})
+	newProposalMsg2 := NewMsgSubmitProposal("Test2", "test2", ProposalTypeText, addrs[1], sdk.Coins{sdk.NewCoin("steak", 5)})
 	res = govHandler(ctx, newProposalMsg2)
 	require.True(t, res.IsOK())
 
@@ -109,7 +109,7 @@ func TestTickPassedDepositPeriod(t *testing.T) {
 	require.Nil(t, keeper.ActiveProposalQueuePeek(ctx))
 	require.False(t, shouldPopActiveProposalQueue(ctx, keeper))
 
-	newProposalMsg := NewMsgSubmitProposal("Test", "test", ProposalTypeText, addrs[0], sdk.Coins{sdk.NewInt64Coin("steak", 5)})
+	newProposalMsg := NewMsgSubmitProposal("Test", "test", ProposalTypeText, addrs[0], sdk.Coins{sdk.NewCoin("steak", 5)})
 
 	res := govHandler(ctx, newProposalMsg)
 	require.True(t, res.IsOK())
@@ -128,7 +128,7 @@ func TestTickPassedDepositPeriod(t *testing.T) {
 	require.NotNil(t, keeper.InactiveProposalQueuePeek(ctx))
 	require.False(t, shouldPopInactiveProposalQueue(ctx, keeper))
 
-	newDepositMsg := NewMsgDeposit(addrs[1], proposalID, sdk.Coins{sdk.NewInt64Coin("steak", 5)})
+	newDepositMsg := NewMsgDeposit(addrs[1], proposalID, sdk.Coins{sdk.NewCoin("steak", 5)})
 	res = govHandler(ctx, newDepositMsg)
 	require.True(t, res.IsOK())
 
@@ -157,7 +157,7 @@ func TestTickPassedVotingPeriod(t *testing.T) {
 	require.Nil(t, keeper.ActiveProposalQueuePeek(ctx))
 	require.False(t, shouldPopActiveProposalQueue(ctx, keeper))
 
-	newProposalMsg := NewMsgSubmitProposal("Test", "test", ProposalTypeText, addrs[0], sdk.Coins{sdk.NewInt64Coin("steak", 5)})
+	newProposalMsg := NewMsgSubmitProposal("Test", "test", ProposalTypeText, addrs[0], sdk.Coins{sdk.NewCoin("steak", 5)})
 
 	res := govHandler(ctx, newProposalMsg)
 	require.True(t, res.IsOK())
@@ -168,7 +168,7 @@ func TestTickPassedVotingPeriod(t *testing.T) {
 	newHeader.Time = ctx.BlockHeader().Time.Add(time.Duration(1) * time.Second)
 	ctx = ctx.WithBlockHeader(newHeader)
 
-	newDepositMsg := NewMsgDeposit(addrs[1], proposalID, sdk.Coins{sdk.NewInt64Coin("steak", 5)})
+	newDepositMsg := NewMsgDeposit(addrs[1], proposalID, sdk.Coins{sdk.NewCoin("steak", 5)})
 	res = govHandler(ctx, newDepositMsg)
 	require.True(t, res.IsOK())
 

@@ -1,7 +1,7 @@
 package app
 
 import (
-	"encoding/json"
+	"github.com/cosmos/cosmos-sdk/codec"
 	"os"
 	"testing"
 
@@ -30,12 +30,12 @@ func InitTestChain(bc *bapp.BaseApp, chainID string, addrs ...sdk.AccAddress) {
 	for _, addr := range addrs {
 		acc := GenesisAccount{
 			Address: addr,
-			Coins:   sdk.Coins{{"testCoin", sdk.NewInt(100)}},
+			Coins:   sdk.Coins{{"testCoin", 100}},
 		}
 		accounts = append(accounts, &acc)
 	}
 	accountState := GenesisState{accounts}
-	genState, err := json.Marshal(accountState)
+	genState, err := codec.Cdc.MarshalJSON(accountState)
 	if err != nil {
 		panic(err)
 	}
@@ -61,7 +61,7 @@ func TestBadMsg(t *testing.T) {
 	addr2 := priv2.PubKey().Address().Bytes()
 
 	// Attempt to spend non-existent funds
-	msg := GenerateSpendMsg(addr1, addr2, sdk.Coins{{"testCoin", sdk.NewInt(100)}})
+	msg := GenerateSpendMsg(addr1, addr2, sdk.Coins{{"testCoin", 100}})
 
 	// Construct transaction
 	signBytes := auth.StdSignBytes("test-chain", 0, 0, []sdk.Msg{msg}, "")
@@ -103,7 +103,7 @@ func TestMsgSend(t *testing.T) {
 	InitTestChain(bc, "test-chain", addr1)
 
 	// Send funds to addr2
-	msg := GenerateSpendMsg(addr1, addr2, sdk.Coins{{"testCoin", sdk.NewInt(100)}})
+	msg := GenerateSpendMsg(addr1, addr2, sdk.Coins{{"testCoin", 100}})
 
 	signBytes := auth.StdSignBytes("test-chain", 0, 0, []sdk.Msg{msg}, "")
 	sig, err := priv1.Sign(signBytes)

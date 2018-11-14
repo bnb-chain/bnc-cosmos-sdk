@@ -25,21 +25,21 @@ func SimulateMsgCreateValidator(m auth.AccountKeeper, k stake.Keeper) simulation
 			Moniker: simulation.RandStringOfLength(r, 10),
 		}
 
-		maxCommission := sdk.NewInt(10)
+		maxCommission := int64(10)
 		commission := stake.NewCommissionMsg(
-			sdk.NewDecWithPrec(simulation.RandomAmount(r, maxCommission).Int64(), 1),
-			sdk.NewDecWithPrec(simulation.RandomAmount(r, maxCommission).Int64(), 1),
-			sdk.NewDecWithPrec(simulation.RandomAmount(r, maxCommission).Int64(), 1),
+			sdk.NewDecWithPrec(simulation.RandomAmount(r, maxCommission), 1),
+			sdk.NewDecWithPrec(simulation.RandomAmount(r, maxCommission), 1),
+			sdk.NewDecWithPrec(simulation.RandomAmount(r, maxCommission), 1),
 		)
 
 		acc := simulation.RandomAcc(r, accs)
 		address := sdk.ValAddress(acc.Address)
 		amount := m.GetAccount(ctx, acc.Address).GetCoins().AmountOf(denom)
-		if amount.GT(sdk.ZeroInt()) {
+		if amount > 0 {
 			amount = simulation.RandomAmount(r, amount)
 		}
 
-		if amount.Equal(sdk.ZeroInt()) {
+		if amount == 0 {
 			return "no-operation", nil, nil
 		}
 
@@ -84,8 +84,8 @@ func SimulateMsgEditValidator(k stake.Keeper) simulation.Operation {
 			Details:  simulation.RandStringOfLength(r, 10),
 		}
 
-		maxCommission := sdk.NewInt(10)
-		newCommissionRate := sdk.NewDecWithPrec(simulation.RandomAmount(r, maxCommission).Int64(), 1)
+		maxCommission := int64(10)
+		newCommissionRate := sdk.NewDecWithPrec(simulation.RandomAmount(r, maxCommission), 1)
 
 		acc := simulation.RandomAcc(r, accs)
 		address := sdk.ValAddress(acc.Address)
@@ -123,10 +123,10 @@ func SimulateMsgDelegate(m auth.AccountKeeper, k stake.Keeper) simulation.Operat
 		delegatorAcc := simulation.RandomAcc(r, accs)
 		delegatorAddress := delegatorAcc.Address
 		amount := m.GetAccount(ctx, delegatorAddress).GetCoins().AmountOf(denom)
-		if amount.GT(sdk.ZeroInt()) {
+		if amount > 0 {
 			amount = simulation.RandomAmount(r, amount)
 		}
-		if amount.Equal(sdk.ZeroInt()) {
+		if amount == 0 {
 			return "no-operation", nil, nil
 		}
 		msg := stake.MsgDelegate{
@@ -161,10 +161,10 @@ func SimulateMsgBeginUnbonding(m auth.AccountKeeper, k stake.Keeper) simulation.
 		delegatorAcc := simulation.RandomAcc(r, accs)
 		delegatorAddress := delegatorAcc.Address
 		amount := m.GetAccount(ctx, delegatorAddress).GetCoins().AmountOf(denom)
-		if amount.GT(sdk.ZeroInt()) {
+		if amount > 0 {
 			amount = simulation.RandomAmount(r, amount)
 		}
-		if amount.Equal(sdk.ZeroInt()) {
+		if amount == 0 {
 			return "no-operation", nil, nil
 		}
 		msg := stake.MsgBeginUnbonding{
@@ -202,10 +202,10 @@ func SimulateMsgBeginRedelegate(m auth.AccountKeeper, k stake.Keeper) simulation
 		delegatorAddress := delegatorAcc.Address
 		// TODO
 		amount := m.GetAccount(ctx, delegatorAddress).GetCoins().AmountOf(denom)
-		if amount.GT(sdk.ZeroInt()) {
+		if amount > 0 {
 			amount = simulation.RandomAmount(r, amount)
 		}
-		if amount.Equal(sdk.ZeroInt()) {
+		if amount == 0 {
 			return "no-operation", nil, nil
 		}
 		msg := stake.MsgBeginRedelegate{
@@ -237,16 +237,16 @@ func Setup(mapp *mock.App, k stake.Keeper) simulation.RandSetup {
 		stake.InitGenesis(ctx, k, gen)
 		params := k.GetParams(ctx)
 		denom := params.BondDenom
-		loose := sdk.ZeroInt()
+		var loose int64
 		mapp.AccountKeeper.IterateAccounts(ctx, func(acc auth.Account) bool {
-			balance := simulation.RandomAmount(r, sdk.NewInt(1000000))
+			balance := simulation.RandomAmount(r, int64(1000000))
 			acc.SetCoins(acc.GetCoins().Plus(sdk.Coins{sdk.NewCoin(denom, balance)}))
 			mapp.AccountKeeper.SetAccount(ctx, acc)
-			loose = loose.Add(balance)
+			loose = loose + balance
 			return false
 		})
 		pool := k.GetPool(ctx)
-		pool.LooseTokens = pool.LooseTokens.Add(sdk.NewDec(loose.Int64()))
+		pool.LooseTokens = pool.LooseTokens.Add(sdk.NewDec(loose))
 		k.SetPool(ctx, pool)
 	}
 }

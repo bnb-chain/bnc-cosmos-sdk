@@ -66,8 +66,8 @@ func RandomAcc(r *rand.Rand, accs []Account) Account {
 }
 
 // Generate a random amount
-func RandomAmount(r *rand.Rand, max sdk.Int) sdk.Int {
-	return sdk.NewInt(int64(r.Intn(int(max.Int64()))))
+func RandomAmount(r *rand.Rand, max int64) int64 {
+	return r.Int63n(max)
 }
 
 // RandomAccounts generates n random accounts

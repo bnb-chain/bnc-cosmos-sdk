@@ -20,7 +20,7 @@ func TestEncoding(t *testing.T) {
 	sendMsg := MsgSend{
 		From:   addr1,
 		To:     addr2,
-		Amount: sdk.Coins{{"testCoins", sdk.NewInt(100)}},
+		Amount: sdk.Coins{{"testCoins", 100}},
 	}
 
 	// Construct transaction
@@ -54,7 +54,7 @@ func TestEncoding(t *testing.T) {
 	issueMsg := MsgIssue{
 		Issuer:   addr1,
 		Receiver: addr2,
-		Coin:     sdk.Coin{"testCoin", sdk.NewInt(100)},
+		Coin:     sdk.Coin{"testCoin", 100},
 	}
 
 	signBytes = issueMsg.GetSignBytes()

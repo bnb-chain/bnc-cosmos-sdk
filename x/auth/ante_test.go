@@ -19,7 +19,7 @@ func newTestMsg(addrs ...sdk.AccAddress) *sdk.TestMsg {
 
 func newCoins() sdk.Coins {
 	return sdk.Coins{
-		sdk.NewInt64Coin("atom", 10000000),
+		sdk.NewCoin("atom", 10000000),
 	}
 }
 

@@ -196,7 +196,7 @@ func operationSimulateMsgVote(k gov.Keeper, sk stake.Keeper, acc simulation.Acco
 func randomDeposit(r *rand.Rand) sdk.Coins {
 	// TODO Choose based on account balance and min deposit
 	amount := int64(r.Intn(20)) + 1
-	return sdk.Coins{sdk.NewInt64Coin(denom, amount)}
+	return sdk.Coins{sdk.NewCoin(denom, amount)}
 }
 
 // Pick a random proposal ID

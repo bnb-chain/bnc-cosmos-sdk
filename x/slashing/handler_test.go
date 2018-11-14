@@ -15,12 +15,13 @@ func TestCannotUnjailUnlessJailed(t *testing.T) {
 	ctx, ck, sk, _, keeper := createTestInput(t, DefaultParams())
 	slh := NewHandler(keeper)
 	amtInt := int64(100)
-	addr, val, amt := addrs[0], pks[0], sdk.NewInt(amtInt)
+	addr, val, amt := addrs[0], pks[0], amtInt
 	msg := NewTestMsgCreateValidator(addr, val, amt)
 	got := stake.NewHandler(sk)(ctx, msg)
+
 	require.True(t, got.IsOK())
 	stake.EndBlocker(ctx, sk)
-	require.Equal(t, ck.GetCoins(ctx, sdk.AccAddress(addr)), sdk.Coins{{sk.GetParams(ctx).BondDenom, initCoins.Sub(amt)}})
+	require.Equal(t, ck.GetCoins(ctx, sdk.AccAddress(addr)), sdk.Coins{{sk.GetParams(ctx).BondDenom, initCoins - amt}})
 	require.True(t, sdk.NewDecFromInt(amt).Equal(sk.Validator(ctx, addr).GetPower()))
 
 	// assert non-jailed validator can't be unjailed
@@ -38,7 +39,7 @@ func TestJailedValidatorDelegations(t *testing.T) {
 
 	// create a validator
 	amount := int64(10)
-	valPubKey, bondAmount := pks[0], sdk.NewInt(amount)
+	valPubKey, bondAmount := pks[0], amount
 	valAddr, consAddr := addrs[1], sdk.ConsAddress(addrs[0])
 
 	msgCreateVal := NewTestMsgCreateValidator(valAddr, valPubKey, bondAmount)

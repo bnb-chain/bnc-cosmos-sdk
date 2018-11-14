@@ -17,7 +17,7 @@ import (
 var (
 	priv1 = ed25519.GenPrivKey()
 	addr1 = sdk.AccAddress(priv1.PubKey().Address())
-	coins = sdk.Coins{sdk.NewInt64Coin("foocoin", 10)}
+	coins = sdk.Coins{sdk.NewCoin("foocoin", 10)}
 )
 
 // initialize the mock application for this module
@@ -93,8 +93,8 @@ func checkValidatorSigningInfo(t *testing.T, mapp *mock.App, keeper Keeper,
 func TestSlashingMsgs(t *testing.T) {
 	mapp, stakeKeeper, keeper := getMockApp(t)
 
-	genCoin := sdk.NewInt64Coin("steak", 42)
-	bondCoin := sdk.NewInt64Coin("steak", 10)
+	genCoin := sdk.NewCoin("steak", 42)
+	bondCoin := sdk.NewCoin("steak", 10)
 
 	acc1 := &auth.BaseAccount{
 		Address: addr1,

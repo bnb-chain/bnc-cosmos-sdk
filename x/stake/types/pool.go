@@ -50,6 +50,7 @@ func (p Pool) BondedRatio() sdk.Dec {
 //_______________________________________________________________________
 
 func (p Pool) looseTokensToBonded(bondedTokens sdk.Dec) Pool {
+
 	p.BondedTokens = p.BondedTokens.Add(bondedTokens)
 	p.LooseTokens = p.LooseTokens.Sub(bondedTokens)
 	if p.LooseTokens.LT(sdk.ZeroDec()) {

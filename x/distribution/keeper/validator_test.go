@@ -20,7 +20,7 @@ func TestWithdrawValidatorRewardsAllNoDelegator(t *testing.T) {
 	_ = sk.ApplyAndReturnValidatorSetUpdates(ctx)
 
 	// allocate 100 denom of fees
-	feeInputs := sdk.NewInt(100)
+	feeInputs := int64(100)
 	fck.SetCollectedFees(sdk.Coins{sdk.NewCoin(denom, feeInputs)})
 	require.Equal(t, feeInputs, fck.GetCollectedFees(ctx).AmountOf(denom))
 	keeper.AllocateTokens(ctx, sdk.OneDec(), valConsAddr1)
@@ -30,7 +30,7 @@ func TestWithdrawValidatorRewardsAllNoDelegator(t *testing.T) {
 	keeper.WithdrawValidatorRewardsAll(ctx, valOpAddr1)
 	amt := accMapper.GetAccount(ctx, valAccAddr1).GetCoins().AmountOf(denom)
 	expRes := sdk.NewDec(90).Add(sdk.NewDec(100)).TruncateInt()
-	require.True(sdk.IntEq(t, expRes, amt))
+	require.True(t, expRes == amt)
 }
 
 func TestWithdrawValidatorRewardsAllDelegatorNoCommission(t *testing.T) {
@@ -49,10 +49,10 @@ func TestWithdrawValidatorRewardsAllDelegatorNoCommission(t *testing.T) {
 	got = stakeHandler(ctx, msgDelegate)
 	require.True(t, got.IsOK())
 	amt := accMapper.GetAccount(ctx, delAddr1).GetCoins().AmountOf(denom)
-	require.Equal(t, int64(90), amt.Int64())
+	require.Equal(t, int64(90), amt)
 
 	// allocate 100 denom of fees
-	feeInputs := sdk.NewInt(100)
+	feeInputs := int64(100)
 	fck.SetCollectedFees(sdk.Coins{sdk.NewCoin(denom, feeInputs)})
 	require.Equal(t, feeInputs, fck.GetCollectedFees(ctx).AmountOf(denom))
 	keeper.AllocateTokens(ctx, sdk.OneDec(), valConsAddr1)
@@ -62,7 +62,7 @@ func TestWithdrawValidatorRewardsAllDelegatorNoCommission(t *testing.T) {
 	keeper.WithdrawValidatorRewardsAll(ctx, valOpAddr1)
 	amt = accMapper.GetAccount(ctx, valAccAddr1).GetCoins().AmountOf(denom)
 	expRes := sdk.NewDec(90).Add(sdk.NewDec(100).Quo(sdk.NewDec(2))).TruncateInt() // 90 + 100 tokens * 10/20
-	require.True(sdk.IntEq(t, expRes, amt))
+	require.True(t, expRes == amt)
 }
 
 func TestWithdrawValidatorRewardsAllDelegatorWithCommission(t *testing.T) {
@@ -83,10 +83,10 @@ func TestWithdrawValidatorRewardsAllDelegatorWithCommission(t *testing.T) {
 	got = stakeHandler(ctx, msgDelegate)
 	require.True(t, got.IsOK())
 	amt := accMapper.GetAccount(ctx, delAddr1).GetCoins().AmountOf(denom)
-	require.Equal(t, int64(90), amt.Int64())
+	require.Equal(t, int64(90), amt)
 
 	// allocate 100 denom of fees
-	feeInputs := sdk.NewInt(100)
+	feeInputs := int64(100)
 	fck.SetCollectedFees(sdk.Coins{sdk.NewCoin(denom, feeInputs)})
 	require.Equal(t, feeInputs, fck.GetCollectedFees(ctx).AmountOf(denom))
 	keeper.AllocateTokens(ctx, sdk.OneDec(), valConsAddr1)
@@ -99,7 +99,7 @@ func TestWithdrawValidatorRewardsAllDelegatorWithCommission(t *testing.T) {
 	afterCommission := sdk.NewDec(100).Sub(commissionTaken)
 	selfDelegationReward := afterCommission.Quo(sdk.NewDec(2))
 	expRes := sdk.NewDec(90).Add(commissionTaken).Add(selfDelegationReward).TruncateInt() // 90 + 100 tokens * 10/20
-	require.True(sdk.IntEq(t, expRes, amt))
+	require.True(t, expRes == amt)
 }
 
 func TestWithdrawValidatorRewardsAllMultipleValidator(t *testing.T) {
@@ -126,7 +126,7 @@ func TestWithdrawValidatorRewardsAllMultipleValidator(t *testing.T) {
 	_ = sk.ApplyAndReturnValidatorSetUpdates(ctx)
 
 	// allocate 100 denom of fees
-	feeInputs := sdk.NewInt(1000)
+	feeInputs := int64(1000)
 	fck.SetCollectedFees(sdk.Coins{sdk.NewCoin(denom, feeInputs)})
 	require.Equal(t, feeInputs, fck.GetCollectedFees(ctx).AmountOf(denom))
 	keeper.AllocateTokens(ctx, sdk.OneDec(), valConsAddr1)
@@ -142,7 +142,7 @@ func TestWithdrawValidatorRewardsAllMultipleValidator(t *testing.T) {
 					Add(feesInNonProposer.Quo(sdk.NewDec(10))). // validator 1 has 1/10 total power
 					Add(feesInProposer).
 					TruncateInt()
-	require.True(sdk.IntEq(t, expRes, amt))
+	require.True(t, expRes == amt)
 }
 
 func TestWithdrawValidatorRewardsAllMultipleDelegator(t *testing.T) {
@@ -163,16 +163,16 @@ func TestWithdrawValidatorRewardsAllMultipleDelegator(t *testing.T) {
 	got = stakeHandler(ctx, msgDelegate)
 	require.True(t, got.IsOK())
 	amt := accMapper.GetAccount(ctx, delAddr1).GetCoins().AmountOf(denom)
-	require.Equal(t, int64(90), amt.Int64())
+	require.Equal(t, int64(90), amt)
 
 	msgDelegate = stake.NewTestMsgDelegate(delAddr2, valOpAddr1, 20)
 	got = stakeHandler(ctx, msgDelegate)
 	require.True(t, got.IsOK())
 	amt = accMapper.GetAccount(ctx, delAddr2).GetCoins().AmountOf(denom)
-	require.Equal(t, int64(80), amt.Int64())
+	require.Equal(t, int64(80), amt)
 
 	// allocate 100 denom of fees
-	feeInputs := sdk.NewInt(100)
+	feeInputs := int64(100)
 	fck.SetCollectedFees(sdk.Coins{sdk.NewCoin(denom, feeInputs)})
 	require.Equal(t, feeInputs, fck.GetCollectedFees(ctx).AmountOf(denom))
 	keeper.AllocateTokens(ctx, sdk.OneDec(), valConsAddr1)
@@ -188,5 +188,5 @@ func TestWithdrawValidatorRewardsAllMultipleDelegator(t *testing.T) {
 		Add(afterCommission.Quo(sdk.NewDec(4))).
 		Add(commissionTaken).
 		TruncateInt() // 90 + 100*90% tokens * 10/40
-	require.True(sdk.IntEq(t, expRes, amt))
+	require.True(t, expRes == amt)
 }

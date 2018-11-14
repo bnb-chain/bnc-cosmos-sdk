@@ -24,7 +24,7 @@ func (ta TotalAccum) UpdateForNewHeight(height int64, accumCreatedPerBlock sdk.D
 	if blocks < 0 {
 		panic("reverse updated for new height")
 	}
-	ta.Accum = ta.Accum.Add(accumCreatedPerBlock.MulInt(sdk.NewInt(blocks)))
+	ta.Accum = ta.Accum.Add(accumCreatedPerBlock.MulInt(blocks))
 	ta.UpdateHeight = height
 	return ta
 }
