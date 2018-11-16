@@ -31,12 +31,12 @@ func StartCmd(ctx *Context, appCreator AppCreator) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if !viper.GetBool(flagWithTendermint) {
 				ctx.Logger.Info("Starting ABCI without Tendermint")
-				return startStandAlone(ctx, appCreator)
+				return StartStandAlone(ctx, appCreator)
 			}
 
 			ctx.Logger.Info("Starting ABCI with Tendermint")
 
-			_, err := startInProcess(ctx, appCreator)
+			_, err := StartInProcess(ctx, appCreator)
 			return err
 		},
 	}
@@ -52,7 +52,7 @@ func StartCmd(ctx *Context, appCreator AppCreator) *cobra.Command {
 	return cmd
 }
 
-func startStandAlone(ctx *Context, appCreator AppCreator) error {
+func StartStandAlone(ctx *Context, appCreator AppCreator) error {
 	addr := viper.GetString(flagAddress)
 	home := viper.GetString("home")
 	traceWriterFile := viper.GetString(flagTraceStore)
@@ -92,7 +92,7 @@ func startStandAlone(ctx *Context, appCreator AppCreator) error {
 }
 
 // nolint: unparam
-func startInProcess(ctx *Context, appCreator AppCreator) (*node.Node, error) {
+func StartInProcess(ctx *Context, appCreator AppCreator) (*node.Node, error) {
 	cfg := ctx.Config
 	home := cfg.RootDir
 	traceWriterFile := viper.GetString(flagTraceStore)
