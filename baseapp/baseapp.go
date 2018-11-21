@@ -6,13 +6,10 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/spf13/viper"
-
 	"github.com/pkg/errors"
-
+	"github.com/spf13/viper"
 	abci "github.com/tendermint/tendermint/abci/types"
 	bc "github.com/tendermint/tendermint/blockchain"
-
 	cfg "github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 	cmn "github.com/tendermint/tendermint/libs/common"
@@ -654,9 +651,11 @@ func (app *BaseApp) runTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx) (result
 		return err.Result()
 	}
 
+	txHash := cmn.HexBytes(tmhash.Sum(txBytes)).String()
+
 	// run the ante handler
 	if app.anteHandler != nil {
-		newCtx, result, abort := app.anteHandler(ctx, tx, mode)
+		newCtx, result, abort := app.anteHandler(ctx.WithValue(TxHashKey, txHash), tx, mode)
 		if abort {
 			return result
 		}
@@ -666,7 +665,6 @@ func (app *BaseApp) runTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx) (result
 		}
 	}
 
-	txHash := cmn.HexBytes(tmhash.Sum(txBytes)).String()
 	if mode == sdk.RunTxModeSimulate {
 		result = app.runMsgs(ctx, msgs, txHash, mode)
 		return
@@ -713,9 +711,11 @@ func (app *BaseApp) reRunTx(txBytes []byte, tx sdk.Tx) (result sdk.Result) {
 
 	}()
 
+	txHash := cmn.HexBytes(tmhash.Sum(txBytes)).String()
+
 	// run the ante handler
 	if app.anteHandler != nil {
-		newCtx, result, abort := app.anteHandler(ctx, tx, mode)
+		newCtx, result, abort := app.anteHandler(ctx.WithValue(TxHashKey, txHash), tx, mode)
 		if abort {
 			return result
 		}
@@ -725,7 +725,6 @@ func (app *BaseApp) reRunTx(txBytes []byte, tx sdk.Tx) (result sdk.Result) {
 		}
 	}
 
-	txHash := cmn.HexBytes(tmhash.Sum(txBytes)).String()
 	// Keep the state in a transient CacheWrap in case processing the messages
 	// fails.
 	msCache = getState(app, mode).CacheMultiStore()
