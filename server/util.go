@@ -126,8 +126,7 @@ func validateConfig(conf *cfg.Config) error {
 // add server commands
 func AddCommands(
 	ctx *Context, cdc *codec.Codec,
-	rootCmd *cobra.Command, appInit AppInit,
-	appCreator AppCreator, appExport AppExporter) {
+	rootCmd *cobra.Command, appExport AppExporter) {
 
 	rootCmd.PersistentFlags().String("log_level", ctx.Config.LogLevel, "Log level")
 
@@ -143,7 +142,6 @@ func AddCommands(
 	)
 
 	rootCmd.AddCommand(
-		StartCmd(ctx, appCreator),
 		UnsafeResetAllCmd(ctx),
 		client.LineBreak,
 		tendermintCmd,
