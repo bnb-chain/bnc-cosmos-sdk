@@ -96,14 +96,11 @@ func (msg MsgCreateValidator) ValidateBasic() sdk.Error {
 	if msg.ValidatorAddr == nil {
 		return ErrNilValidatorAddr(DefaultCodespace)
 	}
-	if !(msg.Delegation.Amount.GT(sdk.ZeroInt())) {
+	if !(msg.Delegation.Amount > 0) {
 		return ErrBadDelegationAmount(DefaultCodespace)
 	}
 	if msg.Description == (Description{}) {
 		return sdk.NewError(DefaultCodespace, CodeInvalidInput, "description must be included")
-	}
-	if msg.Commission == (CommissionMsg{}) {
-		return sdk.NewError(DefaultCodespace, CodeInvalidInput, "commission must be included")
 	}
 
 	return nil
@@ -212,7 +209,7 @@ func (msg MsgDelegate) ValidateBasic() sdk.Error {
 	if msg.ValidatorAddr == nil {
 		return ErrNilValidatorAddr(DefaultCodespace)
 	}
-	if !(msg.Delegation.Amount.GT(sdk.ZeroInt())) {
+	if !(msg.Delegation.Amount > 0) {
 		return ErrBadDelegationAmount(DefaultCodespace)
 	}
 	return nil

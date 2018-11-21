@@ -28,8 +28,8 @@ func TestGetValidatorPowerRank(t *testing.T) {
 	val2, val3, val4 := val1, val1, val1
 	val2.Tokens = sdk.NewDec(1)
 	val3.Tokens = sdk.NewDec(10)
-	x := new(big.Int).Exp(big.NewInt(2), big.NewInt(40), big.NewInt(0))
-	val4.Tokens = sdk.NewDecFromBigInt(x)
+	x := new(big.Int).Exp(big.NewInt(2), big.NewInt(20), big.NewInt(0))
+	val4.Tokens = sdk.NewDecFromBigInt(x.Int64())
 
 	tests := []struct {
 		validator types.Validator
@@ -38,7 +38,7 @@ func TestGetValidatorPowerRank(t *testing.T) {
 		{val1, "230000000000000000ffffffffffffffffffff"},
 		{val2, "230000000000000001ffffffffffffffffffff"},
 		{val3, "23000000000000000affffffffffffffffffff"},
-		{val4, "230000010000000000ffffffffffffffffffff"},
+		{val4, "230000000000100000ffffffffffffffffffff"},
 	}
 	for i, tt := range tests {
 		got := hex.EncodeToString(getValidatorPowerRank(tt.validator))

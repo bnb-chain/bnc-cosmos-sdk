@@ -1,7 +1,7 @@
 package types
 
 import (
-	"math/big"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -21,13 +21,12 @@ func mustNewDecFromStr(t *testing.T, str string) (d Dec) {
 
 func TestPrecisionMultiplier(t *testing.T) {
 	res := precisionMultiplier(5)
-	exp := big.NewInt(100000)
-	require.Equal(t, 0, res.Cmp(exp), "equality was incorrect, res %v, exp %v", res, exp)
+	exp := int64(1000)
+	require.Equal(t, true, res == exp, "equality was incorrect, res %v, exp %v", res, exp)
 }
 
 func TestNewDecFromStr(t *testing.T) {
-	largeBigInt, success := new(big.Int).SetString("3144605511029693144278234343371835", 10)
-	require.True(t, success)
+	normalInt := int64(314427823434337)
 	tests := []struct {
 		decimalStr string
 		expErr     bool
@@ -41,11 +40,11 @@ func TestNewDecFromStr(t *testing.T) {
 		{"0.75", false, NewDecWithPrec(75, 2)},
 		{"0.8", false, NewDecWithPrec(8, 1)},
 		{"0.11111", false, NewDecWithPrec(11111, 5)},
-		{"314460551102969.3144278234343371835", true, NewDec(3141203149163817869)},
-		{"314460551102969314427823434337.1835718092488231350",
-			true, NewDecFromBigIntWithPrec(largeBigInt, 4)},
-		{"314460551102969314427823434337.1835",
-			false, NewDecFromBigIntWithPrec(largeBigInt, 4)},
+		{"3144605511.3144278234343371835", true, Dec{}},
+		{"3144605511.1835718092488231350",
+			true, Dec{}},
+		{"31442782343.4337",
+			false, NewDecFromBigIntWithPrec(normalInt, 4)},
 		{".", true, Dec{}},
 		{".0", true, NewDec(0)},
 		{"1.", true, NewDec(1)},
@@ -59,6 +58,9 @@ func TestNewDecFromStr(t *testing.T) {
 		if tc.expErr {
 			require.NotNil(t, err, "error expected, decimalStr %v, tc %v", tc.decimalStr, tcIndex)
 		} else {
+			if err != nil {
+				fmt.Println(err)
+			}
 			require.Nil(t, err, "unexpected error, decimalStr %v, tc %v", tc.decimalStr, tcIndex)
 			require.True(t, res.Equal(tc.exp), "equality was incorrect, res %v, exp %v, tc %v", res, tc.exp, tcIndex)
 		}
@@ -151,14 +153,14 @@ func TestArithmetic(t *testing.T) {
 		{NewDec(1), NewDec(-1), NewDec(-1), NewDec(-1), NewDec(0), NewDec(2)},
 		{NewDec(-1), NewDec(1), NewDec(-1), NewDec(-1), NewDec(0), NewDec(-2)},
 
-		{NewDec(3), NewDec(7), NewDec(21), NewDecWithPrec(4285714286, 10), NewDec(10), NewDec(-4)},
+		{NewDec(3), NewDec(7), NewDec(21), NewDecWithPrec(42857143, 8), NewDec(10), NewDec(-4)},
 		{NewDec(2), NewDec(4), NewDec(8), NewDecWithPrec(5, 1), NewDec(6), NewDec(-2)},
 		{NewDec(100), NewDec(100), NewDec(10000), NewDec(1), NewDec(200), NewDec(0)},
 
 		{NewDecWithPrec(15, 1), NewDecWithPrec(15, 1), NewDecWithPrec(225, 2),
 			NewDec(1), NewDec(3), NewDec(0)},
 		{NewDecWithPrec(3333, 4), NewDecWithPrec(333, 4), NewDecWithPrec(1109889, 8),
-			NewDecWithPrec(10009009009, 9), NewDecWithPrec(3666, 4), NewDecWithPrec(3, 1)},
+			NewDecWithPrec(1000900901, 8), NewDecWithPrec(3666, 4), NewDecWithPrec(3, 1)},
 	}
 
 	for tcIndex, tc := range tests {
@@ -234,9 +236,7 @@ var cdc = codec.New()
 
 func TestDecMarshalJSON(t *testing.T) {
 	decimal := func(i int64) Dec {
-		d := NewDec(0)
-		d.Int = new(big.Int).SetInt64(i)
-		return d
+		return Dec{}.Set(i)
 	}
 	tests := []struct {
 		name    string
@@ -244,14 +244,14 @@ func TestDecMarshalJSON(t *testing.T) {
 		want    string
 		wantErr bool // if wantErr = false, will also attempt unmarshaling
 	}{
-		{"zero", decimal(0), "\"0.0000000000\"", false},
-		{"one", decimal(1), "\"0.0000000001\"", false},
-		{"ten", decimal(10), "\"0.0000000010\"", false},
-		{"12340", decimal(12340), "\"0.0000012340\"", false},
-		{"zeroInt", NewDec(0), "\"0.0000000000\"", false},
-		{"oneInt", NewDec(1), "\"1.0000000000\"", false},
-		{"tenInt", NewDec(10), "\"10.0000000000\"", false},
-		{"12340Int", NewDec(12340), "\"12340.0000000000\"", false},
+		{"zero", decimal(0), "\"0.00000000\"", false},
+		{"one", decimal(1), "\"0.00000001\"", false},
+		{"ten", decimal(10), "\"0.00000010\"", false},
+		{"12340", decimal(12340), "\"0.00012340\"", false},
+		{"zeroInt", NewDec(0), "\"0.00000000\"", false},
+		{"oneInt", NewDec(1), "\"1.00000000\"", false},
+		{"tenInt", NewDec(10), "\"10.00000000\"", false},
+		{"12340Int", NewDec(12340), "\"12340.00000000\"", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -271,7 +271,7 @@ func TestDecMarshalJSON(t *testing.T) {
 }
 
 func TestZeroDeserializationJSON(t *testing.T) {
-	d := Dec{new(big.Int)}
+	d := Dec{0}
 	err := cdc.UnmarshalJSON([]byte(`"0"`), &d)
 	require.Nil(t, err)
 	err = cdc.UnmarshalJSON([]byte(`"{}"`), &d)
@@ -284,7 +284,7 @@ func TestSerializationText(t *testing.T) {
 	bz, err := d.MarshalText()
 	require.NoError(t, err)
 
-	d2 := Dec{new(big.Int)}
+	d2 := Dec{}
 	err = d2.UnmarshalText(bz)
 	require.NoError(t, err)
 	require.True(t, d.Equal(d2), "original: %v, unmarshalled: %v", d, d2)
@@ -296,7 +296,7 @@ func TestSerializationGocodecJSON(t *testing.T) {
 	bz, err := cdc.MarshalJSON(d)
 	require.NoError(t, err)
 
-	d2 := Dec{new(big.Int)}
+	d2 := Dec{}
 	err = cdc.UnmarshalJSON(bz, &d2)
 	require.NoError(t, err)
 	require.True(t, d.Equal(d2), "original: %v, unmarshalled: %v", d, d2)
@@ -337,13 +337,13 @@ func TestEmbeddedStructSerializationGocodec(t *testing.T) {
 
 func TestStringOverflow(t *testing.T) {
 	// two random 64 bit primes
-	dec1, err := NewDecFromStr("51643150036226787134389711697696177267")
+	dec1, err := NewDecFromStr("51643150036")
 	require.NoError(t, err)
-	dec2, err := NewDecFromStr("-31798496660535729618459429845579852627")
+	dec2, err := NewDecFromStr("-31798496660")
 	require.NoError(t, err)
 	dec3 := dec1.Add(dec2)
 	require.Equal(t,
-		"19844653375691057515930281852116324640.0000000000",
+		"19844653376.00000000",
 		dec3.String(),
 	)
 }
@@ -351,13 +351,13 @@ func TestStringOverflow(t *testing.T) {
 func TestDecMulInt(t *testing.T) {
 	tests := []struct {
 		sdkDec Dec
-		sdkInt Int
+		sdkInt int64
 		want   Dec
 	}{
-		{NewDec(10), NewInt(2), NewDec(20)},
-		{NewDec(1000000), NewInt(100), NewDec(100000000)},
-		{NewDecWithPrec(1, 1), NewInt(10), NewDec(1)},
-		{NewDecWithPrec(1, 5), NewInt(20), NewDecWithPrec(2, 4)},
+		{NewDec(10), 2, NewDec(20)},
+		{NewDec(1000000), 100, NewDec(100000000)},
+		{NewDecWithPrec(1, 1), 10, NewDec(1)},
+		{NewDecWithPrec(1, 5), 20, NewDecWithPrec(2, 4)},
 	}
 	for i, tc := range tests {
 		got := tc.sdkDec.MulInt(tc.sdkInt)

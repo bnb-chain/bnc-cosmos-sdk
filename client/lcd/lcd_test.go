@@ -265,7 +265,7 @@ func TestCoinSend(t *testing.T) {
 	mycoins := coins[0]
 
 	require.Equal(t, "steak", mycoins.Denom)
-	require.Equal(t, initialBalance[0].Amount.SubRaw(1), mycoins.Amount)
+	require.Equal(t, initialBalance[0].Amount-1, mycoins.Amount)
 
 	// query receiver
 	acc = getAccount(t, port, receiveAddr)
@@ -273,7 +273,7 @@ func TestCoinSend(t *testing.T) {
 	mycoins = coins[0]
 
 	require.Equal(t, "steak", mycoins.Denom)
-	require.Equal(t, int64(1), mycoins.Amount.Int64())
+	require.Equal(t, int64(1), mycoins.Amount)
 }
 
 func DisabledTestIBCTransfer(t *testing.T) {
@@ -300,7 +300,7 @@ func DisabledTestIBCTransfer(t *testing.T) {
 	mycoins := coins[0]
 
 	require.Equal(t, "steak", mycoins.Denom)
-	require.Equal(t, initialBalance[0].Amount.SubRaw(1), mycoins.Amount)
+	require.Equal(t, initialBalance[0].Amount-1, mycoins.Amount)
 
 	// TODO: query ibc egress packet state
 }
@@ -507,7 +507,7 @@ func TestBonding(t *testing.T) {
 	acc := getAccount(t, port, addr)
 	coins := acc.GetCoins()
 
-	require.Equal(t, int64(40), coins.AmountOf(denom).Int64())
+	require.Equal(t, int64(40), coins.AmountOf(denom))
 
 	// query validator
 	bond := getDelegation(t, port, addr, operAddrs[0])
@@ -535,10 +535,10 @@ func TestBonding(t *testing.T) {
 	// sender should have not received any coins as the unbonding has only just begun
 	acc = getAccount(t, port, addr)
 	coins = acc.GetCoins()
-	require.Equal(t, int64(40), coins.AmountOf("steak").Int64())
+	require.Equal(t, int64(40), coins.AmountOf("steak"))
 
 	unbonding := getUndelegation(t, port, addr, operAddrs[0])
-	require.Equal(t, "30", unbonding.Balance.Amount.String())
+	require.Equal(t, int64(30), unbonding.Balance.Amount)
 
 	// test redelegation
 	resultTx = doBeginRedelegation(t, port, seed, name, password, addr, operAddrs[0], operAddrs[1], 30)
@@ -550,23 +550,23 @@ func TestBonding(t *testing.T) {
 	// query delegations, unbondings and redelegations from validator and delegator
 	delegatorDels = getDelegatorDelegations(t, port, addr)
 	require.Len(t, delegatorDels, 1)
-	require.Equal(t, "30.0000000000", delegatorDels[0].GetShares().String())
+	require.Equal(t, "30.00000000", delegatorDels[0].GetShares().String())
 
 	delegatorUbds := getDelegatorUnbondingDelegations(t, port, addr)
 	require.Len(t, delegatorUbds, 1)
-	require.Equal(t, "30", delegatorUbds[0].Balance.Amount.String())
+	require.Equal(t, int64(30), delegatorUbds[0].Balance.Amount)
 
 	delegatorReds := getDelegatorRedelegations(t, port, addr)
 	require.Len(t, delegatorReds, 1)
-	require.Equal(t, "30", delegatorReds[0].Balance.Amount.String())
+	require.Equal(t, int64(30), delegatorReds[0].Balance.Amount)
 
 	validatorUbds := getValidatorUnbondingDelegations(t, port, operAddrs[0])
 	require.Len(t, validatorUbds, 1)
-	require.Equal(t, "30", validatorUbds[0].Balance.Amount.String())
+	require.Equal(t, int64(30), validatorUbds[0].Balance.Amount)
 
 	validatorReds := getValidatorRedelegations(t, port, operAddrs[0])
 	require.Len(t, validatorReds, 1)
-	require.Equal(t, "30", validatorReds[0].Balance.Amount.String())
+	require.Equal(t, int64(30), validatorReds[0].Balance.Amount)
 
 	// TODO Undonding status not currently implemented
 	// require.Equal(t, sdk.Unbonding, bondedValidators[0].Status)
@@ -634,11 +634,11 @@ func TestDeposit(t *testing.T) {
 
 	// query proposal
 	proposal = getProposal(t, port, proposalID)
-	require.True(t, proposal.GetTotalDeposit().IsEqual(sdk.Coins{sdk.NewInt64Coin("steak", 10)}))
+	require.True(t, proposal.GetTotalDeposit().IsEqual(sdk.Coins{sdk.NewCoin("steak", 10)}))
 
 	// query deposit
 	deposit := getDeposit(t, port, proposalID, addr)
-	require.True(t, deposit.Amount.IsEqual(sdk.Coins{sdk.NewInt64Coin("steak", 10)}))
+	require.True(t, deposit.Amount.IsEqual(sdk.Coins{sdk.NewCoin("steak", 10)}))
 }
 
 func TestVote(t *testing.T) {
@@ -832,7 +832,7 @@ func doSendWithGas(t *testing.T, port, seed, name, password string, addr sdk.Acc
 	sequence := acc.GetSequence()
 	chainID := viper.GetString(client.FlagChainID)
 	// send
-	coinbz, err := cdc.MarshalJSON(sdk.NewInt64Coin("steak", 1))
+	coinbz, err := cdc.MarshalJSON(sdk.NewCoin("steak", 1))
 	if err != nil {
 		panic(err)
 	}

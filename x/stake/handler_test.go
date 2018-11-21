@@ -339,7 +339,7 @@ func TestIncrementsMsgDelegate(t *testing.T) {
 
 		expBond := int64(i+1) * bondAmount
 		expDelegatorShares := int64(i+2) * bondAmount // (1 self delegation)
-		expDelegatorAcc := sdk.NewInt(initBond - expBond)
+		expDelegatorAcc := initBond - expBond
 
 		require.Equal(t, bond.Height, int64(i), "Incorrect bond height")
 
@@ -381,7 +381,7 @@ func TestIncrementsMsgUnbond(t *testing.T) {
 
 	// balance should have been subtracted after delegation
 	amt2 := accMapper.GetAccount(ctx, delegatorAddr).GetCoins().AmountOf(denom)
-	require.Equal(t, amt1.Sub(sdk.NewInt(initBond)).Int64(), amt2.Int64(), "expected coins to be subtracted")
+	require.Equal(t, amt1-initBond, amt2, "expected coins to be subtracted")
 
 	// apply TM updates
 	keeper.ApplyAndReturnValidatorSetUpdates(ctx)
@@ -412,7 +412,7 @@ func TestIncrementsMsgUnbond(t *testing.T) {
 
 		expBond := initBond - int64(i+1)*unbondShares.RoundInt64()
 		expDelegatorShares := 2*initBond - int64(i+1)*unbondShares.RoundInt64()
-		expDelegatorAcc := sdk.NewInt(initBond - expBond)
+		expDelegatorAcc := initBond - expBond
 
 		gotBond := bond.Shares.RoundInt64()
 		gotDelegatorShares := validator.DelegatorShares.RoundInt64()
@@ -433,7 +433,7 @@ func TestIncrementsMsgUnbond(t *testing.T) {
 	errorCases := []int64{
 		//1<<64 - 1, // more than int64
 		//1<<63 + 1, // more than int64
-		1<<63 - 1,
+		1<<36 - 1,
 		1 << 31,
 		initBond,
 	}
@@ -479,7 +479,7 @@ func TestMultipleMsgCreateValidator(t *testing.T) {
 		validators := keeper.GetValidators(ctx, 100)
 		require.Equal(t, (i + 1), len(validators))
 		val := validators[i]
-		balanceExpd := sdk.NewInt(initBond - 10)
+		balanceExpd := initBond - 10
 		balanceGot := accMapper.GetAccount(ctx, delegatorAddrs[i]).GetCoins().AmountOf(params.BondDenom)
 		require.Equal(t, i+1, len(validators), "expected %d validators got %d, validators: %v", i+1, len(validators), validators)
 		require.Equal(t, 10, int(val.DelegatorShares.RoundInt64()), "expected %d shares, got %d", 10, val.DelegatorShares)
@@ -506,7 +506,7 @@ func TestMultipleMsgCreateValidator(t *testing.T) {
 		_, found = keeper.GetValidator(ctx, validatorAddr)
 		require.False(t, found)
 
-		expBalance := sdk.NewInt(initBond)
+		expBalance := initBond
 		gotBalance := accMapper.GetAccount(ctx, delegatorAddrs[i]).GetCoins().AmountOf(params.BondDenom)
 		require.Equal(t, expBalance, gotBalance, "expected account to have %d, got %d", expBalance, gotBalance)
 	}
@@ -750,7 +750,7 @@ func TestRedelegationPeriod(t *testing.T) {
 
 	// balance should have been subtracted after creation
 	amt2 := AccMapper.GetAccount(ctx, sdk.AccAddress(validatorAddr)).GetCoins().AmountOf(denom)
-	require.Equal(t, amt1.Sub(sdk.NewInt(10)).Int64(), amt2.Int64(), "expected coins to be subtracted")
+	require.Equal(t, amt1-10, amt2, "expected coins to be subtracted")
 
 	msgCreateValidator = NewTestMsgCreateValidator(validatorAddr2, keep.PKs[1], 10)
 	got = handleMsgCreateValidator(ctx, msgCreateValidator, keeper)
@@ -973,12 +973,12 @@ func TestBondUnbondRedelegateSlashTwice(t *testing.T) {
 	// unbonding delegation should have been slashed by half
 	unbonding, found := keeper.GetUnbondingDelegation(ctx, del, valA)
 	require.True(t, found)
-	require.Equal(t, int64(2), unbonding.Balance.Amount.Int64())
+	require.Equal(t, int64(2), unbonding.Balance.Amount)
 
 	// redelegation should have been slashed by half
 	redelegation, found := keeper.GetRedelegation(ctx, del, valA, valB)
 	require.True(t, found)
-	require.Equal(t, int64(3), redelegation.Balance.Amount.Int64())
+	require.Equal(t, int64(3), redelegation.Balance.Amount)
 
 	// destination delegation should have been slashed by half
 	delegation, found = keeper.GetDelegation(ctx, del, valB)
@@ -997,12 +997,12 @@ func TestBondUnbondRedelegateSlashTwice(t *testing.T) {
 	// unbonding delegation should be unchanged
 	unbonding, found = keeper.GetUnbondingDelegation(ctx, del, valA)
 	require.True(t, found)
-	require.Equal(t, int64(2), unbonding.Balance.Amount.Int64())
+	require.Equal(t, int64(2), unbonding.Balance.Amount)
 
 	// redelegation should be unchanged
 	redelegation, found = keeper.GetRedelegation(ctx, del, valA, valB)
 	require.True(t, found)
-	require.Equal(t, int64(3), redelegation.Balance.Amount.Int64())
+	require.Equal(t, int64(3), redelegation.Balance.Amount)
 
 	// destination delegation should be unchanged
 	delegation, found = keeper.GetDelegation(ctx, del, valB)

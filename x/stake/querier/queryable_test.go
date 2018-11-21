@@ -41,7 +41,7 @@ func TestNewQuerier(t *testing.T) {
 	ctx, _, keeper := keep.CreateTestInput(t, false, 1000)
 	pool := keeper.GetPool(ctx)
 	// Create Validators
-	amts := []sdk.Int{sdk.NewInt(9), sdk.NewInt(8)}
+	amts := []int64{9, 8}
 	var validators [2]types.Validator
 	for i, amt := range amts {
 		validators[i] = types.NewValidator(sdk.ValAddress(keep.Addrs[i]), keep.PKs[i], types.Description{})
@@ -136,7 +136,7 @@ func TestQueryValidators(t *testing.T) {
 	params := keeper.GetParams(ctx)
 
 	// Create Validators
-	amts := []sdk.Int{sdk.NewInt(9), sdk.NewInt(8)}
+	amts := []int64{9, 8}
 	var validators [2]types.Validator
 	for i, amt := range amts {
 		validators[i] = types.NewValidator(sdk.ValAddress(keep.Addrs[i]), keep.PKs[i], types.Description{})
@@ -189,7 +189,7 @@ func TestQueryDelegation(t *testing.T) {
 	pool := keeper.GetPool(ctx)
 	keeper.SetValidatorByPowerIndex(ctx, val1, pool)
 
-	keeper.Delegate(ctx, addrAcc2, sdk.NewCoin("steak", sdk.NewInt(20)), val1, true)
+	keeper.Delegate(ctx, addrAcc2, sdk.NewCoin("steak", 20), val1, true)
 
 	// apply TM updates
 	keeper.ApplyAndReturnValidatorSetUpdates(ctx)
@@ -346,7 +346,7 @@ func TestQueryRedelegations(t *testing.T) {
 	keeper.SetValidator(ctx, val1)
 	keeper.SetValidator(ctx, val2)
 
-	keeper.Delegate(ctx, addrAcc2, sdk.NewCoin("steak", sdk.NewInt(100)), val1, true)
+	keeper.Delegate(ctx, addrAcc2, sdk.NewCoin("steak", 100), val1, true)
 	keeper.ApplyAndReturnValidatorSetUpdates(ctx)
 
 	keeper.BeginRedelegation(ctx, addrAcc2, val1.GetOperator(), val2.GetOperator(), sdk.NewDec(20))

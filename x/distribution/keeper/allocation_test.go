@@ -38,7 +38,7 @@ func TestAllocateTokensBasic(t *testing.T) {
 	require.Nil(t, feePool.Pool)
 
 	// allocate 100 denom of fees
-	feeInputs := sdk.NewInt(100)
+	feeInputs := int64(100)
 	fck.SetCollectedFees(sdk.Coins{sdk.NewCoin(denom, feeInputs)})
 	require.Equal(t, feeInputs, fck.GetCollectedFees(ctx).AmountOf(denom))
 	keeper.AllocateTokens(ctx, sdk.OneDec(), valConsAddr1)
@@ -66,7 +66,7 @@ func TestAllocateTokensWithCommunityTax(t *testing.T) {
 	_ = sk.ApplyAndReturnValidatorSetUpdates(ctx)
 
 	// allocate 100 denom of fees
-	feeInputs := sdk.NewInt(100)
+	feeInputs := int64(100)
 	fck.SetCollectedFees(sdk.Coins{sdk.NewCoin(denom, feeInputs)})
 	keeper.AllocateTokens(ctx, sdk.OneDec(), valConsAddr1)
 
@@ -94,7 +94,7 @@ func TestAllocateTokensWithPartialPrecommitPower(t *testing.T) {
 	_ = sk.ApplyAndReturnValidatorSetUpdates(ctx)
 
 	// allocate 100 denom of fees
-	feeInputs := sdk.NewInt(100)
+	feeInputs := int64(100)
 	fck.SetCollectedFees(sdk.Coins{sdk.NewCoin(denom, feeInputs)})
 	percentPrecommitVotes := sdk.NewDecWithPrec(25, 2)
 	keeper.AllocateTokens(ctx, percentPrecommitVotes, valConsAddr1)

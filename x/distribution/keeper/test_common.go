@@ -123,7 +123,7 @@ func CreateTestInputAdvanced(t *testing.T, isCheckTx bool, initCoins int64,
 	for _, addr := range addrs {
 		pool := sk.GetPool(ctx)
 		_, _, err := ck.AddCoins(ctx, addr, sdk.Coins{
-			{sk.GetParams(ctx).BondDenom, sdk.NewInt(initCoins)},
+			{sk.GetParams(ctx).BondDenom, initCoins},
 		})
 		require.Nil(t, err)
 		pool.LooseTokens = pool.LooseTokens.Add(sdk.NewDec(initCoins))

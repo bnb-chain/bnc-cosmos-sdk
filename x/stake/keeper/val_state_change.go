@@ -27,7 +27,7 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 
 	store := ctx.KVStore(k.storeKey)
 	maxValidators := k.GetParams(ctx).MaxValidators
-	totalPower := sdk.ZeroInt()
+	var totalPower int64
 
 	// Retrieve the last validator set.
 	// The persistent set is updated later in this function.
@@ -73,13 +73,13 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 
 		// calculate the new power bytes
 		newPower := validator.BondedTokens().RoundInt64()
-		newPowerBytes := k.cdc.MustMarshalBinary(sdk.NewInt(newPower))
+		newPowerBytes := k.cdc.MustMarshalBinary(newPower)
 		// update the validator set if power has changed
 		if !found || !bytes.Equal(oldPowerBytes, newPowerBytes) {
 			updates = append(updates, validator.ABCIValidatorUpdate())
 
 			// set validator power on lookup index.
-			k.SetLastValidatorPower(ctx, operator, sdk.NewInt(newPower))
+			k.SetLastValidatorPower(ctx, operator, newPower)
 		}
 
 		// validator still in the validator set, so delete from the copy
@@ -87,7 +87,7 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 
 		// keep count
 		count++
-		totalPower = totalPower.Add(sdk.NewInt(newPower))
+		totalPower = totalPower + newPower
 	}
 
 	// sort the no-longer-bonded validators

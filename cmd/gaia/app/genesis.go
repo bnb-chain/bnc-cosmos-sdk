@@ -25,7 +25,7 @@ import (
 var (
 	// bonded tokens given to genesis validators/accounts
 	freeFermionVal  = int64(100)
-	freeFermionsAcc = sdk.NewInt(150)
+	freeFermionsAcc = int64(150)
 )
 
 // State to Unmarshal
@@ -135,10 +135,10 @@ func GaiaAppGenState(cdc *codec.Codec, appGenTxs []json.RawMessage) (genesisStat
 	return
 }
 
-func genesisAccountFromMsgCreateValidator(msg stake.MsgCreateValidator, amount sdk.Int) GenesisAccount {
+func genesisAccountFromMsgCreateValidator(msg stake.MsgCreateValidator, amount int64) GenesisAccount {
 	accAuth := auth.NewBaseAccountWithAddress(sdk.AccAddress(msg.ValidatorAddr))
 	accAuth.Coins = []sdk.Coin{
-		{msg.Description.Moniker + "Token", sdk.NewInt(1000)},
+		{msg.Description.Moniker + "Token", 1000},
 		{"steak", amount},
 	}
 	return NewGenesisAccount(&accAuth)
@@ -251,7 +251,7 @@ func CollectStdTxs(moniker string, genTxsDir string, cdc *codec.Codec) (
 func NewDefaultGenesisAccount(addr sdk.AccAddress) GenesisAccount {
 	accAuth := auth.NewBaseAccountWithAddress(addr)
 	accAuth.Coins = []sdk.Coin{
-		{"fooToken", sdk.NewInt(1000)},
+		{"fooToken", 1000},
 		{"steak", freeFermionsAcc},
 	}
 	return NewGenesisAccount(&accAuth)

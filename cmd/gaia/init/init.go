@@ -224,7 +224,7 @@ func initWithConfig(cdc *codec.Codec, config *cfg.Config, initCfg initConfig) (
 		msg := stake.NewMsgCreateValidator(
 			sdk.ValAddress(addr),
 			initCfg.ValPubKey,
-			sdk.NewInt64Coin("steak", 100),
+			sdk.NewCoin("steak", 100),
 			stake.NewDescription(config.Moniker, "", "", ""),
 			stake.NewCommissionMsg(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec()),
 		)

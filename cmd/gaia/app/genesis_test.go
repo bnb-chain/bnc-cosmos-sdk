@@ -77,7 +77,7 @@ func TestGaiaAppGenState(t *testing.T) {
 func makeMsg(name string, pk crypto.PubKey) auth.StdTx {
 	desc := stake.NewDescription(name, "", "", "")
 	comm := stakeTypes.CommissionMsg{}
-	msg := stake.NewMsgCreateValidator(sdk.ValAddress(pk.Address()), pk, sdk.NewInt64Coin("steak", 50), desc, comm)
+	msg := stake.NewMsgCreateValidator(sdk.ValAddress(pk.Address()), pk, sdk.NewCoin("steak", 50), desc, comm)
 	return auth.NewStdTx([]sdk.Msg{msg}, nil, "")
 }
 
