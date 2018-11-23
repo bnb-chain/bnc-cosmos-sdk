@@ -34,8 +34,7 @@ func main() {
 	rootCmd.AddCommand(gaiaInit.TestnetFilesCmd(ctx, cdc, appInit))
 	rootCmd.AddCommand(gaiaInit.GenTxCmd(ctx, cdc))
 
-	server.AddCommands(ctx, cdc, rootCmd, appInit,
-		newApp, exportAppStateAndTMValidators)
+	server.AddCommands(ctx, cdc, rootCmd, exportAppStateAndTMValidators)
 
 	// prepare and add flags
 	executor := cli.PrepareBaseCmd(rootCmd, "GA", app.DefaultNodeHome)
