@@ -14,7 +14,7 @@ import (
 
 func TestBeginBlocker(t *testing.T) {
 	ctx, ck, sk, _, keeper := createTestInput(t, DefaultParams())
-	addr, pk, amt := addrs[2], pks[2], int64(100)
+	addr, pk, amt := addrs[2], pks[2], sdk.NewDecWithoutFra(100).RawInt()
 
 	// bond the validator
 	got := stake.NewHandler(sk)(ctx, NewTestMsgCreateValidator(addr, pk, amt))

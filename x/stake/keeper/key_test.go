@@ -26,19 +26,19 @@ func TestGetValidatorPowerRank(t *testing.T) {
 	val1 := types.NewValidator(valAddr1, pk1, emptyDesc)
 	val1.Tokens = sdk.NewDec(0)
 	val2, val3, val4 := val1, val1, val1
-	val2.Tokens = sdk.NewDec(1)
-	val3.Tokens = sdk.NewDec(10)
+	val2.Tokens = sdk.NewDecWithoutFra(1)
+	val3.Tokens = sdk.NewDecWithoutFra(10)
 	x := new(big.Int).Exp(big.NewInt(2), big.NewInt(20), big.NewInt(0))
-	val4.Tokens = sdk.NewDecFromBigInt(x.Int64())
+	val4.Tokens = sdk.NewDecWithoutFra(x.Int64())
 
 	tests := []struct {
 		validator types.Validator
 		wantHex   string
 	}{
 		{val1, "230000000000000000ffffffffffffffffffff"},
-		{val2, "230000000000000001ffffffffffffffffffff"},
-		{val3, "23000000000000000affffffffffffffffffff"},
-		{val4, "230000000000100000ffffffffffffffffffff"},
+		{val2, "230000000005f5e100ffffffffffffffffffff"}, // "5f5e100" is	100000000 in base 10.
+		{val3, "23000000003b9aca00ffffffffffffffffffff"}, // "3b9aca00" is 1000000000 in base 10
+		{val4, "2300005f5e10000000ffffffffffffffffffff"}, // "5f5e10000000" is 2^20.e8 in base 10
 	}
 	for i, tt := range tests {
 		got := hex.EncodeToString(getValidatorPowerRank(tt.validator))

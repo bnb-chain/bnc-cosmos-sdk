@@ -17,8 +17,8 @@ var (
 
 // test ValidateBasic for MsgCreateValidator
 func TestMsgCreateValidator(t *testing.T) {
-	commission1 := NewCommissionMsg(sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1))
-	commission2 := NewCommissionMsg(sdk.NewDec(5), sdk.NewDec(5), sdk.NewDec(5))
+	commission1 := NewCommissionMsg(sdk.NewDecWithoutFra(1), sdk.NewDecWithoutFra(1), sdk.NewDecWithoutFra(1))
+	commission2 := NewCommissionMsg(sdk.NewDecWithoutFra(5), sdk.NewDecWithoutFra(5), sdk.NewDecWithoutFra(5))
 
 	tests := []struct {
 		name, moniker, identity, website, details string
@@ -77,8 +77,8 @@ func TestMsgEditValidator(t *testing.T) {
 
 // test ValidateBasic and GetSigners for MsgCreateValidatorOnBehalfOf
 func TestMsgCreateValidatorOnBehalfOf(t *testing.T) {
-	commission1 := NewCommissionMsg(sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1))
-	commission2 := NewCommissionMsg(sdk.NewDec(5), sdk.NewDec(5), sdk.NewDec(5))
+	commission1 := NewCommissionMsg(sdk.NewDecWithoutFra(1), sdk.NewDecWithoutFra(1), sdk.NewDecWithoutFra(1))
+	commission2 := NewCommissionMsg(sdk.NewDecWithoutFra(5), sdk.NewDecWithoutFra(5), sdk.NewDecWithoutFra(5))
 
 	tests := []struct {
 		name, moniker, identity, website, details string

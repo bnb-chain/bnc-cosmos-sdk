@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
-	"strings"
 	"testing"
 )
 
@@ -71,6 +70,11 @@ func precisionMultiplier(prec int64) int64 {
 
 // create a new Dec from integer assuming whole number
 func NewDec(i int64) Dec {
+	return NewDecWithPrec(i, Precision)
+}
+
+// create a new dec from integer with no decimal fraction
+func NewDecWithoutFra(i int64) Dec {
 	return NewDecWithPrec(i, 0)
 }
 
@@ -90,7 +94,7 @@ func NewDecWithPrec(i, prec int64) Dec {
 // create a new Dec from big integer assuming whole numbers
 // CONTRACT: prec <= Precision
 func NewDecFromBigInt(i int64) Dec {
-	return NewDecFromBigIntWithPrec(i, 0)
+	return NewDecFromBigIntWithPrec(i, Precision)
 }
 
 // create a new Dec from big integer assuming whole numbers
@@ -102,7 +106,7 @@ func NewDecFromBigIntWithPrec(i int64, prec int64) Dec {
 // create a new Dec from big integer assuming whole numbers
 // CONTRACT: prec <= Precision
 func NewDecFromInt(i int64) Dec {
-	return NewDecFromIntWithPrec(i, 0)
+	return NewDecFromIntWithPrec(i, Precision)
 }
 
 // create a new Dec from big integer with decimal place at prec
@@ -113,64 +117,23 @@ func NewDecFromIntWithPrec(i int64, prec int64) Dec {
 
 // create a decimal from an input decimal string.
 // valid must come in the form:
-//   (-) whole integers (.) decimal integers
+//   (-) whole integers
 // examples of acceptable input include:
-//   -123.456
-//   456.7890
+//   -123456
+//   4567890
 //   345
-//   -456789
+//   456789
 //
 // NOTE - An error will return if more decimal places
 // are provided in the string than the constant Precision.
 //
 // CONTRACT - This function does not mutate the input str.
 func NewDecFromStr(str string) (d Dec, err Error) {
-	if len(str) == 0 {
-		return d, ErrUnknownRequest("decimal string is empty")
-	}
-
-	// first extract any negative symbol
-	neg := false
-	if str[0] == '-' {
-		neg = true
-		str = str[1:]
-	}
-
-	if len(str) == 0 {
-		return d, ErrUnknownRequest("decimal string is empty")
-	}
-
-	strs := strings.Split(str, ".")
-	lenDecs := 0
-	combinedStr := strs[0]
-	if len(strs) == 2 {
-		lenDecs = len(strs[1])
-		if lenDecs == 0 || len(combinedStr) == 0 {
-			return d, ErrUnknownRequest("bad decimal length")
-		}
-		combinedStr = combinedStr + strs[1]
-	} else if len(strs) > 2 {
-		return d, ErrUnknownRequest("too many periods to be a decimal string")
-	}
-
-	if lenDecs > Precision {
-		return d, ErrUnknownRequest(
-			fmt.Sprintf("too much precision, maximum %v, len decimal %v", Precision, lenDecs))
-	}
-
-	// add some extra zero's to correct to the Precision factor
-	zerosToAdd := Precision - lenDecs
-	zeros := fmt.Sprintf(`%0`+strconv.Itoa(zerosToAdd)+`s`, "")
-	combinedStr = combinedStr + zeros
-
-	combined, parseErr := strconv.ParseInt(combinedStr, 10, 64)
+	value, parseErr := strconv.ParseInt(str, 10, 64)
 	if parseErr != nil {
-		return d, ErrUnknownRequest(fmt.Sprintf("bad string to integer conversion, combinedStr: %v, error: %v", combinedStr, err))
+		return d, ErrUnknownRequest(fmt.Sprintf("bad string to integer conversion, input string: %v, error: %v", str, parseErr))
 	}
-	if neg {
-		combined = -combined
-	}
-	return Dec{combined}, nil
+	return Dec{value}, nil
 }
 
 //______________________________________________________________________________________________
@@ -188,6 +151,10 @@ func (d Dec) Abs() Dec {
 		return d.Neg()
 	}
 	return d
+}
+
+func (d Dec) RawInt() int64 {
+	return d.int64
 }
 
 func (d Dec) Set(v int64) Dec {
@@ -264,31 +231,7 @@ func (d Dec) IsInteger() bool {
 }
 
 func (d Dec) String() string {
-	s := strconv.FormatInt(d.int64, 10)
-	bz := []byte(s)
-	var bzWDec []byte
-	inputSize := len(bz)
-	// TODO: Remove trailing zeros
-	// case 1, purely decimal
-	if inputSize <= 8 {
-		bzWDec = make([]byte, 10)
-		// 0. prefix
-		bzWDec[0] = byte('0')
-		bzWDec[1] = byte('.')
-		// set relevant digits to 0
-		for i := 0; i < 8-inputSize; i++ {
-			bzWDec[i+2] = byte('0')
-		}
-		// set last few digits
-		copy(bzWDec[2+(8-inputSize):], bz)
-	} else {
-		// inputSize + 1 to account for the decimal point that is being added
-		bzWDec = make([]byte, inputSize+1)
-		copy(bzWDec, bz[:inputSize-8])
-		bzWDec[inputSize-8] = byte('.')
-		copy(bzWDec[inputSize-7:], bz[inputSize-8:])
-	}
-	return string(bzWDec)
+	return strconv.FormatInt(d.int64, 10)
 }
 
 //     ____
@@ -343,20 +286,6 @@ func chopPrecisionAndRoundNonMutative(d *big.Int) *big.Int {
 	return chopPrecisionAndRound(tmp)
 }
 
-// RoundInt64 rounds the decimal using bankers rounding
-func (d Dec) RoundInt64() int64 {
-	chopped := chopPrecisionAndRoundNonMutative(big.NewInt(d.int64))
-	if !chopped.IsInt64() {
-		panic("Int64() out of bound")
-	}
-	return chopped.Int64()
-}
-
-// RoundInt round the decimal using bankers rounding
-func (d Dec) RoundInt() int64 {
-	return d.RoundInt64()
-}
-
 //___________________________________________________________________________________
 
 // similar to chopPrecisionAndRound, but always rounds down
@@ -375,7 +304,7 @@ func (d Dec) TruncateInt64() int64 {
 
 // TruncateInt truncates the decimals from the number and returns an Int
 func (d Dec) TruncateInt() int64 {
-	return chopPrecisionAndTruncateNonMutative(d.int64)
+	return chopPrecisionAndTruncateNonMutative(d.int64) * precisionReuse
 }
 
 //___________________________________________________________________________________

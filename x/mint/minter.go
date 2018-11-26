@@ -31,7 +31,7 @@ func validateMinter(minter Minter) error {
 	return nil
 }
 
-var hrsPerYr = sdk.NewDec(8766) // as defined by a julian year of 365.25 days
+var hrsPerYr = sdk.NewDecWithoutFra(8766) // as defined by a julian year of 365.25 days
 
 // process provisions for an hour period
 func (m Minter) ProcessProvisions(params Params, totalSupply, bondedRatio sdk.Dec) (

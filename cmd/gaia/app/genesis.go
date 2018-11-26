@@ -24,8 +24,8 @@ import (
 
 var (
 	// bonded tokens given to genesis validators/accounts
-	freeFermionVal  = int64(100)
-	freeFermionsAcc = int64(150)
+	freeFermionVal  = sdk.NewDecWithoutFra(100).RawInt()
+	freeFermionsAcc = sdk.NewDecWithoutFra(150).RawInt()
 )
 
 // State to Unmarshal

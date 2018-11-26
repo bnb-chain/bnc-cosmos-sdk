@@ -30,7 +30,7 @@ func TestHandleDoubleSign(t *testing.T) {
 	ctx, ck, sk, _, keeper := createTestInput(t, keeperTestParams())
 	// validator added pre-genesis
 	ctx = ctx.WithBlockHeight(-1)
-	amtInt := int64(100)
+	amtInt := sdk.NewDecWithoutFra(100).RawInt()
 	operatorAddr, val, amt := addrs[0], pks[0], amtInt
 	got := stake.NewHandler(sk)(ctx, NewTestMsgCreateValidator(operatorAddr, val, amt))
 	require.True(t, got.IsOK())
@@ -51,7 +51,7 @@ func TestHandleDoubleSign(t *testing.T) {
 	sk.Unjail(ctx, sdk.ConsAddress(val.Address()))
 	// power should be reduced
 	require.Equal(
-		t, sdk.NewDecFromInt(amt).Mul(sdk.NewDec(19).Quo(sdk.NewDec(20))),
+		t, sdk.NewDecFromInt(amt).Mul(sdk.NewDecWithoutFra(19).Quo(sdk.NewDecWithoutFra(20))),
 		sk.Validator(ctx, operatorAddr).GetPower(),
 	)
 	ctx = ctx.WithBlockHeader(abci.Header{Time: time.Unix(1, 0).Add(keeper.MaxEvidenceAge(ctx))})
@@ -59,7 +59,7 @@ func TestHandleDoubleSign(t *testing.T) {
 	// double sign past max age
 	keeper.handleDoubleSign(ctx, val.Address(), 0, time.Unix(0, 0), amtInt)
 	require.Equal(
-		t, sdk.NewDecFromInt(amt).Mul(sdk.NewDec(19).Quo(sdk.NewDec(20))),
+		t, sdk.NewDecFromInt(amt).Mul(sdk.NewDecWithoutFra(19).Quo(sdk.NewDecWithoutFra(20))),
 		sk.Validator(ctx, operatorAddr).GetPower(),
 	)
 }
@@ -70,7 +70,7 @@ func TestSlashingPeriodCap(t *testing.T) {
 
 	// initial setup
 	ctx, ck, sk, _, keeper := createTestInput(t, DefaultParams())
-	amtInt := int64(100)
+	amtInt := sdk.NewDecWithoutFra(100).RawInt()
 	operatorAddr, amt := addrs[0], amtInt
 	valConsPubKey, valConsAddr := pks[0], pks[0].Address()
 	got := stake.NewHandler(sk)(ctx, NewTestMsgCreateValidator(operatorAddr, valConsPubKey, amt))
@@ -97,7 +97,7 @@ func TestSlashingPeriodCap(t *testing.T) {
 	// end block
 	stake.EndBlocker(ctx, sk)
 	// power should be reduced
-	expectedPower := sdk.NewDecFromInt(amt).Mul(sdk.NewDec(19).Quo(sdk.NewDec(20)))
+	expectedPower := sdk.NewDecFromInt(amt).Mul(sdk.NewDecWithoutFra(19).Quo(sdk.NewDecWithoutFra(20)))
 	require.Equal(t, expectedPower, sk.Validator(ctx, operatorAddr).GetPower())
 
 	// double sign again, same slashing period
@@ -113,7 +113,7 @@ func TestSlashingPeriodCap(t *testing.T) {
 	// end block
 	stake.EndBlocker(ctx, sk)
 	// power should be equal, no more should have been slashed
-	expectedPower = sdk.NewDecFromInt(amt).Mul(sdk.NewDec(19).Quo(sdk.NewDec(20)))
+	expectedPower = sdk.NewDecFromInt(amt).Mul(sdk.NewDecWithoutFra(19).Quo(sdk.NewDecWithoutFra(20)))
 	require.Equal(t, expectedPower, sk.Validator(ctx, operatorAddr).GetPower())
 
 	// double sign again, new slashing period
@@ -125,7 +125,7 @@ func TestSlashingPeriodCap(t *testing.T) {
 	// end block
 	stake.EndBlocker(ctx, sk)
 	// power should be reduced
-	expectedPower = sdk.NewDecFromInt(amt).Mul(sdk.NewDec(18).Quo(sdk.NewDec(20)))
+	expectedPower = sdk.NewDecFromInt(amt).Mul(sdk.NewDecWithoutFra(18).Quo(sdk.NewDecWithoutFra(20)))
 	require.Equal(t, expectedPower, sk.Validator(ctx, operatorAddr).GetPower())
 }
 
@@ -135,7 +135,7 @@ func TestHandleAbsentValidator(t *testing.T) {
 
 	// initial setup
 	ctx, ck, sk, _, keeper := createTestInput(t, keeperTestParams())
-	amtInt := int64(100)
+	amtInt := sdk.NewDecWithoutFra(100).RawInt()
 	addr, val, amt := addrs[0], pks[0], amtInt
 	sh := stake.NewHandler(sk)
 	slh := NewHandler(keeper)
@@ -178,7 +178,7 @@ func TestHandleAbsentValidator(t *testing.T) {
 	validator, _ := sk.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(val))
 	require.Equal(t, sdk.Bonded, validator.GetStatus())
 	pool := sk.GetPool(ctx)
-	require.Equal(t, amtInt, pool.BondedTokens.RoundInt64())
+	require.Equal(t, amtInt, pool.BondedTokens.RawInt())
 
 	// 501st block missed
 	ctx = ctx.WithBlockHeight(height)
@@ -196,10 +196,10 @@ func TestHandleAbsentValidator(t *testing.T) {
 	validator, _ = sk.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(val))
 	require.Equal(t, sdk.Unbonding, validator.GetStatus())
 
-	slashAmt := sdk.NewDec(amtInt).Mul(keeper.SlashFractionDowntime(ctx)).RoundInt64()
+	slashAmt := sdk.NewDec(amtInt).Mul(keeper.SlashFractionDowntime(ctx)).RawInt()
 
 	// validator should have been slashed
-	require.Equal(t, amtInt-slashAmt, validator.GetTokens().RoundInt64())
+	require.Equal(t, amtInt-slashAmt, validator.GetTokens().RawInt())
 
 	// 502nd block *also* missed (since the LastCommit would have still included the just-unbonded validator)
 	height++
@@ -215,15 +215,15 @@ func TestHandleAbsentValidator(t *testing.T) {
 
 	// validator should not have been slashed any more, since it was already jailed
 	validator, _ = sk.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(val))
-	require.Equal(t, amtInt-slashAmt, validator.GetTokens().RoundInt64())
+	require.Equal(t, amtInt-slashAmt, validator.GetTokens().RawInt())
 
 	// 502nd block *double signed* (oh no!)
 	keeper.handleDoubleSign(ctx, val.Address(), height, ctx.BlockHeader().Time, amtInt)
 
 	// validator should have been slashed
 	validator, _ = sk.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(val))
-	secondSlashAmt := sdk.NewDec(amtInt).Mul(keeper.SlashFractionDoubleSign(ctx)).RoundInt64()
-	require.Equal(t, amtInt-slashAmt-secondSlashAmt, validator.GetTokens().RoundInt64())
+	secondSlashAmt := sdk.NewDec(amtInt).Mul(keeper.SlashFractionDoubleSign(ctx)).RawInt()
+	require.Equal(t, amtInt-slashAmt-secondSlashAmt, validator.GetTokens().RawInt())
 
 	// unrevocation should fail prior to jail expiration
 	got = slh(ctx, NewMsgUnjail(addr))
@@ -243,7 +243,7 @@ func TestHandleAbsentValidator(t *testing.T) {
 
 	// validator should have been slashed
 	pool = sk.GetPool(ctx)
-	require.Equal(t, amtInt-slashAmt-secondSlashAmt, pool.BondedTokens.RoundInt64())
+	require.Equal(t, amtInt-slashAmt-secondSlashAmt, pool.BondedTokens.RawInt())
 
 	// validator start height should not have been changed
 	info, found = keeper.getValidatorSigningInfo(ctx, sdk.ConsAddress(val.Address()))
@@ -289,7 +289,7 @@ func TestHandleAbsentValidator(t *testing.T) {
 func TestHandleNewValidator(t *testing.T) {
 	// initial setup
 	ctx, ck, sk, _, keeper := createTestInput(t, keeperTestParams())
-	addr, val, amt := addrs[0], pks[0], int64(100)
+	addr, val, amt := addrs[0], pks[0], sdk.NewDecWithoutFra(100).RawInt()
 	sh := stake.NewHandler(sk)
 
 	// 1000 first blocks not a validator
@@ -319,7 +319,7 @@ func TestHandleNewValidator(t *testing.T) {
 	validator, _ := sk.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(val))
 	require.Equal(t, sdk.Bonded, validator.GetStatus())
 	pool := sk.GetPool(ctx)
-	require.Equal(t, int64(100), pool.BondedTokens.RoundInt64())
+	require.Equal(t, sdk.NewDecWithoutFra(100), pool.BondedTokens)
 }
 
 // Test a jailed validator being "down" twice
@@ -331,7 +331,7 @@ func TestHandleAlreadyJailed(t *testing.T) {
 	amtInt := int64(100)
 	addr, val, amt := addrs[0], pks[0], amtInt
 	sh := stake.NewHandler(sk)
-	got := sh(ctx, NewTestMsgCreateValidator(addr, val, amt))
+	got := sh(ctx, NewTestMsgCreateValidator(addr, val, sdk.NewDecWithoutFra(amt).RawInt()))
 	require.True(t, got.IsOK())
 	validatorUpdates := stake.EndBlocker(ctx, sk)
 	keeper.AddValidators(ctx, validatorUpdates)
@@ -340,13 +340,13 @@ func TestHandleAlreadyJailed(t *testing.T) {
 	height := int64(0)
 	for ; height < keeper.SignedBlocksWindow(ctx); height++ {
 		ctx = ctx.WithBlockHeight(height)
-		keeper.handleValidatorSignature(ctx, val.Address(), amtInt, true)
+		keeper.handleValidatorSignature(ctx, val.Address(), sdk.NewDecWithoutFra(amtInt).RawInt(), true)
 	}
 
 	// 501 blocks missed
 	for ; height < keeper.SignedBlocksWindow(ctx)+(keeper.SignedBlocksWindow(ctx)-keeper.MinSignedPerWindow(ctx))+1; height++ {
 		ctx = ctx.WithBlockHeight(height)
-		keeper.handleValidatorSignature(ctx, val.Address(), amtInt, false)
+		keeper.handleValidatorSignature(ctx, val.Address(), sdk.NewDecWithoutFra(amtInt).RawInt(), false)
 	}
 
 	// end block
@@ -357,15 +357,15 @@ func TestHandleAlreadyJailed(t *testing.T) {
 	require.Equal(t, sdk.Unbonding, validator.GetStatus())
 
 	// validator should have been slashed
-	require.Equal(t, amtInt-1, validator.GetTokens().RoundInt64())
+	require.Equal(t, sdk.NewDecWithoutFra(amtInt-1), validator.GetTokens())
 
 	// another block missed
 	ctx = ctx.WithBlockHeight(height)
-	keeper.handleValidatorSignature(ctx, val.Address(), amtInt, false)
+	keeper.handleValidatorSignature(ctx, val.Address(), sdk.NewDecWithoutFra(amtInt).RawInt(), false)
 
 	// validator should not have been slashed twice
 	validator, _ = sk.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(val))
-	require.Equal(t, amtInt-1, validator.GetTokens().RoundInt64())
+	require.Equal(t, sdk.NewDecWithoutFra(amtInt-1), validator.GetTokens())
 
 }
 
@@ -384,7 +384,7 @@ func TestValidatorDippingInAndOut(t *testing.T) {
 	addr, val, amt := addrs[0], pks[0], amtInt
 	consAddr := sdk.ConsAddress(addr)
 	sh := stake.NewHandler(sk)
-	got := sh(ctx, NewTestMsgCreateValidator(addr, val, amt))
+	got := sh(ctx, NewTestMsgCreateValidator(addr, val, sdk.NewDecWithoutFra(amt).RawInt()))
 	require.True(t, got.IsOK())
 	validatorUpdates := stake.EndBlocker(ctx, sk)
 	keeper.AddValidators(ctx, validatorUpdates)
@@ -398,7 +398,7 @@ func TestValidatorDippingInAndOut(t *testing.T) {
 
 	// validator kicked out of validator set
 	newAmt := int64(101)
-	got = sh(ctx, NewTestMsgCreateValidator(addrs[1], pks[1], newAmt))
+	got = sh(ctx, NewTestMsgCreateValidator(addrs[1], pks[1], sdk.NewDecWithoutFra(newAmt).RawInt()))
 	require.True(t, got.IsOK())
 	validatorUpdates = stake.EndBlocker(ctx, sk)
 	require.Equal(t, 2, len(validatorUpdates))
@@ -411,7 +411,7 @@ func TestValidatorDippingInAndOut(t *testing.T) {
 	ctx = ctx.WithBlockHeight(height)
 
 	// validator added back in
-	got = sh(ctx, newTestMsgDelegate(sdk.AccAddress(addrs[2]), addrs[0], 2))
+	got = sh(ctx, newTestMsgDelegate(sdk.AccAddress(addrs[2]), addrs[0], sdk.NewDecWithoutFra(2).RawInt()))
 	require.True(t, got.IsOK())
 	validatorUpdates = stake.EndBlocker(ctx, sk)
 	require.Equal(t, 2, len(validatorUpdates))

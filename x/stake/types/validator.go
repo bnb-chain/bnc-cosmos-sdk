@@ -310,7 +310,7 @@ func (d Description) EnsureLength() (Description, sdk.Error) {
 func (v Validator) ABCIValidatorUpdate() abci.ValidatorUpdate {
 	return abci.ValidatorUpdate{
 		PubKey: tmtypes.TM2PB.PubKey(v.ConsPubKey),
-		Power:  v.BondedTokens().RoundInt64(),
+		Power:  v.BondedTokens().RawInt(),
 	}
 }
 

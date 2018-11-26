@@ -70,9 +70,9 @@ func DefaultParams() Params {
 
 		MinSignedPerWindow: sdk.NewDecWithPrec(5, 1),
 
-		SlashFractionDoubleSign: sdk.NewDec(1).Quo(sdk.NewDec(20)),
+		SlashFractionDoubleSign: sdk.OneDec().Quo(sdk.NewDecWithoutFra(20)),
 
-		SlashFractionDowntime: sdk.NewDec(1).Quo(sdk.NewDec(100)),
+		SlashFractionDowntime: sdk.OneDec().Quo(sdk.NewDecWithoutFra(100)),
 	}
 }
 
@@ -94,7 +94,7 @@ func (k Keeper) MinSignedPerWindow(ctx sdk.Context) int64 {
 	var minSignedPerWindow sdk.Dec
 	k.paramspace.Get(ctx, KeyMinSignedPerWindow, &minSignedPerWindow)
 	signedBlocksWindow := k.SignedBlocksWindow(ctx)
-	return sdk.NewDec(signedBlocksWindow).Mul(minSignedPerWindow).RoundInt64()
+	return sdk.NewDec(signedBlocksWindow).Mul(minSignedPerWindow).RawInt()
 }
 
 // Double-sign unbond duration

@@ -23,7 +23,7 @@ var (
 
 func NewTestMsgCreateValidator(address sdk.ValAddress, pubKey crypto.PubKey, amt int64) MsgCreateValidator {
 	return types.NewMsgCreateValidator(
-		address, pubKey, sdk.NewCoin("steak", amt), Description{}, commissionMsg,
+		address, pubKey, sdk.NewCoin("steak", sdk.NewDecWithoutFra(amt).RawInt()), Description{}, commissionMsg,
 	)
 }
 
@@ -41,7 +41,7 @@ func NewTestMsgDelegate(delAddr sdk.AccAddress, valAddr sdk.ValAddress, amt int6
 	return MsgDelegate{
 		DelegatorAddr: delAddr,
 		ValidatorAddr: valAddr,
-		Delegation:    sdk.NewCoin("steak", amt),
+		Delegation:    sdk.NewCoin("steak", sdk.NewDecWithoutFra(amt).RawInt()),
 	}
 }
 
@@ -52,6 +52,6 @@ func NewTestMsgCreateValidatorOnBehalfOf(delAddr sdk.AccAddress, valAddr sdk.Val
 		DelegatorAddr: delAddr,
 		ValidatorAddr: valAddr,
 		PubKey:        valPubKey,
-		Delegation:    sdk.NewCoin("steak", amt),
+		Delegation:    sdk.NewCoin("steak", sdk.NewDecWithoutFra(amt).RawInt()),
 	}
 }
