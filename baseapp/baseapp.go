@@ -64,7 +64,6 @@ type BaseApp struct {
 	// See methods SetCheckState and SetDeliverState.
 	CheckState   *state          // for CheckTx
 	DeliverState *state          // for DeliverTx
-	voteInfos    []abci.VoteInfo // absent validators from begin block
 
 	// flag for sealing
 	sealed bool
@@ -447,6 +446,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	// nil, since it is reset on Commit.
 	if app.DeliverState == nil {
 		app.SetDeliverState(req.Header)
+		app.DeliverState.Ctx = app.DeliverState.Ctx.WithVoteInfos(req.LastCommitInfo.GetVotes())
 	} else {
 		// In the first block, app.DeliverState.Ctx will already be initialized
 		// by InitChain. Context is now updated with Header information.
@@ -457,9 +457,6 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		res = app.beginBlocker(app.DeliverState.Ctx, req)
 	}
 
-	// set the signed validators for addition to context in deliverTx
-	// TODO: communicate this result to the address to pubkey map in slashing
-	app.voteInfos = req.LastCommitInfo.GetVotes()
 	return
 }
 
@@ -549,15 +546,10 @@ func validateBasicTxMsgs(msgs []sdk.Msg) sdk.Error {
 	return nil
 }
 
-// retrieve the context for the ante handler and store the tx bytes; store
-// the vote infos if the tx runs within the deliverTx() state.
+// retrieve the context for the ante handler and store the tx bytes;
 func (app *BaseApp) getContextForAnte(mode sdk.RunTxMode, txBytes []byte) (ctx sdk.Context) {
 	// Get the context
 	ctx = getState(app, mode).Ctx.WithTxBytes(txBytes)
-	if mode == sdk.RunTxModeDeliver {
-		ctx = ctx.WithVoteInfos(app.voteInfos)
-	}
-
 	// Simulate a DeliverTx
 	if mode == sdk.RunTxModeSimulate {
 		ctx = ctx.WithRunTxMode(mode)
@@ -661,7 +653,6 @@ func (app *BaseApp) runTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx) (result
 		}
 		if !newCtx.IsZero() {
 			ctx = newCtx
-			getState(app, mode).Ctx = newCtx
 		}
 	}
 
@@ -721,7 +712,6 @@ func (app *BaseApp) reRunTx(txBytes []byte, tx sdk.Tx) (result sdk.Result) {
 		}
 		if !newCtx.IsZero() {
 			ctx = newCtx
-			getState(app, mode).Ctx = newCtx
 		}
 	}
 
