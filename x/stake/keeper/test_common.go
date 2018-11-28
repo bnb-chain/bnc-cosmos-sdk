@@ -116,10 +116,10 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initCoins int64) (sdk.Context
 	for _, addr := range Addrs {
 		pool := keeper.GetPool(ctx)
 		_, _, err := ck.AddCoins(ctx, addr, sdk.Coins{
-			{keeper.BondDenom(ctx), initCoins},
+			{keeper.BondDenom(ctx), sdk.NewDecWithoutFra(initCoins).RawInt()},
 		})
 		require.Nil(t, err)
-		pool.LooseTokens = pool.LooseTokens.Add(sdk.NewDec(initCoins))
+		pool.LooseTokens = pool.LooseTokens.Add(sdk.NewDecWithoutFra(initCoins))
 		keeper.SetPool(ctx, pool)
 	}
 

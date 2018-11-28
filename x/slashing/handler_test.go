@@ -1,6 +1,7 @@
 package slashing
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -14,11 +15,11 @@ func TestCannotUnjailUnlessJailed(t *testing.T) {
 	// initial setup
 	ctx, ck, sk, _, keeper := createTestInput(t, DefaultParams())
 	slh := NewHandler(keeper)
-	amtInt := int64(100)
+	amtInt := sdk.NewDecWithoutFra(100).RawInt()
 	addr, val, amt := addrs[0], pks[0], amtInt
 	msg := NewTestMsgCreateValidator(addr, val, amt)
 	got := stake.NewHandler(sk)(ctx, msg)
-
+	fmt.Println(got.Log)
 	require.True(t, got.IsOK())
 	stake.EndBlocker(ctx, sk)
 	require.Equal(t, ck.GetCoins(ctx, sdk.AccAddress(addr)), sdk.Coins{{sk.GetParams(ctx).BondDenom, initCoins - amt}})
@@ -42,7 +43,7 @@ func TestJailedValidatorDelegations(t *testing.T) {
 	valPubKey, bondAmount := pks[0], amount
 	valAddr, consAddr := addrs[1], sdk.ConsAddress(addrs[0])
 
-	msgCreateVal := NewTestMsgCreateValidator(valAddr, valPubKey, bondAmount)
+	msgCreateVal := NewTestMsgCreateValidator(valAddr, valPubKey, sdk.NewDecWithoutFra(bondAmount).RawInt())
 	got := stake.NewHandler(stakeKeeper)(ctx, msgCreateVal)
 	require.True(t, got.IsOK(), "expected create validator msg to be ok, got: %v", got)
 
@@ -60,11 +61,11 @@ func TestJailedValidatorDelegations(t *testing.T) {
 
 	// delegate tokens to the validator
 	delAddr := sdk.AccAddress(addrs[2])
-	msgDelegate := newTestMsgDelegate(delAddr, valAddr, bondAmount)
+	msgDelegate := newTestMsgDelegate(delAddr, valAddr, sdk.NewDecWithoutFra(bondAmount).RawInt())
 	got = stake.NewHandler(stakeKeeper)(ctx, msgDelegate)
 	require.True(t, got.IsOK(), "expected delegation to be ok, got %v", got)
 
-	unbondShares := sdk.NewDec(10)
+	unbondShares := sdk.NewDec(sdk.NewDecWithoutFra(10).RawInt())
 
 	// unbond validator total self-delegations (which should jail the validator)
 	msgBeginUnbonding := stake.NewMsgBeginUnbonding(sdk.AccAddress(valAddr), valAddr, unbondShares)
@@ -84,7 +85,7 @@ func TestJailedValidatorDelegations(t *testing.T) {
 	require.False(t, got.IsOK(), "expected jailed validator to not be able to unjail, got: %v", got)
 
 	// self-delegate to validator
-	msgSelfDelegate := newTestMsgDelegate(sdk.AccAddress(valAddr), valAddr, bondAmount)
+	msgSelfDelegate := newTestMsgDelegate(sdk.AccAddress(valAddr), valAddr, sdk.NewDecWithoutFra(bondAmount).RawInt())
 	got = stake.NewHandler(stakeKeeper)(ctx, msgSelfDelegate)
 	require.True(t, got.IsOK(), "expected delegation to not be ok, got %v", got)
 

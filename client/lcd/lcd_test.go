@@ -443,9 +443,9 @@ func TestPoolParamsQuery(t *testing.T) {
 	require.NotNil(t, body)
 
 	initialPool := stake.InitialPool()
-	initialPool.LooseTokens = initialPool.LooseTokens.Add(sdk.NewDec(100))
-	initialPool.BondedTokens = initialPool.BondedTokens.Add(sdk.NewDec(100))     // Delegate tx on GaiaAppGenState
-	initialPool.LooseTokens = initialPool.LooseTokens.Add(sdk.NewDec(int64(50))) // freeFermionsAcc = 50 on GaiaAppGenState
+	initialPool.LooseTokens = initialPool.LooseTokens.Add(sdk.NewDecWithPrec(100, 0))
+	initialPool.BondedTokens = initialPool.BondedTokens.Add(sdk.NewDecWithPrec(100, 0)) // Delegate tx on GaiaAppGenState
+	initialPool.LooseTokens = initialPool.LooseTokens.Add(sdk.NewDecWithPrec(50, 0))    // freeFermionsAcc = 50 on GaiaAppGenState
 
 	var pool stake.Pool
 	err = cdc.UnmarshalJSON([]byte(body), &pool)
@@ -494,11 +494,11 @@ func TestBonding(t *testing.T) {
 	require.Equal(t, 2, len(valPubKeys))
 	require.Equal(t, 2, len(operAddrs))
 
-	amt := sdk.NewDec(60)
+	amt := sdk.NewDecWithoutFra(60)
 	validator := getValidator(t, port, operAddrs[0])
 
 	// create bond TX
-	resultTx := doDelegate(t, port, seed, name, password, addr, operAddrs[0], 60)
+	resultTx := doDelegate(t, port, seed, name, password, addr, operAddrs[0], sdk.NewDecWithoutFra(60).RawInt())
 	tests.WaitForHeight(resultTx.Height+1, port)
 
 	require.Equal(t, uint32(0), resultTx.CheckTx.Code)
@@ -507,7 +507,7 @@ func TestBonding(t *testing.T) {
 	acc := getAccount(t, port, addr)
 	coins := acc.GetCoins()
 
-	require.Equal(t, int64(40), coins.AmountOf(denom))
+	require.Equal(t, sdk.NewDecWithoutFra(40).RawInt(), coins.AmountOf(denom))
 
 	// query validator
 	bond := getDelegation(t, port, addr, operAddrs[0])
@@ -526,7 +526,7 @@ func TestBonding(t *testing.T) {
 	require.Equal(t, operAddrs[0], bondedValidator.OperatorAddr)
 
 	// testing unbonding
-	resultTx = doBeginUnbonding(t, port, seed, name, password, addr, operAddrs[0], 30)
+	resultTx = doBeginUnbonding(t, port, seed, name, password, addr, operAddrs[0], sdk.NewDecWithoutFra(30).RawInt())
 	tests.WaitForHeight(resultTx.Height+1, port)
 
 	require.Equal(t, uint32(0), resultTx.CheckTx.Code)
@@ -535,13 +535,13 @@ func TestBonding(t *testing.T) {
 	// sender should have not received any coins as the unbonding has only just begun
 	acc = getAccount(t, port, addr)
 	coins = acc.GetCoins()
-	require.Equal(t, int64(40), coins.AmountOf("steak"))
+	require.Equal(t, sdk.NewDecWithoutFra(40).RawInt(), coins.AmountOf("steak"))
 
 	unbonding := getUndelegation(t, port, addr, operAddrs[0])
-	require.Equal(t, int64(30), unbonding.Balance.Amount)
+	require.Equal(t, sdk.NewDecWithoutFra(30).RawInt(), unbonding.Balance.Amount)
 
 	// test redelegation
-	resultTx = doBeginRedelegation(t, port, seed, name, password, addr, operAddrs[0], operAddrs[1], 30)
+	resultTx = doBeginRedelegation(t, port, seed, name, password, addr, operAddrs[0], operAddrs[1], sdk.NewDecWithoutFra(30).RawInt())
 	tests.WaitForHeight(resultTx.Height+1, port)
 
 	require.Equal(t, uint32(0), resultTx.CheckTx.Code)
@@ -550,23 +550,23 @@ func TestBonding(t *testing.T) {
 	// query delegations, unbondings and redelegations from validator and delegator
 	delegatorDels = getDelegatorDelegations(t, port, addr)
 	require.Len(t, delegatorDels, 1)
-	require.Equal(t, "30.00000000", delegatorDels[0].GetShares().String())
+	require.Equal(t, "3000000000", delegatorDels[0].GetShares().String())
 
 	delegatorUbds := getDelegatorUnbondingDelegations(t, port, addr)
 	require.Len(t, delegatorUbds, 1)
-	require.Equal(t, int64(30), delegatorUbds[0].Balance.Amount)
+	require.Equal(t, sdk.NewDecWithoutFra(30).RawInt(), delegatorUbds[0].Balance.Amount)
 
 	delegatorReds := getDelegatorRedelegations(t, port, addr)
 	require.Len(t, delegatorReds, 1)
-	require.Equal(t, int64(30), delegatorReds[0].Balance.Amount)
+	require.Equal(t, sdk.NewDecWithoutFra(30).RawInt(), delegatorReds[0].Balance.Amount)
 
 	validatorUbds := getValidatorUnbondingDelegations(t, port, operAddrs[0])
 	require.Len(t, validatorUbds, 1)
-	require.Equal(t, int64(30), validatorUbds[0].Balance.Amount)
+	require.Equal(t, sdk.NewDecWithoutFra(30).RawInt(), validatorUbds[0].Balance.Amount)
 
 	validatorReds := getValidatorRedelegations(t, port, operAddrs[0])
 	require.Len(t, validatorReds, 1)
-	require.Equal(t, int64(30), validatorReds[0].Balance.Amount)
+	require.Equal(t, sdk.NewDecWithoutFra(30).RawInt(), validatorReds[0].Balance.Amount)
 
 	// TODO Undonding status not currently implemented
 	// require.Equal(t, sdk.Unbonding, bondedValidators[0].Status)

@@ -36,7 +36,7 @@ var (
 		sdk.ValAddress(pks[1].Address()),
 		sdk.ValAddress(pks[2].Address()),
 	}
-	initCoins = int64(200)
+	initCoins = sdk.NewDecWithoutFra(200).RawInt()
 )
 
 func createTestCodec() *codec.Codec {
