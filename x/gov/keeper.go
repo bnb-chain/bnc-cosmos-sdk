@@ -216,7 +216,7 @@ func (keeper Keeper) peekCurrentProposalID(ctx sdk.Context) (proposalID int64, e
 	return proposalID, nil
 }
 
-func (keeper Keeper) activateVotingPeriod(ctx sdk.Context, proposal Proposal) {
+func (keeper Keeper) ActivateVotingPeriod(ctx sdk.Context, proposal Proposal) {
 	proposal.SetVotingStartTime(ctx.BlockHeader().Time)
 	proposal.SetStatus(StatusVotingPeriod)
 	keeper.SetProposal(ctx, proposal)
@@ -370,7 +370,7 @@ func (keeper Keeper) AddDeposit(ctx sdk.Context, proposalID int64, depositerAddr
 	// Active voting period if so
 	activatedVotingPeriod := false
 	if proposal.GetStatus() == StatusDepositPeriod && proposal.GetTotalDeposit().IsGTE(keeper.GetDepositProcedure(ctx).MinDeposit) {
-		keeper.activateVotingPeriod(ctx, proposal)
+		keeper.ActivateVotingPeriod(ctx, proposal)
 		activatedVotingPeriod = true
 	}
 

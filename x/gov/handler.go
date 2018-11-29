@@ -115,7 +115,7 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags) {
 	resTags = sdk.NewTags()
 
 	// Delete proposals that haven't met minDeposit
-	for shouldPopInactiveProposalQueue(ctx, keeper) {
+	for ShouldPopInactiveProposalQueue(ctx, keeper) {
 		inactiveProposal := keeper.InactiveProposalQueuePop(ctx)
 		if inactiveProposal.GetStatus() != StatusDepositPeriod {
 			continue
@@ -141,7 +141,7 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags) {
 	}
 
 	// Check if earliest Active Proposal ended voting period yet
-	for shouldPopActiveProposalQueue(ctx, keeper) {
+	for ShouldPopActiveProposalQueue(ctx, keeper) {
 		activeProposal := keeper.ActiveProposalQueuePop(ctx)
 
 		proposalStartTime := activeProposal.GetVotingStartTime()
@@ -150,7 +150,7 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags) {
 			continue
 		}
 
-		passes, tallyResults := tally(ctx, keeper, activeProposal)
+		passes, tallyResults := Tally(ctx, keeper, activeProposal)
 		proposalIDBytes := keeper.cdc.MustMarshalBinaryBare(activeProposal.GetProposalID())
 		var action []byte
 		if passes {
@@ -179,7 +179,7 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags) {
 
 	return resTags
 }
-func shouldPopInactiveProposalQueue(ctx sdk.Context, keeper Keeper) bool {
+func ShouldPopInactiveProposalQueue(ctx sdk.Context, keeper Keeper) bool {
 	depositProcedure := keeper.GetDepositProcedure(ctx)
 	peekProposal := keeper.InactiveProposalQueuePeek(ctx)
 
@@ -193,7 +193,7 @@ func shouldPopInactiveProposalQueue(ctx sdk.Context, keeper Keeper) bool {
 	return false
 }
 
-func shouldPopActiveProposalQueue(ctx sdk.Context, keeper Keeper) bool {
+func ShouldPopActiveProposalQueue(ctx sdk.Context, keeper Keeper) bool {
 	votingProcedure := keeper.GetVotingProcedure(ctx)
 	peekProposal := keeper.ActiveProposalQueuePeek(ctx)
 
