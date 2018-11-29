@@ -3,9 +3,10 @@ package auth
 import (
 	"errors"
 
+	"github.com/tendermint/tendermint/crypto"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/tendermint/tendermint/crypto"
 )
 
 // AccountDecoder unmarshals account bytes
@@ -109,10 +110,6 @@ func (acc *BaseAccount) Clone() sdk.Account {
 		AccountNumber: acc.AccountNumber,
 		Sequence:      acc.Sequence,
 	}
-
-	addr := make([]byte, len(acc.Address))
-	copy(addr, acc.Address)
-	clonedAcc.Address = addr
 
 	if acc.Coins == nil {
 		clonedAcc.Coins = nil

@@ -214,6 +214,9 @@ func (ac *accountStoreCache) getAccountFromCache(addr sdk.AccAddress) (acc sdk.A
 }
 
 func (ac *accountStoreCache) setAccountToCache(addr sdk.AccAddress, acc sdk.Account) {
+	// 1. all checkTx and deliverTx are using thread-safe map
+	// 2. LRU cache is thread-safe
+	// 3. only commit can write the store, at that time, there would be no read from checkTx or deliverTx.
 	ac.cache.Add(addr.String(), acc.Clone())
 }
 
@@ -271,79 +274,70 @@ type cValue struct {
 
 func NewAccountCache(parent sdk.AccountStoreCache) sdk.AccountCache {
 	return &accountCache{
-		cache:  make(map[string]cValue),
 		parent: parent,
 	}
 }
 
 type accountCache struct {
-	mtx    sync.RWMutex
-	cache  map[string]cValue
+	cache  sync.Map
 	parent sdk.AccountStoreCache
 }
 
 func (ac *accountCache) GetAccount(addr sdk.AccAddress) sdk.Account {
-	ac.mtx.RLock()
-	defer ac.mtx.RUnlock()
-
 	return ac.getAccountFromCache(addr)
 }
 
 func (ac *accountCache) SetAccount(addr sdk.AccAddress, acc sdk.Account) {
-	ac.mtx.Lock()
-	defer ac.mtx.Unlock()
-
 	ac.setAccountToCache(addr, acc, false, true)
 }
 
 func (ac *accountCache) Delete(addr sdk.AccAddress) {
-	ac.mtx.Lock()
-	defer ac.mtx.Unlock()
-
 	ac.setAccountToCache(addr, nil, true, true)
 }
 
 func (ac *accountCache) Write() {
-	ac.mtx.Lock()
-	defer ac.mtx.Unlock()
-
 	// We need a copy of all of the keys.
 	// Not the best, but probably not a bottleneck depending.
-	keys := make([]string, 0, len(ac.cache))
-	for key, dbValue := range ac.cache {
+	// And there is a new problem, we can not get length of map,
+	// so we can not prepare enough space for keys
+	keys := make([]string, 0)
+	ac.cache.Range(func(key, value interface{}) bool {
+		dbValue := value.(cValue)
 		if dbValue.dirty {
-			keys = append(keys, key)
+			keys = append(keys, key.(string))
 		}
-	}
+		return true
+	})
 
 	sort.Strings(keys)
 
 	// TODO: Consider allowing usage of Batch, which would allow the write to
 	// at least happen atomically.
 	for _, key := range keys {
-		cacheValue := ac.cache[key]
-		addr, _ := sdk.AccAddressFromBech32(key)
+		// value should exist here, so does not check ok
+		value, _ := ac.cache.Load(key)
+		cacheValue := value.(cValue)
 
 		if cacheValue.deleted {
-			ac.parent.Delete(addr)
+			ac.parent.Delete(sdk.AccAddress(key))
 		} else if cacheValue.acc == nil {
 			// Skip, it already doesn't exist in parent.
 		} else {
-			ac.parent.SetAccount(addr, cacheValue.acc)
+			ac.parent.SetAccount(sdk.AccAddress(key), cacheValue.acc)
 		}
 	}
 
-	// Clear the cache
-	ac.cache = make(map[string]cValue)
+	// clear the cache
+	ac.cache = sync.Map{}
 }
 
 func (ac *accountCache) getAccountFromCache(addr sdk.AccAddress) (acc sdk.Account) {
-	cacheVal, ok := ac.cache[addr.String()]
+	cacheVal, ok := ac.cache.Load(string(addr))
 	if !ok {
 		acc = ac.parent.GetAccount(addr)
 		ac.setAccountToCache(addr, acc, false, false)
 	} else {
-		acc = cacheVal.acc
+		acc = cacheVal.(cValue).acc
 	}
 
 	if acc == nil {
@@ -357,9 +351,9 @@ func (ac *accountCache) setAccountToCache(addr sdk.AccAddress, acc sdk.Account, 
 		acc = acc.Clone()
 	}
 
-	ac.cache[addr.String()] = cValue{
+	ac.cache.Store(string(addr), cValue{
 		acc:     acc,
 		deleted: deleted,
 		dirty:   dirty,
-	}
+	})
 }

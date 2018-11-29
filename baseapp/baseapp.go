@@ -6,6 +6,11 @@ import (
 	"runtime/debug"
 	"strings"
 
+	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/store"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/version"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -16,12 +21,6 @@ import (
 	dbm "github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/libs/log"
 	tmtypes "github.com/tendermint/tendermint/types"
-
-	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/store"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/version"
-	"github.com/cosmos/cosmos-sdk/x/auth"
 )
 
 // Key to store the header in the DB itself.
@@ -66,9 +65,7 @@ type BaseApp struct {
 	CheckState   *state // for CheckTx
 	DeliverState *state // for DeliverTx
 
-	AccountStoreCache   sdk.AccountStoreCache
-	CheckAccountCache   sdk.AccountCache
-	DeliverAccountCache sdk.AccountCache
+	AccountStoreCache sdk.AccountStoreCache
 
 	// flag for sealing
 	sealed bool
@@ -222,41 +219,52 @@ func (app *BaseApp) initFromStore(mainKey sdk.StoreKey) error {
 // NewContext returns a new Context with the correct store, the given header, and nil txBytes.
 func (app *BaseApp) NewContext(mode sdk.RunTxMode, header abci.Header) sdk.Context {
 	var ms sdk.CacheMultiStore
+	var accountCache sdk.AccountCache
+
 	switch mode {
 	case sdk.RunTxModeDeliver:
 		ms = app.DeliverState.ms
+		accountCache = app.DeliverState.accountCache
 	default:
 		ms = app.CheckState.ms
+		accountCache = app.CheckState.accountCache
 	}
-	return sdk.NewContext(ms, header, mode, app.Logger).WithAccountCache(app.CheckAccountCache)
+	return sdk.NewContext(ms, header, mode, app.Logger).WithAccountCache(accountCache)
 }
 
 type state struct {
-	ms  sdk.CacheMultiStore
-	Ctx sdk.Context
+	ms           sdk.CacheMultiStore
+	accountCache sdk.AccountCache
+	Ctx          sdk.Context
 }
 
 func (st *state) CacheMultiStore() sdk.CacheMultiStore {
 	return st.ms.CacheMultiStore()
 }
 
+func (st *state) WriteAccountCache() {
+	st.accountCache.Write()
+}
+
 func (app *BaseApp) SetCheckState(header abci.Header) {
-	app.CheckAccountCache = auth.NewAccountCache(app.AccountStoreCache)
+	accountCache := auth.NewAccountCache(app.AccountStoreCache)
 
 	ms := app.cms.CacheMultiStore()
 	app.CheckState = &state{
-		ms:  ms,
-		Ctx: sdk.NewContext(ms, header, sdk.RunTxModeCheck, app.Logger).WithAccountCache(app.CheckAccountCache),
+		ms:           ms,
+		accountCache: accountCache,
+		Ctx:          sdk.NewContext(ms, header, sdk.RunTxModeCheck, app.Logger).WithAccountCache(accountCache),
 	}
 }
 
 func (app *BaseApp) SetDeliverState(header abci.Header) {
-	app.DeliverAccountCache = auth.NewAccountCache(app.AccountStoreCache)
+	accountCache := auth.NewAccountCache(app.AccountStoreCache)
 
 	ms := app.cms.CacheMultiStore()
 	app.DeliverState = &state{
-		ms:  ms,
-		Ctx: sdk.NewContext(ms, header, sdk.RunTxModeDeliver, app.Logger).WithAccountCache(app.DeliverAccountCache),
+		ms:           ms,
+		accountCache: accountCache,
+		Ctx:          sdk.NewContext(ms, header, sdk.RunTxModeDeliver, app.Logger).WithAccountCache(accountCache),
 	}
 }
 
@@ -297,7 +305,9 @@ func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitC
 	}
 	res = app.initChainer(app.DeliverState.Ctx, req)
 
-	app.DeliverAccountCache.Write()
+	// we need to write updates to underlying cache and storage
+	app.DeliverState.WriteAccountCache()
+
 	// NOTE: we don't commit, but BeginBlock for block 1
 	// starts from this DeliverState
 	return
@@ -640,10 +650,10 @@ func (app *BaseApp) initializeContext(ctx sdk.Context, mode sdk.RunTxMode) sdk.C
 
 func getAccountCache(app *BaseApp, mode sdk.RunTxMode) sdk.AccountCache {
 	if mode == sdk.RunTxModeCheck || mode == sdk.RunTxModeSimulate {
-		return app.CheckAccountCache
+		return app.CheckState.accountCache
 	}
 
-	return app.DeliverAccountCache
+	return app.DeliverState.accountCache
 }
 
 // runTx processes a transaction. The transactions is proccessed via an
@@ -791,7 +801,7 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	*/
 
 	// Write the Deliver state and commit the MultiStore
-	app.DeliverAccountCache.Write()
+	app.DeliverState.WriteAccountCache()
 	app.DeliverState.ms.Write()
 	commitID := app.cms.Commit()
 	// TODO: this is missing a module identifier and dumps byte array
@@ -806,7 +816,6 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 
 	// Empty the Deliver state
 	app.DeliverState = nil
-	app.DeliverAccountCache = auth.NewAccountCache(app.AccountStoreCache)
 
 	return abci.ResponseCommit{
 		Data: commitID.Hash,
