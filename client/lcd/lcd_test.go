@@ -11,7 +11,6 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
-
 	"github.com/tendermint/tendermint/p2p"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 
@@ -641,44 +640,6 @@ func TestDeposit(t *testing.T) {
 	require.True(t, deposit.Amount.IsEqual(sdk.Coins{sdk.NewCoin("steak", 10)}))
 }
 
-func TestVote(t *testing.T) {
-	name, password := "test", "1234567890"
-	addr, seed := CreateAddr(t, "test", password, GetKeyBase(t))
-	cleanup, _, _, port := InitializeTestLCD(t, 1, []sdk.AccAddress{addr})
-	defer cleanup()
-
-	// create SubmitProposal TX
-	resultTx := doSubmitProposal(t, port, seed, name, password, addr, 5)
-	tests.WaitForHeight(resultTx.Height+1, port)
-
-	// check if tx was committed
-	require.Equal(t, uint32(0), resultTx.CheckTx.Code)
-	require.Equal(t, uint32(0), resultTx.DeliverTx.Code)
-
-	var proposalID int64
-	cdc.UnmarshalBinaryBare(resultTx.DeliverTx.GetData(), &proposalID)
-
-	// query proposal
-	proposal := getProposal(t, port, proposalID)
-	require.Equal(t, "Test", proposal.GetTitle())
-
-	// create SubmitProposal TX
-	resultTx = doDeposit(t, port, seed, name, password, addr, proposalID, 5)
-	tests.WaitForHeight(resultTx.Height+1, port)
-
-	// query proposal
-	proposal = getProposal(t, port, proposalID)
-	require.Equal(t, gov.StatusVotingPeriod, proposal.GetStatus())
-
-	// create SubmitProposal TX
-	resultTx = doVote(t, port, seed, name, password, addr, proposalID)
-	tests.WaitForHeight(resultTx.Height+1, port)
-
-	vote := getVote(t, port, proposalID, addr)
-	require.Equal(t, proposalID, vote.ProposalID)
-	require.Equal(t, gov.OptionYes, vote.Option)
-}
-
 func TestUnjail(t *testing.T) {
 	_, password := "test", "1234567890"
 	addr, _ := CreateAddr(t, "test", password, GetKeyBase(t))
@@ -693,119 +654,6 @@ func TestUnjail(t *testing.T) {
 	require.Equal(t, true, signingInfo.IndexOffset > 0)
 	require.Equal(t, time.Unix(0, 0).UTC(), signingInfo.JailedUntil)
 	require.Equal(t, true, signingInfo.MissedBlocksCounter == 0)
-}
-
-func TestProposalsQuery(t *testing.T) {
-	addrs, seeds, names, passwords := CreateAddrs(t, GetKeyBase(t), 2)
-
-	cleanup, _, _, port := InitializeTestLCD(t, 1, []sdk.AccAddress{addrs[0], addrs[1]})
-	defer cleanup()
-
-	// Addr1 proposes (and deposits) proposals #1 and #2
-	resultTx := doSubmitProposal(t, port, seeds[0], names[0], passwords[0], addrs[0], 5)
-	var proposalID1 int64
-	cdc.UnmarshalBinaryBare(resultTx.DeliverTx.GetData(), &proposalID1)
-	tests.WaitForHeight(resultTx.Height+1, port)
-	resultTx = doSubmitProposal(t, port, seeds[0], names[0], passwords[0], addrs[0], 5)
-	var proposalID2 int64
-	cdc.UnmarshalBinaryBare(resultTx.DeliverTx.GetData(), &proposalID2)
-	tests.WaitForHeight(resultTx.Height+1, port)
-
-	// Addr2 proposes (and deposits) proposals #3
-	resultTx = doSubmitProposal(t, port, seeds[1], names[1], passwords[1], addrs[1], 5)
-	var proposalID3 int64
-	cdc.UnmarshalBinaryBare(resultTx.DeliverTx.GetData(), &proposalID3)
-	tests.WaitForHeight(resultTx.Height+1, port)
-
-	// Addr2 deposits on proposals #2 & #3
-	resultTx = doDeposit(t, port, seeds[1], names[1], passwords[1], addrs[1], proposalID2, 5)
-	tests.WaitForHeight(resultTx.Height+1, port)
-	resultTx = doDeposit(t, port, seeds[1], names[1], passwords[1], addrs[1], proposalID3, 5)
-	tests.WaitForHeight(resultTx.Height+1, port)
-
-	// check deposits match proposal and individual deposits
-	deposits := getDeposits(t, port, proposalID1)
-	require.Len(t, deposits, 1)
-	deposit := getDeposit(t, port, proposalID1, addrs[0])
-	require.Equal(t, deposit, deposits[0])
-
-	deposits = getDeposits(t, port, proposalID2)
-	require.Len(t, deposits, 2)
-	deposit = getDeposit(t, port, proposalID2, addrs[0])
-	require.True(t, deposit.Equals(deposits[0]))
-	deposit = getDeposit(t, port, proposalID2, addrs[1])
-	require.True(t, deposit.Equals(deposits[1]))
-
-	deposits = getDeposits(t, port, proposalID3)
-	require.Len(t, deposits, 1)
-	deposit = getDeposit(t, port, proposalID3, addrs[1])
-	require.Equal(t, deposit, deposits[0])
-
-	// increasing the amount of the deposit should update the existing one
-	resultTx = doDeposit(t, port, seeds[0], names[0], passwords[0], addrs[0], proposalID1, 1)
-	tests.WaitForHeight(resultTx.Height+1, port)
-
-	deposits = getDeposits(t, port, proposalID1)
-	require.Len(t, deposits, 1)
-
-	// Only proposals #1 should be in Deposit Period
-	proposals := getProposalsFilterStatus(t, port, gov.StatusDepositPeriod)
-	require.Len(t, proposals, 1)
-	require.Equal(t, proposalID1, proposals[0].GetProposalID())
-	// Only proposals #2 and #3 should be in Voting Period
-	proposals = getProposalsFilterStatus(t, port, gov.StatusVotingPeriod)
-	require.Len(t, proposals, 2)
-	require.Equal(t, proposalID2, proposals[0].GetProposalID())
-	require.Equal(t, proposalID3, proposals[1].GetProposalID())
-
-	// Addr1 votes on proposals #2 & #3
-	resultTx = doVote(t, port, seeds[0], names[0], passwords[0], addrs[0], proposalID2)
-	tests.WaitForHeight(resultTx.Height+1, port)
-	resultTx = doVote(t, port, seeds[0], names[0], passwords[0], addrs[0], proposalID3)
-	tests.WaitForHeight(resultTx.Height+1, port)
-
-	// Addr2 votes on proposal #3
-	resultTx = doVote(t, port, seeds[1], names[1], passwords[1], addrs[1], proposalID3)
-	tests.WaitForHeight(resultTx.Height+1, port)
-
-	// Test query all proposals
-	proposals = getProposalsAll(t, port)
-	require.Equal(t, proposalID1, (proposals[0]).GetProposalID())
-	require.Equal(t, proposalID2, (proposals[1]).GetProposalID())
-	require.Equal(t, proposalID3, (proposals[2]).GetProposalID())
-
-	// Test query deposited by addr1
-	proposals = getProposalsFilterDepositer(t, port, addrs[0])
-	require.Equal(t, proposalID1, (proposals[0]).GetProposalID())
-
-	// Test query deposited by addr2
-	proposals = getProposalsFilterDepositer(t, port, addrs[1])
-	require.Equal(t, proposalID2, (proposals[0]).GetProposalID())
-	require.Equal(t, proposalID3, (proposals[1]).GetProposalID())
-
-	// Test query voted by addr1
-	proposals = getProposalsFilterVoter(t, port, addrs[0])
-	require.Equal(t, proposalID2, (proposals[0]).GetProposalID())
-	require.Equal(t, proposalID3, (proposals[1]).GetProposalID())
-
-	// Test query voted by addr2
-	proposals = getProposalsFilterVoter(t, port, addrs[1])
-	require.Equal(t, proposalID3, (proposals[0]).GetProposalID())
-
-	// Test query voted and deposited by addr1
-	proposals = getProposalsFilterVoterDepositer(t, port, addrs[0], addrs[0])
-	require.Equal(t, proposalID2, (proposals[0]).GetProposalID())
-
-	// Test query votes on Proposal 2
-	votes := getVotes(t, port, proposalID2)
-	require.Len(t, votes, 1)
-	require.Equal(t, addrs[0], votes[0].Voter)
-
-	// Test query votes on Proposal 3
-	votes = getVotes(t, port, proposalID3)
-	require.Len(t, votes, 2)
-	require.True(t, addrs[0].String() == votes[0].Voter.String() || addrs[0].String() == votes[1].Voter.String())
-	require.True(t, addrs[1].String() == votes[0].Voter.String() || addrs[1].String() == votes[1].Voter.String())
 }
 
 //_____________________________________________________________________________

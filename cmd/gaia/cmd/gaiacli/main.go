@@ -6,25 +6,22 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-
 	"github.com/tendermint/tendermint/libs/cli"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/client/lcd"
+	_ "github.com/cosmos/cosmos-sdk/client/lcd/statik"
 	"github.com/cosmos/cosmos-sdk/client/rpc"
 	"github.com/cosmos/cosmos-sdk/client/tx"
 	"github.com/cosmos/cosmos-sdk/cmd/gaia/app"
 	"github.com/cosmos/cosmos-sdk/version"
-
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
 	bankcmd "github.com/cosmos/cosmos-sdk/x/bank/client/cli"
 	distrcmd "github.com/cosmos/cosmos-sdk/x/distribution/client/cli"
 	govcmd "github.com/cosmos/cosmos-sdk/x/gov/client/cli"
 	slashingcmd "github.com/cosmos/cosmos-sdk/x/slashing/client/cli"
 	stakecmd "github.com/cosmos/cosmos-sdk/x/stake/client/cli"
-
-	_ "github.com/cosmos/cosmos-sdk/client/lcd/statik"
 )
 
 const (
@@ -113,6 +110,7 @@ func main() {
 			govcmd.GetCmdDeposit(cdc),
 			bankcmd.SendTxCmd(cdc),
 			govcmd.GetCmdSubmitProposal(cdc),
+			govcmd.GetCmdSubmitListProposal(cdc),
 			slashingcmd.GetCmdUnjail(cdc),
 			govcmd.GetCmdVote(cdc),
 		)...)

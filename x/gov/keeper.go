@@ -1,6 +1,10 @@
 package gov
 
 import (
+	"fmt"
+
+	"github.com/ethereum/go-ethereum/log"
+
 	codec "github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/bank"
@@ -402,7 +406,7 @@ func (keeper Keeper) RefundDeposits(ctx sdk.Context, proposalID int64) {
 
 		_, _, err := keeper.ck.AddCoins(ctx, deposit.Depositer, deposit.Amount)
 		if err != nil {
-			panic("should not happen")
+			panic(fmt.Sprintf("refund error(%s) should not happen", err.Error()))
 		}
 
 		store.Delete(depositsIterator.Key())
@@ -421,6 +425,35 @@ func (keeper Keeper) DeleteDeposits(ctx sdk.Context, proposalID int64) {
 	}
 
 	depositsIterator.Close()
+}
+
+// DistributeDeposits distributes deposits to proposer
+func (keeper Keeper) DistributeDeposits(ctx sdk.Context, proposalID int64) {
+	proposerValAddr := ctx.BlockHeader().ProposerAddress
+	proposerValidator := keeper.vs.ValidatorByConsAddr(ctx, proposerValAddr)
+	proposerAccAddr := proposerValidator.GetOperator()
+
+	store := ctx.KVStore(keeper.storeKey)
+	depositsIterator := keeper.GetDeposits(ctx, proposalID)
+
+	depositCoins := sdk.Coins{}
+	for ; depositsIterator.Valid(); depositsIterator.Next() {
+		deposit := &Deposit{}
+		keeper.cdc.MustUnmarshalBinary(depositsIterator.Value(), deposit)
+
+		depositCoins = depositCoins.Plus(deposit.Amount)
+		store.Delete(depositsIterator.Key())
+	}
+	depositsIterator.Close()
+
+	if depositCoins.IsPositive() {
+		log.Info("distribute empty deposits")
+	}
+
+	_, _, err := keeper.ck.AddCoins(ctx, sdk.AccAddress(proposerAccAddr), depositCoins)
+	if err != nil {
+		panic(fmt.Sprintf("distribute deposits error(%s) should not happen", err.Error()))
+	}
 }
 
 // =====================================================

@@ -2,6 +2,7 @@ package gov
 
 import (
 	"fmt"
+	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -10,6 +11,15 @@ import (
 const MsgRoute = "gov"
 
 var _, _, _ sdk.Msg = MsgSubmitProposal{}, MsgDeposit{}, MsgVote{}
+
+//-----------------------------------------------------------
+type ListTradingPairParams struct {
+	BaseAssetSymbol  string    `json:"base_asset_symbol"`  // base asset symbol
+	QuoteAssetSymbol string    `json:"quote_asset_symbol"` // quote asset symbol
+	InitPrice        int64     `json:"init_price"`         // init price
+	Description      string    `json:"description"`        // description
+	ExpireTime       time.Time `json:"expire_time"`        // expire time
+}
 
 //-----------------------------------------------------------
 // MsgSubmitProposal

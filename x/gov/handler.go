@@ -77,6 +77,18 @@ func handleMsgDeposit(ctx sdk.Context, keeper Keeper, msg MsgDeposit) sdk.Result
 }
 
 func handleMsgVote(ctx sdk.Context, keeper Keeper, msg MsgVote) sdk.Result {
+	isValidator := false
+	keeper.vs.IterateValidatorsBonded(ctx, func(index int64, validator sdk.Validator) (stop bool) {
+		if sdk.ValAddress(msg.Voter).Equals(validator.GetOperator()) {
+			isValidator = true
+			return true
+		}
+		return false
+	})
+
+	if !isValidator {
+		return sdk.ErrUnauthorized("Non validator").Result()
+	}
 
 	err := keeper.AddVote(ctx, msg.ProposalID, msg.Voter, msg.Option)
 	if err != nil {
@@ -110,16 +122,20 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags) {
 		}
 
 		proposalIDBytes := keeper.cdc.MustMarshalBinaryBare(inactiveProposal.GetProposalID())
+
+		// distribute deposits to proposer
+		keeper.DistributeDeposits(ctx, inactiveProposal.GetProposalID())
+
 		keeper.DeleteProposal(ctx, inactiveProposal)
 		resTags.AppendTag(tags.Action, tags.ActionProposalDropped)
 		resTags.AppendTag(tags.ProposalID, proposalIDBytes)
 
 		logger.Info(
-			fmt.Sprintf("proposal %d (%s) didn't meet minimum deposit of %v steak (had only %v steak); deleted",
+			fmt.Sprintf("proposal %d (%s) didn't meet minimum deposit of %v (had only %v); distribute to validator",
 				inactiveProposal.GetProposalID(),
 				inactiveProposal.GetTitle(),
-				keeper.GetDepositProcedure(ctx).MinDeposit.AmountOf("steak"),
-				inactiveProposal.GetTotalDeposit().AmountOf("steak"),
+				keeper.GetDepositProcedure(ctx).MinDeposit,
+				inactiveProposal.GetTotalDeposit(),
 			),
 		)
 	}
@@ -138,14 +154,19 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags) {
 		proposalIDBytes := keeper.cdc.MustMarshalBinaryBare(activeProposal.GetProposalID())
 		var action []byte
 		if passes {
-			keeper.RefundDeposits(ctx, activeProposal.GetProposalID())
 			activeProposal.SetStatus(StatusPassed)
 			action = tags.ActionProposalPassed
+
+			// refund deposits
+			keeper.RefundDeposits(ctx, activeProposal.GetProposalID())
 		} else {
-			keeper.DeleteDeposits(ctx, activeProposal.GetProposalID())
 			activeProposal.SetStatus(StatusRejected)
 			action = tags.ActionProposalRejected
+
+			// distribute deposits to proposer
+			keeper.DistributeDeposits(ctx, activeProposal.GetProposalID())
 		}
+
 		activeProposal.SetTallyResult(tallyResults)
 		keeper.SetProposal(ctx, activeProposal)
 

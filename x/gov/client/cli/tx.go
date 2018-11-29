@@ -1,7 +1,15 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"strings"
+	"time"
+
+	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/utils"
@@ -10,14 +18,7 @@ import (
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
 	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 	"github.com/cosmos/cosmos-sdk/x/gov"
-
-	"encoding/json"
-	"io/ioutil"
-	"strings"
-
 	"github.com/cosmos/cosmos-sdk/x/gov/client"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 const (
@@ -32,6 +33,10 @@ const (
 	flagStatus            = "status"
 	flagLatestProposalIDs = "latest"
 	flagProposal          = "proposal"
+	flagBaseAsset         = "base-asset-symbol"
+	flagQuoteAsset        = "quote-asset-symbol"
+	flagInitPrice         = "init-price"
+	flagExpireTime        = "expire-time"
 )
 
 type proposal struct {
@@ -532,6 +537,79 @@ func GetCmdQueryTally(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	}
 
 	cmd.Flags().String(flagProposalID, "", "proposalID of which proposal is being tallied")
+
+	return cmd
+}
+
+// GetCmdSubmitListProposal implements submitting a proposal transaction command.
+func GetCmdSubmitListProposal(cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "submit-list-proposal",
+		Short: "Submit a list proposal along with an initial deposit",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			txBldr := authtxb.NewTxBuilderFromCLI().WithCodec(cdc)
+			cliCtx := context.NewCLIContext().
+				WithCodec(cdc).
+				WithAccountDecoder(authcmd.GetAccountDecoder(cdc))
+
+			title := viper.GetString(flagTitle)
+			description := viper.GetString(flagDescription)
+			initialDeposit := viper.GetString(flagDeposit)
+			tradeAsset := viper.GetString(flagBaseAsset)
+			quoteAsset := viper.GetString(flagQuoteAsset)
+			initPrice := viper.GetInt64(flagInitPrice)
+			expireTimestamp := viper.GetInt64(flagExpireTime)
+
+			if initPrice <= 0 {
+				return errors.New("init price should greater than 0")
+			}
+
+			expireTime := time.Unix(expireTimestamp, 0)
+			if expireTime.Before(time.Now()) {
+				return errors.New("expire time should after now")
+			}
+
+			fromAddr, err := cliCtx.GetFromAddress()
+			if err != nil {
+				return err
+			}
+
+			amount, err := sdk.ParseCoins(initialDeposit)
+			if err != nil {
+				return err
+			}
+
+			listParams := gov.ListTradingPairParams{
+				BaseAssetSymbol:  tradeAsset,
+				QuoteAssetSymbol: quoteAsset,
+				InitPrice:        initPrice,
+				Description:      description,
+				ExpireTime:       expireTime,
+			}
+
+			listParamsBz, err := json.Marshal(listParams)
+			if err != nil {
+				return err
+			}
+			msg := gov.NewMsgSubmitProposal(title, string(listParamsBz), gov.ProposalTypeListTradingPair, fromAddr, amount)
+
+			err = msg.ValidateBasic()
+			if err != nil {
+				return err
+			}
+
+			cliCtx.PrintResponse = true
+			return utils.CompleteAndBroadcastTxCli(txBldr, cliCtx, []sdk.Msg{msg})
+		},
+	}
+
+	cmd.Flags().String(flagTitle, "", "title of proposal")
+	cmd.Flags().String(flagDescription, "", "description of proposal")
+	cmd.Flags().String(flagDeposit, "", "deposit of proposal")
+	cmd.Flags().String(flagBaseAsset, "", "base asset symbol")
+	cmd.Flags().String(flagQuoteAsset, "", "quote asset symbol")
+	cmd.Flags().Int64(flagInitPrice, 0, "init price")
+	cmd.Flags().Int64(flagExpireTime, 0, "expire time")
 
 	return cmd
 }
