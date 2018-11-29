@@ -3,11 +3,12 @@ package cli
 import (
 	"fmt"
 
+	"github.com/spf13/cobra"
+
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/spf13/cobra"
 )
 
 // GetAccountCmdDefault invokes the GetAccountCmd for the auth.BaseAccount type.

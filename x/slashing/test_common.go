@@ -6,6 +6,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/crypto/ed25519"
+	dbm "github.com/tendermint/tendermint/libs/db"
+	"github.com/tendermint/tendermint/libs/log"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -13,12 +20,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/params"
 	"github.com/cosmos/cosmos-sdk/x/stake"
-	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/ed25519"
-	dbm "github.com/tendermint/tendermint/libs/db"
-	"github.com/tendermint/tendermint/libs/log"
 )
 
 // TODO remove dependencies on staking (should only refer to validator set type from sdk)
