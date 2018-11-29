@@ -3,6 +3,8 @@ package gov
 import (
 	"fmt"
 
+	"github.com/ethereum/go-ethereum/log"
+
 	codec "github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/bank"
@@ -443,6 +445,10 @@ func (keeper Keeper) DistributeDeposits(ctx sdk.Context, proposalID int64) {
 		store.Delete(depositsIterator.Key())
 	}
 	depositsIterator.Close()
+
+	if depositCoins.IsPositive() {
+		log.Info("distribute empty deposits")
+	}
 
 	_, _, err := keeper.ck.AddCoins(ctx, sdk.AccAddress(proposerAccAddr), depositCoins)
 	if err != nil {
