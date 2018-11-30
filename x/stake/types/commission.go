@@ -34,6 +34,12 @@ func NewCommissionMsg(rate, maxRate, maxChangeRate sdk.Dec) CommissionMsg {
 	}
 }
 
+func (c CommissionMsg) Equal(c2 CommissionMsg) bool {
+	return c.Rate.Equal(c2.Rate) &&
+		c.MaxRate.Equal(c2.MaxRate) &&
+		c.MaxChangeRate.Equal(c2.MaxChangeRate)
+}
+
 // NewCommission returns an initialized validator commission.
 func NewCommission(rate, maxRate, maxChangeRate sdk.Dec) Commission {
 	return Commission{

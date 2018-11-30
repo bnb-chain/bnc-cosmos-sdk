@@ -287,6 +287,13 @@ func (d Description) UpdateDescription(d2 Description) (Description, sdk.Error) 
 	}.EnsureLength()
 }
 
+func (d Description) Equals(d2 Description) bool {
+	return d.Details == d2.Details &&
+		d.Identity == d2.Identity &&
+		d.Moniker == d2.Moniker &&
+		d.Website == d2.Website
+}
+
 // EnsureLength ensures the length of a validator's description.
 func (d Description) EnsureLength() (Description, sdk.Error) {
 	if len(d.Moniker) > 70 {

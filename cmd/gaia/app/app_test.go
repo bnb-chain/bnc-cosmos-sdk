@@ -106,7 +106,7 @@ func NewMockGaiaApp(logger log.Logger, db dbm.DB, traceStore io.Writer, baseAppO
 	// register message routes
 	app.Router().
 		AddRoute("bank", bank.NewHandler(app.bankKeeper)).
-		AddRoute("stake", stake.NewHandler(app.stakeKeeper)).
+		AddRoute("stake", stake.NewHandler(app.stakeKeeper, app.govKeeper)).
 		AddRoute("distr", distr.NewHandler(app.distrKeeper)).
 		AddRoute("slashing", slashing.NewHandler(app.slashingKeeper)).
 		AddRoute("gov", gov.NewHandler(app.govKeeper))

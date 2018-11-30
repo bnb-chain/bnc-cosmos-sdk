@@ -2,15 +2,39 @@ package stake
 
 import (
 	"bytes"
-
+	"encoding/json"
+	"errors"
+	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/stake/keeper"
 	"github.com/cosmos/cosmos-sdk/x/stake/tags"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
-func NewHandler(k keeper.Keeper) sdk.Handler {
+func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
+	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
+		// NOTE msg already has validate basic run
+		switch msg := msg.(type) {
+		case types.MsgCreateValidatorProposal:
+			return handleMsgCreateValidatorAfterProposal(ctx, msg, k, govKeeper)
+		// disabled other msg handling
+		//case types.MsgEditValidator:
+		//	return handleMsgEditValidator(ctx, msg, k)
+		//case types.MsgDelegate:
+		//	return handleMsgDelegate(ctx, msg, k)
+		//case types.MsgBeginRedelegate:
+		//	return handleMsgBeginRedelegate(ctx, msg, k)
+		//case types.MsgBeginUnbonding:
+		//	return handleMsgBeginUnbonding(ctx, msg, k)
+		default:
+			return sdk.ErrTxDecode("invalid message parse in staking module").Result()
+		}
+	}
+}
+
+func NewStakeHandler(k Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 		// NOTE msg already has validate basic run
 		switch msg := msg.(type) {
@@ -76,7 +100,19 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) (ValidatorUpdates []abci.Valid
 // These functions assume everything has been authenticated,
 // now we just perform action and save
 
-func handleMsgCreateValidator(ctx sdk.Context, msg types.MsgCreateValidator, k keeper.Keeper) sdk.Result {
+func handleMsgCreateValidatorAfterProposal(ctx sdk.Context, msg MsgCreateValidatorProposal, k keeper.Keeper, govKeeper gov.Keeper) sdk.Result {
+	height := ctx.BlockHeader().Height
+	// do not checkProposal for the genesis txs
+	if height != 0 {
+		if err := checkProposal(ctx, govKeeper, msg); err != nil {
+			return ErrInvalidProposal(k.Codespace(), err.Error()).Result()
+		}
+	}
+
+	return handleMsgCreateValidator(ctx, msg.MsgCreateValidator, k)
+}
+
+func handleMsgCreateValidator(ctx sdk.Context, msg MsgCreateValidator, k keeper.Keeper) sdk.Result {
 	// check to see if the pubkey or sender has been registered before
 	_, found := k.GetValidator(ctx, msg.ValidatorAddr)
 	if found {
@@ -125,6 +161,33 @@ func handleMsgCreateValidator(ctx sdk.Context, msg types.MsgCreateValidator, k k
 	return sdk.Result{
 		Tags: tags,
 	}
+}
+
+func checkProposal(ctx sdk.Context, govKeeper gov.Keeper, msg MsgCreateValidatorProposal) error {
+	proposal := govKeeper.GetProposal(ctx, msg.ProposalId)
+	if proposal == nil {
+		return errors.New(fmt.Sprintf("proposal %d does not exist", msg.ProposalId))
+	}
+	if proposal.GetProposalType() != gov.ProposalTypeCreateValidator {
+		return errors.New(fmt.Sprintf("proposal type %s is not equal to %s",
+			proposal.GetProposalType(), gov.ProposalTypeCreateValidator))
+	}
+	if proposal.GetStatus() != gov.StatusPassed {
+		return errors.New(fmt.Sprintf("proposal status %d is not not passed",
+			proposal.GetStatus()))
+	}
+
+	var createValidatorParams MsgCreateValidator
+	err := json.Unmarshal([]byte(proposal.GetDescription()), &createValidatorParams)
+	if err != nil {
+		return errors.New(fmt.Sprintf("unmarshal createValidator params failed, err=%s", err.Error()))
+	}
+
+	if msg.MsgCreateValidator.Equals(createValidatorParams) {
+		return errors.New("createValidator msg is not identical to the proposal one")
+	}
+
+	return nil
 }
 
 func handleMsgEditValidator(ctx sdk.Context, msg types.MsgEditValidator, k keeper.Keeper) sdk.Result {

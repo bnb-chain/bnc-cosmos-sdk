@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
@@ -9,6 +10,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
 	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
+	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/stake"
 
 	"github.com/spf13/cobra"
@@ -98,11 +100,27 @@ func GetCmdCreateValidator(cdc *codec.Codec) *cobra.Command {
 				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg}, true)
 			}
 
+			proposalId := viper.GetInt64(FlagProposalID)
+			if proposalId == 0 {
+				title := ""
+				description, err := json.Marshal(msg)
+				if err != nil {
+					return err
+				}
+				msg = gov.NewMsgSubmitProposal(title, string(description),
+					gov.ProposalTypeCreateValidator, valAddr, sdk.Coins{amount})
+			} else {
+			    msg = stake.MsgCreateValidatorProposal{
+			    	MsgCreateValidator: msg.(stake.MsgCreateValidator),
+			    	ProposalId: proposalId,
+				}
+			}
 			// build and sign the transaction, then broadcast to Tendermint
 			return utils.CompleteAndBroadcastTxCli(txBldr, cliCtx, []sdk.Msg{msg})
 		},
 	}
 
+	cmd.Flags().Int64(FlagProposalID, 0, "id of the CreateValidator proposal")
 	cmd.Flags().AddFlagSet(fsPk)
 	cmd.Flags().AddFlagSet(fsAmount)
 	cmd.Flags().AddFlagSet(fsDescriptionCreate)

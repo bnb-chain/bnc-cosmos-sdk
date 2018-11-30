@@ -17,6 +17,7 @@ const (
 	CodeInvalidDelegation CodeType = 102
 	CodeInvalidInput      CodeType = 103
 	CodeValidatorJailed   CodeType = 104
+	CodeInvalidProposal   CodeType = 105
 	CodeInvalidAddress    CodeType = sdk.CodeInvalidAddress
 	CodeUnauthorized      CodeType = sdk.CodeUnauthorized
 	CodeInternal          CodeType = sdk.CodeInternal
@@ -179,4 +180,8 @@ func ErrNeitherShareMsgsGiven(codespace sdk.CodespaceType) sdk.Error {
 
 func ErrMissingSignature(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidValidator, "missing signature")
+}
+
+func ErrInvalidProposal(codespace sdk.CodespaceType, reason string) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidProposal, "invalid proposal: %s", reason)
 }
