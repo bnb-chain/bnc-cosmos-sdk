@@ -9,5 +9,6 @@ type AccountStoreCache interface {
 type AccountCache interface {
 	AccountStoreCache
 
+	Cache() AccountCache
 	Write()
 }

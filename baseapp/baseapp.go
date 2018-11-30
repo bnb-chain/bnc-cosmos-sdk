@@ -641,20 +641,23 @@ func getState(app *BaseApp, mode sdk.RunTxMode) *state {
 	return app.DeliverState
 }
 
-func (app *BaseApp) initializeContext(ctx sdk.Context, mode sdk.RunTxMode) sdk.Context {
-	if mode == sdk.RunTxModeSimulate {
-		ctx = ctx.WithMultiStore(getState(app, mode).CacheMultiStore())
-
-	}
-	return ctx
-}
-
+// Returns accountCache of CheckState or DeliverState according to the tx mode
 func getAccountCache(app *BaseApp, mode sdk.RunTxMode) sdk.AccountCache {
-	if mode == sdk.RunTxModeCheck || mode == sdk.RunTxModeSimulate {
+	if mode == sdk.RunTxModeCheck ||
+		mode == sdk.RunTxModeSimulate ||
+		mode == sdk.RunTxModeReCheck {
 		return app.CheckState.accountCache
 	}
 
 	return app.DeliverState.accountCache
+}
+
+func (app *BaseApp) initializeContext(ctx sdk.Context, mode sdk.RunTxMode) sdk.Context {
+	if mode == sdk.RunTxModeSimulate {
+		ctx = ctx.WithMultiStore(getState(app, mode).CacheMultiStore()).
+			WithAccountCache(getAccountCache(app, mode).Cache())
+	}
+	return ctx
 }
 
 // runTx processes a transaction. The transactions is proccessed via an
@@ -706,7 +709,7 @@ func (app *BaseApp) runTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx) (result
 		)).(sdk.CacheMultiStore)
 	}
 
-	accountCache := auth.NewAccountCache(getAccountCache(app, mode))
+	accountCache := getAccountCache(app, mode).Cache()
 
 	ctx = ctx.WithMultiStore(msCache)
 	ctx = ctx.WithAccountCache(accountCache)
@@ -764,12 +767,16 @@ func (app *BaseApp) reRunTx(txBytes []byte, tx sdk.Tx) (result sdk.Result) {
 		)).(sdk.CacheMultiStore)
 	}
 
+	accountCache := getAccountCache(app, mode).Cache()
+
 	ctx = ctx.WithMultiStore(msCache)
+	ctx = ctx.WithAccountCache(accountCache)
 	var msgs = tx.GetMsgs()
 	result = app.runMsgs(ctx, msgs, txHash, mode)
 
 	// only update state if all messages pass
 	if result.IsOK() {
+		accountCache.Write()
 		msCache.Write()
 	}
 

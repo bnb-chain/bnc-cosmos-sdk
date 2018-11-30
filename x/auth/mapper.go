@@ -4,11 +4,10 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/hashicorp/golang-lru"
-	"github.com/tendermint/tendermint/crypto"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/hashicorp/golang-lru"
+	"github.com/tendermint/tendermint/crypto"
 )
 
 var globalAccountNumberKey = []byte("globalAccountNumber")
@@ -293,6 +292,12 @@ func (ac *accountCache) SetAccount(addr sdk.AccAddress, acc sdk.Account) {
 
 func (ac *accountCache) Delete(addr sdk.AccAddress) {
 	ac.setAccountToCache(addr, nil, true, true)
+}
+
+func (ac *accountCache) Cache() sdk.AccountCache {
+	return &accountCache{
+		parent: ac,
+	}
 }
 
 func (ac *accountCache) Write() {
