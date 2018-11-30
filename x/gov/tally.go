@@ -13,7 +13,7 @@ type validatorGovInfo struct {
 	Vote            VoteOption     // Vote of the validator
 }
 
-func tally(ctx sdk.Context, keeper Keeper, proposal Proposal) (passes bool, tallyResults TallyResult) {
+func Tally(ctx sdk.Context, keeper Keeper, proposal Proposal) (passes bool, tallyResults TallyResult) {
 	results := make(map[VoteOption]sdk.Dec)
 	results[OptionYes] = sdk.ZeroDec()
 	results[OptionAbstain] = sdk.ZeroDec()

@@ -1,9 +1,10 @@
 package gov
 
 import (
+	abci "github.com/tendermint/tendermint/abci/types"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 // query endpoints supported by the governance Querier
@@ -218,7 +219,7 @@ func queryTally(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Ke
 	} else if proposal.GetStatus() == StatusPassed || proposal.GetStatus() == StatusRejected {
 		tallyResult = proposal.GetTallyResult()
 	} else {
-		_, tallyResult = tally(ctx, keeper, proposal)
+		_, tallyResult = Tally(ctx, keeper, proposal)
 	}
 
 	bz, err2 := codec.MarshalJSONIndent(keeper.cdc, tallyResult)
