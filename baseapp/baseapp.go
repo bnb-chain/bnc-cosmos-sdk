@@ -5,6 +5,7 @@ import (
 	"io"
 	"runtime/debug"
 	"strings"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -70,6 +71,11 @@ type BaseApp struct {
 
 	// flag for sealing
 	sealed bool
+
+	// locks for async ABCI calls
+	rwLockCheckTx   sync.RWMutex   // lock to safeguard CheckTx from Query
+	rwLockDeliverTx sync.RWMutex   // lock to safeguard DeliverTx from Query
+	wgTx            sync.WaitGroup // lock to safeguard InitChain / Commit etc.
 }
 
 var _ abci.Application = (*BaseApp)(nil)

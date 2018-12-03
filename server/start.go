@@ -20,6 +20,7 @@ const (
 	flagAddress        = "address"
 	flagTraceStore     = "trace-store"
 	flagPruning        = "pruning"
+	flagSequentialABCI = "seq-abci"
 )
 
 // StartCmd runs the service passed in, either stand-alone or in-process with
@@ -96,6 +97,7 @@ func startInProcess(ctx *Context, appCreator AppCreator) (*node.Node, error) {
 	cfg := ctx.Config
 	home := cfg.RootDir
 	traceWriterFile := viper.GetString(flagTraceStore)
+	isSequentialABCI := viper.GetBool(flagSequentialABCI)
 
 	db, err := openDB(home)
 	if err != nil {
@@ -113,12 +115,19 @@ func startInProcess(ctx *Context, appCreator AppCreator) (*node.Node, error) {
 		return nil, err
 	}
 
+	var cliCreator proxy.ClientCreator
+	if !isSequentialABCI {
+		cliCreator = proxy.NewLocalClientCreator(app)
+	} else {
+		cliCreator = proxy.NewAsyncLocalClientCreator(app)
+	}
+
 	// create & start tendermint node
 	tmNode, err := node.NewNode(
 		cfg,
 		pvm.LoadOrGenFilePV(cfg.PrivValidatorFile()),
 		nodeKey,
-		proxy.NewLocalClientCreator(app),
+		cliCreator,
 		node.DefaultGenesisDocProviderFunc(cfg),
 		node.DefaultDBProvider,
 		node.DefaultMetricsProvider(cfg.Instrumentation),
