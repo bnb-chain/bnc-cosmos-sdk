@@ -11,6 +11,17 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+/*
+NOTE:
+You may notice that we don't use mutex in the implementation of AccountStoreCache and AccountCache,
+it's based on the below facts:
+
+1. all checkAccountCache and deliverAccountCache are using thread-safe map(sync.Map).
+2. LRU cache used in accountStoreCache is thread-safe.
+3. only commit can write the accountStoreCache, at that time,
+	there would be no read from other methods like Query, CheckTx and etc.
+*/
+
 var globalAccountNumberKey = []byte("globalAccountNumber")
 
 // This AccountKeeper encodes/decodes accounts using the
@@ -214,9 +225,6 @@ func (ac *accountStoreCache) getAccountFromCache(addr sdk.AccAddress) (acc sdk.A
 }
 
 func (ac *accountStoreCache) setAccountToCache(addr sdk.AccAddress, acc sdk.Account) {
-	// 1. all checkTx and deliverTx are using thread-safe map
-	// 2. LRU cache is thread-safe
-	// 3. only commit can write the store, at that time, there would be no read from checkTx or deliverTx.
 	ac.cache.Add(string(addr), acc.Clone())
 }
 
