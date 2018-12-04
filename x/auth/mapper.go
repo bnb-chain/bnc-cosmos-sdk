@@ -4,10 +4,11 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/hashicorp/golang-lru"
 	"github.com/tendermint/tendermint/crypto"
+
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 var globalAccountNumberKey = []byte("globalAccountNumber")
@@ -202,7 +203,7 @@ type accountStoreCache struct {
 }
 
 func (ac *accountStoreCache) getAccountFromCache(addr sdk.AccAddress) (acc sdk.Account, ok bool) {
-	cacc, ok := ac.cache.Get(addr.String())
+	cacc, ok := ac.cache.Get(string(addr))
 	if !ok {
 		return nil, ok
 	}
@@ -216,7 +217,7 @@ func (ac *accountStoreCache) setAccountToCache(addr sdk.AccAddress, acc sdk.Acco
 	// 1. all checkTx and deliverTx are using thread-safe map
 	// 2. LRU cache is thread-safe
 	// 3. only commit can write the store, at that time, there would be no read from checkTx or deliverTx.
-	ac.cache.Add(addr.String(), acc.Clone())
+	ac.cache.Add(string(addr), acc.Clone())
 }
 
 func (ac *accountStoreCache) GetAccount(addr sdk.AccAddress) sdk.Account {

@@ -114,7 +114,7 @@ func (acc *BaseAccount) Clone() sdk.Account {
 	if acc.Coins == nil {
 		clonedAcc.Coins = nil
 	} else {
-		coins := sdk.Coins{}
+		coins := make(sdk.Coins, 0, len(acc.Coins))
 		for _, coin := range acc.Coins {
 			coins = append(coins, sdk.Coin{Denom: coin.Denom, Amount: coin.Amount})
 		}
