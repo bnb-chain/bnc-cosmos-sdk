@@ -171,6 +171,17 @@
   version = "v1.2.0"
 
 [[projects]]
+  digest = "1:8ec8d88c248041a6df5f6574b87bc00e7e0b493881dad2e7ef47b11dc69093b5"
+  name = "github.com/hashicorp/golang-lru"
+  packages = [
+    ".",
+    "simplelru",
+  ]
+  pruneopts = "UT"
+  revision = "20f1fb78b0740ba8c3cb143a61e86ba5c8669768"
+  version = "v0.5.0"
+
+[[projects]]
   digest = "1:ea40c24cdbacd054a6ae9de03e62c5f252479b96c716375aace5c120d68647c8"
   name = "github.com/hashicorp/hcl"
   packages = [
@@ -662,6 +673,7 @@
     "github.com/cosmos/go-bip39",
     "github.com/golang/protobuf/proto",
     "github.com/gorilla/mux",
+    "github.com/hashicorp/golang-lru",
     "github.com/mattn/go-isatty",
     "github.com/mitchellh/go-homedir",
     "github.com/pelletier/go-toml",
