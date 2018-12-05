@@ -39,7 +39,7 @@ func SupplyInvariants(ck bank.Keeper, k stake.Keeper, d distribution.Keeper, am 
 
 		loose := sdk.ZeroDec()
 		bonded := sdk.ZeroDec()
-		am.IterateAccounts(ctx, func(acc auth.Account) bool {
+		am.IterateAccounts(ctx, func(acc sdk.Account) bool {
 			loose = loose.Add(sdk.NewDecFromInt(acc.GetCoins().AmountOf("steak")))
 			return false
 		})

@@ -658,10 +658,10 @@ func TestUnjail(t *testing.T) {
 
 //_____________________________________________________________________________
 // get the account to get the sequence
-func getAccount(t *testing.T, port string, addr sdk.AccAddress) auth.Account {
+func getAccount(t *testing.T, port string, addr sdk.AccAddress) sdk.Account {
 	res, body := Request(t, port, "GET", fmt.Sprintf("/auth/accounts/%s", addr), nil)
 	require.Equal(t, http.StatusOK, res.StatusCode, body)
-	var acc auth.Account
+	var acc sdk.Account
 	err := cdc.UnmarshalJSON([]byte(body), &acc)
 	require.Nil(t, err)
 	return acc

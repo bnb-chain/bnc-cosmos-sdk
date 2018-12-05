@@ -4,12 +4,13 @@ import (
 	"errors"
 	"fmt"
 
+	abci "github.com/tendermint/tendermint/abci/types"
+
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/mock"
 	"github.com/cosmos/cosmos-sdk/x/mock/simulation"
-	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 // NonnegativeBalanceInvariant checks that all accounts in the application have non-negative balances
@@ -36,12 +37,13 @@ func TotalCoinsInvariant(mapper auth.AccountKeeper, totalSupplyFn func() sdk.Coi
 		ctx := app.NewContext(sdk.RunTxModeDeliver, abci.Header{})
 		totalCoins := sdk.Coins{}
 
-		chkAccount := func(acc auth.Account) bool {
+		chkAccount := func(acc sdk.Account) bool {
 			coins := acc.GetCoins()
 			totalCoins = totalCoins.Plus(coins)
 			return false
 		}
 
+		app.DeliverState.WriteAccountCache()
 		mapper.IterateAccounts(ctx, chkAccount)
 		if !totalSupplyFn().IsEqual(totalCoins) {
 			return errors.New("total calculated coins doesn't equal expected coins")

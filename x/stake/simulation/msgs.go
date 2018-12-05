@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"math/rand"
 
+	abci "github.com/tendermint/tendermint/abci/types"
+
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/mock"
 	"github.com/cosmos/cosmos-sdk/x/mock/simulation"
 	"github.com/cosmos/cosmos-sdk/x/stake"
-	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 // SimulateMsgCreateValidator
@@ -238,7 +239,7 @@ func Setup(mapp *mock.App, k stake.Keeper) simulation.RandSetup {
 		params := k.GetParams(ctx)
 		denom := params.BondDenom
 		var loose int64
-		mapp.AccountKeeper.IterateAccounts(ctx, func(acc auth.Account) bool {
+		mapp.AccountKeeper.IterateAccounts(ctx, func(acc sdk.Account) bool {
 			balance := simulation.RandomAmount(r, int64(1000000))
 			acc.SetCoins(acc.GetCoins().Plus(sdk.Coins{sdk.NewCoin(denom, balance)}))
 			mapp.AccountKeeper.SetAccount(ctx, acc)

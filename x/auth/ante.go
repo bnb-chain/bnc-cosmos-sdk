@@ -5,9 +5,10 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 const (
@@ -111,8 +112,8 @@ func validateBasic(tx StdTx) (err sdk.Error) {
 	return nil
 }
 
-func getSignerAccs(ctx sdk.Context, am AccountKeeper, addrs []sdk.AccAddress) (accs []Account, res sdk.Result) {
-	accs = make([]Account, len(addrs))
+func getSignerAccs(ctx sdk.Context, am AccountKeeper, addrs []sdk.AccAddress) (accs []sdk.Account, res sdk.Result) {
+	accs = make([]sdk.Account, len(addrs))
 	for i := 0; i < len(accs); i++ {
 		accs[i] = am.GetAccount(ctx, addrs[i])
 		if accs[i] == nil {
@@ -122,7 +123,7 @@ func getSignerAccs(ctx sdk.Context, am AccountKeeper, addrs []sdk.AccAddress) (a
 	return
 }
 
-func validateAccNumAndSequence(ctx sdk.Context, accs []Account, sigs []StdSignature) sdk.Result {
+func validateAccNumAndSequence(ctx sdk.Context, accs []sdk.Account, sigs []StdSignature) sdk.Result {
 	for i := 0; i < len(accs); i++ {
 		// On InitChain, make sure account number == 0
 		if ctx.BlockHeight() == 0 && sigs[i].AccountNumber != 0 {
@@ -150,7 +151,7 @@ func validateAccNumAndSequence(ctx sdk.Context, accs []Account, sigs []StdSignat
 // verify the signature and increment the sequence.
 // if the account doesn't have a pubkey, set it.
 func processSig(ctx sdk.Context,
-	acc Account, sig StdSignature, signBytes []byte, mode sdk.RunTxMode) (updatedAcc Account, res sdk.Result) {
+	acc sdk.Account, sig StdSignature, signBytes []byte, mode sdk.RunTxMode) (updatedAcc sdk.Account, res sdk.Result) {
 	pubKey, res := processPubKey(acc, sig, mode == sdk.RunTxModeSimulate)
 	if !res.IsOK() {
 		return nil, res
@@ -180,7 +181,7 @@ func init() {
 	copy(dummySecp256k1Pubkey[:], bz)
 }
 
-func processPubKey(acc Account, sig StdSignature, simulate bool) (crypto.PubKey, sdk.Result) {
+func processPubKey(acc sdk.Account, sig StdSignature, simulate bool) (crypto.PubKey, sdk.Result) {
 	// If pubkey is not known for account,
 	// set it from the StdSignature.
 	pubKey := acc.GetPubKey()
