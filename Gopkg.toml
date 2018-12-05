@@ -89,6 +89,10 @@
   name = "github.com/mitchellh/go-homedir"
   version = "1.0.0"
 
+[[constraint]]
+  name = "github.com/hashicorp/golang-lru"
+  version = "0.5.0"
+
 ## transitive deps, without releases:
 #
 
