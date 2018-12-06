@@ -6,13 +6,14 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/tendermint/tendermint/abci/server"
-
 	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
 	cmn "github.com/tendermint/tendermint/libs/common"
 	"github.com/tendermint/tendermint/node"
 	"github.com/tendermint/tendermint/p2p"
 	pvm "github.com/tendermint/tendermint/privval"
 	"github.com/tendermint/tendermint/proxy"
+
+	"github.com/cosmos/cosmos-sdk/server/concurrent"
 )
 
 const (
@@ -119,7 +120,7 @@ func startInProcess(ctx *Context, appCreator AppCreator) (*node.Node, error) {
 	if !isSequentialABCI {
 		cliCreator = proxy.NewLocalClientCreator(app)
 	} else {
-		cliCreator = proxy.NewAsyncLocalClientCreator(app)
+		cliCreator = concurrent.NewAsyncLocalClientCreator(app)
 	}
 
 	// create & start tendermint node

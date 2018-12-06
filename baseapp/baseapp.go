@@ -5,10 +5,11 @@ import (
 	"io"
 	"runtime/debug"
 	"strings"
-	"sync"
 
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
+
 	abci "github.com/tendermint/tendermint/abci/types"
 	bc "github.com/tendermint/tendermint/blockchain"
 	cfg "github.com/tendermint/tendermint/config"
@@ -33,7 +34,10 @@ var dbHeaderKey = []byte("header")
 
 const (
 	InvolvedAddressKey = "involvedAddresses"
-	TxHashKey          = "txHash" // we pass txHash of current handling message via context so that we can publish it as metadata of Msg
+	// we pass txHash of current handling message via context so that we can publish it as metadata of Msg
+	TxHashKey = "txHash"
+	//this number should be around the size of the transactions in a block, TODO: configurable
+	TxMsgCacheSize = 4000
 )
 
 // BaseApp reflects the ABCI application implementation.
@@ -51,6 +55,7 @@ type BaseApp struct {
 	TxDecoder sdk.TxDecoder // unmarshal []byte into sdk.Tx
 
 	anteHandler sdk.AnteHandler // ante handler for fee and auth
+	preChecker  sdk.PreChecker
 
 	// may be nil
 	initChainer      sdk.InitChainer  // initialize state with validators and state blob
@@ -68,14 +73,10 @@ type BaseApp struct {
 	DeliverState *state // for DeliverTx
 
 	AccountStoreCache sdk.AccountStoreCache
+	txMsgCache        *lru.Cache
 
 	// flag for sealing
 	sealed bool
-
-	// locks for async ABCI calls
-	rwLockCheckTx   sync.RWMutex   // lock to safeguard CheckTx from Query
-	rwLockDeliverTx sync.RWMutex   // lock to safeguard DeliverTx from Query
-	wgTx            sync.WaitGroup // lock to safeguard InitChain / Commit etc.
 }
 
 var _ abci.Application = (*BaseApp)(nil)
@@ -90,6 +91,10 @@ var _ abci.Application = (*BaseApp)(nil)
 // Accepts a user-defined TxDecoder
 // Accepts variable number of option functions, which act on the BaseApp to set configuration choices
 func NewBaseApp(name string, logger log.Logger, db dbm.DB, txDecoder sdk.TxDecoder, isPublish bool, options ...func(*BaseApp)) *BaseApp {
+	cache, err := lru.New(TxMsgCacheSize)
+	if err != nil {
+		panic(err)
+	}
 	app := &BaseApp{
 		Logger:                  logger,
 		name:                    name,
@@ -100,6 +105,7 @@ func NewBaseApp(name string, logger log.Logger, db dbm.DB, txDecoder sdk.TxDecod
 		codespacer:              sdk.NewCodespacer(),
 		TxDecoder:               txDecoder,
 		isPublishAccountBalance: isPublish,
+		txMsgCache:              cache,
 	}
 
 	// Register the undefined & root codespaces, which should not be used by
@@ -493,21 +499,70 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	return
 }
 
+//getTxFromCache returns a decoded transaction and true if found in the cache;
+//otherwise return nil, false
+func (app *BaseApp) getTxFromCache(txBytes []byte) (sdk.Tx, bool) {
+	if i, ok := app.txMsgCache.Get(string(txBytes)); ok {
+		tx, o := i.(sdk.Tx)
+		return tx, o
+	}
+	return nil, false
+}
+
 // CheckTx implements ABCI
 // CheckTx runs the "basic checks" to see whether or not a transaction can possibly be executed,
 // first decoding, then the ante handler (which checks signatures/fees/ValidateBasic),
 // then finally the route match to see whether a handler exists. CheckTx does not run the actual
 // Msg handler function(s).
 func (app *BaseApp) CheckTx(txBytes []byte) (res abci.ResponseCheckTx) {
-	// Decode the Tx.
 	var result sdk.Result
-	var tx, err = app.TxDecoder(txBytes)
-	if err != nil {
-		result = err.Result()
+	var tx sdk.Tx
+	// try to get the Tx first from cache, if succeed, it means it is PreChecked.
+	tx, ok := app.getTxFromCache(txBytes)
+	if ok {
+		result = app.runTx(sdk.RunTxModeCheckAfterPre, txBytes, tx)
 	} else {
-		result = app.runTx(sdk.RunTxModeCheck, txBytes, tx)
+		tx, err := app.TxDecoder(txBytes)
+		if err != nil {
+			result = err.Result()
+		} else {
+			app.txMsgCache.Add(string(txBytes), tx) // for recheck
+			result = app.runTx(sdk.RunTxModeCheck, txBytes, tx)
+		}
 	}
 
+	if !result.IsOK() {
+		app.txMsgCache.Remove(string(txBytes)) //not usable by DeliverTx
+	}
+
+	return abci.ResponseCheckTx{
+		Code: uint32(result.Code),
+		Data: result.Data,
+		Log:  result.Log,
+		Tags: result.Tags,
+	}
+}
+
+func (app *BaseApp) preCheck(txBytes []byte, mode sdk.RunTxMode) sdk.Result {
+	var res sdk.Result
+	if app.preChecker != nil {
+		var tx, err = app.TxDecoder(txBytes)
+		if err != nil {
+			res = err.Result()
+		} else {
+			res := app.preChecker(getState(app, mode).Ctx, tx)
+			if res.IsOK() {
+				app.txMsgCache.Add(string(txBytes), tx)
+			}
+		}
+	}
+	return res
+}
+
+// PreCheckTx implements extended ABCI for concurrency
+// PreCheckTx would perform decoding, signture and other basic verification
+func (app *BaseApp) PreCheckTx(txBytes []byte) (res abci.ResponseCheckTx) {
+	result := app.preCheck(txBytes, sdk.RunTxModeCheck)
 	return abci.ResponseCheckTx{
 		Code: uint32(result.Code),
 		Data: result.Data,
@@ -522,11 +577,16 @@ func (app *BaseApp) CheckTx(txBytes []byte) (res abci.ResponseCheckTx) {
 func (app *BaseApp) ReCheckTx(txBytes []byte) (res abci.ResponseCheckTx) {
 	// Decode the Tx.
 	var result sdk.Result
-	var tx, err = app.TxDecoder(txBytes)
-	if err != nil {
-		result = err.Result()
-	} else {
+	tx, ok := app.getTxFromCache(txBytes)
+	if ok {
 		result = app.reRunTx(txBytes, tx)
+	} else { // not suppose to enter here actually
+		var tx, err = app.TxDecoder(txBytes)
+		if err != nil {
+			result = err.Result()
+		} else {
+			result = app.reRunTx(txBytes, tx)
+		}
 	}
 
 	return abci.ResponseCheckTx{
@@ -541,17 +601,36 @@ func (app *BaseApp) ReCheckTx(txBytes []byte) (res abci.ResponseCheckTx) {
 func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
 	// Decode the Tx.
 	var result sdk.Result
-	var tx, err = app.TxDecoder(txBytes)
-	if err != nil {
-		result = err.Result()
+	tx, ok := app.getTxFromCache(txBytes) //from checkTx
+	if ok {
+		// here means either the tx has passed PreDeliverTx or CheckTx,
+		// no need to verify signature
+		result = app.runTx(sdk.RunTxModeDeliverAfterPre, txBytes, tx)
 	} else {
-		result = app.runTx(sdk.RunTxModeDeliver, txBytes, tx)
+		var tx, err = app.TxDecoder(txBytes)
+		if err != nil {
+			result = err.Result()
+		} else {
+			result = app.runTx(sdk.RunTxModeDeliver, txBytes, tx)
+		}
 	}
 
 	// Even though the Result.Code is not OK, there are still effects,
 	// namely fee deductions and sequence incrementing.
 
 	// Tell the blockchain engine (i.e. Tendermint).
+	return abci.ResponseDeliverTx{
+		Code: uint32(result.Code),
+		Data: result.Data,
+		Log:  result.Log,
+		Tags: result.Tags,
+	}
+}
+
+// PreDeliverTx implements extended ABCI for concurrency
+// PreCheckTx would perform decoding, signture and other basic verification
+func (app *BaseApp) PreDeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
+	result := app.preCheck(txBytes, sdk.RunTxModeDeliver)
 	return abci.ResponseDeliverTx{
 		Code: uint32(result.Code),
 		Data: result.Data,
@@ -638,7 +717,8 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, txHash string, mode
 // Returns the applicantion's DeliverState if app is in runTxModeDeliver,
 // otherwise it returns the application's checkstate.
 func getState(app *BaseApp, mode sdk.RunTxMode) *state {
-	if mode == sdk.RunTxModeCheck ||
+	if mode == sdk.RunTxModeCheckAfterPre ||
+		mode == sdk.RunTxModeCheck ||
 		mode == sdk.RunTxModeSimulate ||
 		mode == sdk.RunTxModeReCheck {
 		return app.CheckState
@@ -649,7 +729,8 @@ func getState(app *BaseApp, mode sdk.RunTxMode) *state {
 
 // Returns accountCache of CheckState or DeliverState according to the tx mode
 func getAccountCache(app *BaseApp, mode sdk.RunTxMode) sdk.AccountCache {
-	if mode == sdk.RunTxModeCheck ||
+	if mode == sdk.RunTxModeCheckAfterPre ||
+		mode == sdk.RunTxModeCheck ||
 		mode == sdk.RunTxModeSimulate ||
 		mode == sdk.RunTxModeReCheck {
 		return app.CheckState.accountCache

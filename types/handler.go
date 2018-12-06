@@ -16,9 +16,17 @@ const (
 
 	// ReCheck a transaction
 	RunTxModeReCheck RunTxMode = iota
+
+	// Check a transaction after PreCheck
+	RunTxModeCheckAfterPre RunTxMode = iota
+
+	// Deliver a transaction after PreDeliver
+	RunTxModeDeliverAfterPre RunTxMode = iota
 )
 
 // AnteHandler authenticates transactions, before their internal messages are handled.
 // If newCtx.IsZero(), ctx is used instead.
 type AnteHandler func(ctx Context, tx Tx,
 	runTxMode RunTxMode) (newCtx Context, result Result, abort bool)
+
+type PreChecker func(ctx Context, tx Tx) Result

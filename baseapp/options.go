@@ -79,6 +79,13 @@ func (app *BaseApp) SetAnteHandler(ah sdk.AnteHandler) {
 	app.anteHandler = ah
 }
 
+func (app *BaseApp) SetPreChecker(pc sdk.PreChecker) {
+	if app.sealed {
+		panic("SetPreChecker() on sealed BaseApp")
+	}
+	app.preChecker = pc
+}
+
 func (app *BaseApp) SetAddrPeerFilter(pf sdk.PeerFilter) {
 	if app.sealed {
 		panic("SetAddrPeerFilter() on sealed BaseApp")
