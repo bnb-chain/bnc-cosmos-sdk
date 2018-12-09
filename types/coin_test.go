@@ -294,6 +294,10 @@ func TestParse(t *testing.T) {
 		{"", true, nil},
 		{"1:foo", true, Coins{{"foo", one}}},
 		{"10:bar", true, Coins{{"bar", 10}}},
+		{"10:bar.B", true, Coins{{"bar.B", 10}}},
+		{"10:bar-1B", true, Coins{{"bar-1B", 10}}},
+		{"10:bar-1BCDEF", true, Coins{{"bar-1BCDEF", 10}}},
+		{"10:bar.B-1BCDEF", true, Coins{{"bar.B-1BCDEF", 10}}},
 		{"99:bar,1:foo", true, Coins{{"bar", 99}, {"foo", one}}},
 		{"98:bar , 1:foo  ", true, Coins{{"bar", 98}, {"foo", one}}},
 		{"  55:bling\n", true, Coins{{"bling", 55}}},
@@ -303,6 +307,7 @@ func TestParse(t *testing.T) {
 		{"11me:coin, 12you:coin", false, nil},                     // no spaces in coin names
 		{"1.2:btc", false, nil},                                   // amount must be integer
 		{"5:foo-bar", false, nil},                                 // once more, only letters in coin name
+		{"5:foo-12BCDEF", false, nil},                             // incorrect tx suffix lens
 	}
 
 	for tcIndex, tc := range cases {
