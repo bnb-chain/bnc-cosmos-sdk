@@ -6,7 +6,7 @@ import (
 	"runtime/debug"
 	"strings"
 
-	lru "github.com/hashicorp/golang-lru"
+	"github.com/hashicorp/golang-lru"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 
@@ -550,7 +550,7 @@ func (app *BaseApp) preCheck(txBytes []byte, mode sdk.RunTxMode) sdk.Result {
 		if err != nil {
 			res = err.Result()
 		} else {
-			res := app.preChecker(getState(app, mode).Ctx, tx)
+			res = app.preChecker(getState(app, mode).Ctx, txBytes, tx)
 			if res.IsOK() {
 				app.txMsgCache.Add(string(txBytes), tx)
 			}

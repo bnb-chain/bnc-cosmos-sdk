@@ -29,4 +29,4 @@ const (
 type AnteHandler func(ctx Context, tx Tx,
 	runTxMode RunTxMode) (newCtx Context, result Result, abort bool)
 
-type PreChecker func(ctx Context, tx Tx) Result
+type PreChecker func(ctx Context, txBytes []byte, tx Tx) Result

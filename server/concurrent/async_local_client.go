@@ -37,6 +37,7 @@ type asyncLocalClient struct {
 
 	checkTxPool   *pool.Pool
 	deliverTxPool *pool.Pool
+	rwCommitLock  *sync.RWMutex
 	wgCommit      *sync.WaitGroup
 
 	checkTxQueue   chan WorkItem
@@ -57,6 +58,7 @@ func NewAsyncLocalClient(app types.Application) *asyncLocalClient {
 		wgCommit:       new(sync.WaitGroup),
 		checkTxQueue:   make(chan WorkItem, WorkerPoolQueue*4),
 		deliverTxQueue: make(chan WorkItem, WorkerPoolQueue*4),
+		rwCommitLock:   new(sync.RWMutex),
 	}
 	cli.BaseService = *cmn.NewBaseService(nil, "asyncLocalClient", cli)
 	return cli
@@ -73,8 +75,10 @@ func (app *asyncLocalClient) OnStart() error {
 
 func (app *asyncLocalClient) OnStop() {
 	app.BaseService.OnStop()
+	app.rwCommitLock.Lock()
 	close(app.checkTxQueue)
 	close(app.deliverTxQueue)
+	app.rwCommitLock.Unlock()
 }
 
 func (app *asyncLocalClient) SetResponseCallback(cb abcicli.Callback) {
@@ -87,7 +91,8 @@ func (app *asyncLocalClient) SetResponseCallback(cb abcicli.Callback) {
 
 func (app *asyncLocalClient) checkTxWorker() {
 	for i := range app.checkTxQueue {
-		i.mtx.Lock()      // wait the PreCheckTx finish
+		i.mtx.Lock() // wait the PreCheckTx finish
+		i.mtx.Unlock()
 		app.rwLock.Lock() // make sure not other non-CheckTx/non-DeliverTx ABCI is called
 		if i.reqRes.Response == nil {
 			tx := i.reqRes.Request.GetCheckTx().GetTx()
@@ -96,16 +101,15 @@ func (app *asyncLocalClient) checkTxWorker() {
 		}
 		i.reqRes.Done()
 		app.wgCommit.Done() // enable Commit to start
+		app.rwLock.Unlock() // this unlock is put after wgCommit.Done() to give commit priority
 		app.Callback(i.reqRes.Request, i.reqRes.Response)
-		app.rwLock.Unlock()
-		i.mtx.Unlock()
-
 	}
 }
 
 func (app *asyncLocalClient) deliverTxWorker() {
 	for i := range app.deliverTxQueue {
-		i.mtx.Lock()             // wait the PreCheckTx finish
+		i.mtx.Lock() // wait the PreCheckTx finish
+		i.mtx.Unlock()
 		app.rwDeliverLock.Lock() // make sure not other non-CheckTx/non-DeliverTx ABCI is called
 		if i.reqRes.Response == nil {
 			tx := i.reqRes.Request.GetDeliverTx().GetTx()
@@ -113,10 +117,9 @@ func (app *asyncLocalClient) deliverTxWorker() {
 			i.reqRes.Response = types.ToResponseDeliverTx(res) // Set response
 		}
 		i.reqRes.Done()
-		app.wgCommit.Done() // enable Commit to start
+		app.wgCommit.Done()        // enable Commit to start
+		app.rwDeliverLock.Unlock() // this unlock is put after wgCommit.Done() to give commit priority
 		app.Callback(i.reqRes.Request, i.reqRes.Response)
-		app.rwDeliverLock.Unlock()
-		i.mtx.Unlock()
 	}
 }
 
@@ -167,13 +170,13 @@ func (app *asyncLocalClient) DeliverTxAsync(tx []byte) *abcicli.ReqRes {
 	reqres := abcicli.NewReqRes(reqp)
 	mtx := new(sync.Mutex)
 	mtx.Lock()
-	app.rwDeliverLock.RLock()
+	app.rwCommitLock.RLock() // here would block further queue if commit is ready to go
 	app.deliverTxQueue <- WorkItem{reqRes: reqres, mtx: mtx}
 	app.wgCommit.Add(1)
-	app.rwDeliverLock.RUnlock()
+	app.rwCommitLock.RUnlock()
 	app.deliverTxPool.Schedule(func() {
 		res := app.Application.PreDeliverTx(tx)
-		if !res.IsOK() { // no need to call the real CheckTx
+		if !res.IsOK() { // no need to call the real DeliverTx
 			reqres.Response = types.ToResponseDeliverTx(res)
 		}
 		mtx.Unlock()
@@ -184,15 +187,14 @@ func (app *asyncLocalClient) DeliverTxAsync(tx []byte) *abcicli.ReqRes {
 
 func (app *asyncLocalClient) CheckTxAsync(tx []byte) *abcicli.ReqRes {
 	// no app level lock because the real CheckTx would be called in the worker routine
-
 	reqp := types.ToRequestCheckTx(tx)
 	reqres := abcicli.NewReqRes(reqp)
 	mtx := new(sync.Mutex)
 	mtx.Lock()
-	app.rwLock.RLock()
+	app.rwCommitLock.RLock() // here would block further queue if commit is ready to go
 	app.checkTxQueue <- WorkItem{reqRes: reqres, mtx: mtx}
 	app.wgCommit.Add(1)
-	app.rwLock.RUnlock()
+	app.rwCommitLock.RUnlock()
 	app.checkTxPool.Schedule(func() {
 		res := app.Application.PreCheckTx(tx)
 		if !res.IsOK() { // no need to call the real CheckTx
@@ -228,12 +230,14 @@ func (app *asyncLocalClient) QueryAsync(req types.RequestQuery) *abcicli.ReqRes 
 }
 
 func (app *asyncLocalClient) CommitAsync() *abcicli.ReqRes {
-	app.rwLock.Lock() // this must come before the wgCommit.Wait()
-	app.rwDeliverLock.Lock()
-	app.wgCommit.Wait() // wait for all the submitted CheckTx/DeliverTx/Query finish
+	app.rwCommitLock.Lock() // this must come before the wgCommit.Wait()
+	app.wgCommit.Wait()     // wait for all the submitted CheckTx/DeliverTx/Query finish
+	app.rwLock.Lock()
+	// only checkTxLock is locked here
+	// because we trust deliver and commit will not call concurrently
 	res := app.Application.Commit()
-	app.rwDeliverLock.Unlock()
 	app.rwLock.Unlock()
+	app.rwCommitLock.Unlock()
 	return app.callback(
 		types.ToRequestCommit(),
 		types.ToResponseCommit(res),
@@ -264,11 +268,14 @@ func (app *asyncLocalClient) BeginBlockAsync(req types.RequestBeginBlock) *abcic
 }
 
 func (app *asyncLocalClient) EndBlockAsync(req types.RequestEndBlock) *abcicli.ReqRes {
+	app.rwCommitLock.Lock() // this must come before the wgCommit.Wait()
+	app.wgCommit.Wait()     // wait for all the submitted CheckTx/DeliverTx/Query finish
 	app.rwLock.Lock()
-	app.rwDeliverLock.Lock()
+	// only checkTxLock is locked here
+	// because we trust deliver and commit will not call concurrently
 	res := app.Application.EndBlock(req)
-	app.rwDeliverLock.Unlock()
 	app.rwLock.Unlock()
+	app.rwCommitLock.Unlock()
 	return app.callback(
 		types.ToRequestEndBlock(req),
 		types.ToResponseEndBlock(res),
@@ -327,11 +334,14 @@ func (app *asyncLocalClient) QuerySync(req types.RequestQuery) (*types.ResponseQ
 }
 
 func (app *asyncLocalClient) CommitSync() (*types.ResponseCommit, error) {
+	app.rwCommitLock.Lock() // this must come before the wgCommit.Wait()
+	app.wgCommit.Wait()     // wait for all the submitted CheckTx/DeliverTx/Query finish
 	app.rwLock.Lock()
-	app.rwDeliverLock.Lock()
+	// only checkTxLock is locked here
+	// because we trust deliver and commit will not call concurrently
 	res := app.Application.Commit()
-	app.rwDeliverLock.Unlock()
 	app.rwLock.Unlock()
+	app.rwCommitLock.Unlock()
 	return &res, nil
 }
 
@@ -352,11 +362,14 @@ func (app *asyncLocalClient) BeginBlockSync(req types.RequestBeginBlock) (*types
 }
 
 func (app *asyncLocalClient) EndBlockSync(req types.RequestEndBlock) (*types.ResponseEndBlock, error) {
+	app.rwCommitLock.Lock() // this must come before the wgCommit.Wait()
+	app.wgCommit.Wait()     // wait for all the submitted CheckTx/DeliverTx/Query finish
 	app.rwLock.Lock()
-	app.rwDeliverLock.Lock()
+	// only checkTxLock is locked here
+	// because we trust deliver and commit will not call concurrently
 	res := app.Application.EndBlock(req)
-	app.rwDeliverLock.Unlock()
 	app.rwLock.Unlock()
+	app.rwCommitLock.Unlock()
 	return &res, nil
 }
 
