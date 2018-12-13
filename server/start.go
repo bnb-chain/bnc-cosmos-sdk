@@ -120,7 +120,8 @@ func startInProcess(ctx *Context, appCreator AppCreator) (*node.Node, error) {
 	if !isSequentialABCI {
 		cliCreator = proxy.NewLocalClientCreator(app)
 	} else {
-		cliCreator = concurrent.NewAsyncLocalClientCreator(app)
+		cliCreator = concurrent.NewAsyncLocalClientCreator(app,
+			ctx.Logger.With("module", "abciCli"))
 	}
 
 	// create & start tendermint node

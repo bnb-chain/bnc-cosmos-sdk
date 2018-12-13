@@ -2,11 +2,13 @@ package concurrent
 
 import (
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/libs/log"
 )
 
 var _ ApplicationCC = (*TimedApplication)(nil)
@@ -85,6 +87,8 @@ func (app *TimedApplication) PreDeliverTx(tx []byte) types.ResponseDeliverTx {
 	return types.ResponseDeliverTx{}
 }
 
+var logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "TestLogger")
+
 func TestNewAsyncLocalClient(t *testing.T) {
 	assert := assert.New(t)
 	app := &TimedApplication{}
@@ -92,7 +96,7 @@ func TestNewAsyncLocalClient(t *testing.T) {
 	app.preCheckTxSpan = time.Millisecond * 50
 	app.deliverTxSpan = time.Millisecond * 50
 	app.preDeliverTxSpan = time.Millisecond * 50
-	cli := NewAsyncLocalClient(app)
+	cli := NewAsyncLocalClient(app, logger)
 	cli.Start()
 	cli.SetResponseCallback(func(*types.Request, *types.Response) {})
 	assert.NotNil(cli, "Failed to create AsyncLocalClient")
@@ -119,7 +123,7 @@ func TestReadAPI(t *testing.T) {
 	app.deliverTxSpan = time.Millisecond * 50
 	app.preDeliverTxSpan = time.Millisecond * 50
 	app.querySpan = time.Millisecond * 50
-	cli := NewAsyncLocalClient(app)
+	cli := NewAsyncLocalClient(app, logger)
 	cli.Start()
 	cli.SetResponseCallback(func(*types.Request, *types.Response) {})
 	assert.NotNil(cli, "Failed to create AsyncLocalClient")
