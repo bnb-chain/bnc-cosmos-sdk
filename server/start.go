@@ -117,7 +117,7 @@ func startInProcess(ctx *Context, appCreator AppCreator) (*node.Node, error) {
 	}
 
 	var cliCreator proxy.ClientCreator
-	if !isSequentialABCI {
+	if isSequentialABCI {
 		cliCreator = proxy.NewLocalClientCreator(app)
 	} else {
 		cliCreator = concurrent.NewAsyncLocalClientCreator(app,
