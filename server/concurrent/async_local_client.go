@@ -120,6 +120,9 @@ func (app *asyncLocalClient) checkTxWorker() {
 		}
 		i.reqRes.Done()
 		app.wgCommit.Done() // enable Commit to start
+		if cb := i.reqRes.GetCallback(); cb != nil {
+			cb(i.reqRes.Response)
+		}
 		app.Callback(i.reqRes.Request, i.reqRes.Response)
 		app.rwLock.Unlock() // this unlock is put after wgCommit.Done() to give commit priority
 	}
@@ -138,6 +141,9 @@ func (app *asyncLocalClient) deliverTxWorker() {
 		}
 		i.reqRes.Done()
 		app.wgCommit.Done() // enable Commit to start
+		if cb := i.reqRes.GetCallback(); cb != nil {
+			cb(i.reqRes.Response)
+		}
 		app.Callback(i.reqRes.Request, i.reqRes.Response)
 		app.rwLock.Unlock() // this unlock is put after wgCommit.Done() to give commit priority
 	}
