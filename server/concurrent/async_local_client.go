@@ -101,16 +101,17 @@ func (app *asyncLocalClient) checkTxWorker() {
 	for i := range app.checkTxQueue {
 		i.mtx.Lock() // wait the PreCheckTx finish
 		i.mtx.Unlock()
-		app.rwLock.Lock() // make sure not other non-CheckTx/non-DeliverTx ABCI is called
+
 		if i.reqRes.Response == nil {
 			tx := i.reqRes.Request.GetCheckTx().GetTx()
+			app.rwLock.Lock() // make sure not other non-CheckTx/non-DeliverTx ABCI is called
 			app.log.Debug("Handle Checktx", "Tx")
 			res := app.Application.CheckTx(tx)
+			app.rwLock.Unlock()                              // this unlock is put after wgCommit.Done() to give commit priority
 			i.reqRes.Response = types.ToResponseCheckTx(res) // Set response
 		}
 		i.reqRes.Done()
 		app.wgCommit.Done() // enable Commit to start
-		app.rwLock.Unlock() // this unlock is put after wgCommit.Done() to give commit priority
 		app.Callback(i.reqRes.Request, i.reqRes.Response)
 	}
 }
@@ -119,16 +120,18 @@ func (app *asyncLocalClient) deliverTxWorker() {
 	for i := range app.deliverTxQueue {
 		i.mtx.Lock() // wait the PreCheckTx finish
 		i.mtx.Unlock()
-		app.rwDeliverLock.Lock() // make sure not other non-CheckTx/non-DeliverTx ABCI is called
+		//app.rwDeliverLock.Lock() // make sure not other non-CheckTx/non-DeliverTx ABCI is called
 		if i.reqRes.Response == nil {
 			tx := i.reqRes.Request.GetDeliverTx().GetTx()
+			app.rwLock.Lock() // make sure not other non-CheckTx/non-DeliverTx ABCI is called
 			app.log.Debug("Handle DeliverTx", "Tx", hex.EncodeToString(tx[:7]))
 			res := app.Application.DeliverTx(tx)
+			app.rwLock.Unlock()                                // this unlock is put after wgCommit.Done() to give commit priority
 			i.reqRes.Response = types.ToResponseDeliverTx(res) // Set response
 		}
 		i.reqRes.Done()
-		app.wgCommit.Done()        // enable Commit to start
-		app.rwDeliverLock.Unlock() // this unlock is put after wgCommit.Done() to give commit priority
+		app.wgCommit.Done() // enable Commit to start
+		//app.rwDeliverLock.Unlock() // this unlock is put after wgCommit.Done() to give commit priority
 		app.Callback(i.reqRes.Request, i.reqRes.Response)
 	}
 }

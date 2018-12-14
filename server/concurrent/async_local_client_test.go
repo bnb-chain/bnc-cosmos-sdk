@@ -102,7 +102,7 @@ func TestNewAsyncLocalClient(t *testing.T) {
 	assert.NotNil(cli, "Failed to create AsyncLocalClient")
 	tx := make([]byte, 8)
 	// if all are sequential, it needs 800ms
-	expectStop := time.Now().Add(time.Millisecond * 200)
+	expectStop := time.Now().Add(time.Millisecond * 300)
 	nonExpectShort := time.Now().Add(time.Millisecond * 25)
 	for i := 0; i < 2; i++ {
 		go cli.CheckTxAsync(tx)
