@@ -30,41 +30,55 @@ type WorkItem struct {
 	mtx    *sync.Mutex // make sure the eventual execution sequence
 }
 
-type asyncLocalClient struct {
-	cmn.BaseService
-	rwLock      *sync.RWMutex
-	Application ApplicationCC
-	abcicli.Callback
+type localAsyncClientCreator struct {
+	app types.Application
+	log log.Logger
 
-	checkTxPool    *pool.Pool
-	deliverTxPool  *pool.Pool
 	commitLock     *sync.Mutex
 	checkTxLowLock *sync.Mutex
 	checkTxMidLock *sync.Mutex
 	wgCommit       *sync.WaitGroup
+	rwLock         *sync.RWMutex
+}
+
+type asyncLocalClient struct {
+	cmn.BaseService
+	Application ApplicationCC
+	abcicli.Callback
+
+	checkTxPool   *pool.Pool
+	deliverTxPool *pool.Pool
+
+	commitLock     *sync.Mutex
+	checkTxLowLock *sync.Mutex
+	checkTxMidLock *sync.Mutex
+	wgCommit       *sync.WaitGroup
+	rwLock         *sync.RWMutex
 
 	checkTxQueue   chan WorkItem
 	deliverTxQueue chan WorkItem
 	log            log.Logger
 }
 
-func NewAsyncLocalClient(app types.Application, log log.Logger) *asyncLocalClient {
+func NewAsyncLocalClient(app types.Application, log log.Logger,
+	rwLock *sync.RWMutex, wgCommit *sync.WaitGroup,
+	commitLock, checkTxLowLock, checkTxMidLock *sync.Mutex) *asyncLocalClient {
 	appcc, ok := app.(ApplicationCC)
 	if !ok {
 		return nil
 	}
 	cli := &asyncLocalClient{
-		rwLock:         new(sync.RWMutex),
 		Application:    appcc,
 		checkTxPool:    pool.NewPool(WorkerPoolSize/2, WorkerPoolQueue/2, WorkerPoolSpawn/2),
 		deliverTxPool:  pool.NewPool(WorkerPoolSize, WorkerPoolQueue, WorkerPoolSpawn),
-		wgCommit:       new(sync.WaitGroup),
 		checkTxQueue:   make(chan WorkItem, WorkerPoolQueue*2),
 		deliverTxQueue: make(chan WorkItem, WorkerPoolQueue*2),
-		commitLock:     new(sync.Mutex),
-		checkTxLowLock: new(sync.Mutex),
-		checkTxMidLock: new(sync.Mutex),
 		log:            log,
+		commitLock:     commitLock,
+		checkTxLowLock: checkTxLowLock,
+		checkTxMidLock: checkTxMidLock,
+		wgCommit:       wgCommit,
+		rwLock:         rwLock,
 	}
 	cli.BaseService = *cmn.NewBaseService(nil, "asyncLocalClient", cli)
 	return cli
@@ -410,18 +424,19 @@ func newLocalReqRes(req *types.Request, res *types.Response) *abcicli.ReqRes {
 	return reqRes
 }
 
-type localAsyncClientCreator struct {
-	app types.Application
-	log log.Logger
-}
-
 func NewAsyncLocalClientCreator(app types.Application, log log.Logger) proxy.ClientCreator {
 	return &localAsyncClientCreator{
-		app: app,
-		log: log,
+		app:            app,
+		log:            log,
+		rwLock:         new(sync.RWMutex),
+		wgCommit:       new(sync.WaitGroup),
+		commitLock:     new(sync.Mutex),
+		checkTxLowLock: new(sync.Mutex),
+		checkTxMidLock: new(sync.Mutex),
 	}
 }
 
 func (l *localAsyncClientCreator) NewABCIClient() (abcicli.Client, error) {
-	return NewAsyncLocalClient(l.app, l.log), nil
+	return NewAsyncLocalClient(l.app, l.log, l.rwLock, l.wgCommit,
+		l.commitLock, l.checkTxLowLock, l.checkTxMidLock), nil
 }

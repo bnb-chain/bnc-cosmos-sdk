@@ -3,6 +3,7 @@ package concurrent
 import (
 	"fmt"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -96,7 +97,9 @@ func TestNewAsyncLocalClient(t *testing.T) {
 	app.preCheckTxSpan = time.Millisecond * 50
 	app.deliverTxSpan = time.Millisecond * 50
 	app.preDeliverTxSpan = time.Millisecond * 50
-	cli := NewAsyncLocalClient(app, logger)
+
+	cli := NewAsyncLocalClient(app, logger, new(sync.RWMutex),
+		new(sync.WaitGroup), new(sync.Mutex), new(sync.Mutex), new(sync.Mutex))
 	cli.Start()
 	cli.SetResponseCallback(func(*types.Request, *types.Response) {})
 	assert.NotNil(cli, "Failed to create AsyncLocalClient")
@@ -123,7 +126,8 @@ func TestReadAPI(t *testing.T) {
 	app.deliverTxSpan = time.Millisecond * 50
 	app.preDeliverTxSpan = time.Millisecond * 50
 	app.querySpan = time.Millisecond * 50
-	cli := NewAsyncLocalClient(app, logger)
+	cli := NewAsyncLocalClient(app, logger, new(sync.RWMutex),
+		new(sync.WaitGroup), new(sync.Mutex), new(sync.Mutex), new(sync.Mutex))
 	cli.Start()
 	cli.SetResponseCallback(func(*types.Request, *types.Response) {})
 	assert.NotNil(cli, "Failed to create AsyncLocalClient")
