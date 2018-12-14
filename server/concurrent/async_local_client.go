@@ -32,9 +32,8 @@ type WorkItem struct {
 
 type asyncLocalClient struct {
 	cmn.BaseService
-	rwLock        *sync.RWMutex
-	rwDeliverLock *sync.RWMutex
-	Application   ApplicationCC
+	rwLock      *sync.RWMutex
+	Application ApplicationCC
 	abcicli.Callback
 
 	checkTxPool    *pool.Pool
@@ -56,7 +55,6 @@ func NewAsyncLocalClient(app types.Application, log log.Logger) *asyncLocalClien
 	}
 	cli := &asyncLocalClient{
 		rwLock:         new(sync.RWMutex),
-		rwDeliverLock:  new(sync.RWMutex),
 		Application:    appcc,
 		checkTxPool:    pool.NewPool(WorkerPoolSize/2, WorkerPoolQueue/2, WorkerPoolSpawn/2),
 		deliverTxPool:  pool.NewPool(WorkerPoolSize, WorkerPoolQueue, WorkerPoolSpawn),
@@ -91,9 +89,7 @@ func (app *asyncLocalClient) OnStop() {
 
 func (app *asyncLocalClient) SetResponseCallback(cb abcicli.Callback) {
 	app.rwLock.Lock()
-	app.rwDeliverLock.Lock()
 	defer app.rwLock.Unlock()
-	defer app.rwDeliverLock.Unlock()
 	app.Callback = cb
 }
 
@@ -120,7 +116,6 @@ func (app *asyncLocalClient) deliverTxWorker() {
 	for i := range app.deliverTxQueue {
 		i.mtx.Lock() // wait the PreCheckTx finish
 		i.mtx.Unlock()
-		//app.rwDeliverLock.Lock() // make sure not other non-CheckTx/non-DeliverTx ABCI is called
 		if i.reqRes.Response == nil {
 			tx := i.reqRes.Request.GetDeliverTx().GetTx()
 			app.rwLock.Lock() // make sure not other non-CheckTx/non-DeliverTx ABCI is called
@@ -131,7 +126,6 @@ func (app *asyncLocalClient) deliverTxWorker() {
 		}
 		i.reqRes.Done()
 		app.wgCommit.Done() // enable Commit to start
-		//app.rwDeliverLock.Unlock() // this unlock is put after wgCommit.Done() to give commit priority
 		app.Callback(i.reqRes.Request, i.reqRes.Response)
 	}
 }
@@ -155,9 +149,7 @@ func (app *asyncLocalClient) EchoAsync(msg string) *abcicli.ReqRes {
 
 func (app *asyncLocalClient) InfoAsync(req types.RequestInfo) *abcicli.ReqRes {
 	app.rwLock.RLock()
-	app.rwDeliverLock.RLock()
 	res := app.Application.Info(req)
-	app.rwDeliverLock.RUnlock()
 	app.rwLock.RUnlock()
 	return app.callback(
 		types.ToRequestInfo(req),
@@ -167,9 +159,7 @@ func (app *asyncLocalClient) InfoAsync(req types.RequestInfo) *abcicli.ReqRes {
 
 func (app *asyncLocalClient) SetOptionAsync(req types.RequestSetOption) *abcicli.ReqRes {
 	app.rwLock.Lock()
-	app.rwDeliverLock.Lock()
 	res := app.Application.SetOption(req)
-	app.rwDeliverLock.Unlock()
 	app.rwLock.Unlock()
 	return app.callback(
 		types.ToRequestSetOption(req),
@@ -243,9 +233,7 @@ func (app *asyncLocalClient) ReCheckTxAsync(tx []byte) *abcicli.ReqRes {
 // QueryAsync is supposed to run concurrently when there is no CheckTx/DeliverTx/Commit
 func (app *asyncLocalClient) QueryAsync(req types.RequestQuery) *abcicli.ReqRes {
 	app.rwLock.RLock()
-	app.rwDeliverLock.RLock()
 	res := app.Application.Query(req)
-	app.rwDeliverLock.RUnlock()
 	app.rwLock.RUnlock()
 	return app.callback(
 		types.ToRequestQuery(req),
@@ -275,13 +263,11 @@ func (app *asyncLocalClient) CommitAsync() *abcicli.ReqRes {
 
 func (app *asyncLocalClient) InitChainAsync(req types.RequestInitChain) *abcicli.ReqRes {
 	app.rwLock.Lock()
-	app.rwDeliverLock.Lock()
 	res := app.Application.InitChain(req)
 	reqRes := app.callback(
 		types.ToRequestInitChain(req),
 		types.ToResponseInitChain(res),
 	)
-	app.rwDeliverLock.Unlock()
 	app.rwLock.Unlock()
 	return reqRes
 }
@@ -328,27 +314,23 @@ func (app *asyncLocalClient) EchoSync(msg string) (*types.ResponseEcho, error) {
 
 func (app *asyncLocalClient) InfoSync(req types.RequestInfo) (*types.ResponseInfo, error) {
 	app.rwLock.RLock()
-	app.rwDeliverLock.RLock()
 	res := app.Application.Info(req)
-	app.rwDeliverLock.RUnlock()
 	app.rwLock.RUnlock()
 	return &res, nil
 }
 
 func (app *asyncLocalClient) SetOptionSync(req types.RequestSetOption) (*types.ResponseSetOption, error) {
 	app.rwLock.Lock()
-	app.rwDeliverLock.Lock()
 	res := app.Application.SetOption(req)
-	app.rwDeliverLock.Unlock()
 	app.rwLock.Unlock()
 	return &res, nil
 }
 
 func (app *asyncLocalClient) DeliverTxSync(tx []byte) (*types.ResponseDeliverTx, error) {
-	app.rwDeliverLock.Lock()
+	app.rwLock.Lock()
 	app.log.Debug("Start DeliverTxSync")
 	res := app.Application.DeliverTx(tx)
-	app.rwDeliverLock.Unlock()
+	app.rwLock.Unlock()
 	return &res, nil
 }
 
@@ -362,9 +344,7 @@ func (app *asyncLocalClient) CheckTxSync(tx []byte) (*types.ResponseCheckTx, err
 
 func (app *asyncLocalClient) QuerySync(req types.RequestQuery) (*types.ResponseQuery, error) {
 	app.rwLock.RLock()
-	app.rwDeliverLock.RLock()
 	res := app.Application.Query(req)
-	app.rwDeliverLock.RUnlock()
 	app.rwLock.RUnlock()
 	return &res, nil
 }
@@ -388,9 +368,7 @@ func (app *asyncLocalClient) CommitSync() (*types.ResponseCommit, error) {
 
 func (app *asyncLocalClient) InitChainSync(req types.RequestInitChain) (*types.ResponseInitChain, error) {
 	app.rwLock.Lock()
-	app.rwDeliverLock.Lock()
 	res := app.Application.InitChain(req)
-	app.rwDeliverLock.Unlock()
 	app.rwLock.Unlock()
 	return &res, nil
 }
