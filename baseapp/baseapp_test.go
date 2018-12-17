@@ -603,6 +603,53 @@ func TestConcurrentCheckDeliver(t *testing.T) {
 	// TODO
 }
 
+func TestPreCheckTx(t *testing.T) {
+	counterKey := []byte("counter-key")
+
+	anteOpt := func(bapp *BaseApp) { bapp.SetAnteHandler(anteHandlerTxTest(t, capKey1, counterKey)) }
+	routerOpt := func(bapp *BaseApp) {
+		// TODO: can remove this once CheckTx doesnt process msgs.
+		bapp.Router().AddRoute(routeMsgCounter, func(ctx sdk.Context, msg sdk.Msg) sdk.Result { return sdk.Result{} })
+	}
+
+	app := setupBaseApp(t, anteOpt, routerOpt)
+	app.SetPreChecker(func(ctx sdk.Context, txBytes []byte, tx sdk.Tx) sdk.Result {
+		return sdk.ErrInternal("Must Fail").Result()
+	})
+	nTxs := int64(5)
+
+	app.InitChain(abci.RequestInitChain{})
+
+	// Create same codec used in TxDecoder
+	codec := codec.New()
+	registerTestCodec(codec)
+
+	for i := int64(0); i < nTxs; i++ {
+		tx := newTxCounter(i, 0)
+		txBytes, err := codec.MarshalBinary(tx)
+		require.NoError(t, err)
+		r := app.PreCheckTx(txBytes)
+		assert.False(t, r.IsOK(), fmt.Sprintf("%v", r))
+	}
+
+	checkStateStore := app.CheckState.Ctx.KVStore(capKey1)
+	storedCounter := getIntFromStore(checkStateStore, counterKey)
+
+	// Ensure AnteHandler ran
+	require.NotEqual(t, nTxs, storedCounter)
+	assert.Equal(t, 0, app.txMsgCache.Len())
+
+	app.SetPreChecker(func(ctx sdk.Context, txBytes []byte, tx sdk.Tx) sdk.Result {
+		return sdk.Result{}
+	})
+
+	tx := newTxCounter(0, 0)
+	txBytes, _ := codec.MarshalBinary(tx)
+	r := app.PreCheckTx(txBytes)
+	assert.True(t, r.IsOK(), fmt.Sprintf("%v", r))
+	assert.Equal(t, 1, app.txMsgCache.Len())
+}
+
 // Simulate() and Query("/app/simulate", txBytes) should give
 // the same results.
 func TestSimulateTx(t *testing.T) {

@@ -33,6 +33,13 @@
   version = "v0.1.0"
 
 [[projects]]
+  digest = "1:b53875927b3d963f820aa8188d76e086d1ecd9cc0cb18d69106844d565440d99"
+  name = "github.com/bluele/gcache"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "472614239ac7e5bc6461e237c798a6ebd5aff8c1"
+
+[[projects]]
   branch = "master"
   digest = "1:c0decf632843204d2b8781de7b26e7038584e2dcccc7e2f401e88ae85b1df2b7"
   name = "github.com/btcsuite/btcd"
@@ -669,6 +676,7 @@
   input-imports = [
     "github.com/bartekn/go-bip39",
     "github.com/bgentry/speakeasy",
+    "github.com/bluele/gcache",
     "github.com/btcsuite/btcd/btcec",
     "github.com/cosmos/go-bip39",
     "github.com/golang/protobuf/proto",
@@ -687,6 +695,7 @@
     "github.com/syndtr/goleveldb/leveldb/opt",
     "github.com/tendermint/go-amino",
     "github.com/tendermint/iavl",
+    "github.com/tendermint/tendermint/abci/client",
     "github.com/tendermint/tendermint/abci/server",
     "github.com/tendermint/tendermint/abci/types",
     "github.com/tendermint/tendermint/blockchain",
