@@ -2,8 +2,7 @@ package gov
 
 import (
 	"fmt"
-
-	codec "github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/params"
@@ -126,21 +125,31 @@ func (keeper Keeper) DeleteProposal(ctx sdk.Context, proposal Proposal) {
 	store.Delete(KeyProposal(proposal.GetProposalID()))
 }
 
-// Get Proposal from store by ProposalID
-func (keeper Keeper) GetProposalsFiltered(ctx sdk.Context, voterAddr sdk.AccAddress, depositerAddr sdk.AccAddress, status ProposalStatus, numLatest int64) []Proposal {
+func (keeper Keeper) Iterate(ctx sdk.Context, voterAddr sdk.AccAddress, depositerAddr sdk.AccAddress, status ProposalStatus, numLatest int64, reverse bool, iter func(Proposal) bool) {
 
 	maxProposalID, err := keeper.peekCurrentProposalID(ctx)
 	if err != nil {
-		return nil
+		return
 	}
-
-	matchingProposals := []Proposal{}
 
 	if numLatest <= 0 {
-		numLatest = maxProposalID
+		if reverse {
+			numLatest = 0
+		}else{
+			numLatest = maxProposalID
+		}
 	}
+	var initProposalID int64
+	var step int64
 
-	for proposalID := maxProposalID - numLatest; proposalID < maxProposalID; proposalID++ {
+	if reverse {
+		initProposalID = maxProposalID - 1
+		step = -1
+	} else {
+		initProposalID = maxProposalID - numLatest
+		step = 1
+	}
+	for proposalID := initProposalID; (!reverse && proposalID < maxProposalID) || (reverse && proposalID > numLatest); proposalID += step {
 		if voterAddr != nil && len(voterAddr) != 0 {
 			_, found := keeper.GetVote(ctx, proposalID, voterAddr)
 			if !found {
@@ -165,9 +174,25 @@ func (keeper Keeper) GetProposalsFiltered(ctx sdk.Context, voterAddr sdk.AccAddr
 				continue
 			}
 		}
+		stop := iter(proposal)
+		if stop {
+			break
+		}
 
-		matchingProposals = append(matchingProposals, proposal)
 	}
+	return
+
+}
+
+// Get Proposal from store by ProposalID
+func (keeper Keeper) GetProposalsFiltered(ctx sdk.Context, voterAddr sdk.AccAddress, depositerAddr sdk.AccAddress, status ProposalStatus, numLatest int64) []Proposal {
+
+	matchingProposals := []Proposal{}
+	keeper.Iterate(ctx, voterAddr, depositerAddr, status, numLatest, false, func(proposal Proposal) bool {
+		matchingProposals = append(matchingProposals, proposal)
+		return false
+	})
+
 	return matchingProposals
 }
 
