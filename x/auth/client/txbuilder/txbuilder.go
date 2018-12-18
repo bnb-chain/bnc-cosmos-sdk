@@ -1,14 +1,14 @@
 package context
 
 import (
+	"github.com/pkg/errors"
+	"github.com/spf13/viper"
+
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-
-	"github.com/pkg/errors"
-	"github.com/spf13/viper"
 )
 
 // TxBuilder implements a transaction context created in SDK modules.
@@ -18,6 +18,7 @@ type TxBuilder struct {
 	Sequence      int64
 	ChainID       string
 	Memo          string
+	Source        int64
 }
 
 // NewTxBuilderFromCLI returns a new initialized TxBuilder with parameters from
@@ -37,6 +38,7 @@ func NewTxBuilderFromCLI() TxBuilder {
 		AccountNumber: viper.GetInt64(client.FlagAccountNumber),
 		Sequence:      viper.GetInt64(client.FlagSequence),
 		Memo:          viper.GetString(client.FlagMemo),
+		Source:        viper.GetInt64(client.FlagSource),
 	}
 }
 
@@ -70,6 +72,12 @@ func (bldr TxBuilder) WithAccountNumber(accnum int64) TxBuilder {
 	return bldr
 }
 
+// WithSource returns a copy of the context with an updated source.
+func (bldr TxBuilder) WithSource(source int64) TxBuilder {
+	bldr.Source = source
+	return bldr
+}
+
 // Build builds a single message to be signed from a TxBuilder given a set of
 // messages.
 func (bldr TxBuilder) Build(msgs []sdk.Msg) (StdSignMsg, error) {
@@ -84,6 +92,7 @@ func (bldr TxBuilder) Build(msgs []sdk.Msg) (StdSignMsg, error) {
 		Sequence:      bldr.Sequence,
 		Memo:          bldr.Memo,
 		Msgs:          msgs,
+		Source:        bldr.Source,
 	}, nil
 }
 
@@ -94,7 +103,7 @@ func (bldr TxBuilder) Sign(name, passphrase string, msg StdSignMsg) ([]byte, err
 	if err != nil {
 		return nil, err
 	}
-	return bldr.Codec.MarshalBinary(auth.NewStdTx(msg.Msgs, []auth.StdSignature{sig}, msg.Memo))
+	return bldr.Codec.MarshalBinary(auth.NewStdTx(msg.Msgs, []auth.StdSignature{sig}, msg.Memo, msg.Source))
 }
 
 // BuildAndSign builds a single message to be signed, and signs a transaction
@@ -133,7 +142,7 @@ func (bldr TxBuilder) BuildWithPubKey(name string, msgs []sdk.Msg) ([]byte, erro
 		PubKey:        info.GetPubKey(),
 	}}
 
-	return bldr.Codec.MarshalBinary(auth.NewStdTx(msg.Msgs, sigs, msg.Memo))
+	return bldr.Codec.MarshalBinary(auth.NewStdTx(msg.Msgs, sigs, msg.Memo, msg.Source))
 }
 
 // SignStdTx appends a signature to a StdTx and returns a copy of a it. If append
@@ -145,6 +154,7 @@ func (bldr TxBuilder) SignStdTx(name, passphrase string, stdTx auth.StdTx, appen
 		Sequence:      bldr.Sequence,
 		Msgs:          stdTx.GetMsgs(),
 		Memo:          stdTx.GetMemo(),
+		Source:        stdTx.GetSource(),
 	})
 	if err != nil {
 		return
@@ -156,7 +166,7 @@ func (bldr TxBuilder) SignStdTx(name, passphrase string, stdTx auth.StdTx, appen
 	} else {
 		sigs = append(sigs, stdSignature)
 	}
-	signedStdTx = auth.NewStdTx(stdTx.GetMsgs(), sigs, stdTx.GetMemo())
+	signedStdTx = auth.NewStdTx(stdTx.GetMsgs(), sigs, stdTx.GetMemo(), stdTx.GetSource())
 	return
 }
 

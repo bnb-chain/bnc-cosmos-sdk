@@ -50,28 +50,28 @@ func checkInvalidTx(t *testing.T, anteHandler sdk.AnteHandler, ctx sdk.Context, 
 func newTestTx(ctx sdk.Context, msgs []sdk.Msg, privs []crypto.PrivKey, accNums []int64, seqs []int64) sdk.Tx {
 	sigs := make([]StdSignature, len(privs))
 	for i, priv := range privs {
-		signBytes := StdSignBytes(ctx.ChainID(), accNums[i], seqs[i], msgs, "")
+		signBytes := StdSignBytes(ctx.ChainID(), accNums[i], seqs[i], msgs, "", 0)
 		sig, err := priv.Sign(signBytes)
 		if err != nil {
 			panic(err)
 		}
 		sigs[i] = StdSignature{PubKey: priv.PubKey(), Signature: sig, AccountNumber: accNums[i], Sequence: seqs[i]}
 	}
-	tx := NewStdTx(msgs, sigs, "")
+	tx := NewStdTx(msgs, sigs, "", 0)
 	return tx
 }
 
 func newTestTxWithMemo(ctx sdk.Context, msgs []sdk.Msg, privs []crypto.PrivKey, accNums []int64, seqs []int64, memo string) sdk.Tx {
 	sigs := make([]StdSignature, len(privs))
 	for i, priv := range privs {
-		signBytes := StdSignBytes(ctx.ChainID(), accNums[i], seqs[i], msgs, memo)
+		signBytes := StdSignBytes(ctx.ChainID(), accNums[i], seqs[i], msgs, memo, 0)
 		sig, err := priv.Sign(signBytes)
 		if err != nil {
 			panic(err)
 		}
 		sigs[i] = StdSignature{PubKey: priv.PubKey(), Signature: sig, AccountNumber: accNums[i], Sequence: seqs[i]}
 	}
-	tx := NewStdTx(msgs, sigs, memo)
+	tx := NewStdTx(msgs, sigs, memo, 0)
 	return tx
 }
 
@@ -85,7 +85,7 @@ func newTestTxWithSignBytes(msgs []sdk.Msg, privs []crypto.PrivKey, accNums []in
 		}
 		sigs[i] = StdSignature{PubKey: priv.PubKey(), Signature: sig, AccountNumber: accNums[i], Sequence: seqs[i]}
 	}
-	tx := NewStdTx(msgs, sigs, memo)
+	tx := NewStdTx(msgs, sigs, memo, 0)
 	return tx
 }
 
@@ -441,7 +441,7 @@ func TestAnteHandlerBadSignBytes(t *testing.T) {
 		tx := newTestTxWithSignBytes(
 
 			msgs, privs, accnums, seqs,
-			StdSignBytes(cs.chainID, cs.accnum, cs.seq, cs.msgs, ""),
+			StdSignBytes(cs.chainID, cs.accnum, cs.seq, cs.msgs, "", 0),
 			"",
 		)
 		checkInvalidTx(t, anteHandler, ctx, tx, sdk.RunTxModeDeliver, cs.code)

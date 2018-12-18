@@ -1,7 +1,6 @@
 package app
 
 import (
-	"github.com/cosmos/cosmos-sdk/codec"
 	"os"
 	"testing"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 
 	bapp "github.com/cosmos/cosmos-sdk/baseapp"
+	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/bank"
@@ -64,7 +64,7 @@ func TestBadMsg(t *testing.T) {
 	msg := GenerateSpendMsg(addr1, addr2, sdk.Coins{{"testCoin", 100}})
 
 	// Construct transaction
-	signBytes := auth.StdSignBytes("test-chain", 0, 0, []sdk.Msg{msg}, "")
+	signBytes := auth.StdSignBytes("test-chain", 0, 0, []sdk.Msg{msg}, "", 0)
 	sig, err := priv1.Sign(signBytes)
 	if err != nil {
 		panic(err)
@@ -105,7 +105,7 @@ func TestMsgSend(t *testing.T) {
 	// Send funds to addr2
 	msg := GenerateSpendMsg(addr1, addr2, sdk.Coins{{"testCoin", 100}})
 
-	signBytes := auth.StdSignBytes("test-chain", 0, 0, []sdk.Msg{msg}, "")
+	signBytes := auth.StdSignBytes("test-chain", 0, 0, []sdk.Msg{msg}, "", 0)
 	sig, err := priv1.Sign(signBytes)
 	if err != nil {
 		panic(err)

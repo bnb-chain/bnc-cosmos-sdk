@@ -3,9 +3,14 @@ package auth
 import (
 	"encoding/json"
 
+	"github.com/tendermint/tendermint/crypto"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/tendermint/tendermint/crypto"
+)
+
+const (
+	DefaultSource = 0
 )
 
 var _ sdk.Tx = (*StdTx)(nil)
@@ -15,13 +20,15 @@ type StdTx struct {
 	Msgs       []sdk.Msg      `json:"msg"`
 	Signatures []StdSignature `json:"signatures"`
 	Memo       string         `json:"memo"`
+	Source     int64          `json:"source"`
 }
 
-func NewStdTx(msgs []sdk.Msg, sigs []StdSignature, memo string) StdTx {
+func NewStdTx(msgs []sdk.Msg, sigs []StdSignature, memo string, source int64) StdTx {
 	return StdTx{
 		Msgs:       msgs,
 		Signatures: sigs,
 		Memo:       memo,
+		Source:     source,
 	}
 }
 
@@ -50,6 +57,9 @@ func (tx StdTx) GetSigners() []sdk.AccAddress {
 //nolint
 func (tx StdTx) GetMemo() string { return tx.Memo }
 
+//nolint
+func (tx StdTx) GetSource() int64 { return tx.Source }
+
 // Signatures returns the signature of signers who signed the Msg.
 // GetSignatures returns the signature of signers who signed the Msg.
 // CONTRACT: Length returned is same as length of
@@ -59,7 +69,6 @@ func (tx StdTx) GetMemo() string { return tx.Memo }
 // invalid), then the corresponding signature is
 // .Empty().
 func (tx StdTx) GetSignatures() []StdSignature { return tx.Signatures }
-
 
 //__________________________________________________________
 
@@ -74,10 +83,11 @@ type StdSignDoc struct {
 	Memo          string            `json:"memo"`
 	Msgs          []json.RawMessage `json:"msgs"`
 	Sequence      int64             `json:"sequence"`
+	Source        int64             `json:"source"`
 }
 
 // StdSignBytes returns the bytes to sign for a transaction.
-func StdSignBytes(chainID string, accnum int64, sequence int64, msgs []sdk.Msg, memo string) []byte {
+func StdSignBytes(chainID string, accnum int64, sequence int64, msgs []sdk.Msg, memo string, source int64) []byte {
 	var msgsBytes []json.RawMessage
 	for _, msg := range msgs {
 		msgsBytes = append(msgsBytes, json.RawMessage(msg.GetSignBytes()))
@@ -88,6 +98,7 @@ func StdSignBytes(chainID string, accnum int64, sequence int64, msgs []sdk.Msg, 
 		Memo:          memo,
 		Msgs:          msgsBytes,
 		Sequence:      sequence,
+		Source:        source,
 	})
 	if err != nil {
 		panic(err)

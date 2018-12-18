@@ -169,7 +169,7 @@ func buildUnsignedStdTxOffline(txBldr authtxb.TxBuilder, msgs []sdk.Msg) (stdTx 
 	if err != nil {
 		return
 	}
-	return auth.NewStdTx(stdSignMsg.Msgs, nil, stdSignMsg.Memo), nil
+	return auth.NewStdTx(stdSignMsg.Msgs, nil, stdSignMsg.Memo, stdSignMsg.Source), nil
 }
 
 func isTxSigner(user sdk.AccAddress, signers []sdk.AccAddress) bool {

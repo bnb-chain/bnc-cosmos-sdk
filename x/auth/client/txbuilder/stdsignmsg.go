@@ -14,9 +14,10 @@ type StdSignMsg struct {
 	Sequence      int64     `json:"sequence"`
 	Msgs          []sdk.Msg `json:"msgs"`
 	Memo          string    `json:"memo"`
+	Source        int64     `json:"source"`
 }
 
 // get message bytes
 func (msg StdSignMsg) Bytes() []byte {
-	return auth.StdSignBytes(msg.ChainID, msg.AccountNumber, msg.Sequence, msg.Msgs, msg.Memo)
+	return auth.StdSignBytes(msg.ChainID, msg.AccountNumber, msg.Sequence, msg.Msgs, msg.Memo, msg.Source)
 }

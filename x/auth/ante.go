@@ -5,10 +5,9 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
-
-	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 const (
@@ -211,7 +210,7 @@ func getSignBytesList(chainID string, stdTx StdTx, stdSigs []StdSignature) (sign
 	for i := 0; i < len(stdSigs); i++ {
 		signatureBytesList[i] = StdSignBytes(chainID,
 			stdSigs[i].AccountNumber, stdSigs[i].Sequence,
-			stdTx.Msgs, stdTx.Memo)
+			stdTx.Msgs, stdTx.Memo, stdTx.Source)
 	}
 	return
 }
