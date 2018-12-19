@@ -5,10 +5,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/tendermint/tendermint/crypto/ed25519"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/tendermint/tendermint/crypto/ed25519"
 )
 
 var (
@@ -23,6 +23,7 @@ func TestTxBuilderBuild(t *testing.T) {
 		Sequence      int64
 		ChainID       string
 		Memo          string
+		Source        int64
 	}
 	defaultMsg := []sdk.Msg{sdk.NewTestMsg(addr)}
 	tests := []struct {
@@ -38,6 +39,7 @@ func TestTxBuilderBuild(t *testing.T) {
 				Sequence:      1,
 				ChainID:       "test-chain",
 				Memo:          "hello",
+				Source:        0,
 			},
 			defaultMsg,
 			StdSignMsg{
@@ -46,6 +48,7 @@ func TestTxBuilderBuild(t *testing.T) {
 				Sequence:      1,
 				Memo:          "hello",
 				Msgs:          defaultMsg,
+				Source:        0,
 			},
 			false,
 		},
@@ -57,6 +60,7 @@ func TestTxBuilderBuild(t *testing.T) {
 			Sequence:      tc.fields.Sequence,
 			ChainID:       tc.fields.ChainID,
 			Memo:          tc.fields.Memo,
+			Source:        tc.fields.Source,
 		}
 		got, err := bldr.Build(tc.msgs)
 		require.Equal(t, tc.wantErr, (err != nil), "TxBuilder.Build() error = %v, wantErr %v, tc %d", err, tc.wantErr, i)
