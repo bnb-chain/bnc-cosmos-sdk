@@ -802,7 +802,7 @@ func (app *BaseApp) runTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx) (result
 	ctx = ctx.WithAccountCache(accountCache)
 	result = app.runMsgs(ctx, msgs, txHash, mode)
 
-	if mode == sdk.RunTxModeDeliver && app.isPublishAccountBalance {
+	if (mode == sdk.RunTxModeDeliver || mode == sdk.RunTxModeDeliverAfterPre) && app.isPublishAccountBalance {
 		app.DeliverState.Ctx = collectInvolvedAddresses(app.DeliverState.Ctx, msgs[0])
 	}
 
