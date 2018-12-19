@@ -3,9 +3,10 @@ package auth
 import (
 	"encoding/json"
 
+	"github.com/tendermint/tendermint/crypto"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/tendermint/tendermint/crypto"
 )
 
 const (
@@ -20,7 +21,7 @@ type StdTx struct {
 	Signatures []StdSignature `json:"signatures"`
 	Memo       string         `json:"memo"`
 	Source     int64          `json:"source"`
-	Data       string         `json:"data"`
+	Data       []byte         `json:"data"`
 }
 
 func NewStdTx(msgs []sdk.Msg, sigs []StdSignature, memo string, source int64) StdTx {
@@ -61,7 +62,7 @@ func (tx StdTx) GetMemo() string { return tx.Memo }
 func (tx StdTx) GetSource() int64 { return tx.Source }
 
 //nolint
-func (tx StdTx) GetData() string { return tx.Data }
+func (tx StdTx) GetData() []byte { return tx.Data }
 
 // Signatures returns the signature of signers who signed the Msg.
 // GetSignatures returns the signature of signers who signed the Msg.
