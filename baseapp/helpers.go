@@ -46,21 +46,3 @@ func RunForever(app abci.Application) {
 		}
 	})
 }
-
-func collectInvolvedAddresses(ctx sdk.Context, msg sdk.Msg) sdk.Context {
-	return addInvolvedAddressesToCtx(ctx, msg.GetInvolvedAddresses()...)
-}
-
-func addInvolvedAddressesToCtx(ctx sdk.Context, addresses ...sdk.AccAddress) (newCtx sdk.Context) {
-	var newAddress []string
-	if existingAddresses, ok := ctx.Value(InvolvedAddressKey).([]string); ok {
-		newAddress = existingAddresses
-	} else {
-		newAddress = make([]string, 0)
-	}
-	for _, address := range addresses {
-		newAddress = append(newAddress, string(address.Bytes()))
-	}
-	newCtx = ctx.WithValue(InvolvedAddressKey, newAddress)
-	return
-}
