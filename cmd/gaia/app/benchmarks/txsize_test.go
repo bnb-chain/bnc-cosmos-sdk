@@ -27,7 +27,7 @@ func ExampleTxSendSize() {
 	}
 	sig, _ := priv1.Sign(msg1.GetSignBytes())
 	sigs := []auth.StdSignature{{nil, sig, 0, 0}}
-	tx := auth.NewStdTx([]sdk.Msg{msg1}, sigs, "", 0)
+	tx := auth.NewStdTx([]sdk.Msg{msg1}, sigs, "", 0, nil)
 	fmt.Println(len(cdc.MustMarshalBinaryBare([]sdk.Msg{msg1})))
 	fmt.Println(len(cdc.MustMarshalBinaryBare(tx)))
 	// output: 76

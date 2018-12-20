@@ -150,7 +150,7 @@ func GenTx(msgs []sdk.Msg, accnums []int64, seq []int64, priv ...crypto.PrivKey)
 	memo := "testmemotestmemo"
 
 	for i, p := range priv {
-		sig, err := p.Sign(auth.StdSignBytes(chainID, accnums[i], seq[i], msgs, memo, auth.DefaultSource))
+		sig, err := p.Sign(auth.StdSignBytes(chainID, accnums[i], seq[i], msgs, memo, auth.DefaultSource, nil))
 		if err != nil {
 			panic(err)
 		}
@@ -163,7 +163,7 @@ func GenTx(msgs []sdk.Msg, accnums []int64, seq []int64, priv ...crypto.PrivKey)
 		}
 	}
 
-	return auth.NewStdTx(msgs, sigs, memo, auth.DefaultSource)
+	return auth.NewStdTx(msgs, sigs, memo, auth.DefaultSource, nil)
 }
 
 // GeneratePrivKeys generates a total n Ed25519 private keys.

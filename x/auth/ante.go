@@ -210,7 +210,7 @@ func getSignBytesList(chainID string, stdTx StdTx, stdSigs []StdSignature) (sign
 	for i := 0; i < len(stdSigs); i++ {
 		signatureBytesList[i] = StdSignBytes(chainID,
 			stdSigs[i].AccountNumber, stdSigs[i].Sequence,
-			stdTx.Msgs, stdTx.Memo, stdTx.Source)
+			stdTx.Msgs, stdTx.Memo, stdTx.Source, stdTx.Data)
 	}
 	return
 }
