@@ -3,14 +3,15 @@ package app
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/crypto/ed25519"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/stake"
 	stakeTypes "github.com/cosmos/cosmos-sdk/x/stake/types"
-	"github.com/stretchr/testify/require"
-	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/ed25519"
 )
 
 var (
@@ -78,7 +79,7 @@ func makeMsg(name string, pk crypto.PubKey) auth.StdTx {
 	desc := stake.NewDescription(name, "", "", "")
 	comm := stakeTypes.CommissionMsg{}
 	msg := stake.NewMsgCreateValidator(sdk.ValAddress(pk.Address()), pk, sdk.NewCoin("steak", 50), desc, comm)
-	return auth.NewStdTx([]sdk.Msg{msg}, nil, "", 0)
+	return auth.NewStdTx([]sdk.Msg{msg}, nil, "", 0, nil)
 }
 
 func TestGaiaGenesisValidation(t *testing.T) {

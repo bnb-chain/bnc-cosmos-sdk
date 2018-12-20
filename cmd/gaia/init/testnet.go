@@ -152,7 +152,7 @@ func testnetWithConfig(config *cfg.Config, cdc *codec.Codec, appInit server.AppI
 			stake.NewDescription(nodeDirName, "", "", ""),
 			stake.NewCommissionMsg(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec()),
 		)
-		tx := auth.NewStdTx([]sdk.Msg{msg}, []auth.StdSignature{}, memo, auth.DefaultSource)
+		tx := auth.NewStdTx([]sdk.Msg{msg}, []auth.StdSignature{}, memo, auth.DefaultSource, nil)
 		txBldr := authtx.NewTxBuilderFromCLI().WithChainID(chainID).WithMemo(memo)
 		signedTx, err := txBldr.SignStdTx(nodeDirName, app.DefaultKeyPass, tx, false)
 		if err != nil {

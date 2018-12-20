@@ -7,6 +7,14 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/cmd/gaia/app"
+	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/server"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
+	authtx "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
+	"github.com/cosmos/cosmos-sdk/x/stake"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	cfg "github.com/tendermint/tendermint/config"
@@ -16,15 +24,6 @@ import (
 	"github.com/tendermint/tendermint/p2p"
 	"github.com/tendermint/tendermint/privval"
 	"github.com/tendermint/tendermint/types"
-
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/cmd/gaia/app"
-	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/server"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	authtx "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
-	"github.com/cosmos/cosmos-sdk/x/stake"
 )
 
 const (
@@ -231,7 +230,7 @@ func initWithConfig(cdc *codec.Codec, config *cfg.Config, initCfg initConfig) (
 		)
 		txBldr := authtx.NewTxBuilderFromCLI().WithCodec(cdc).WithMemo(memo).WithChainID(chainID)
 		signedTx, err = txBldr.SignStdTx(
-			initCfg.Name, keyPass, auth.NewStdTx([]sdk.Msg{msg}, []auth.StdSignature{}, memo, auth.DefaultSource), false,
+			initCfg.Name, keyPass, auth.NewStdTx([]sdk.Msg{msg}, []auth.StdSignature{}, memo, auth.DefaultSource, nil), false,
 		)
 		if err != nil {
 			return

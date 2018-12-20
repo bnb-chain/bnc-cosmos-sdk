@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/tendermint/go-amino"
+
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
-	"github.com/tendermint/go-amino"
 )
 
 // CompleteAndBroadcastTxCli implements a utility function that
@@ -169,7 +170,7 @@ func buildUnsignedStdTxOffline(txBldr authtxb.TxBuilder, msgs []sdk.Msg) (stdTx 
 	if err != nil {
 		return
 	}
-	return auth.NewStdTx(stdSignMsg.Msgs, nil, stdSignMsg.Memo, stdSignMsg.Source), nil
+	return auth.NewStdTx(stdSignMsg.Msgs, nil, stdSignMsg.Memo, stdSignMsg.Source, nil), nil
 }
 
 func isTxSigner(user sdk.AccAddress, signers []sdk.AccAddress) bool {

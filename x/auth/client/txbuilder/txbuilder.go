@@ -1,14 +1,13 @@
 package context
 
 import (
-	"github.com/pkg/errors"
-	"github.com/spf13/viper"
-
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	"github.com/pkg/errors"
+	"github.com/spf13/viper"
 )
 
 // TxBuilder implements a transaction context created in SDK modules.
@@ -103,7 +102,7 @@ func (bldr TxBuilder) Sign(name, passphrase string, msg StdSignMsg) ([]byte, err
 	if err != nil {
 		return nil, err
 	}
-	return bldr.Codec.MarshalBinary(auth.NewStdTx(msg.Msgs, []auth.StdSignature{sig}, msg.Memo, msg.Source))
+	return bldr.Codec.MarshalBinary(auth.NewStdTx(msg.Msgs, []auth.StdSignature{sig}, msg.Memo, msg.Source, msg.Data))
 }
 
 // BuildAndSign builds a single message to be signed, and signs a transaction
@@ -142,7 +141,7 @@ func (bldr TxBuilder) BuildWithPubKey(name string, msgs []sdk.Msg) ([]byte, erro
 		PubKey:        info.GetPubKey(),
 	}}
 
-	return bldr.Codec.MarshalBinary(auth.NewStdTx(msg.Msgs, sigs, msg.Memo, msg.Source))
+	return bldr.Codec.MarshalBinary(auth.NewStdTx(msg.Msgs, sigs, msg.Memo, msg.Source, msg.Data))
 }
 
 // SignStdTx appends a signature to a StdTx and returns a copy of a it. If append
@@ -155,6 +154,7 @@ func (bldr TxBuilder) SignStdTx(name, passphrase string, stdTx auth.StdTx, appen
 		Msgs:          stdTx.GetMsgs(),
 		Memo:          stdTx.GetMemo(),
 		Source:        stdTx.GetSource(),
+		Data:          stdTx.GetData(),
 	})
 	if err != nil {
 		return
@@ -166,7 +166,7 @@ func (bldr TxBuilder) SignStdTx(name, passphrase string, stdTx auth.StdTx, appen
 	} else {
 		sigs = append(sigs, stdSignature)
 	}
-	signedStdTx = auth.NewStdTx(stdTx.GetMsgs(), sigs, stdTx.GetMemo(), stdTx.GetSource())
+	signedStdTx = auth.NewStdTx(stdTx.GetMsgs(), sigs, stdTx.GetMemo(), stdTx.GetSource(), stdTx.GetData())
 	return
 }
 

@@ -64,7 +64,7 @@ func TestBadMsg(t *testing.T) {
 	msg := GenerateSpendMsg(addr1, addr2, sdk.Coins{{"testCoin", 100}})
 
 	// Construct transaction
-	signBytes := auth.StdSignBytes("test-chain", 0, 0, []sdk.Msg{msg}, "", 0)
+	signBytes := auth.StdSignBytes("test-chain", 0, 0, []sdk.Msg{msg}, "", 0, nil)
 	sig, err := priv1.Sign(signBytes)
 	if err != nil {
 		panic(err)
@@ -105,7 +105,7 @@ func TestMsgSend(t *testing.T) {
 	// Send funds to addr2
 	msg := GenerateSpendMsg(addr1, addr2, sdk.Coins{{"testCoin", 100}})
 
-	signBytes := auth.StdSignBytes("test-chain", 0, 0, []sdk.Msg{msg}, "", 0)
+	signBytes := auth.StdSignBytes("test-chain", 0, 0, []sdk.Msg{msg}, "", 0, nil)
 	sig, err := priv1.Sign(signBytes)
 	if err != nil {
 		panic(err)

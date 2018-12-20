@@ -24,12 +24,13 @@ type StdTx struct {
 	Data       []byte         `json:"data"`
 }
 
-func NewStdTx(msgs []sdk.Msg, sigs []StdSignature, memo string, source int64) StdTx {
+func NewStdTx(msgs []sdk.Msg, sigs []StdSignature, memo string, source int64, data []byte) StdTx {
 	return StdTx{
 		Msgs:       msgs,
 		Signatures: sigs,
 		Memo:       memo,
 		Source:     source,
+		Data:       data,
 	}
 }
 
@@ -88,10 +89,11 @@ type StdSignDoc struct {
 	Msgs          []json.RawMessage `json:"msgs"`
 	Sequence      int64             `json:"sequence"`
 	Source        int64             `json:"source"`
+	Data          []byte            `json:"data"`
 }
 
 // StdSignBytes returns the bytes to sign for a transaction.
-func StdSignBytes(chainID string, accnum int64, sequence int64, msgs []sdk.Msg, memo string, source int64) []byte {
+func StdSignBytes(chainID string, accnum int64, sequence int64, msgs []sdk.Msg, memo string, source int64, data []byte) []byte {
 	var msgsBytes []json.RawMessage
 	for _, msg := range msgs {
 		msgsBytes = append(msgsBytes, json.RawMessage(msg.GetSignBytes()))
@@ -103,6 +105,7 @@ func StdSignBytes(chainID string, accnum int64, sequence int64, msgs []sdk.Msg, 
 		Msgs:          msgsBytes,
 		Sequence:      sequence,
 		Source:        source,
+		Data:          data,
 	})
 	if err != nil {
 		panic(err)

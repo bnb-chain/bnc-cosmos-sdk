@@ -4,14 +4,13 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/ed25519"
 	"github.com/tendermint/tendermint/libs/log"
-
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 func newTestMsg(addrs ...sdk.AccAddress) *sdk.TestMsg {
@@ -50,28 +49,28 @@ func checkInvalidTx(t *testing.T, anteHandler sdk.AnteHandler, ctx sdk.Context, 
 func newTestTx(ctx sdk.Context, msgs []sdk.Msg, privs []crypto.PrivKey, accNums []int64, seqs []int64) sdk.Tx {
 	sigs := make([]StdSignature, len(privs))
 	for i, priv := range privs {
-		signBytes := StdSignBytes(ctx.ChainID(), accNums[i], seqs[i], msgs, "", 0)
+		signBytes := StdSignBytes(ctx.ChainID(), accNums[i], seqs[i], msgs, "", 0, nil)
 		sig, err := priv.Sign(signBytes)
 		if err != nil {
 			panic(err)
 		}
 		sigs[i] = StdSignature{PubKey: priv.PubKey(), Signature: sig, AccountNumber: accNums[i], Sequence: seqs[i]}
 	}
-	tx := NewStdTx(msgs, sigs, "", 0)
+	tx := NewStdTx(msgs, sigs, "", 0, nil)
 	return tx
 }
 
 func newTestTxWithMemo(ctx sdk.Context, msgs []sdk.Msg, privs []crypto.PrivKey, accNums []int64, seqs []int64, memo string) sdk.Tx {
 	sigs := make([]StdSignature, len(privs))
 	for i, priv := range privs {
-		signBytes := StdSignBytes(ctx.ChainID(), accNums[i], seqs[i], msgs, memo, 0)
+		signBytes := StdSignBytes(ctx.ChainID(), accNums[i], seqs[i], msgs, memo, 0, nil)
 		sig, err := priv.Sign(signBytes)
 		if err != nil {
 			panic(err)
 		}
 		sigs[i] = StdSignature{PubKey: priv.PubKey(), Signature: sig, AccountNumber: accNums[i], Sequence: seqs[i]}
 	}
-	tx := NewStdTx(msgs, sigs, memo, 0)
+	tx := NewStdTx(msgs, sigs, memo, 0, nil)
 	return tx
 }
 
@@ -85,7 +84,7 @@ func newTestTxWithSignBytes(msgs []sdk.Msg, privs []crypto.PrivKey, accNums []in
 		}
 		sigs[i] = StdSignature{PubKey: priv.PubKey(), Signature: sig, AccountNumber: accNums[i], Sequence: seqs[i]}
 	}
-	tx := NewStdTx(msgs, sigs, memo, 0)
+	tx := NewStdTx(msgs, sigs, memo, 0, nil)
 	return tx
 }
 
@@ -441,7 +440,7 @@ func TestAnteHandlerBadSignBytes(t *testing.T) {
 		tx := newTestTxWithSignBytes(
 
 			msgs, privs, accnums, seqs,
-			StdSignBytes(cs.chainID, cs.accnum, cs.seq, cs.msgs, "", 0),
+			StdSignBytes(cs.chainID, cs.accnum, cs.seq, cs.msgs, "", 0, nil),
 			"",
 		)
 		checkInvalidTx(t, anteHandler, ctx, tx, sdk.RunTxModeDeliver, cs.code)
