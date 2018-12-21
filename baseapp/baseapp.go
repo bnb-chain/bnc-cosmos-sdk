@@ -694,7 +694,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, txHash string, mode
 
 		// Stop execution and return on first failed message.
 		if !msgResult.IsOK() {
-			logs = append(logs, fmt.Sprintf("Msg %d failed: %s", msgIdx, msgResult.Log))
+			logs = append(logs, fmt.Sprintf("%s", msgResult.Log))
 			code = msgResult.Code
 			break
 		}
