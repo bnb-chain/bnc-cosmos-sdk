@@ -7,12 +7,6 @@ import (
 	"os"
 	"sort"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-	cmn "github.com/tendermint/tendermint/libs/common"
-	dbm "github.com/tendermint/tendermint/libs/db"
-	"github.com/tendermint/tendermint/libs/log"
-	tmtypes "github.com/tendermint/tendermint/types"
-
 	bam "github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -24,6 +18,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/params"
 	"github.com/cosmos/cosmos-sdk/x/slashing"
 	"github.com/cosmos/cosmos-sdk/x/stake"
+	abci "github.com/tendermint/tendermint/abci/types"
+	cmn "github.com/tendermint/tendermint/libs/common"
+	dbm "github.com/tendermint/tendermint/libs/db"
+	"github.com/tendermint/tendermint/libs/log"
+	tmtypes "github.com/tendermint/tendermint/types"
 )
 
 const (
@@ -167,13 +166,18 @@ func NewGaiaApp(logger log.Logger, db dbm.DB, traceStore io.Writer, baseAppOptio
 	app.MountStoresTransient(app.tkeyParams, app.tkeyStake, app.tkeyDistr)
 	app.SetEndBlocker(app.EndBlocker)
 
-	err := app.LoadLatestVersion(app.keyMain)
+	err := app.LoadCMSLatestVersion(app.keyMain)
 	if err != nil {
 		cmn.Exit(err.Error())
 	}
 
 	accountStore := app.BaseApp.GetCommitMultiStore().GetKVStore(app.keyAccount)
 	app.SetAccountStoreCache(cdc, accountStore, accountCacheCap)
+
+	err = app.InitFromStore(app.keyMain)
+	if err != nil {
+		cmn.Exit(err.Error())
+	}
 
 	return app
 }
