@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/golang-lru"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
-
 	abci "github.com/tendermint/tendermint/abci/types"
 	bc "github.com/tendermint/tendermint/blockchain"
 	cfg "github.com/tendermint/tendermint/config"
@@ -157,12 +156,26 @@ func (app *BaseApp) MountStore(key sdk.StoreKey, typ sdk.StoreType) {
 	app.cms.MountStoreWithDB(key, typ, nil)
 }
 
+// only load latest multi store application version
+func (app *BaseApp) LoadCMSLatestVersion() error {
+	err := app.cms.LoadLatestVersion()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // load latest application version
 func (app *BaseApp) LoadLatestVersion(mainKey sdk.StoreKey) error {
 	err := app.cms.LoadLatestVersion()
 	if err != nil {
 		return err
 	}
+	return app.initFromStore(mainKey)
+}
+
+// InitFromStore initializes the remaining logic from app.cms
+func (app *BaseApp) InitFromStore(mainKey sdk.StoreKey) error {
 	return app.initFromStore(mainKey)
 }
 

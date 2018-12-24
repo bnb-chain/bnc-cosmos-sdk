@@ -167,13 +167,18 @@ func NewGaiaApp(logger log.Logger, db dbm.DB, traceStore io.Writer, baseAppOptio
 	app.MountStoresTransient(app.tkeyParams, app.tkeyStake, app.tkeyDistr)
 	app.SetEndBlocker(app.EndBlocker)
 
-	err := app.LoadLatestVersion(app.keyMain)
+	err := app.LoadCMSLatestVersion()
 	if err != nil {
 		cmn.Exit(err.Error())
 	}
 
 	accountStore := app.BaseApp.GetCommitMultiStore().GetKVStore(app.keyAccount)
 	app.SetAccountStoreCache(cdc, accountStore, accountCacheCap)
+
+	err = app.InitFromStore(app.keyMain)
+	if err != nil {
+		cmn.Exit(err.Error())
+	}
 
 	return app
 }
