@@ -32,7 +32,6 @@ import (
 var dbHeaderKey = []byte("header")
 
 const (
-	InvolvedAddressKey = "involvedAddresses"
 	// we pass txHash of current handling message via context so that we can publish it as metadata of Msg
 	TxHashKey = "txHash"
 	//this number should be around the size of the transactions in a block, TODO: configurable
@@ -73,6 +72,7 @@ type BaseApp struct {
 
 	AccountStoreCache sdk.AccountStoreCache
 	txMsgCache        *lru.Cache
+	Pool              pool
 
 	// flag for sealing
 	sealed bool
@@ -816,7 +816,7 @@ func (app *BaseApp) runTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx) (result
 	result = app.runMsgs(ctx, msgs, txHash, mode)
 
 	if (mode == sdk.RunTxModeDeliver || mode == sdk.RunTxModeDeliverAfterPre) && app.isPublishAccountBalance {
-		app.DeliverState.Ctx = collectInvolvedAddresses(app.DeliverState.Ctx, msgs[0])
+		app.Pool.AddAddrs(msgs[0].GetInvolvedAddresses())
 	}
 
 	// only update state if all messages pass
@@ -924,6 +924,7 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 
 	// Empty the Deliver state
 	app.DeliverState = nil
+	app.Pool.ClearTxRelatedAddrs()
 
 	return abci.ResponseCommit{
 		Data: commitID.Hash,
