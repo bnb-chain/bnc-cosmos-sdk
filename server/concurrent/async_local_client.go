@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/cosmos/cosmos-sdk/server/concurrent/pool"
-	abcicli "github.com/tendermint/tendermint/abci/client"
+	"github.com/tendermint/tendermint/abci/client"
 	"github.com/tendermint/tendermint/abci/types"
 	cmn "github.com/tendermint/tendermint/libs/common"
 	"github.com/tendermint/tendermint/libs/log"
@@ -361,6 +361,13 @@ func (app *asyncLocalClient) CheckTxSync(tx []byte) (*types.ResponseCheckTx, err
 	return &res, nil
 }
 
+func (app *asyncLocalClient) SimulateTxSync(tx []byte) (*types.ResponseCheckTx, error) {
+	app.log.Debug("Start SimulateTxSync")
+	res := app.Application.SimulateTx(tx)
+	return &res, nil
+}
+
+// reuse the QuerySync for simulation
 func (app *asyncLocalClient) QuerySync(req types.RequestQuery) (*types.ResponseQuery, error) {
 	app.rwLock.RLock()
 	res := app.Application.Query(req)

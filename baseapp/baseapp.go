@@ -5,6 +5,7 @@ import (
 	"io"
 	"runtime/debug"
 	"strings"
+	"sync"
 
 	"github.com/hashicorp/golang-lru"
 	"github.com/pkg/errors"
@@ -38,6 +39,40 @@ const (
 	TxMsgCacheSize = 4000
 )
 
+type AccountLock struct {
+	mtxMap map[string]*sync.Mutex
+}
+
+func NewAccountLock() *AccountLock {
+	return &AccountLock{
+		mtxMap: make(map[string]*sync.Mutex),
+	}
+}
+
+func (al *AccountLock) Lock(addrs ...sdk.AccAddress) {
+	for _, addr := range addrs {
+		addrStr := string(addr.Bytes())
+		if mtx, ok := al.mtxMap[addrStr]; !ok {
+			mtx = new(sync.Mutex)
+			al.mtxMap[addrStr] = mtx
+			mtx.Lock()
+		} else {
+			mtx.Lock()
+		}
+	}
+}
+
+func (al *AccountLock) Unlock(addrs ...sdk.AccAddress) {
+	for _, addr := range addrs {
+		addrStr := string(addr.Bytes())
+		if mtx, ok := al.mtxMap[addrStr]; !ok {
+			panic(fmt.Errorf("no mtx found for addr %s", addr))
+		} else {
+			mtx.Unlock()
+		}
+	}
+}
+
 // BaseApp reflects the ABCI application implementation.
 type BaseApp struct {
 	// initialized on creation
@@ -67,8 +102,10 @@ type BaseApp struct {
 	// CheckState is set on initialization and reset on Commit.
 	// DeliverState is set in InitChain and BeginBlock and cleared on Commit.
 	// See methods SetCheckState and SetDeliverState.
-	CheckState   *state // for CheckTx
-	DeliverState *state // for DeliverTx
+	CheckState     *state // for CheckTx
+	DeliverState   *state // for DeliverTx
+	SimulateState  *state // for SimulateTx
+	SimAccountLock *AccountLock
 
 	AccountStoreCache sdk.AccountStoreCache
 	txMsgCache        *lru.Cache
@@ -105,6 +142,7 @@ func NewBaseApp(name string, logger log.Logger, db dbm.DB, txDecoder sdk.TxDecod
 		TxDecoder:               txDecoder,
 		isPublishAccountBalance: isPublish,
 		txMsgCache:              cache,
+		SimAccountLock:          NewAccountLock(),
 	}
 
 	// Register the undefined & root codespaces, which should not be used by
@@ -226,18 +264,16 @@ func (app *BaseApp) initFromStore(mainKey sdk.StoreKey) error {
 	appHeight := app.LastBlockHeight()
 	if appHeight == 0 {
 		app.SetCheckState(abci.Header{})
+		app.SetSimulateState(abci.Header{})
 	} else {
 		blockDB := LoadBlockDB()
 		blockStore := bc.NewBlockStore(blockDB)
 		// note here we use appHeight, not current block store height, appHeight may be far behind storeHeight
 		lastHeader := blockStore.LoadBlock(appHeight).Header
 		app.SetCheckState(tmtypes.TM2PB.Header(&lastHeader))
+		app.SetSimulateState(tmtypes.TM2PB.Header(&lastHeader))
 		blockDB.Close()
 	}
-
-	//TODO(#118): figure out what does this mean! If we keep this, we will get panic: Router() on sealed BaseApp at github.com/BiJie/BinanceChain/app.(*BinanceChain).GetRouter(0xc0004bc080, 0xc000c14000, 0xc0007b9808)
-	//        /Users/zhaocong/go/src/github.com/BiJie/BinanceChain/app/app.go:297 +0x6b
-	//app.Seal()
 
 	return nil
 }
@@ -250,17 +286,20 @@ func (app *BaseApp) NewContext(mode sdk.RunTxMode, header abci.Header) sdk.Conte
 	switch mode {
 	case sdk.RunTxModeDeliver:
 		ms = app.DeliverState.ms
-		accountCache = app.DeliverState.accountCache
+		accountCache = app.DeliverState.AccountCache
+	case sdk.RunTxModeSimulate:
+		ms = app.SimulateState.ms
+		accountCache = app.SimulateState.AccountCache
 	default:
 		ms = app.CheckState.ms
-		accountCache = app.CheckState.accountCache
+		accountCache = app.CheckState.AccountCache
 	}
 	return sdk.NewContext(ms, header, mode, app.Logger).WithAccountCache(accountCache)
 }
 
 type state struct {
 	ms           sdk.CacheMultiStore
-	accountCache sdk.AccountCache
+	AccountCache sdk.AccountCache
 	Ctx          sdk.Context
 }
 
@@ -269,7 +308,7 @@ func (st *state) CacheMultiStore() sdk.CacheMultiStore {
 }
 
 func (st *state) WriteAccountCache() {
-	st.accountCache.Write()
+	st.AccountCache.Write()
 }
 
 func (app *BaseApp) SetCheckState(header abci.Header) {
@@ -278,7 +317,7 @@ func (app *BaseApp) SetCheckState(header abci.Header) {
 	ms := app.cms.CacheMultiStore()
 	app.CheckState = &state{
 		ms:           ms,
-		accountCache: accountCache,
+		AccountCache: accountCache,
 		Ctx:          sdk.NewContext(ms, header, sdk.RunTxModeCheck, app.Logger).WithAccountCache(accountCache),
 	}
 }
@@ -289,8 +328,19 @@ func (app *BaseApp) SetDeliverState(header abci.Header) {
 	ms := app.cms.CacheMultiStore()
 	app.DeliverState = &state{
 		ms:           ms,
-		accountCache: accountCache,
+		AccountCache: accountCache,
 		Ctx:          sdk.NewContext(ms, header, sdk.RunTxModeDeliver, app.Logger).WithAccountCache(accountCache),
+	}
+}
+
+func (app *BaseApp) SetSimulateState(header abci.Header) {
+	accountCache := auth.NewAccountCache(app.AccountStoreCache)
+
+	ms := app.cms.CacheMultiStore()
+	app.SimulateState = &state{
+		ms:           ms,
+		AccountCache: accountCache,
+		Ctx:          sdk.NewContext(ms, header, sdk.RunTxModeSimulate, app.Logger).WithAccountCache(accountCache),
 	}
 }
 
@@ -393,14 +443,6 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) (res abc
 	if len(path) >= 2 {
 		var result sdk.Result
 		switch path[1] {
-		case "simulate":
-			txBytes := req.Data
-			tx, err := app.TxDecoder(txBytes)
-			if err != nil {
-				result = err.Result()
-			} else {
-				result = app.Simulate(tx)
-			}
 		case "version":
 			return abci.ResponseQuery{
 				Code:  uint32(sdk.ABCICodeOK),
@@ -522,6 +564,23 @@ func (app *BaseApp) getTxFromCache(txBytes []byte) (sdk.Tx, bool) {
 	return nil, false
 }
 
+func (app *BaseApp) SimulateTx(txBytes []byte) abci.ResponseCheckTx {
+	var result sdk.Result
+	tx, err := app.TxDecoder(txBytes)
+	if err != nil {
+		result = err.Result()
+	} else {
+		result = app.runTx(sdk.RunTxModeSimulate, txBytes, tx)
+	}
+
+	return abci.ResponseCheckTx{
+		Code: uint32(result.Code),
+		Data: result.Data,
+		Log:  result.Log,
+		Tags: result.Tags,
+	}
+}
+
 // CheckTx implements ABCI
 // CheckTx runs the "basic checks" to see whether or not a transaction can possibly be executed,
 // first decoding, then the ante handler (which checks signatures/fees/ValidateBasic),
@@ -628,9 +687,6 @@ func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
 		}
 	}
 
-	// Even though the Result.Code is not OK, there are still effects,
-	// namely fee deductions and sequence incrementing.
-
 	// Tell the blockchain engine (i.e. Tendermint).
 	return abci.ResponseDeliverTx{
 		Code: uint32(result.Code),
@@ -673,13 +729,8 @@ func validateBasicTxMsgs(msgs []sdk.Msg) sdk.Error {
 
 // retrieve the context for the ante handler and store the tx bytes;
 func (app *BaseApp) getContextForAnte(mode sdk.RunTxMode, txBytes []byte) (ctx sdk.Context) {
-	// Get the context
-	ctx = getState(app, mode).Ctx.WithTxBytes(txBytes)
-	// Simulate a DeliverTx
-	if mode == sdk.RunTxModeSimulate {
-		ctx = ctx.WithRunTxMode(mode)
-	}
-
+	state := getState(app, mode)
+	ctx = state.Ctx.WithTxBytes(txBytes).WithRunTxMode(mode)
 	return
 }
 
@@ -727,12 +778,16 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, txHash string, mode
 	return result
 }
 
-// Returns the applicantion's DeliverState if app is in runTxModeDeliver,
+// Returns the application's DeliverState if app is in runTxModeDeliver,
+// Returns the application's SimulateState if app is in runTxModeSimulate,
 // otherwise it returns the application's checkstate.
 func getState(app *BaseApp, mode sdk.RunTxMode) *state {
+	if mode == sdk.RunTxModeSimulate {
+		return app.SimulateState
+	}
+
 	if mode == sdk.RunTxModeCheckAfterPre ||
 		mode == sdk.RunTxModeCheck ||
-		mode == sdk.RunTxModeSimulate ||
 		mode == sdk.RunTxModeReCheck {
 		return app.CheckState
 	}
@@ -740,16 +795,19 @@ func getState(app *BaseApp, mode sdk.RunTxMode) *state {
 	return app.DeliverState
 }
 
-// Returns accountCache of CheckState or DeliverState according to the tx mode
+// Returns AccountCache of CheckState or DeliverState according to the tx mode
 func getAccountCache(app *BaseApp, mode sdk.RunTxMode) sdk.AccountCache {
-	if mode == sdk.RunTxModeCheckAfterPre ||
-		mode == sdk.RunTxModeCheck ||
-		mode == sdk.RunTxModeSimulate ||
-		mode == sdk.RunTxModeReCheck {
-		return app.CheckState.accountCache
+	if mode == sdk.RunTxModeSimulate {
+		return app.SimulateState.AccountCache
 	}
 
-	return app.DeliverState.accountCache
+	if mode == sdk.RunTxModeCheckAfterPre ||
+		mode == sdk.RunTxModeCheck ||
+		mode == sdk.RunTxModeReCheck {
+		return app.CheckState.AccountCache
+	}
+
+	return app.DeliverState.AccountCache
 }
 
 func (app *BaseApp) initializeContext(ctx sdk.Context, mode sdk.RunTxMode) sdk.Context {
@@ -767,14 +825,12 @@ func (app *BaseApp) runTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx) (result
 	// meter so we initialize upfront.
 	var msCache sdk.CacheMultiStore
 	ctx := app.getContextForAnte(mode, txBytes)
-	ctx = app.initializeContext(ctx, mode)
 
 	defer func() {
 		if r := recover(); r != nil {
 			log := fmt.Sprintf("recovered: %v\nstack:\n%v", r, string(debug.Stack()))
 			result = sdk.ErrInternal(log).Result()
 		}
-
 	}()
 
 	var msgs = tx.GetMsgs()
@@ -783,6 +839,11 @@ func (app *BaseApp) runTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx) (result
 	}
 
 	txHash := cmn.HexBytes(tmhash.Sum(txBytes)).String()
+	signers := msgs[0].GetSigners()
+	if ctx.IsSimulate() {
+		app.SimAccountLock.Lock(signers...)
+		defer app.SimAccountLock.Unlock(signers...)
+	}
 
 	// run the ante handler
 	if app.anteHandler != nil {
@@ -793,11 +854,6 @@ func (app *BaseApp) runTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx) (result
 		if !newCtx.IsZero() {
 			ctx = newCtx
 		}
-	}
-
-	if mode == sdk.RunTxModeSimulate {
-		result = app.runMsgs(ctx, msgs, txHash, mode)
-		return
 	}
 
 	// Keep the state in a transient CacheWrap in case processing the messages
@@ -823,6 +879,12 @@ func (app *BaseApp) runTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx) (result
 	if result.IsOK() {
 		accountCache.Write()
 		msCache.Write()
+	} else {
+		if ctx.IsDeliverTx() {
+			for _, accAddr := range signers {
+				app.SimulateState.AccountCache.Delete(accAddr)
+			}
+		}
 	}
 
 	return

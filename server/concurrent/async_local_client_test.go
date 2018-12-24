@@ -50,6 +50,10 @@ func (app *TimedApplication) ReCheckTx(tx []byte) types.ResponseCheckTx {
 	return types.ResponseCheckTx{}
 }
 
+func (app *TimedApplication) SimulateTx(tx []byte) types.ResponseCheckTx {
+	panic("implement me")
+}
+
 // Consensus Connection
 func (app *TimedApplication) InitChain(types.RequestInitChain) types.ResponseInitChain {
 	return types.ResponseInitChain{}

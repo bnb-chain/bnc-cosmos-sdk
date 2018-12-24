@@ -90,12 +90,13 @@ func (app *App) CompleteSetup(newKeys ...sdk.StoreKey) error {
 		}
 	}
 
-	err := app.LoadLatestVersion(app.KeyMain)
-
+	err := app.LoadCMSLatestVersion()
+	if err != nil {
+		return err
+	}
 	accountStore := app.BaseApp.GetCommitMultiStore().GetKVStore(app.KeyAccount)
 	app.SetAccountStoreCache(app.Cdc, accountStore, 100)
-
-	return err
+	return app.InitFromStore(app.KeyMain)
 }
 
 // InitChainer performs custom logic for initialization.

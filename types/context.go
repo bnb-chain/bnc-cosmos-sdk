@@ -164,19 +164,24 @@ func (c Context) VoteInfos() []abci.VoteInfo {
 	return c.Value(contextKeyVoteInfos).([]abci.VoteInfo)
 }
 
+func (c Context) IsSimulate() bool {
+	mode := c.Value(contextKeyRunTxMode).(RunTxMode)
+	return mode == RunTxModeSimulate
+}
+
 func (c Context) IsCheckTx() bool {
 	mode := c.Value(contextKeyRunTxMode).(RunTxMode)
-	return (mode == RunTxModeCheck || mode == RunTxModeCheckAfterPre)
+	return mode == RunTxModeCheck || mode == RunTxModeCheckAfterPre
 }
 
 func (c Context) IsReCheckTx() bool {
 	mode := c.Value(contextKeyRunTxMode).(RunTxMode)
-	return (mode == RunTxModeReCheck)
+	return mode == RunTxModeReCheck
 }
 
 func (c Context) IsDeliverTx() bool {
 	mode := c.Value(contextKeyRunTxMode).(RunTxMode)
-	return (mode == RunTxModeDeliver || mode == RunTxModeDeliverAfterPre)
+	return mode == RunTxModeDeliver || mode == RunTxModeDeliverAfterPre
 }
 
 func (c Context) AccountCache() AccountCache {

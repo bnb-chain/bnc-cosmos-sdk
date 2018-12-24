@@ -463,7 +463,8 @@
   version = "v0.11.0"
 
 [[projects]]
-  digest = "1:ac53a600d1fd468d9b71fbe765bbdf5643d182e06784a6f169ed1a565c17e95c"
+  branch = "feature/simulate"
+  digest = "1:8864a7c3626e30fca90e006ed98b85fa84db118af37b27e68494352d8b9bc116"
   name = "github.com/tendermint/tendermint"
   packages = [
     "abci/client",
@@ -529,9 +530,8 @@
     "version",
   ]
   pruneopts = "UT"
-  revision = "6fad36f414d30dc211733940814db9272140b801"
+  revision = "4111322f6a0c0e9e2d4308e2f11e8f2ec2cad184"
   source = "github.com/BiJie/bnc-tendermint"
-  version = "v0.25.1-br5"
 
 [[projects]]
   digest = "1:7886f86064faff6f8d08a3eb0e8c773648ff5a2e27730831e2bfbf07467f6666"

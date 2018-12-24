@@ -58,7 +58,8 @@
 [[override]]
   name = "github.com/tendermint/tendermint"
   source = "github.com/BiJie/bnc-tendermint"
-  version = "=0.25.1-br5"
+  branch = "feature/simulate"
+  #version = "=0.25.1-br5"
 
 ## deps without releases:
 
