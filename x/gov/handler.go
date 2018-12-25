@@ -27,13 +27,13 @@ func NewHandler(keeper Keeper) sdk.Handler {
 func handleMsgSubmitProposal(ctx sdk.Context, keeper Keeper, msg MsgSubmitProposal) sdk.Result {
 
 	proposal := keeper.NewTextProposal(ctx, msg.Title, msg.Description, msg.ProposalType)
+	proposalID := proposal.GetProposalID()
+	proposalIDBytes := []byte(fmt.Sprintf("%d", proposalID))
 
 	err, votingStarted := keeper.AddDeposit(ctx, proposal.GetProposalID(), msg.Proposer, msg.InitialDeposit)
 	if err != nil {
 		return err.Result()
 	}
-
-	proposalIDBytes := keeper.cdc.MustMarshalBinaryBare(proposal.GetProposalID())
 
 	resTags := sdk.NewTags(
 		tags.Action, tags.ActionSubmitProposal,
@@ -108,11 +108,13 @@ func handleMsgVote(ctx sdk.Context, keeper Keeper, msg MsgVote) sdk.Result {
 }
 
 // Called every block, process inflation, update validator set
-func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags) {
+func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags, passedProposals, failedProposals []int64) {
 
 	logger := ctx.Logger().With("module", "x/gov")
 
 	resTags = sdk.NewTags()
+	passedProposals = make([]int64, 0)
+	failedProposals = make([]int64, 0)
 
 	// Delete proposals that haven't met minDeposit
 	for ShouldPopInactiveProposalQueue(ctx, keeper) {
@@ -159,12 +161,14 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags) {
 
 			// refund deposits
 			keeper.RefundDeposits(ctx, activeProposal.GetProposalID())
+			passedProposals = append(passedProposals, activeProposal.GetProposalID())
 		} else {
 			activeProposal.SetStatus(StatusRejected)
 			action = tags.ActionProposalRejected
 
 			// distribute deposits to proposer
 			keeper.DistributeDeposits(ctx, activeProposal.GetProposalID())
+			failedProposals = append(failedProposals, activeProposal.GetProposalID())
 		}
 
 		activeProposal.SetTallyResult(tallyResults)
@@ -177,7 +181,7 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags) {
 		resTags.AppendTag(tags.ProposalID, proposalIDBytes)
 	}
 
-	return resTags
+	return
 }
 func ShouldPopInactiveProposalQueue(ctx sdk.Context, keeper Keeper) bool {
 	depositProcedure := keeper.GetDepositProcedure(ctx)

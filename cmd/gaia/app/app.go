@@ -140,6 +140,7 @@ func NewGaiaApp(logger log.Logger, db dbm.DB, traceStore io.Writer, baseAppOptio
 		app.keyGov,
 		app.paramsKeeper, app.paramsKeeper.Subspace(gov.DefaultParamspace), app.bankKeeper, app.stakeKeeper,
 		app.RegisterCodespace(gov.DefaultCodespace),
+		app.Pool,
 	)
 
 	// register the staking hooks
@@ -216,7 +217,7 @@ func (app *GaiaApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) ab
 // nolint: unparam
 func (app *GaiaApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
 
-	tags := gov.EndBlocker(ctx, app.govKeeper)
+	tags, _, _ := gov.EndBlocker(ctx, app.govKeeper)
 	validatorUpdates := stake.EndBlocker(ctx, app.stakeKeeper)
 
 	// Add these new validators to the addr -> pubkey map.
