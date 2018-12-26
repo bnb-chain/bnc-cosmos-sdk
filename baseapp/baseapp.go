@@ -514,12 +514,20 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 
 //getTxFromCache returns a decoded transaction and true if found in the cache;
 //otherwise return nil, false
-func (app *BaseApp) getTxFromCache(txBytes []byte) (sdk.Tx, bool) {
+func (app *BaseApp) GetTxFromCache(txBytes []byte) (sdk.Tx, bool) {
 	if i, ok := app.txMsgCache.Get(string(txBytes)); ok {
 		tx, o := i.(sdk.Tx)
 		return tx, o
 	}
 	return nil, false
+}
+
+func (app *BaseApp) AddTxToCache(txBytes []byte, tx sdk.Tx) (evicted bool) {
+	return app.txMsgCache.Add(string(txBytes), tx)
+}
+
+func (app *BaseApp) RemoveTxFromCache(txBytes []byte) {
+	app.txMsgCache.Remove(string(txBytes))
 }
 
 // CheckTx implements ABCI
@@ -531,16 +539,18 @@ func (app *BaseApp) CheckTx(txBytes []byte) (res abci.ResponseCheckTx) {
 	var result sdk.Result
 	var tx sdk.Tx
 	// try to get the Tx first from cache, if succeed, it means it is PreChecked.
-	tx, ok := app.getTxFromCache(txBytes)
+	tx, ok := app.GetTxFromCache(txBytes)
 	if ok {
-		result = app.runTx(sdk.RunTxModeCheckAfterPre, txBytes, tx)
+		txHash := cmn.HexBytes(tmhash.Sum(txBytes)).String()
+		result = app.RunTx(sdk.RunTxModeCheckAfterPre, txBytes, tx, txHash)
 	} else {
 		tx, err := app.TxDecoder(txBytes)
 		if err != nil {
 			result = err.Result()
 		} else {
 			app.txMsgCache.Add(string(txBytes), tx) // for recheck
-			result = app.runTx(sdk.RunTxModeCheck, txBytes, tx)
+			txHash := cmn.HexBytes(tmhash.Sum(txBytes)).String()
+			result = app.RunTx(sdk.RunTxModeCheck, txBytes, tx, txHash)
 		}
 	}
 
@@ -590,15 +600,15 @@ func (app *BaseApp) PreCheckTx(txBytes []byte) (res abci.ResponseCheckTx) {
 func (app *BaseApp) ReCheckTx(txBytes []byte) (res abci.ResponseCheckTx) {
 	// Decode the Tx.
 	var result sdk.Result
-	tx, ok := app.getTxFromCache(txBytes)
+	tx, ok := app.GetTxFromCache(txBytes)
 	if ok {
-		result = app.reRunTx(txBytes, tx)
+		result = app.ReRunTx(txBytes, tx)
 	} else { // not suppose to enter here actually
 		var tx, err = app.TxDecoder(txBytes)
 		if err != nil {
 			result = err.Result()
 		} else {
-			result = app.reRunTx(txBytes, tx)
+			result = app.ReRunTx(txBytes, tx)
 		}
 	}
 
@@ -614,17 +624,19 @@ func (app *BaseApp) ReCheckTx(txBytes []byte) (res abci.ResponseCheckTx) {
 func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
 	// Decode the Tx.
 	var result sdk.Result
-	tx, ok := app.getTxFromCache(txBytes) //from checkTx
+	tx, ok := app.GetTxFromCache(txBytes) //from checkTx
 	if ok {
 		// here means either the tx has passed PreDeliverTx or CheckTx,
 		// no need to verify signature
-		result = app.runTx(sdk.RunTxModeDeliverAfterPre, txBytes, tx)
+		txHash := cmn.HexBytes(tmhash.Sum(txBytes)).String()
+		result = app.RunTx(sdk.RunTxModeDeliverAfterPre, txBytes, tx, txHash)
 	} else {
 		var tx, err = app.TxDecoder(txBytes)
 		if err != nil {
 			result = err.Result()
 		} else {
-			result = app.runTx(sdk.RunTxModeDeliver, txBytes, tx)
+			txHash := cmn.HexBytes(tmhash.Sum(txBytes)).String()
+			result = app.RunTx(sdk.RunTxModeDeliver, txBytes, tx, txHash)
 		}
 	}
 
@@ -760,10 +772,10 @@ func (app *BaseApp) initializeContext(ctx sdk.Context, mode sdk.RunTxMode) sdk.C
 	return ctx
 }
 
-// runTx processes a transaction. The transactions is proccessed via an
+// RunTx processes a transaction. The transactions is proccessed via an
 // anteHandler. txBytes may be nil in some cases, eg. in tests. Also, in the
 // future we may support "internal" transactions.
-func (app *BaseApp) runTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx) (result sdk.Result) {
+func (app *BaseApp) RunTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx, txHash string) (result sdk.Result) {
 	// meter so we initialize upfront.
 	var msCache sdk.CacheMultiStore
 	ctx := app.getContextForAnte(mode, txBytes)
@@ -781,8 +793,6 @@ func (app *BaseApp) runTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx) (result
 	if err := validateBasicTxMsgs(msgs); err != nil {
 		return err.Result()
 	}
-
-	txHash := cmn.HexBytes(tmhash.Sum(txBytes)).String()
 
 	// run the ante handler
 	if app.anteHandler != nil {
@@ -815,12 +825,11 @@ func (app *BaseApp) runTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx) (result
 	ctx = ctx.WithAccountCache(accountCache)
 	result = app.runMsgs(ctx, msgs, txHash, mode)
 
-	if (mode == sdk.RunTxModeDeliver || mode == sdk.RunTxModeDeliverAfterPre) && app.isPublishAccountBalance {
-		app.Pool.AddAddrs(msgs[0].GetInvolvedAddresses())
-	}
-
 	// only update state if all messages pass
 	if result.IsOK() {
+		if (mode == sdk.RunTxModeDeliver || mode == sdk.RunTxModeDeliverAfterPre) && app.isPublishAccountBalance {
+			app.Pool.AddAddrs(msgs[0].GetInvolvedAddresses())
+		}
 		accountCache.Write()
 		msCache.Write()
 	}
@@ -828,10 +837,10 @@ func (app *BaseApp) runTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx) (result
 	return
 }
 
-// runTx processes a transaction. The transactions is proccessed via an
+// RunTx processes a transaction. The transactions is proccessed via an
 // anteHandler. txBytes may be nil in some cases, eg. in tests. Also, in the
 // future we may support "internal" transactions.
-func (app *BaseApp) reRunTx(txBytes []byte, tx sdk.Tx) (result sdk.Result) {
+func (app *BaseApp) ReRunTx(txBytes []byte, tx sdk.Tx) (result sdk.Result) {
 	// meter so we initialize upfront.
 	var msCache sdk.CacheMultiStore
 	mode := sdk.RunTxModeReCheck
