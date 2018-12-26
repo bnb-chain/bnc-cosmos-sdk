@@ -250,17 +250,17 @@ func (app *BaseApp) NewContext(mode sdk.RunTxMode, header abci.Header) sdk.Conte
 	switch mode {
 	case sdk.RunTxModeDeliver:
 		ms = app.DeliverState.ms
-		accountCache = app.DeliverState.accountCache
+		accountCache = app.DeliverState.AccountCache
 	default:
 		ms = app.CheckState.ms
-		accountCache = app.CheckState.accountCache
+		accountCache = app.CheckState.AccountCache
 	}
 	return sdk.NewContext(ms, header, mode, app.Logger).WithAccountCache(accountCache)
 }
 
 type state struct {
 	ms           sdk.CacheMultiStore
-	accountCache sdk.AccountCache
+	AccountCache sdk.AccountCache
 	Ctx          sdk.Context
 }
 
@@ -269,7 +269,7 @@ func (st *state) CacheMultiStore() sdk.CacheMultiStore {
 }
 
 func (st *state) WriteAccountCache() {
-	st.accountCache.Write()
+	st.AccountCache.Write()
 }
 
 func (app *BaseApp) SetCheckState(header abci.Header) {
@@ -278,7 +278,7 @@ func (app *BaseApp) SetCheckState(header abci.Header) {
 	ms := app.cms.CacheMultiStore()
 	app.CheckState = &state{
 		ms:           ms,
-		accountCache: accountCache,
+		AccountCache: accountCache,
 		Ctx:          sdk.NewContext(ms, header, sdk.RunTxModeCheck, app.Logger).WithAccountCache(accountCache),
 	}
 }
@@ -289,7 +289,7 @@ func (app *BaseApp) SetDeliverState(header abci.Header) {
 	ms := app.cms.CacheMultiStore()
 	app.DeliverState = &state{
 		ms:           ms,
-		accountCache: accountCache,
+		AccountCache: accountCache,
 		Ctx:          sdk.NewContext(ms, header, sdk.RunTxModeDeliver, app.Logger).WithAccountCache(accountCache),
 	}
 }
@@ -752,16 +752,16 @@ func getState(app *BaseApp, mode sdk.RunTxMode) *state {
 	return app.DeliverState
 }
 
-// Returns accountCache of CheckState or DeliverState according to the tx mode
+// Returns AccountCache of CheckState or DeliverState according to the tx mode
 func getAccountCache(app *BaseApp, mode sdk.RunTxMode) sdk.AccountCache {
 	if mode == sdk.RunTxModeCheckAfterPre ||
 		mode == sdk.RunTxModeCheck ||
 		mode == sdk.RunTxModeSimulate ||
 		mode == sdk.RunTxModeReCheck {
-		return app.CheckState.accountCache
+		return app.CheckState.AccountCache
 	}
 
-	return app.DeliverState.accountCache
+	return app.DeliverState.AccountCache
 }
 
 func (app *BaseApp) initializeContext(ctx sdk.Context, mode sdk.RunTxMode) sdk.Context {
