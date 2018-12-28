@@ -54,6 +54,9 @@ type Keeper struct {
 
 	// Reserved codespace
 	codespace sdk.CodespaceType
+
+	// shared memory for block level state
+	pool *sdk.Pool
 }
 
 // NewKeeper returns a governance keeper. It handles:
@@ -61,7 +64,7 @@ type Keeper struct {
 // - depositing funds into proposals, and activating upon sufficient funds being deposited
 // - users voting on proposals, with weight proportional to stake in the system
 // - and tallying the result of the vote.
-func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, paramsKeeper params.Keeper, paramSpace params.Subspace, ck bank.Keeper, ds sdk.DelegationSet, codespace sdk.CodespaceType) Keeper {
+func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, paramsKeeper params.Keeper, paramSpace params.Subspace, ck bank.Keeper, ds sdk.DelegationSet, codespace sdk.CodespaceType, pool *sdk.Pool) Keeper {
 	return Keeper{
 		storeKey:     key,
 		paramsKeeper: paramsKeeper,
@@ -71,6 +74,7 @@ func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, paramsKeeper params.Keeper, p
 		vs:           ds.GetValidatorSet(),
 		cdc:          cdc,
 		codespace:    codespace,
+		pool:         pool,
 	}
 }
 
@@ -135,7 +139,7 @@ func (keeper Keeper) Iterate(ctx sdk.Context, voterAddr sdk.AccAddress, deposite
 	if numLatest <= 0 {
 		if reverse {
 			numLatest = 0
-		}else{
+		} else {
 			numLatest = maxProposalID
 		}
 	}
@@ -386,6 +390,9 @@ func (keeper Keeper) AddDeposit(ctx sdk.Context, proposalID int64, depositerAddr
 	if err != nil {
 		return err, false
 	}
+	if ctx.IsDeliverTx() {
+		keeper.pool.AddAddrs([]sdk.AccAddress{depositerAddr})
+	}
 
 	// Update Proposal
 	proposal.SetTotalDeposit(proposal.GetTotalDeposit().Plus(depositAmount))
@@ -432,6 +439,7 @@ func (keeper Keeper) RefundDeposits(ctx sdk.Context, proposalID int64) {
 			panic(fmt.Sprintf("refund error(%s) should not happen", err.Error()))
 		}
 
+		keeper.pool.AddAddrs([]sdk.AccAddress{deposit.Depositer})
 		store.Delete(depositsIterator.Key())
 	}
 
@@ -477,6 +485,7 @@ func (keeper Keeper) DistributeDeposits(ctx sdk.Context, proposalID int64) {
 	if err != nil {
 		panic(fmt.Sprintf("distribute deposits error(%s) should not happen", err.Error()))
 	}
+	keeper.pool.AddAddrs([]sdk.AccAddress{sdk.AccAddress(proposerAccAddr)})
 }
 
 // =====================================================

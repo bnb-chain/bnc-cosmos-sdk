@@ -72,7 +72,7 @@ type BaseApp struct {
 
 	AccountStoreCache sdk.AccountStoreCache
 	txMsgCache        *lru.Cache
-	Pool              pool
+	Pool              *sdk.Pool
 
 	// flag for sealing
 	sealed bool
@@ -105,6 +105,7 @@ func NewBaseApp(name string, logger log.Logger, db dbm.DB, txDecoder sdk.TxDecod
 		TxDecoder:               txDecoder,
 		isPublishAccountBalance: isPublish,
 		txMsgCache:              cache,
+		Pool:                    new(sdk.Pool),
 	}
 
 	// Register the undefined & root codespaces, which should not be used by

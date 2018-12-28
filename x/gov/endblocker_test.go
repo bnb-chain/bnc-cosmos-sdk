@@ -1,6 +1,7 @@
 package gov_test
 
 import (
+	"strconv"
 	"testing"
 	"time"
 
@@ -134,8 +135,8 @@ func TestTickPassedDepositPeriod(t *testing.T) {
 
 	res := govHandler(ctx, newProposalMsg)
 	require.True(t, res.IsOK())
-	var proposalID int64
-	mapp.Cdc.UnmarshalBinaryBare(res.Data, &proposalID)
+
+	proposalID, _ := strconv.Atoi(string(res.Data))
 
 	gov.EndBlocker(ctx, keeper)
 	require.NotNil(t, keeper.InactiveProposalQueuePeek(ctx))
@@ -149,7 +150,7 @@ func TestTickPassedDepositPeriod(t *testing.T) {
 	require.NotNil(t, keeper.InactiveProposalQueuePeek(ctx))
 	require.False(t, gov.ShouldPopInactiveProposalQueue(ctx, keeper))
 
-	newDepositMsg := gov.NewMsgDeposit(addrs[1], proposalID, sdk.Coins{sdk.NewCoin(gov.DefaultDepositDenom, 1000e8)})
+	newDepositMsg := gov.NewMsgDeposit(addrs[1], int64(proposalID), sdk.Coins{sdk.NewCoin(gov.DefaultDepositDenom, 1000e8)})
 	res = govHandler(ctx, newDepositMsg)
 	require.True(t, res.IsOK())
 
@@ -188,14 +189,14 @@ func TestTickPassedVotingPeriodRejected(t *testing.T) {
 
 	res := govHandler(ctx, newProposalMsg)
 	require.True(t, res.IsOK())
-	var proposalID int64
-	mapp.Cdc.UnmarshalBinaryBare(res.Data, &proposalID)
+
+	proposalID, _ := strconv.Atoi(string(res.Data))
 
 	newHeader := ctx.BlockHeader()
 	newHeader.Time = ctx.BlockHeader().Time.Add(time.Duration(1) * time.Second)
 	ctx = ctx.WithBlockHeader(newHeader)
 
-	newDepositMsg := gov.NewMsgDeposit(addrs[1], proposalID, sdk.Coins{sdk.NewCoin(gov.DefaultDepositDenom, 1000e8)})
+	newDepositMsg := gov.NewMsgDeposit(addrs[1], int64(proposalID), sdk.Coins{sdk.NewCoin(gov.DefaultDepositDenom, 1000e8)})
 	res = govHandler(ctx, newDepositMsg)
 	require.True(t, res.IsOK())
 	gov.EndBlocker(ctx, keeper)
@@ -206,19 +207,19 @@ func TestTickPassedVotingPeriodRejected(t *testing.T) {
 	ctx = ctx.WithBlockHeader(newHeader)
 
 	require.True(t, gov.ShouldPopActiveProposalQueue(ctx, keeper))
-	depositsIterator := keeper.GetDeposits(ctx, proposalID)
+	depositsIterator := keeper.GetDeposits(ctx, int64(proposalID))
 	require.True(t, depositsIterator.Valid())
 	depositsIterator.Close()
-	require.Equal(t, gov.StatusVotingPeriod, keeper.GetProposal(ctx, proposalID).GetStatus())
+	require.Equal(t, gov.StatusVotingPeriod, keeper.GetProposal(ctx, int64(proposalID)).GetStatus())
 
 	gov.EndBlocker(ctx, keeper)
 
 	require.Nil(t, keeper.ActiveProposalQueuePeek(ctx))
-	depositsIterator = keeper.GetDeposits(ctx, proposalID)
+	depositsIterator = keeper.GetDeposits(ctx, int64(proposalID))
 	require.False(t, depositsIterator.Valid())
 	depositsIterator.Close()
-	require.Equal(t, gov.StatusRejected, keeper.GetProposal(ctx, proposalID).GetStatus())
-	require.True(t, keeper.GetProposal(ctx, proposalID).GetTallyResult().Equals(gov.EmptyTallyResult()))
+	require.Equal(t, gov.StatusRejected, keeper.GetProposal(ctx, int64(proposalID)).GetStatus())
+	require.True(t, keeper.GetProposal(ctx, int64(proposalID)).GetTallyResult().Equals(gov.EmptyTallyResult()))
 
 	// check distribute deposits to proposer
 	validatorCoins := ck.GetCoins(ctx, addrs[0])
@@ -251,14 +252,14 @@ func TestTickPassedVotingPeriodPassed(t *testing.T) {
 
 	res := govHandler(ctx, newProposalMsg)
 	require.True(t, res.IsOK())
-	var proposalID int64
-	mapp.Cdc.UnmarshalBinaryBare(res.Data, &proposalID)
+
+	proposalID, _ := strconv.Atoi(string(res.Data))
 
 	newHeader := ctx.BlockHeader()
 	newHeader.Time = ctx.BlockHeader().Time.Add(time.Duration(1) * time.Second)
 	ctx = ctx.WithBlockHeader(newHeader)
 
-	newDepositMsg := gov.NewMsgDeposit(addrs[1], proposalID, sdk.Coins{sdk.NewCoin(gov.DefaultDepositDenom, 1000e8)})
+	newDepositMsg := gov.NewMsgDeposit(addrs[1], int64(proposalID), sdk.Coins{sdk.NewCoin(gov.DefaultDepositDenom, 1000e8)})
 	res = govHandler(ctx, newDepositMsg)
 	require.True(t, res.IsOK())
 	gov.EndBlocker(ctx, keeper)
@@ -266,7 +267,7 @@ func TestTickPassedVotingPeriodPassed(t *testing.T) {
 	newHeader = ctx.BlockHeader()
 	newHeader.Time = ctx.BlockHeader().Time.Add(time.Duration(1) * time.Second)
 	ctx = ctx.WithBlockHeader(newHeader)
-	newVoteMsg := gov.NewMsgVote(addrs[0], proposalID, gov.OptionYes)
+	newVoteMsg := gov.NewMsgVote(addrs[0], int64(proposalID), gov.OptionYes)
 	res = govHandler(ctx, newVoteMsg)
 	println(res.Log)
 	require.True(t, res.IsOK())
@@ -278,18 +279,18 @@ func TestTickPassedVotingPeriodPassed(t *testing.T) {
 	ctx = ctx.WithBlockHeader(newHeader)
 
 	require.True(t, gov.ShouldPopActiveProposalQueue(ctx, keeper))
-	depositsIterator := keeper.GetDeposits(ctx, proposalID)
+	depositsIterator := keeper.GetDeposits(ctx, int64(proposalID))
 	require.True(t, depositsIterator.Valid())
 	depositsIterator.Close()
-	require.Equal(t, gov.StatusVotingPeriod, keeper.GetProposal(ctx, proposalID).GetStatus())
+	require.Equal(t, gov.StatusVotingPeriod, keeper.GetProposal(ctx, int64(proposalID)).GetStatus())
 
 	gov.EndBlocker(ctx, keeper)
 
 	require.Nil(t, keeper.ActiveProposalQueuePeek(ctx))
-	depositsIterator = keeper.GetDeposits(ctx, proposalID)
+	depositsIterator = keeper.GetDeposits(ctx, int64(proposalID))
 	require.False(t, depositsIterator.Valid())
 	depositsIterator.Close()
-	require.Equal(t, gov.StatusPassed, keeper.GetProposal(ctx, proposalID).GetStatus())
+	require.Equal(t, gov.StatusPassed, keeper.GetProposal(ctx, int64(proposalID)).GetStatus())
 
 	// check refund deposits
 	validatorCoins := ck.GetCoins(ctx, addrs[0])

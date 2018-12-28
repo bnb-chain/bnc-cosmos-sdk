@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strconv"
 	"testing"
 	"time"
 
@@ -598,11 +599,10 @@ func TestSubmitProposal(t *testing.T) {
 	require.Equal(t, uint32(0), resultTx.CheckTx.Code)
 	require.Equal(t, uint32(0), resultTx.DeliverTx.Code)
 
-	var proposalID int64
-	cdc.UnmarshalBinaryBare(resultTx.DeliverTx.GetData(), &proposalID)
+	proposalID, _ := strconv.Atoi(string(resultTx.DeliverTx.GetData()))
 
 	// query proposal
-	proposal := getProposal(t, port, proposalID)
+	proposal := getProposal(t, port, int64(proposalID))
 	require.Equal(t, "Test", proposal.GetTitle())
 }
 
@@ -620,23 +620,22 @@ func TestDeposit(t *testing.T) {
 	require.Equal(t, uint32(0), resultTx.CheckTx.Code)
 	require.Equal(t, uint32(0), resultTx.DeliverTx.Code)
 
-	var proposalID int64
-	cdc.UnmarshalBinaryBare(resultTx.DeliverTx.GetData(), &proposalID)
+	proposalID, _ := strconv.Atoi(string(resultTx.DeliverTx.GetData()))
 
 	// query proposal
-	proposal := getProposal(t, port, proposalID)
+	proposal := getProposal(t, port, int64(proposalID))
 	require.Equal(t, "Test", proposal.GetTitle())
 
 	// create SubmitProposal TX
-	resultTx = doDeposit(t, port, seed, name, password, addr, proposalID, 5)
+	resultTx = doDeposit(t, port, seed, name, password, addr, int64(proposalID), 5)
 	tests.WaitForHeight(resultTx.Height+1, port)
 
 	// query proposal
-	proposal = getProposal(t, port, proposalID)
+	proposal = getProposal(t, port, int64(proposalID))
 	require.True(t, proposal.GetTotalDeposit().IsEqual(sdk.Coins{sdk.NewCoin("steak", 10)}))
 
 	// query deposit
-	deposit := getDeposit(t, port, proposalID, addr)
+	deposit := getDeposit(t, port, int64(proposalID), addr)
 	require.True(t, deposit.Amount.IsEqual(sdk.Coins{sdk.NewCoin("steak", 10)}))
 }
 
