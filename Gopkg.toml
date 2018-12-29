@@ -53,12 +53,13 @@
 
 [[override]]
   name = "github.com/tendermint/iavl"
-  version = "=v0.11.0"
+  source = "github.com/ackratos/iavl"
+  branch = "feature/state_syncing"
 
 [[override]]
   name = "github.com/tendermint/tendermint"
   source = "github.com/BiJie/bnc-tendermint"
-  version = "=0.25.1-br5"
+  branch = "feature/state_reactor"
 
 ## deps without releases:
 

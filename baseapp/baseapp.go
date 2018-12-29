@@ -940,3 +940,23 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 		Data: commitID.Hash,
 	}
 }
+
+func (app *BaseApp) LatestSnapshot() (height int64, numKeys map[string]int64, err error) {
+	return 0, make(map[string]int64), nil
+}
+
+func (app *BaseApp) ReadSnapshotChunk(height int64, startIndex, endIndex int64) (chunk map[string][][]byte, err error) {
+	return make(map[string][][]byte), nil
+}
+
+func (app *BaseApp) StartRecovery(height int64, numKeys map[string]int64) error {
+	return nil
+}
+
+func (app *BaseApp) WriteRecoveryChunk(storeName string, chunk [][]byte) error {
+	return nil
+}
+
+func (app *BaseApp) EndRecovery(height int64) error {
+	return nil
+}

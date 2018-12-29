@@ -455,15 +455,17 @@
   version = "v0.12.0"
 
 [[projects]]
-  digest = "1:53397098d6acb7613358683cc84ae59281a60c6033f0bff62fa8d3f279c6c430"
+  branch = "feature/state_syncing"
+  digest = "1:7d76ffe80a0b76d72f50c7965066e8cecf347d3fb304af9db57e10e459de2703"
   name = "github.com/tendermint/iavl"
   packages = ["."]
   pruneopts = "UT"
-  revision = "3acc91fb8811db2c5409a855ae1f8e441fe98e2d"
-  version = "v0.11.0"
+  revision = "e0b650f7ba684446613e4312b74ca1021190486d"
+  source = "github.com/ackratos/iavl"
 
 [[projects]]
-  digest = "1:ac53a600d1fd468d9b71fbe765bbdf5643d182e06784a6f169ed1a565c17e95c"
+  branch = "feature/state_reactor"
+  digest = "1:b3a516db2d0bbf3b20e620cc01d1a2bb159e741ba75eab123d4c4a066d9e58b4"
   name = "github.com/tendermint/tendermint"
   packages = [
     "abci/client",
@@ -529,9 +531,8 @@
     "version",
   ]
   pruneopts = "UT"
-  revision = "6fad36f414d30dc211733940814db9272140b801"
+  revision = ""
   source = "github.com/BiJie/bnc-tendermint"
-  version = "v0.25.1-br5"
 
 [[projects]]
   digest = "1:7886f86064faff6f8d08a3eb0e8c773648ff5a2e27730831e2bfbf07467f6666"

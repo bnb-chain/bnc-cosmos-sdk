@@ -418,6 +418,28 @@ func (app *asyncLocalClient) EndBlockSync(req types.RequestEndBlock) (*types.Res
 
 //-------------------------------------------------------
 
+func (app *asyncLocalClient) LatestSnapshot() (height int64, numKeys map[string]int64, err error) {
+	return app.Application.LatestSnapshot()
+}
+
+func (app *asyncLocalClient) ReadSnapshotChunk(height int64, startIndex, endIndex int64) (chunk map[string][][]byte, err error) {
+	return app.Application.ReadSnapshotChunk(height, startIndex, endIndex)
+}
+
+func (app *asyncLocalClient) StartRecovery(height int64, numKeys map[string]int64) error {
+	return app.Application.StartRecovery(height, numKeys)
+}
+
+func (app *asyncLocalClient) WriteRecoveryChunk(storeName string, chunk [][]byte) error {
+	return app.Application.WriteRecoveryChunk(storeName, chunk)
+}
+
+func (app *asyncLocalClient) EndRecovery(height int64) error {
+	return app.Application.EndRecovery(height)
+}
+
+//-------------------------------------------------------
+
 func (app *asyncLocalClient) callback(req *types.Request, res *types.Response) *abcicli.ReqRes {
 	app.Callback(req, res)
 	return newLocalReqRes(req, res)
