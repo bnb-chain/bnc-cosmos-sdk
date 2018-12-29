@@ -263,7 +263,7 @@ func TestIAVLReverseSubspaceIterator(t *testing.T) {
 	require.Equal(t, len(expected), i)
 }
 
-func nextVersion(iavl *iavlStore) {
+func nextVersion(iavl *IavlStore) {
 	key := []byte(fmt.Sprintf("Key for tree: %d", iavl.LastCommitID().Version))
 	value := []byte(fmt.Sprintf("Value for tree: %d", iavl.LastCommitID().Version))
 	iavl.Set(key, value)

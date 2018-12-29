@@ -191,10 +191,29 @@ func (rs *rootMultiStore) LastCommitID() CommitID {
 
 // Implements Committer/CommitStore.
 func (rs *rootMultiStore) Commit() CommitID {
-
-	// Commit stores.
 	version := rs.lastCommitID.Version + 1
+	// Commit stores.
 	commitInfo := commitStores(version, rs.stores)
+
+	// Need to update atomically.
+	batch := rs.db.NewBatch()
+	setCommitInfo(batch, version, commitInfo)
+	setLatestVersion(batch, version)
+	batch.Write()
+
+	// Prepare for next version.
+	commitID := CommitID{
+		Version: version,
+		Hash:    commitInfo.Hash(),
+	}
+	rs.lastCommitID = commitID
+	return commitID
+}
+
+// Implements Committer/CommitStore.
+func (rs *rootMultiStore) CommitAt(version int64) CommitID {
+	// Commit stores.
+	commitInfo := commitStoresAt(version, rs.stores)
 
 	// Need to update atomically.
 	batch := rs.db.NewBatch()
@@ -393,6 +412,7 @@ func (ci commitInfo) Hash() []byte {
 	// TODO cache to ci.hash []byte
 	m := make(map[string][]byte, len(ci.StoreInfos))
 	for _, storeInfo := range ci.StoreInfos {
+		fmt.Printf("storeInfo Name:%s, Version: %d, Hash: %X\n", storeInfo.Name, storeInfo.Core.CommitID.Version, storeInfo.Core.CommitID.Hash)
 		m[storeInfo.Name] = storeInfo.Hash()
 	}
 	return merkle.SimpleHashFromMap(m)
@@ -462,6 +482,7 @@ func setLatestVersion(batch dbm.Batch, version int64) {
 func commitStores(version int64, storeMap map[StoreKey]CommitStore) commitInfo {
 	storeInfos := make([]storeInfo, 0, len(storeMap))
 
+	fmt.Printf("!!!cong!!!version=%d\n", version)
 	for key, store := range storeMap {
 		// Commit
 		commitID := store.Commit()
@@ -475,6 +496,36 @@ func commitStores(version int64, storeMap map[StoreKey]CommitStore) commitInfo {
 		si.Name = key.Name()
 		si.Core.CommitID = commitID
 		// si.Core.StoreType = store.GetStoreType()
+		fmt.Printf("!!!cong!!!key=%s, hash=%X\n", key.Name(), commitID.Hash)
+		storeInfos = append(storeInfos, si)
+	}
+
+	ci := commitInfo{
+		Version:    version,
+		StoreInfos: storeInfos,
+	}
+	return ci
+}
+
+// Commits each store and returns a new commitInfo.
+func commitStoresAt(version int64, storeMap map[StoreKey]CommitStore) commitInfo {
+	storeInfos := make([]storeInfo, 0, len(storeMap))
+
+	fmt.Printf("!!!cong!!!version=%d\n", version)
+	for key, store := range storeMap {
+		// Commit
+		commitID := store.CommitAt(version)
+
+		if store.GetStoreType() == sdk.StoreTypeTransient {
+			continue
+		}
+
+		// Record CommitID
+		si := storeInfo{}
+		si.Name = key.Name()
+		si.Core.CommitID = commitID
+		// si.Core.StoreType = store.GetStoreType()
+		fmt.Printf("!!!cong!!!key=%s, hash=%X\n", key.Name(), commitID.Hash)
 		storeInfos = append(storeInfos, si)
 	}
 
