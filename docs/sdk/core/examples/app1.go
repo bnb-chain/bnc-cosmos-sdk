@@ -18,7 +18,7 @@ const (
 func NewApp1(logger log.Logger, db dbm.DB) *bapp.BaseApp {
 
 	// Create the base application object.
-	app := bapp.NewBaseApp(app1Name, logger, db, tx1Decoder, false)
+	app := bapp.NewBaseApp(app1Name, logger, db, tx1Decoder, false,false)
 
 	// Create a key for accessing the account store.
 	keyAccount := sdk.NewKVStoreKey("acc")

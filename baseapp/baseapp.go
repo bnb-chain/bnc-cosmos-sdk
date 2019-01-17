@@ -49,6 +49,7 @@ type BaseApp struct {
 	queryRouter             QueryRouter          // router for redirecting query calls
 	codespacer              *sdk.Codespacer      // handle module codespacing
 	isPublishAccountBalance bool
+	interestWithMsg       bool
 
 	TxDecoder sdk.TxDecoder // unmarshal []byte into sdk.Tx
 
@@ -89,7 +90,7 @@ var _ abci.Application = (*BaseApp)(nil)
 // NOTE: The db is used to store the version number for now.
 // Accepts a user-defined TxDecoder
 // Accepts variable number of option functions, which act on the BaseApp to set configuration choices
-func NewBaseApp(name string, logger log.Logger, db dbm.DB, txDecoder sdk.TxDecoder, isPublish bool, options ...func(*BaseApp)) *BaseApp {
+func NewBaseApp(name string, logger log.Logger, db dbm.DB, txDecoder sdk.TxDecoder, isPublish, interestWithMsg bool, options ...func(*BaseApp)) *BaseApp {
 	cache, err := lru.New(TxMsgCacheSize)
 	if err != nil {
 		panic(err)
@@ -104,6 +105,7 @@ func NewBaseApp(name string, logger log.Logger, db dbm.DB, txDecoder sdk.TxDecod
 		codespacer:              sdk.NewCodespacer(),
 		TxDecoder:               txDecoder,
 		isPublishAccountBalance: isPublish,
+		interestWithMsg:         interestWithMsg,
 		txMsgCache:              cache,
 		Pool:                    new(sdk.Pool),
 	}
@@ -828,8 +830,14 @@ func (app *BaseApp) RunTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx, txHash 
 
 	// only update state if all messages pass
 	if result.IsOK() {
-		if (mode == sdk.RunTxModeDeliver || mode == sdk.RunTxModeDeliverAfterPre) && app.isPublishAccountBalance {
-			app.Pool.AddAddrs(msgs[0].GetInvolvedAddresses())
+		if (mode == sdk.RunTxModeDeliver || mode == sdk.RunTxModeDeliverAfterPre)  {
+			if app.isPublishAccountBalance{
+				app.Pool.AddAddrs(msgs[0].GetInvolvedAddresses())
+			}
+			if app.interestWithMsg{
+				// Should we add all msg here with no distinction ？
+				app.Pool.AddMsgs([]sdk.Msg{msgs[0]})
+			}
 		}
 		accountCache.Write()
 		msCache.Write()
@@ -934,7 +942,7 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 
 	// Empty the Deliver state
 	app.DeliverState = nil
-	app.Pool.ClearTxRelatedAddrs()
+	app.Pool.Clear()
 
 	return abci.ResponseCommit{
 		Data: commitID.Hash,

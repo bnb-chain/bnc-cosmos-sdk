@@ -37,7 +37,7 @@ func newBaseApp(name string, options ...func(*BaseApp)) *BaseApp {
 	db := dbm.NewMemDB()
 	codec := codec.New()
 	registerTestCodec(codec)
-	return NewBaseApp(name, logger, db, testTxDecoder(codec), false, options...)
+	return NewBaseApp(name, logger, db, testTxDecoder(codec), false, false,options...)
 }
 
 func registerTestCodec(cdc *codec.Codec) {
@@ -102,7 +102,7 @@ func (app *MockBaseApp) initFromStore(mainKey sdk.StoreKey) error {
 }
 
 func NewMockBaseApp(name string, logger log.Logger, db dbm.DB, txDecoder sdk.TxDecoder, isPublish bool, options ...func(*BaseApp)) *MockBaseApp {
-	return &MockBaseApp{NewBaseApp(name, logger, db, txDecoder, isPublish, options...)}
+	return &MockBaseApp{NewBaseApp(name, logger, db, txDecoder, isPublish, false,options...)}
 }
 
 //------------------------------------------------------------------------------------------
