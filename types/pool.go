@@ -11,34 +11,15 @@ import (
 // deliver state
 type Pool struct {
 	accounts sync.Map // save tx/gov related addresses (string wrapped bytes) to be published
-
-	mesMux sync.Mutex
-	// We choose slice instead of map to store msg. Since Msg can be duplicated and is not hashable,
-	// and hash with msg.GetSignBytes cost a lot.
-	messages []Msg
+	txs      sync.Map
 }
 
-func (p *Pool) AddMsgs(msgs []Msg) {
-	p.mesMux.Lock()
-	defer p.mesMux.Unlock()
-	for _, m := range msgs {
-		p.messages = append(p.messages, m)
-	}
+func (p *Pool) AddTx(tx Tx, txHash string) {
+	p.txs.Store(txHash, tx)
 }
 
-func (p Pool) InterestMsgs(choose func(Msg) bool) []Msg {
-	p.mesMux.Lock()
-	defer p.mesMux.Unlock()
-	msgs := make([]Msg, 0, 0)
-	if p.messages == nil {
-		return msgs
-	}
-	for _, v := range p.messages {
-		if choose(v) {
-			msgs = append(msgs, v)
-		}
-	}
-	return msgs
+func (p Pool) GetTxs() sync.Map{
+	return p.txs
 }
 
 func (p *Pool) AddAddrs(addrs []AccAddress) {
@@ -58,8 +39,5 @@ func (p Pool) TxRelatedAddrs() []string {
 
 func (p *Pool) Clear() {
 	p.accounts = sync.Map{}
-
-	p.mesMux.Lock()
-	defer p.mesMux.Unlock()
-	p.messages = []Msg{}
+	p.txs = sync.Map{}
 }

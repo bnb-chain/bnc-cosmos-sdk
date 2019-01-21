@@ -34,7 +34,7 @@ type MockGaiaApp struct {
 func NewMockGaiaApp(logger log.Logger, db dbm.DB, traceStore io.Writer, baseAppOptions ...func(*bam.BaseApp)) *MockGaiaApp {
 	cdc := MakeCodec()
 
-	bApp := bam.NewBaseApp(appName, logger, db, auth.DefaultTxDecoder(cdc), false,false, baseAppOptions...)
+	bApp := bam.NewBaseApp(appName, logger, db, auth.DefaultTxDecoder(cdc), sdk.CollectConfig{}, baseAppOptions...)
 	bApp.SetCommitMultiStoreTracer(traceStore)
 
 	gApp := &GaiaApp{

@@ -37,7 +37,7 @@ func newBaseApp(name string, options ...func(*BaseApp)) *BaseApp {
 	db := dbm.NewMemDB()
 	codec := codec.New()
 	registerTestCodec(codec)
-	return NewBaseApp(name, logger, db, testTxDecoder(codec), false, false,options...)
+	return NewBaseApp(name, logger, db, testTxDecoder(codec), sdk.CollectConfig{}, options...)
 }
 
 func registerTestCodec(cdc *codec.Codec) {
@@ -101,8 +101,8 @@ func (app *MockBaseApp) initFromStore(mainKey sdk.StoreKey) error {
 	return nil
 }
 
-func NewMockBaseApp(name string, logger log.Logger, db dbm.DB, txDecoder sdk.TxDecoder, isPublish bool, options ...func(*BaseApp)) *MockBaseApp {
-	return &MockBaseApp{NewBaseApp(name, logger, db, txDecoder, isPublish, false,options...)}
+func NewMockBaseApp(name string, logger log.Logger, db dbm.DB, txDecoder sdk.TxDecoder, collect sdk.CollectConfig, options ...func(*BaseApp)) *MockBaseApp {
+	return &MockBaseApp{NewBaseApp(name, logger, db, txDecoder, collect, options...)}
 }
 
 //------------------------------------------------------------------------------------------
@@ -124,7 +124,7 @@ func TestLoadVersion(t *testing.T) {
 	logger := defaultLogger()
 	db := dbm.NewMemDB()
 	name := t.Name()
-	app := NewMockBaseApp(name, logger, db, nil, false)
+	app := NewMockBaseApp(name, logger, db, nil, sdk.CollectConfig{})
 
 	// make a cap key and mount the store
 	capKey := sdk.NewKVStoreKey("main")
@@ -153,7 +153,7 @@ func TestLoadVersion(t *testing.T) {
 	commitID2 := sdk.CommitID{2, res.Data}
 
 	// reload with LoadLatestVersion
-	app = NewMockBaseApp(name, logger, db, nil, false)
+	app = NewMockBaseApp(name, logger, db, nil, sdk.CollectConfig{})
 	app.MountStoresIAVL(capKey)
 	err = app.LoadLatestVersion(capKey)
 	require.Nil(t, err)
@@ -161,7 +161,7 @@ func TestLoadVersion(t *testing.T) {
 
 	// reload with LoadVersion, see if you can commit the same block and get
 	// the same result
-	app = NewMockBaseApp(name, logger, db, nil, false)
+	app = NewMockBaseApp(name, logger, db, nil, sdk.CollectConfig{})
 	app.MountStoresIAVL(capKey)
 	err = app.LoadVersion(1, capKey)
 	require.Nil(t, err)
@@ -181,7 +181,7 @@ func testLoadVersionHelper(t *testing.T, app *MockBaseApp, expectedHeight int64,
 func TestOptionFunction(t *testing.T) {
 	logger := defaultLogger()
 	db := dbm.NewMemDB()
-	bap := NewMockBaseApp("starting name", logger, db, nil, false, testChangeNameHelper("new name"))
+	bap := NewMockBaseApp("starting name", logger, db, nil, sdk.CollectConfig{}, testChangeNameHelper("new name"))
 	require.Equal(t, bap.name, "new name", "BaseApp should have had name changed via option function")
 }
 
@@ -253,7 +253,7 @@ func TestInitChainer(t *testing.T) {
 	// we can reload the same  app later
 	db := dbm.NewMemDB()
 	logger := defaultLogger()
-	app := NewMockBaseApp(name, logger, db, nil, false)
+	app := NewMockBaseApp(name, logger, db, nil, sdk.CollectConfig{})
 	capKey := sdk.NewKVStoreKey("main")
 	capKey2 := sdk.NewKVStoreKey("key2")
 	app.MountStoresIAVL(capKey, capKey2)
@@ -297,7 +297,7 @@ func TestInitChainer(t *testing.T) {
 	require.Equal(t, value, res.Value)
 
 	// reload app
-	app = NewMockBaseApp(name, logger, db, nil, false)
+	app = NewMockBaseApp(name, logger, db, nil, sdk.CollectConfig{})
 	app.SetInitChainer(initChainer)
 	app.MountStoresIAVL(capKey, capKey2)
 	err = app.LoadLatestVersion(capKey) // needed to make stores non-nil

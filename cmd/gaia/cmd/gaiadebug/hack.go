@@ -148,7 +148,7 @@ type GaiaApp struct {
 func NewGaiaApp(logger log.Logger, db dbm.DB, baseAppOptions ...func(*bam.BaseApp)) *GaiaApp {
 	cdc := MakeCodec()
 
-	bApp := bam.NewBaseApp(appName, logger, db, auth.DefaultTxDecoder(cdc), false, false,baseAppOptions...)
+	bApp := bam.NewBaseApp(appName, logger, db, auth.DefaultTxDecoder(cdc), sdk.CollectConfig{}, baseAppOptions...)
 	bApp.SetCommitMultiStoreTracer(os.Stdout)
 
 	// create your application object

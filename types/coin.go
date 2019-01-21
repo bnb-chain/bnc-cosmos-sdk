@@ -305,12 +305,12 @@ func ParseCoin(coinStr string) (coin Coin, err error) {
 	}
 	denomStr, amountStr := matches[2], matches[1]
 
-	amount, err := strconv.Atoi(amountStr)
+	amount, err := strconv.ParseInt(amountStr, 10, 64)
 	if err != nil {
 		return
 	}
 
-	return Coin{denomStr, int64(amount)}, nil
+	return Coin{denomStr, amount}, nil
 }
 
 // ParseCoins will parse out a list of coins separated by commas.

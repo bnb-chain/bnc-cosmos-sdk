@@ -28,7 +28,7 @@ type Msg interface {
 	GetSigners() []AccAddress
 
 	// Get involved addresses of this msg so that we can publish account balance change
-	GetInvolvedAddresses() ([]AccAddress)
+	GetInvolvedAddresses() []AccAddress
 }
 
 //__________________________________________________________
