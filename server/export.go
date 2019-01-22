@@ -75,5 +75,6 @@ func isEmptyState(home string) (bool, error) {
 		return false, err
 	}
 
-	return len(files) == 0, nil
+	// only priv_validator_state.json is created
+	return len(files) == 1 && files[0].Name() == "priv_validator_state.json", nil
 }

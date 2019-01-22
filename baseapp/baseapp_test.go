@@ -403,7 +403,7 @@ func testTxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 		if len(txBytes) == 0 {
 			return nil, sdk.ErrTxDecode("txBytes are empty")
 		}
-		err := cdc.UnmarshalBinary(txBytes, &tx)
+		err := cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx)
 		if err != nil {
 			return nil, sdk.ErrTxDecode("").TraceSDK(err.Error())
 		}
@@ -500,7 +500,7 @@ func TestCheckTx(t *testing.T) {
 
 	for i := int64(0); i < nTxs; i++ {
 		tx := newTxCounter(i, 0)
-		txBytes, err := codec.MarshalBinary(tx)
+		txBytes, err := codec.MarshalBinaryLengthPrefixed(tx)
 		require.NoError(t, err)
 		r := app.CheckTx(txBytes)
 		assert.True(t, r.IsOK(), fmt.Sprintf("%v", r))
@@ -548,7 +548,7 @@ func TestDeliverTx(t *testing.T) {
 		for i := 0; i < txPerHeight; i++ {
 			counter := int64(blockN*txPerHeight + i)
 			tx := newTxCounter(counter, counter)
-			txBytes, err := codec.MarshalBinary(tx)
+			txBytes, err := codec.MarshalBinaryLengthPrefixed(tx)
 			require.NoError(t, err)
 			res := app.DeliverTx(txBytes)
 			require.True(t, res.IsOK(), fmt.Sprintf("%v", res))
@@ -589,7 +589,7 @@ func TestMultiMsgDeliverTx(t *testing.T) {
 	{
 		app.BeginBlock(abci.RequestBeginBlock{})
 		tx := newTxCounter(0, 0, 1, 2)
-		txBytes, err := codec.MarshalBinary(tx)
+		txBytes, err := codec.MarshalBinaryLengthPrefixed(tx)
 		require.NoError(t, err)
 		res := app.DeliverTx(txBytes)
 		require.True(t, res.IsErr(), fmt.Sprintf("%v", res))
@@ -626,7 +626,7 @@ func TestPreCheckTx(t *testing.T) {
 
 	for i := int64(0); i < nTxs; i++ {
 		tx := newTxCounter(i, 0)
-		txBytes, err := codec.MarshalBinary(tx)
+		txBytes, err := codec.MarshalBinaryLengthPrefixed(tx)
 		require.NoError(t, err)
 		r := app.PreCheckTx(txBytes)
 		assert.False(t, r.IsOK(), fmt.Sprintf("%v", r))
@@ -644,7 +644,7 @@ func TestPreCheckTx(t *testing.T) {
 	})
 
 	tx := newTxCounter(0, 0)
-	txBytes, _ := codec.MarshalBinary(tx)
+	txBytes, _ := codec.MarshalBinaryLengthPrefixed(tx)
 	r := app.PreCheckTx(txBytes)
 	assert.True(t, r.IsOK(), fmt.Sprintf("%v", r))
 	assert.Equal(t, 1, app.txMsgCache.Len())
@@ -691,7 +691,7 @@ func TestSimulateTx(t *testing.T) {
 		require.True(t, result.IsOK(), result.Log)
 
 		// simulate by calling Query with encoded tx
-		txBytes, err := cdc.MarshalBinary(tx)
+		txBytes, err := cdc.MarshalBinaryLengthPrefixed(tx)
 		require.Nil(t, err)
 		query := abci.RequestQuery{
 			Path: "/app/simulate",
@@ -701,7 +701,7 @@ func TestSimulateTx(t *testing.T) {
 		require.True(t, queryResult.IsOK(), queryResult.Log)
 
 		var res sdk.Result
-		codec.Cdc.MustUnmarshalBinary(queryResult.Value, &res)
+		codec.Cdc.MustUnmarshalBinaryLengthPrefixed(queryResult.Value, &res)
 		require.Nil(t, err, "Result unmarshalling failed")
 		require.True(t, res.IsOK(), res.Log)
 		app.EndBlock(abci.RequestEndBlock{})
