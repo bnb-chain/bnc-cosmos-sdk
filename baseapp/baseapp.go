@@ -543,6 +543,7 @@ func (app *BaseApp) CheckTx(txBytes []byte) (res abci.ResponseCheckTx) {
 	tx, ok := app.GetTxFromCache(txBytes)
 	if ok {
 		txHash := cmn.HexBytes(tmhash.Sum(txBytes)).String()
+		app.Logger.Debug("Handle CheckTx", "Tx", txHash)
 		result = app.RunTx(sdk.RunTxModeCheckAfterPre, txBytes, tx, txHash)
 	} else {
 		tx, err := app.TxDecoder(txBytes)
@@ -551,6 +552,7 @@ func (app *BaseApp) CheckTx(txBytes []byte) (res abci.ResponseCheckTx) {
 		} else {
 			app.txMsgCache.Add(string(txBytes), tx) // for recheck
 			txHash := cmn.HexBytes(tmhash.Sum(txBytes)).String()
+			app.Logger.Debug("Handle CheckTx", "Tx", txHash)
 			result = app.RunTx(sdk.RunTxModeCheck, txBytes, tx, txHash)
 		}
 	}
@@ -569,7 +571,7 @@ func (app *BaseApp) CheckTx(txBytes []byte) (res abci.ResponseCheckTx) {
 
 func (app *BaseApp) preCheck(txBytes []byte, mode sdk.RunTxMode) sdk.Result {
 	var res sdk.Result
-	if app.preChecker != nil {
+	if app.preChecker != nil && !app.txMsgCache.Contains(string(txBytes)) {
 		var tx, err = app.TxDecoder(txBytes)
 		if err != nil {
 			res = err.Result()
@@ -630,6 +632,7 @@ func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
 		// here means either the tx has passed PreDeliverTx or CheckTx,
 		// no need to verify signature
 		txHash := cmn.HexBytes(tmhash.Sum(txBytes)).String()
+		app.Logger.Debug("Handle DeliverTx", "Tx", txHash)
 		result = app.RunTx(sdk.RunTxModeDeliverAfterPre, txBytes, tx, txHash)
 	} else {
 		var tx, err = app.TxDecoder(txBytes)
@@ -637,6 +640,7 @@ func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
 			result = err.Result()
 		} else {
 			txHash := cmn.HexBytes(tmhash.Sum(txBytes)).String()
+			app.Logger.Debug("Handle DeliverTx", "Tx", txHash)
 			result = app.RunTx(sdk.RunTxModeDeliver, txBytes, tx, txHash)
 		}
 	}
