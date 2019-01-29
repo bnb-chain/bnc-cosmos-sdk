@@ -23,7 +23,7 @@ func NewApp3(logger log.Logger, db dbm.DB) *bapp.BaseApp {
 	cdc := UpdatedCodec()
 
 	// Create the base application object.
-	app := bapp.NewBaseApp(app3Name, logger, db, auth.DefaultTxDecoder(cdc), false)
+	app := bapp.NewBaseApp(app3Name, logger, db, auth.DefaultTxDecoder(cdc), sdk.CollectConfig{})
 
 	// Create a key for accessing the account store.
 	keyAccount := sdk.NewKVStoreKey("acc")
