@@ -24,6 +24,7 @@ const (
 	FlagDryRun         = "dry-run"
 	FlagGenerateOnly   = "generate-only"
 	FlagIndentResponse = "indent"
+	Flagmonikers       = "monikers"
 )
 
 // LineBreak can be included in a command list to provide a blank line
