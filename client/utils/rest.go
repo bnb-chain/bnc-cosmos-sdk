@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/keyerror"
@@ -32,11 +31,8 @@ func WriteErrorResponse(w http.ResponseWriter, status int, err string) {
 	w.Write([]byte(err))
 }
 
-// WriteSimulationResponse prepares and writes an HTTP
-// response for transactions simulations.
-func WriteSimulationResponse(w http.ResponseWriter, gas int64) {
+func WriteSimulationResponse(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fmt.Sprintf(`{"gas_estimate":%v}`, gas)))
 }
 
 // HasDryRunArg returns true if the request's URL query contains the dry run
@@ -89,7 +85,7 @@ func WriteGenerateStdTxResponse(w http.ResponseWriter, txBldr authtxb.TxBuilder,
 		return
 	}
 
-	output, err := txBldr.Codec.MarshalJSON(auth.NewStdTx(stdMsg.Msgs, stdMsg.Fee, nil, stdMsg.Memo))
+	output, err := txBldr.Codec.MarshalJSON(auth.NewStdTx(stdMsg.Msgs, nil, stdMsg.Memo, stdMsg.Source, stdMsg.Data))
 	if err != nil {
 		WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
@@ -112,8 +108,6 @@ type BaseReq struct {
 	ChainID       string `json:"chain_id"`
 	AccountNumber int64  `json:"account_number"`
 	Sequence      int64  `json:"sequence"`
-	Gas           string `json:"gas"`
-	GasAdjustment string `json:"gas_adjustment"`
 }
 
 // Sanitize performs basic sanitization on a BaseReq object.
@@ -122,8 +116,6 @@ func (br BaseReq) Sanitize() BaseReq {
 		Name:          strings.TrimSpace(br.Name),
 		Password:      strings.TrimSpace(br.Password),
 		ChainID:       strings.TrimSpace(br.ChainID),
-		Gas:           strings.TrimSpace(br.Gas),
-		GasAdjustment: strings.TrimSpace(br.GasAdjustment),
 		AccountNumber: br.AccountNumber,
 		Sequence:      br.Sequence,
 	}
@@ -188,40 +180,16 @@ func (br BaseReq) ValidateBasic(w http.ResponseWriter) bool {
 // NOTE: Also see CompleteAndBroadcastTxCli.
 // NOTE: Also see x/stake/client/rest/tx.go delegationsRequestHandlerFn.
 func CompleteAndBroadcastTxREST(w http.ResponseWriter, r *http.Request, cliCtx context.CLIContext, baseReq BaseReq, msgs []sdk.Msg, cdc *codec.Codec) {
-	simulateGas, gas, err := client.ReadGasFlag(baseReq.Gas)
-	if err != nil {
-		WriteErrorResponse(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	adjustment, ok := ParseFloat64OrReturnBadRequest(w, baseReq.GasAdjustment, client.DefaultGasAdjustment)
-	if !ok {
-		return
-	}
-
 	txBldr := authtxb.TxBuilder{
 		Codec:         cdc,
-		Gas:           gas,
-		GasAdjustment: adjustment,
-		SimulateGas:   simulateGas,
 		ChainID:       baseReq.ChainID,
 		AccountNumber: baseReq.AccountNumber,
 		Sequence:      baseReq.Sequence,
 	}
 
-	if HasDryRunArg(r) || txBldr.SimulateGas {
-		newBldr, err := EnrichCtxWithGas(txBldr, cliCtx, baseReq.Name, msgs)
-		if err != nil {
-			WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-
-		if HasDryRunArg(r) {
-			WriteSimulationResponse(w, newBldr.Gas)
-			return
-		}
-
-		txBldr = newBldr
+	if HasDryRunArg(r) {
+		WriteSimulationResponse(w)
+		return
 	}
 
 	if HasGenerateOnlyArg(r) {

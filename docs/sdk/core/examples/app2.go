@@ -39,7 +39,7 @@ func NewApp2(logger log.Logger, db dbm.DB) *bapp.BaseApp {
 	cdc := NewCodec()
 
 	// Create the base application object.
-	app := bapp.NewBaseApp(app2Name, logger, db, tx2Decoder(cdc))
+	app := bapp.NewBaseApp(app2Name, logger, db, tx2Decoder(cdc), false)
 
 	// Create a key for accessing the account store.
 	keyAccount := sdk.NewKVStoreKey("acc")
@@ -116,6 +116,10 @@ func (msg MsgIssue) GetSigners() []sdk.AccAddress {
 func (msg MsgIssue) Tags() sdk.Tags {
 	return sdk.NewTags("issuer", []byte(msg.Issuer.String())).
 		AppendTag("receiver", []byte(msg.Receiver.String()))
+}
+
+func (msg MsgIssue) GetInvolvedAddresses() []sdk.AccAddress {
+	return msg.GetSigners()
 }
 
 //------------------------------------------------------------------
@@ -201,7 +205,7 @@ func (tx app2Tx) GetSignature() []byte {
 func tx2Decoder(cdc *codec.Codec) sdk.TxDecoder {
 	return func(txBytes []byte) (sdk.Tx, sdk.Error) {
 		var tx app2Tx
-		err := cdc.UnmarshalBinary(txBytes, &tx)
+		err := cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx)
 		if err != nil {
 			return nil, sdk.ErrTxDecode(err.Error())
 		}
@@ -213,7 +217,7 @@ func tx2Decoder(cdc *codec.Codec) sdk.TxDecoder {
 
 // Simple anteHandler that ensures msg signers have signed.
 // Provides no replay protection.
-func antehandler(ctx sdk.Context, tx sdk.Tx, simulate bool) (_ sdk.Context, _ sdk.Result, abort bool) {
+func antehandler(ctx sdk.Context, tx sdk.Tx, mode sdk.RunTxMode) (_ sdk.Context, _ sdk.Result, abort bool) {
 	appTx, ok := tx.(app2Tx)
 	if !ok {
 		// set abort boolean to true so that we don't continue to process failed tx

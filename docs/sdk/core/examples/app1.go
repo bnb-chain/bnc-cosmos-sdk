@@ -18,7 +18,7 @@ const (
 func NewApp1(logger log.Logger, db dbm.DB) *bapp.BaseApp {
 
 	// Create the base application object.
-	app := bapp.NewBaseApp(app1Name, logger, db, tx1Decoder)
+	app := bapp.NewBaseApp(app1Name, logger, db, tx1Decoder, false)
 
 	// Create a key for accessing the account store.
 	keyAccount := sdk.NewKVStoreKey("acc")
@@ -93,6 +93,10 @@ func (msg MsgSend) GetSigners() []sdk.AccAddress {
 func (msg MsgSend) Tags() sdk.Tags {
 	return sdk.NewTags("sender", []byte(msg.From.String())).
 		AppendTag("receiver", []byte(msg.To.String()))
+}
+
+func (msg MsgSend) GetInvolvedAddresses() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.From, msg.To}
 }
 
 //------------------------------------------------------------------

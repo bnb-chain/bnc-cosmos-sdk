@@ -5,9 +5,9 @@ import (
 	"io"
 	"sync"
 
-	"github.com/tendermint/go-amino"
 	"github.com/tendermint/iavl"
 	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/crypto/merkle"
 	cmn "github.com/tendermint/tendermint/libs/common"
 	dbm "github.com/tendermint/tendermint/libs/db"
 
@@ -161,11 +161,6 @@ func (st *iavlStore) Prefix(prefix []byte) KVStore {
 	return prefixStore{st, prefix}
 }
 
-// Implements KVStore
-func (st *iavlStore) Gas(meter GasMeter, config GasConfig) KVStore {
-	return NewGasKVStore(meter, config, st)
-}
-
 // Implements KVStore.
 func (st *iavlStore) Iterator(start, end []byte) Iterator {
 	return newIAVLIterator(st.tree.ImmutableTree, start, end, true)
@@ -224,13 +219,7 @@ func (st *iavlStore) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 				break
 			}
 			res.Value = value
-			cdc := amino.NewCodec()
-			p, err := cdc.MarshalBinary(proof)
-			if err != nil {
-				res.Log = err.Error()
-				break
-			}
-			res.Proof = p
+			res.Proof = &merkle.Proof{Ops: []merkle.ProofOp{iavl.NewIAVLValueOp(key, proof).ProofOp()}}
 		} else {
 			_, res.Value = tree.GetVersioned(key, res.Height)
 		}
@@ -243,7 +232,7 @@ func (st *iavlStore) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 			KVs = append(KVs, KVPair{Key: iterator.Key(), Value: iterator.Value()})
 		}
 		iterator.Close()
-		res.Value = cdc.MustMarshalBinary(KVs)
+		res.Value = cdc.MustMarshalBinaryLengthPrefixed(KVs)
 	default:
 		msg := fmt.Sprintf("Unexpected Query path: %v", req.Path)
 		return sdk.ErrUnknownRequest(msg).QueryResult()

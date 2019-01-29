@@ -24,7 +24,7 @@ func defaultComponents(key sdk.StoreKey) (sdk.Context, *codec.Codec) {
 	cms := NewCommitMultiStore(db)
 	cms.MountStoreWithDB(key, sdk.StoreTypeIAVL, db)
 	cms.LoadLatestVersion()
-	ctx := sdk.NewContext(cms, abci.Header{}, false, log.NewNopLogger())
+	ctx := sdk.NewContext(cms, abci.Header{}, sdk.RunTxModeDeliver, log.NewNopLogger())
 	cdc := codec.New()
 	return ctx, cdc
 }
@@ -81,7 +81,7 @@ func TestKeys(t *testing.T) {
 	var actual int
 
 	// Checking keys.LengthKey
-	err := cdc.UnmarshalBinary(store.Get(LengthKey()), &len)
+	err := cdc.UnmarshalBinaryLengthPrefixed(store.Get(LengthKey()), &len)
 	require.Nil(t, err)
 	require.Equal(t, len, queue.List.Len())
 
@@ -89,14 +89,14 @@ func TestKeys(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		queue.List.Get(uint64(i), &expected)
 		bz := store.Get(ElemKey(uint64(i)))
-		err = cdc.UnmarshalBinary(bz, &actual)
+		err = cdc.UnmarshalBinaryLengthPrefixed(bz, &actual)
 		require.Nil(t, err)
 		require.Equal(t, expected, actual)
 	}
 
 	queue.Pop()
 
-	err = cdc.UnmarshalBinary(store.Get(TopKey()), &top)
+	err = cdc.UnmarshalBinaryLengthPrefixed(store.Get(TopKey()), &top)
 	require.Nil(t, err)
 	require.Equal(t, top, queue.getTop())
 }

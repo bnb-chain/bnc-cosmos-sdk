@@ -30,15 +30,6 @@ func SetPruning(pruning string) func(*BaseApp) {
 	}
 }
 
-// SetMinimumFees returns an option that sets the minimum fees on the app.
-func SetMinimumFees(minFees string) func(*BaseApp) {
-	fees, err := sdk.ParseCoins(minFees)
-	if err != nil {
-		panic(fmt.Sprintf("invalid minimum fees: %v", err))
-	}
-	return func(bap *BaseApp) { bap.SetMinimumFees(fees) }
-}
-
 func (app *BaseApp) SetName(name string) {
 	if app.sealed {
 		panic("SetName() on sealed BaseApp")
@@ -86,6 +77,13 @@ func (app *BaseApp) SetAnteHandler(ah sdk.AnteHandler) {
 		panic("SetAnteHandler() on sealed BaseApp")
 	}
 	app.anteHandler = ah
+}
+
+func (app *BaseApp) SetPreChecker(pc sdk.PreChecker) {
+	if app.sealed {
+		panic("SetPreChecker() on sealed BaseApp")
+	}
+	app.preChecker = pc
 }
 
 func (app *BaseApp) SetAddrPeerFilter(pf sdk.PeerFilter) {

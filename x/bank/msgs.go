@@ -86,6 +86,19 @@ func (msg MsgSend) GetSigners() []sdk.AccAddress {
 	return addrs
 }
 
+func (msg MsgSend) GetInvolvedAddresses() []sdk.AccAddress {
+	numOfInputs := len(msg.Inputs)
+	numOfOutputs := len(msg.Outputs)
+	addrs := make([]sdk.AccAddress, numOfInputs+numOfOutputs, numOfInputs+numOfOutputs)
+	for i, in := range msg.Inputs {
+		addrs[i] = in.Address
+	}
+	for i, out := range msg.Outputs {
+		addrs[i+numOfInputs] = out.Address
+	}
+	return addrs
+}
+
 //----------------------------------------
 // MsgIssue
 
@@ -143,6 +156,16 @@ func (msg MsgIssue) GetSignBytes() []byte {
 // Implements Msg.
 func (msg MsgIssue) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Banker}
+}
+
+// Implements Msg.
+func (msg MsgIssue) GetInvolvedAddresses() []sdk.AccAddress {
+	addrs := make([]sdk.AccAddress, len(msg.Outputs)+1, len(msg.Outputs)+1)
+	for i, o := range msg.Outputs {
+		addrs[i] = o.Address
+	}
+	addrs[len(msg.Outputs)] = msg.Banker
+	return addrs
 }
 
 //----------------------------------------

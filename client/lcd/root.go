@@ -58,13 +58,15 @@ func ServeCommand(cdc *codec.Codec) *cobra.Command {
 			var listener net.Listener
 			var fingerprint string
 			if viper.GetBool(flagInsecure) {
-				listener, err = tmserver.StartHTTPServer(
-					listenAddr, handler, logger,
-					tmserver.Config{MaxOpenConnections: maxOpen},
-				)
+				listener, err := tmserver.Listen(listenAddr, tmserver.Config{MaxOpenConnections: maxOpen})
 				if err != nil {
-					return
+					return err
 				}
+				go func() {
+					if err = tmserver.StartHTTPServer(listener, handler, logger); err != nil {
+						panic(err)
+					}
+				}()
 			} else {
 				if certFile != "" {
 					// validateCertKeyFiles() is needed to work around tendermint/tendermint#2460
@@ -89,15 +91,15 @@ func ServeCommand(cdc *codec.Codec) *cobra.Command {
 					}
 					defer cleanupFunc()
 				}
-				listener, err = tmserver.StartHTTPAndTLSServer(
-					listenAddr, handler,
-					certFile, keyFile,
-					logger,
-					tmserver.Config{MaxOpenConnections: maxOpen},
-				)
+				listener, err := tmserver.Listen(listenAddr, tmserver.Config{MaxOpenConnections: maxOpen})
 				if err != nil {
-					return
+					return err
 				}
+				go func() {
+					if err = tmserver.StartHTTPServer(listener, handler, logger); err != nil {
+						panic(err)
+					}
+				}()
 				logger.Info(fingerprint)
 			}
 			logger.Info("REST server started")

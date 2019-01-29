@@ -22,7 +22,7 @@ func NewApp4(logger log.Logger, db dbm.DB) *bapp.BaseApp {
 	cdc := UpdatedCodec()
 
 	// Create the base application object.
-	app := bapp.NewBaseApp(app4Name, logger, db, auth.DefaultTxDecoder(cdc))
+	app := bapp.NewBaseApp(app4Name, logger, db, auth.DefaultTxDecoder(cdc), false)
 
 	// Create a key for accessing the account store.
 	keyAccount := sdk.NewKVStoreKey("acc")
@@ -33,9 +33,8 @@ func NewApp4(logger log.Logger, db dbm.DB) *bapp.BaseApp {
 
 	// TODO
 	keyFees := sdk.NewKVStoreKey("fee")
-	feeKeeper := auth.NewFeeCollectionKeeper(cdc, keyFees)
 
-	app.SetAnteHandler(auth.NewAnteHandler(accountKeeper, feeKeeper))
+	app.SetAnteHandler(auth.NewAnteHandler(accountKeeper))
 
 	// Set InitChainer
 	app.SetInitChainer(NewInitChainer(cdc, accountKeeper))
@@ -48,6 +47,10 @@ func NewApp4(logger log.Logger, db dbm.DB) *bapp.BaseApp {
 	// Mount stores and load the latest state.
 	app.MountStoresIAVL(keyAccount, keyFees)
 	err := app.LoadLatestVersion(keyAccount)
+
+	accountStore := app.GetCommitMultiStore().GetKVStore(keyAccount)
+	app.SetAccountStoreCache(cdc, accountStore, 100)
+
 	if err != nil {
 		cmn.Exit(err.Error())
 	}

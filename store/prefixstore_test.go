@@ -87,14 +87,6 @@ func TestCacheKVStorePrefix(t *testing.T) {
 	testPrefixStore(t, cacheStore, []byte("test"))
 }
 
-func TestGasKVStorePrefix(t *testing.T) {
-	meter := sdk.NewGasMeter(100000000)
-	mem := dbStoreAdapter{dbm.NewMemDB()}
-	gasStore := NewGasKVStore(meter, sdk.KVGasConfig(), mem)
-
-	testPrefixStore(t, gasStore, []byte("test"))
-}
-
 func TestPrefixStoreIterate(t *testing.T) {
 	db := dbm.NewMemDB()
 	baseStore := dbStoreAdapter{db}
@@ -388,13 +380,15 @@ func TestPrefixDBReverseIterator2(t *testing.T) {
 	store := mockStoreWithStuff()
 	pstore := store.Prefix(bz("key"))
 
-	itr := pstore.ReverseIterator(nil, bz(""))
-	checkDomain(t, itr, nil, bz(""))
+	itr := pstore.ReverseIterator(bz(""), nil)
+	checkDomain(t, itr, bz(""), nil)
 	checkItem(t, itr, bz("3"), bz("value3"))
 	checkNext(t, itr, true)
 	checkItem(t, itr, bz("2"), bz("value2"))
 	checkNext(t, itr, true)
 	checkItem(t, itr, bz("1"), bz("value1"))
+	checkNext(t, itr, true)
+	checkItem(t, itr, bz(""), bz("value"))
 	checkNext(t, itr, false)
 	checkInvalid(t, itr)
 	itr.Close()
@@ -404,10 +398,8 @@ func TestPrefixDBReverseIterator3(t *testing.T) {
 	store := mockStoreWithStuff()
 	pstore := store.Prefix(bz("key"))
 
-	itr := pstore.ReverseIterator(bz(""), nil)
-	checkDomain(t, itr, bz(""), nil)
-	checkItem(t, itr, bz(""), bz("value"))
-	checkNext(t, itr, false)
+	itr := pstore.ReverseIterator(nil, bz(""))
+	checkDomain(t, itr, nil, bz(""))
 	checkInvalid(t, itr)
 	itr.Close()
 }

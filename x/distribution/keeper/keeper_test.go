@@ -19,7 +19,7 @@ func TestSetGetPreviousProposerConsAddr(t *testing.T) {
 func TestSetGetCommunityTax(t *testing.T) {
 	ctx, _, keeper, _, _ := CreateTestInputDefault(t, false, 0)
 
-	someDec := sdk.NewDec(333)
+	someDec := sdk.NewDecWithoutFra(333)
 	keeper.SetCommunityTax(ctx, someDec)
 	res := keeper.GetCommunityTax(ctx)
 	require.True(sdk.DecEq(t, someDec, res))

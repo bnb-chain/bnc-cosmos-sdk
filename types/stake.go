@@ -53,7 +53,7 @@ type Validator interface {
 func ABCIValidator(v Validator) abci.Validator {
 	return abci.Validator{
 		Address: v.GetConsPubKey().Address(),
-		Power:   v.GetPower().RoundInt64(),
+		Power:   v.GetPower().RawInt(),
 	}
 }
 

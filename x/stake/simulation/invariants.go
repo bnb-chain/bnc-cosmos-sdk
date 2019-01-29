@@ -15,9 +15,9 @@ import (
 
 // AllInvariants runs all invariants of the stake module.
 // Currently: total supply, positive power
-func AllInvariants(ck bank.Keeper, k stake.Keeper, f auth.FeeCollectionKeeper, d distribution.Keeper, am auth.AccountKeeper) simulation.Invariant {
+func AllInvariants(ck bank.Keeper, k stake.Keeper, d distribution.Keeper, am auth.AccountKeeper) simulation.Invariant {
 	return func(app *baseapp.BaseApp) error {
-		err := SupplyInvariants(ck, k, f, d, am)(app)
+		err := SupplyInvariants(ck, k, d, am)(app)
 		if err != nil {
 			return err
 		}
@@ -32,14 +32,14 @@ func AllInvariants(ck bank.Keeper, k stake.Keeper, f auth.FeeCollectionKeeper, d
 
 // SupplyInvariants checks that the total supply reflects all held loose tokens, bonded tokens, and unbonding delegations
 // nolint: unparam
-func SupplyInvariants(ck bank.Keeper, k stake.Keeper, f auth.FeeCollectionKeeper, d distribution.Keeper, am auth.AccountKeeper) simulation.Invariant {
+func SupplyInvariants(ck bank.Keeper, k stake.Keeper, d distribution.Keeper, am auth.AccountKeeper) simulation.Invariant {
 	return func(app *baseapp.BaseApp) error {
-		ctx := app.NewContext(false, abci.Header{})
+		ctx := app.NewContext(sdk.RunTxModeDeliver, abci.Header{})
 		pool := k.GetPool(ctx)
 
 		loose := sdk.ZeroDec()
 		bonded := sdk.ZeroDec()
-		am.IterateAccounts(ctx, func(acc auth.Account) bool {
+		am.IterateAccounts(ctx, func(acc sdk.Account) bool {
 			loose = loose.Add(sdk.NewDecFromInt(acc.GetCoins().AmountOf("steak")))
 			return false
 		})
@@ -60,9 +60,6 @@ func SupplyInvariants(ck bank.Keeper, k stake.Keeper, f auth.FeeCollectionKeeper
 		})
 
 		feePool := d.GetFeePool(ctx)
-
-		// add outstanding fees
-		loose = loose.Add(sdk.NewDecFromInt(f.GetCollectedFees(ctx).AmountOf("steak")))
 
 		// add community pool
 		loose = loose.Add(feePool.CommunityPool.AmountOf("steak"))
@@ -94,7 +91,7 @@ func SupplyInvariants(ck bank.Keeper, k stake.Keeper, f auth.FeeCollectionKeeper
 // PositivePowerInvariant checks that all stored validators have > 0 power
 func PositivePowerInvariant(k stake.Keeper) simulation.Invariant {
 	return func(app *baseapp.BaseApp) error {
-		ctx := app.NewContext(false, abci.Header{})
+		ctx := app.NewContext(sdk.RunTxModeDeliver, abci.Header{})
 		var err error
 		k.IterateValidatorsBonded(ctx, func(_ int64, validator sdk.Validator) bool {
 			if !validator.GetPower().GT(sdk.ZeroDec()) {

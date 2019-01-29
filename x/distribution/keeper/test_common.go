@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/ed25519"
@@ -16,10 +15,9 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/bank"
+	"github.com/cosmos/cosmos-sdk/x/distribution/types"
 	"github.com/cosmos/cosmos-sdk/x/params"
 	"github.com/cosmos/cosmos-sdk/x/stake"
-
-	"github.com/cosmos/cosmos-sdk/x/distribution/types"
 )
 
 var (
@@ -75,7 +73,14 @@ func CreateTestInputDefault(t *testing.T, isCheckTx bool, initCoins int64) (
 	sdk.Context, auth.AccountKeeper, Keeper, stake.Keeper, DummyFeeCollectionKeeper) {
 
 	communityTax := sdk.NewDecWithPrec(2, 2)
+
 	return CreateTestInputAdvanced(t, isCheckTx, initCoins, communityTax)
+}
+
+func getAccountCache(cdc *codec.Codec, ms sdk.MultiStore, accountKey *sdk.KVStoreKey) sdk.AccountCache {
+	accountStore := ms.GetKVStore(accountKey)
+	accountStoreCache := auth.NewAccountStoreCache(cdc, accountStore, 10)
+	return auth.NewAccountCache(accountStoreCache)
 }
 
 // hogpodge of all sorts of input required for testing
@@ -107,9 +112,15 @@ func CreateTestInputAdvanced(t *testing.T, isCheckTx bool, initCoins int64,
 
 	cdc := MakeTestCodec()
 	pk := params.NewKeeper(cdc, keyParams, tkeyParams)
-
-	ctx := sdk.NewContext(ms, abci.Header{ChainID: "foochainid"}, isCheckTx, log.NewNopLogger())
+	mode := sdk.RunTxModeDeliver
+	if isCheckTx {
+		mode = sdk.RunTxModeCheck
+	}
+	ctx := sdk.NewContext(ms, abci.Header{ChainID: "foochainid"}, mode, log.NewNopLogger())
 	accountKeeper := auth.NewAccountKeeper(cdc, keyAcc, auth.ProtoBaseAccount)
+	accountCache := getAccountCache(cdc, ms, keyAcc)
+	ctx = ctx.WithAccountCache(accountCache)
+
 	ck := bank.NewBaseKeeper(accountKeeper)
 	sk := stake.NewKeeper(cdc, keyStake, tkeyStake, ck, pk.Subspace(stake.DefaultParamspace), stake.DefaultCodespace)
 	sk.SetPool(ctx, stake.InitialPool())
@@ -119,7 +130,7 @@ func CreateTestInputAdvanced(t *testing.T, isCheckTx bool, initCoins int64,
 	for _, addr := range addrs {
 		pool := sk.GetPool(ctx)
 		_, _, err := ck.AddCoins(ctx, addr, sdk.Coins{
-			{sk.GetParams(ctx).BondDenom, sdk.NewInt(initCoins)},
+			{sk.GetParams(ctx).BondDenom, initCoins},
 		})
 		require.Nil(t, err)
 		pool.LooseTokens = pool.LooseTokens.Add(sdk.NewDec(initCoins))

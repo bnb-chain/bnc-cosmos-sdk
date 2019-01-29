@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
-
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
 )
@@ -32,7 +31,7 @@ type Context struct {
 }
 
 // create a new context
-func NewContext(ms MultiStore, header abci.Header, isCheckTx bool, logger log.Logger) Context {
+func NewContext(ms MultiStore, header abci.Header, runTxMode RunTxMode, logger log.Logger) Context {
 	c := Context{
 		Context: context.Background(),
 		pst:     newThePast(),
@@ -42,12 +41,10 @@ func NewContext(ms MultiStore, header abci.Header, isCheckTx bool, logger log.Lo
 	c = c.WithBlockHeader(header)
 	c = c.WithBlockHeight(header.Height)
 	c = c.WithChainID(header.ChainID)
-	c = c.WithIsCheckTx(isCheckTx)
+	c = c.WithRunTxMode(runTxMode)
 	c = c.WithTxBytes(nil)
 	c = c.WithLogger(logger)
 	c = c.WithVoteInfos(nil)
-	c = c.WithGasMeter(NewInfiniteGasMeter())
-	c = c.WithMinimumFees(Coins{})
 	return c
 }
 
@@ -73,12 +70,12 @@ func (c Context) Value(key interface{}) interface{} {
 
 // KVStore fetches a KVStore from the MultiStore.
 func (c Context) KVStore(key StoreKey) KVStore {
-	return c.multiStore().GetKVStore(key).Gas(c.GasMeter(), cachedKVGasConfig)
+	return c.multiStore().GetKVStore(key)
 }
 
 // TransientStore fetches a TransientStore from the MultiStore.
 func (c Context) TransientStore(key StoreKey) KVStore {
-	return c.multiStore().GetKVStore(key).Gas(c.GasMeter(), cachedTransientGasConfig)
+	return c.multiStore().GetKVStore(key)
 }
 
 //----------------------------------------
@@ -135,12 +132,11 @@ const (
 	contextKeyBlockHeight
 	contextKeyConsensusParams
 	contextKeyChainID
-	contextKeyIsCheckTx
+	contextKeyRunTxMode
 	contextKeyTxBytes
 	contextKeyLogger
 	contextKeyVoteInfos
-	contextKeyGasMeter
-	contextKeyMinimumFees
+	contextKeyAccountCache
 )
 
 // NOTE: Do not expose MultiStore.
@@ -168,11 +164,24 @@ func (c Context) VoteInfos() []abci.VoteInfo {
 	return c.Value(contextKeyVoteInfos).([]abci.VoteInfo)
 }
 
-func (c Context) GasMeter() GasMeter { return c.Value(contextKeyGasMeter).(GasMeter) }
+func (c Context) IsCheckTx() bool {
+	mode := c.Value(contextKeyRunTxMode).(RunTxMode)
+	return (mode == RunTxModeCheck || mode == RunTxModeCheckAfterPre)
+}
 
-func (c Context) IsCheckTx() bool { return c.Value(contextKeyIsCheckTx).(bool) }
+func (c Context) IsReCheckTx() bool {
+	mode := c.Value(contextKeyRunTxMode).(RunTxMode)
+	return (mode == RunTxModeReCheck)
+}
 
-func (c Context) MinimumFees() Coins { return c.Value(contextKeyMinimumFees).(Coins) }
+func (c Context) IsDeliverTx() bool {
+	mode := c.Value(contextKeyRunTxMode).(RunTxMode)
+	return (mode == RunTxModeDeliver || mode == RunTxModeDeliverAfterPre)
+}
+
+func (c Context) AccountCache() AccountCache {
+	return c.Value(contextKeyAccountCache).(AccountCache)
+}
 
 func (c Context) WithMultiStore(ms MultiStore) Context { return c.withValue(contextKeyMultiStore, ms) }
 
@@ -203,8 +212,7 @@ func (c Context) WithConsensusParams(params *abci.ConsensusParams) Context {
 	if params == nil {
 		return c
 	}
-	return c.withValue(contextKeyConsensusParams, params).
-		WithGasMeter(NewGasMeter(params.BlockSize.MaxGas))
+	return c.withValue(contextKeyConsensusParams, params)
 }
 
 func (c Context) WithChainID(chainID string) Context { return c.withValue(contextKeyChainID, chainID) }
@@ -217,14 +225,12 @@ func (c Context) WithVoteInfos(VoteInfos []abci.VoteInfo) Context {
 	return c.withValue(contextKeyVoteInfos, VoteInfos)
 }
 
-func (c Context) WithGasMeter(meter GasMeter) Context { return c.withValue(contextKeyGasMeter, meter) }
-
-func (c Context) WithIsCheckTx(isCheckTx bool) Context {
-	return c.withValue(contextKeyIsCheckTx, isCheckTx)
+func (c Context) WithRunTxMode(runTxMode RunTxMode) Context {
+	return c.withValue(contextKeyRunTxMode, runTxMode)
 }
 
-func (c Context) WithMinimumFees(minFees Coins) Context {
-	return c.withValue(contextKeyMinimumFees, minFees)
+func (c Context) WithAccountCache(cache AccountCache) Context {
+	return c.withValue(contextKeyAccountCache, cache)
 }
 
 // Cache the multistore and return a new cached context. The cached context is

@@ -87,6 +87,10 @@ func (msg IBCTransferMsg) ValidateBasic() sdk.Error {
 	return msg.IBCPacket.ValidateBasic()
 }
 
+func (msg IBCTransferMsg) GetInvolvedAddresses() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.SrcAddr, msg.DestAddr}
+}
+
 // ----------------------------------
 // IBCReceiveMsg
 
@@ -122,4 +126,8 @@ func (msg IBCReceiveMsg) GetSignBytes() []byte {
 		panic(err)
 	}
 	return sdk.MustSortJSON(b)
+}
+
+func (msg IBCReceiveMsg) GetInvolvedAddresses() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.Relayer, msg.DestAddr, msg.Relayer}
 }

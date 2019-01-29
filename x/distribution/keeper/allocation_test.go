@@ -12,13 +12,13 @@ import (
 func TestAllocateTokensBasic(t *testing.T) {
 
 	// no community tax on inputs
-	ctx, _, keeper, sk, fck := CreateTestInputAdvanced(t, false, 100, sdk.ZeroDec())
+	ctx, _, keeper, sk, fck := CreateTestInputAdvanced(t, false, sdk.NewDecWithoutFra(100).RawInt(), sdk.ZeroDec())
 	stakeHandler := stake.NewHandler(sk)
 	denom := sk.GetParams(ctx).BondDenom
 
 	//first make a validator
 	totalPower := int64(10)
-	totalPowerDec := sdk.NewDec(totalPower)
+	totalPowerDec := sdk.NewDecWithPrec(totalPower, 0)
 	msgCreateValidator := stake.NewTestMsgCreateValidator(valOpAddr1, valConsPk1, totalPower)
 	got := stakeHandler(ctx, msgCreateValidator)
 	require.True(t, got.IsOK(), "expected msg to be ok, got %v", got)
@@ -38,7 +38,7 @@ func TestAllocateTokensBasic(t *testing.T) {
 	require.Nil(t, feePool.Pool)
 
 	// allocate 100 denom of fees
-	feeInputs := sdk.NewInt(100)
+	feeInputs := sdk.NewDecWithoutFra(100).RawInt()
 	fck.SetCollectedFees(sdk.Coins{sdk.NewCoin(denom, feeInputs)})
 	require.Equal(t, feeInputs, fck.GetCollectedFees(ctx).AmountOf(denom))
 	keeper.AllocateTokens(ctx, sdk.OneDec(), valConsAddr1)
@@ -54,7 +54,7 @@ func TestAllocateTokensBasic(t *testing.T) {
 
 func TestAllocateTokensWithCommunityTax(t *testing.T) {
 	communityTax := sdk.NewDecWithPrec(1, 2) //1%
-	ctx, _, keeper, sk, fck := CreateTestInputAdvanced(t, false, 100, communityTax)
+	ctx, _, keeper, sk, fck := CreateTestInputAdvanced(t, false, sdk.NewDecWithoutFra(100).RawInt(), communityTax)
 	stakeHandler := stake.NewHandler(sk)
 	denom := sk.GetParams(ctx).BondDenom
 
@@ -66,7 +66,7 @@ func TestAllocateTokensWithCommunityTax(t *testing.T) {
 	_ = sk.ApplyAndReturnValidatorSetUpdates(ctx)
 
 	// allocate 100 denom of fees
-	feeInputs := sdk.NewInt(100)
+	feeInputs := sdk.NewDecWithoutFra(100).RawInt()
 	fck.SetCollectedFees(sdk.Coins{sdk.NewCoin(denom, feeInputs)})
 	keeper.AllocateTokens(ctx, sdk.OneDec(), valConsAddr1)
 
@@ -82,7 +82,7 @@ func TestAllocateTokensWithCommunityTax(t *testing.T) {
 
 func TestAllocateTokensWithPartialPrecommitPower(t *testing.T) {
 	communityTax := sdk.NewDecWithPrec(1, 2)
-	ctx, _, keeper, sk, fck := CreateTestInputAdvanced(t, false, 100, communityTax)
+	ctx, _, keeper, sk, fck := CreateTestInputAdvanced(t, false, sdk.NewDecWithoutFra(100).RawInt(), communityTax)
 	stakeHandler := stake.NewHandler(sk)
 	denom := sk.GetParams(ctx).BondDenom
 
@@ -94,7 +94,7 @@ func TestAllocateTokensWithPartialPrecommitPower(t *testing.T) {
 	_ = sk.ApplyAndReturnValidatorSetUpdates(ctx)
 
 	// allocate 100 denom of fees
-	feeInputs := sdk.NewInt(100)
+	feeInputs := int64(100)
 	fck.SetCollectedFees(sdk.Coins{sdk.NewCoin(denom, feeInputs)})
 	percentPrecommitVotes := sdk.NewDecWithPrec(25, 2)
 	keeper.AllocateTokens(ctx, percentPrecommitVotes, valConsAddr1)

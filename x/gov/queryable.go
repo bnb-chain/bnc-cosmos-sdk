@@ -1,9 +1,10 @@
 package gov
 
 import (
+	abci "github.com/tendermint/tendermint/abci/types"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 // query endpoints supported by the governance Querier
@@ -126,7 +127,7 @@ func queryDeposits(ctx sdk.Context, path []string, req abci.RequestQuery, keeper
 	depositsIterator := keeper.GetDeposits(ctx, params.ProposalID)
 	for ; depositsIterator.Valid(); depositsIterator.Next() {
 		deposit := Deposit{}
-		keeper.cdc.MustUnmarshalBinary(depositsIterator.Value(), &deposit)
+		keeper.cdc.MustUnmarshalBinaryLengthPrefixed(depositsIterator.Value(), &deposit)
 		deposits = append(deposits, deposit)
 	}
 
@@ -155,7 +156,7 @@ func queryVotes(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Ke
 	votesIterator := keeper.GetVotes(ctx, params.ProposalID)
 	for ; votesIterator.Valid(); votesIterator.Next() {
 		vote := Vote{}
-		keeper.cdc.MustUnmarshalBinary(votesIterator.Value(), &vote)
+		keeper.cdc.MustUnmarshalBinaryLengthPrefixed(votesIterator.Value(), &vote)
 		votes = append(votes, vote)
 	}
 
@@ -218,7 +219,7 @@ func queryTally(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Ke
 	} else if proposal.GetStatus() == StatusPassed || proposal.GetStatus() == StatusRejected {
 		tallyResult = proposal.GetTallyResult()
 	} else {
-		_, tallyResult = tally(ctx, keeper, proposal)
+		_, tallyResult = Tally(ctx, keeper, proposal)
 	}
 
 	bz, err2 := codec.MarshalJSONIndent(keeper.cdc, tallyResult)

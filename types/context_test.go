@@ -4,13 +4,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
+	abci "github.com/tendermint/tendermint/abci/types"
 	dbm "github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/libs/log"
 
 	"github.com/cosmos/cosmos-sdk/store"
 	"github.com/cosmos/cosmos-sdk/types"
-	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 type MockLogger struct {
@@ -42,7 +41,7 @@ func (l MockLogger) With(kvs ...interface{}) log.Logger {
 
 func TestContextGetOpShouldNeverPanic(t *testing.T) {
 	var ms types.MultiStore
-	ctx := types.NewContext(ms, abci.Header{}, false, log.NewNopLogger())
+	ctx := types.NewContext(ms, abci.Header{}, types.RunTxModeDeliver, log.NewNopLogger())
 	indices := []int64{
 		-10, 1, 0, 10, 20,
 	}
@@ -57,7 +56,7 @@ func defaultContext(key types.StoreKey) types.Context {
 	cms := store.NewCommitMultiStore(db)
 	cms.MountStoreWithDB(key, types.StoreTypeIAVL, db)
 	cms.LoadLatestVersion()
-	ctx := types.NewContext(cms, abci.Header{}, false, log.NewNopLogger())
+	ctx := types.NewContext(cms, abci.Header{}, types.RunTxModeDeliver, log.NewNopLogger())
 	return ctx
 }
 
@@ -107,7 +106,7 @@ func (d dummy) Clone() interface{} {
 
 // Testing saving/loading primitive values to/from the context
 func TestContextWithPrimitive(t *testing.T) {
-	ctx := types.NewContext(nil, abci.Header{}, false, log.NewNopLogger())
+	ctx := types.NewContext(nil, abci.Header{}, types.RunTxModeDeliver, log.NewNopLogger())
 
 	clonerkey := "cloner"
 	stringkey := "string"
@@ -152,34 +151,26 @@ func TestContextWithCustom(t *testing.T) {
 	require.Panics(t, func() { ctx.TxBytes() })
 	require.Panics(t, func() { ctx.Logger() })
 	require.Panics(t, func() { ctx.VoteInfos() })
-	require.Panics(t, func() { ctx.GasMeter() })
 
 	header := abci.Header{}
 	height := int64(1)
 	chainid := "chainid"
-	ischeck := true
 	txbytes := []byte("txbytes")
 	logger := NewMockLogger()
 	voteinfos := []abci.VoteInfo{{}}
-	meter := types.NewGasMeter(10000)
-	minFees := types.Coins{types.NewInt64Coin("feeCoin", 1)}
 
-	ctx = types.NewContext(nil, header, ischeck, logger)
+	ctx = types.NewContext(nil, header, types.RunTxModeCheck, logger)
 	require.Equal(t, header, ctx.BlockHeader())
 
 	ctx = ctx.
 		WithBlockHeight(height).
 		WithChainID(chainid).
 		WithTxBytes(txbytes).
-		WithVoteInfos(voteinfos).
-		WithGasMeter(meter).
-		WithMinimumFees(minFees)
+		WithVoteInfos(voteinfos)
 	require.Equal(t, height, ctx.BlockHeight())
 	require.Equal(t, chainid, ctx.ChainID())
-	require.Equal(t, ischeck, ctx.IsCheckTx())
+	require.Equal(t, true, ctx.IsCheckTx())
 	require.Equal(t, txbytes, ctx.TxBytes())
 	require.Equal(t, logger, ctx.Logger())
 	require.Equal(t, voteinfos, ctx.VoteInfos())
-	require.Equal(t, meter, ctx.GasMeter())
-	require.Equal(t, minFees, types.Coins{types.NewInt64Coin("feeCoin", 1)})
 }

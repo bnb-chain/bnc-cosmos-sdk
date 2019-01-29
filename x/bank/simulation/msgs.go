@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
+	"strconv"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -77,7 +78,7 @@ func createSingleInputSendMsg(r *rand.Rand, ctx sdk.Context, accs []simulation.A
 
 	action = fmt.Sprintf("%s is sending %s %s to %s",
 		fromAcc.Address.String(),
-		amt.String(),
+		strconv.FormatInt(amt, 10),
 		initFromCoins[denomIndex].Denom,
 		toAddr.String(),
 	)
@@ -141,7 +142,16 @@ func sendAndVerifyMsgSend(app *baseapp.BaseApp, mapper auth.AccountKeeper, msg b
 	return nil
 }
 
-func randPositiveInt(r *rand.Rand, max sdk.Int) (sdk.Int, error) {
+func randPositiveInt(r *rand.Rand, max int64) (int64, error) {
+	if max <= 1 {
+		return 0, errors.New("max too small")
+	}
+	max = max - 1
+	r.Int63n(max)
+	return r.Int63n(max) + 1, nil
+}
+
+func randPositiveInt1(r *rand.Rand, max sdk.Int) (sdk.Int, error) {
 	if !max.GT(sdk.OneInt()) {
 		return sdk.Int{}, errors.New("max too small")
 	}

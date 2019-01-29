@@ -4,25 +4,25 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/cmd/gaia/app"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	authtx "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
-	"github.com/cosmos/cosmos-sdk/x/stake"
-	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/privval"
 	"os"
 	"path/filepath"
 
+	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/cmd/gaia/app"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
+	authtx "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
+	"github.com/cosmos/cosmos-sdk/x/stake"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	cfg "github.com/tendermint/tendermint/config"
+	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/libs/cli"
 	"github.com/tendermint/tendermint/libs/common"
 	"github.com/tendermint/tendermint/p2p"
+	"github.com/tendermint/tendermint/privval"
 	"github.com/tendermint/tendermint/types"
 )
 
@@ -128,13 +128,15 @@ enabled, and the genesis file will not be generated.
 		},
 	}
 
-	cmd.Flags().String(cli.HomeFlag, app.DefaultNodeHome, "node's home directory")
+	// TODO(#118): need to figure out why cosmos add this flag: https://github.com/cosmos/cosmos-sdk/blob/v0.23.1/server/init.go
+	//cmd.Flags().String(cli.HomeFlag, app.DefaultNodeHome, "node's home directory")
 	cmd.Flags().BoolP(flagOverwrite, "o", false, "overwrite the genesis.json file")
 	cmd.Flags().String(client.FlagChainID, "", "genesis file chain-id, if left blank will be randomly created")
 	cmd.Flags().Bool(flagWithTxs, false, "apply existing genesis transactions from [--home]/config/gentx/")
 	cmd.Flags().String(client.FlagName, "", "name of private key with which to sign the gentx")
 	cmd.Flags().String(flagMoniker, "", "overrides --name flag and set the validator's moniker to a different value; ignored if it runs without the --with-txs flag")
-	cmd.Flags().String(flagClientHome, app.DefaultCLIHome, "client's home directory")
+	// TODO(#118): need to figure out why cosmos add this flag: https://github.com/cosmos/cosmos-sdk/blob/v0.23.1/server/init.go
+	//cmd.Flags().String(flagClientHome, app.DefaultCLIHome, "client's home directory")
 	cmd.Flags().Bool(flagOverwriteKey, false, "overwrite client's key")
 	cmd.Flags().Bool(flagSkipGenesis, false, "do not create genesis.json")
 	return cmd
@@ -147,7 +149,7 @@ func InitializeNodeValidatorFiles(config *cfg.Config) (nodeID string, valPubKey 
 		return
 	}
 	nodeID = string(nodeKey.ID())
-	valPubKey = ReadOrCreatePrivValidator(config.PrivValidatorFile())
+	valPubKey = ReadOrCreatePrivValidator(config.PrivValidatorKeyFile(), config.PrivValidatorStateFile())
 	return
 }
 
@@ -222,13 +224,13 @@ func initWithConfig(cdc *codec.Codec, config *cfg.Config, initCfg initConfig) (
 		msg := stake.NewMsgCreateValidator(
 			sdk.ValAddress(addr),
 			initCfg.ValPubKey,
-			sdk.NewInt64Coin("steak", 100),
+			sdk.NewCoin("steak", 100),
 			stake.NewDescription(config.Moniker, "", "", ""),
 			stake.NewCommissionMsg(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec()),
 		)
 		txBldr := authtx.NewTxBuilderFromCLI().WithCodec(cdc).WithMemo(memo).WithChainID(chainID)
 		signedTx, err = txBldr.SignStdTx(
-			initCfg.Name, keyPass, auth.NewStdTx([]sdk.Msg{msg}, auth.StdFee{}, []auth.StdSignature{}, memo), false,
+			initCfg.Name, keyPass, auth.NewStdTx([]sdk.Msg{msg}, []auth.StdSignature{}, memo, auth.DefaultSource, nil), false,
 		)
 		if err != nil {
 			return
@@ -268,13 +270,13 @@ func WriteGenesisFile(genesisFile, chainID string, validators []types.GenesisVal
 }
 
 // read of create the private key file for this config
-func ReadOrCreatePrivValidator(privValFile string) crypto.PubKey {
+func ReadOrCreatePrivValidator(privValKeyFile, privValStateFile string) crypto.PubKey {
 	// private validator
 	var privValidator *privval.FilePV
-	if common.FileExists(privValFile) {
-		privValidator = privval.LoadFilePV(privValFile)
+	if common.FileExists(privValKeyFile) && common.FileExists(privValStateFile) {
+		privValidator = privval.LoadFilePV(privValKeyFile, privValStateFile)
 	} else {
-		privValidator = privval.GenFilePV(privValFile)
+		privValidator = privval.GenFilePV(privValKeyFile, privValStateFile)
 		privValidator.Save()
 	}
 	return privValidator.GetPubKey()

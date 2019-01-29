@@ -49,15 +49,16 @@
 
 [[override]]
   name = "github.com/tendermint/go-amino"
-  version = "=v0.12.0"
+  version = "=v0.14.1"
 
 [[override]]
   name = "github.com/tendermint/iavl"
-  version = "=v0.11.0"
+  version = "=v0.12.0"
 
 [[override]]
   name = "github.com/tendermint/tendermint"
-  version = "=0.25.1-rc0"
+  source = "github.com/BiJie/bnc-tendermint"
+  version = "=v0.29.1-br0"
 
 ## deps without releases:
 
@@ -88,6 +89,10 @@
   name = "github.com/mitchellh/go-homedir"
   version = "1.0.0"
 
+[[constraint]]
+  name = "github.com/hashicorp/golang-lru"
+  version = "0.5.0"
+
 ## transitive deps, without releases:
 #
 
@@ -106,4 +111,5 @@
 [prune]
   go-tests = true
   unused-packages = true
+
 

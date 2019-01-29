@@ -2,6 +2,7 @@ package gov
 
 import (
 	"fmt"
+	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -10,6 +11,15 @@ import (
 const MsgRoute = "gov"
 
 var _, _, _ sdk.Msg = MsgSubmitProposal{}, MsgDeposit{}, MsgVote{}
+
+//-----------------------------------------------------------
+type ListTradingPairParams struct {
+	BaseAssetSymbol  string    `json:"base_asset_symbol"`  // base asset symbol
+	QuoteAssetSymbol string    `json:"quote_asset_symbol"` // quote asset symbol
+	InitPrice        int64     `json:"init_price"`         // init price
+	Description      string    `json:"description"`        // description
+	ExpireTime       time.Time `json:"expire_time"`        // expire time
+}
 
 //-----------------------------------------------------------
 // MsgSubmitProposal
@@ -81,6 +91,10 @@ func (msg MsgSubmitProposal) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Proposer}
 }
 
+func (msg MsgSubmitProposal) GetInvolvedAddresses() []sdk.AccAddress {
+	return msg.GetSigners()
+}
+
 //-----------------------------------------------------------
 // MsgDeposit
 type MsgDeposit struct {
@@ -142,6 +156,10 @@ func (msg MsgDeposit) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Depositer}
 }
 
+func (msg MsgDeposit) GetInvolvedAddresses() []sdk.AccAddress {
+	return msg.GetSigners()
+}
+
 //-----------------------------------------------------------
 // MsgVote
 type MsgVote struct {
@@ -198,4 +216,8 @@ func (msg MsgVote) GetSignBytes() []byte {
 // Implements Msg.
 func (msg MsgVote) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Voter}
+}
+
+func (msg MsgVote) GetInvolvedAddresses() []sdk.AccAddress {
+	return msg.GetSigners()
 }

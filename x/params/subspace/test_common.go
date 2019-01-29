@@ -33,7 +33,7 @@ func DefaultTestComponents(t *testing.T, table TypeTable) (sdk.Context, Subspace
 	ms.MountStoreWithDB(tkey, sdk.StoreTypeTransient, db)
 	err := ms.LoadLatestVersion()
 	require.Nil(t, err)
-	ctx := sdk.NewContext(ms, abci.Header{}, false, log.NewTMLogger(os.Stdout))
+	ctx := sdk.NewContext(ms, abci.Header{}, sdk.RunTxModeCheck, log.NewTMLogger(os.Stdout))
 	subspace := NewSubspace(cdc, key, tkey, TestParamStore).WithTypeTable(table)
 
 	return ctx, subspace, ms.Commit

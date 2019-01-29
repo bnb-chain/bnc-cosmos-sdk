@@ -38,11 +38,6 @@ func (ts *transientStore) Prefix(prefix []byte) KVStore {
 	return prefixStore{ts, prefix}
 }
 
-// Implements KVStore
-func (ts *transientStore) Gas(meter GasMeter, config GasConfig) KVStore {
-	return NewGasKVStore(meter, config, ts)
-}
-
 // Implements Store.
 func (ts *transientStore) GetStoreType() StoreType {
 	return sdk.StoreTypeTransient

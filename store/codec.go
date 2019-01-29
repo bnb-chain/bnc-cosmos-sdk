@@ -26,7 +26,4 @@ type (
 	StoreType        = types.StoreType
 	Queryable        = types.Queryable
 	TraceContext     = types.TraceContext
-	Gas              = types.Gas
-	GasMeter         = types.GasMeter
-	GasConfig        = types.GasConfig
 )

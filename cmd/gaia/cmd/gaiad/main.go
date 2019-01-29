@@ -34,8 +34,7 @@ func main() {
 	rootCmd.AddCommand(gaiaInit.TestnetFilesCmd(ctx, cdc, appInit))
 	rootCmd.AddCommand(gaiaInit.GenTxCmd(ctx, cdc))
 
-	server.AddCommands(ctx, cdc, rootCmd, appInit,
-		newApp, exportAppStateAndTMValidators)
+	server.AddCommands(ctx, cdc, rootCmd, exportAppStateAndTMValidators)
 
 	// prepare and add flags
 	executor := cli.PrepareBaseCmd(rootCmd, "GA", app.DefaultNodeHome)
@@ -49,7 +48,6 @@ func main() {
 func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) abci.Application {
 	return app.NewGaiaApp(logger, db, traceStore,
 		baseapp.SetPruning(viper.GetString("pruning")),
-		baseapp.SetMinimumFees(viper.GetString("minimum_fees")),
 	)
 }
 

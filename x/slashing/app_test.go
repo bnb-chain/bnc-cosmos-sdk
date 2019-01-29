@@ -17,7 +17,7 @@ import (
 var (
 	priv1 = ed25519.GenPrivKey()
 	addr1 = sdk.AccAddress(priv1.PubKey().Address())
-	coins = sdk.Coins{sdk.NewInt64Coin("foocoin", 10)}
+	coins = sdk.Coins{sdk.NewCoin("foocoin", 10)}
 )
 
 // initialize the mock application for this module
@@ -62,7 +62,7 @@ func getInitChainer(mapp *mock.App, keeper stake.Keeper) sdk.InitChainer {
 	return func(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
 		mapp.InitChainer(ctx, req)
 		stakeGenesis := stake.DefaultGenesisState()
-		stakeGenesis.Pool.LooseTokens = sdk.NewDec(100000)
+		stakeGenesis.Pool.LooseTokens = sdk.NewDecWithoutFra(100000)
 		validators, err := stake.InitGenesis(ctx, keeper, stakeGenesis)
 		if err != nil {
 			panic(err)
@@ -76,7 +76,7 @@ func getInitChainer(mapp *mock.App, keeper stake.Keeper) sdk.InitChainer {
 
 func checkValidator(t *testing.T, mapp *mock.App, keeper stake.Keeper,
 	addr sdk.AccAddress, expFound bool) stake.Validator {
-	ctxCheck := mapp.BaseApp.NewContext(true, abci.Header{})
+	ctxCheck := mapp.BaseApp.NewContext(sdk.RunTxModeCheck, abci.Header{})
 	validator, found := keeper.GetValidator(ctxCheck, sdk.ValAddress(addr1))
 	require.Equal(t, expFound, found)
 	return validator
@@ -84,7 +84,7 @@ func checkValidator(t *testing.T, mapp *mock.App, keeper stake.Keeper,
 
 func checkValidatorSigningInfo(t *testing.T, mapp *mock.App, keeper Keeper,
 	addr sdk.ConsAddress, expFound bool) ValidatorSigningInfo {
-	ctxCheck := mapp.BaseApp.NewContext(true, abci.Header{})
+	ctxCheck := mapp.BaseApp.NewContext(sdk.RunTxModeCheck, abci.Header{})
 	signingInfo, found := keeper.getValidatorSigningInfo(ctxCheck, addr)
 	require.Equal(t, expFound, found)
 	return signingInfo
@@ -93,14 +93,14 @@ func checkValidatorSigningInfo(t *testing.T, mapp *mock.App, keeper Keeper,
 func TestSlashingMsgs(t *testing.T) {
 	mapp, stakeKeeper, keeper := getMockApp(t)
 
-	genCoin := sdk.NewInt64Coin("steak", 42)
-	bondCoin := sdk.NewInt64Coin("steak", 10)
+	genCoin := sdk.NewCoin("steak", sdk.NewDecWithoutFra(42).RawInt())
+	bondCoin := sdk.NewCoin("steak", sdk.NewDecWithoutFra(10).RawInt())
 
 	acc1 := &auth.BaseAccount{
 		Address: addr1,
 		Coins:   sdk.Coins{genCoin},
 	}
-	accs := []auth.Account{acc1}
+	accs := []sdk.Account{acc1}
 	mock.SetGenesis(mapp, accs)
 
 	description := stake.NewDescription("foo_moniker", "", "", "")
@@ -116,7 +116,7 @@ func TestSlashingMsgs(t *testing.T) {
 	validator := checkValidator(t, mapp, stakeKeeper, addr1, true)
 	require.Equal(t, sdk.ValAddress(addr1), validator.OperatorAddr)
 	require.Equal(t, sdk.Bonded, validator.Status)
-	require.True(sdk.DecEq(t, sdk.NewDec(10), validator.BondedTokens()))
+	require.True(sdk.DecEq(t, sdk.NewDecWithoutFra(10), validator.BondedTokens()))
 	unjailMsg := MsgUnjail{ValidatorAddr: sdk.ValAddress(validator.ConsPubKey.Address())}
 
 	// no signing info yet

@@ -52,7 +52,7 @@ func (vi ValidatorDistInfo) TakeFeePoolRewards(fp FeePool, height int64, totalBo
 	// update the validators pool
 	blocks := height - vi.FeePoolWithdrawalHeight
 	vi.FeePoolWithdrawalHeight = height
-	accum := vdTokens.MulInt(sdk.NewInt(blocks))
+	accum := vdTokens.MulInt(blocks)
 
 	if accum.GT(fp.TotalValAccum.Accum) {
 		panic("individual accum should never be greater than the total")

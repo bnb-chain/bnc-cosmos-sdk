@@ -13,7 +13,7 @@ const msgRoute = "testMsg"
 
 var (
 	numAccts                       = 2
-	genCoins                       = sdk.Coins{sdk.NewInt64Coin("foocoin", 77)}
+	genCoins                       = sdk.Coins{sdk.NewCoin("foocoin", 77)}
 	accs, addrs, pubKeys, privKeys = CreateGenAccounts(numAccts, genCoins)
 )
 
@@ -36,6 +36,9 @@ func (tx testMsg) ValidateBasic() sdk.Error {
 	}
 	return sdk.ErrTxDecode("positiveNum should be a non-negative integer.")
 }
+func (msg testMsg) GetInvolvedAddresses() []sdk.AccAddress {
+	return msg.GetSigners()
+}
 
 // getMockApp returns an initialized mock application.
 func getMockApp(t *testing.T) *App {
@@ -52,7 +55,7 @@ func TestCheckAndDeliverGenTx(t *testing.T) {
 	mApp.Cdc.RegisterConcrete(testMsg{}, "mock/testMsg", nil)
 
 	SetGenesis(mApp, accs)
-	ctxCheck := mApp.BaseApp.NewContext(true, abci.Header{})
+	ctxCheck := mApp.BaseApp.NewContext(sdk.RunTxModeCheck, abci.Header{})
 
 	msg := testMsg{signers: []sdk.AccAddress{addrs[0]}, positiveNum: 1}
 

@@ -12,7 +12,7 @@ import (
 // Cache the amino decoding of validators, as it can be the case that repeated slashing calls
 // cause many calls to GetValidator, which were shown to throttle the state machine in our
 // simulation. Note this is quite biased though, as the simulator does more slashes than a
-// live chain should, however we require the slashing to be fast as noone pays gas for it.
+// live chain should.
 type cachedValidator struct {
 	val        types.Validator
 	marshalled string // marshalled amino bytes for the validator object (not operator address)
@@ -124,7 +124,7 @@ func (k Keeper) SetNewValidatorByPowerIndex(ctx sdk.Context, validator types.Val
 
 // Update the tokens of an existing validator, update the validators power index key
 func (k Keeper) AddValidatorTokensAndShares(ctx sdk.Context, validator types.Validator,
-	tokensToAdd sdk.Int) (valOut types.Validator, addedShares sdk.Dec) {
+	tokensToAdd int64) (valOut types.Validator, addedShares sdk.Dec) {
 
 	pool := k.GetPool(ctx)
 	k.DeleteValidatorByPowerIndex(ctx, validator, pool)
@@ -291,14 +291,14 @@ func (k Keeper) GetValidatorQueueTimeSlice(ctx sdk.Context, timestamp time.Time)
 	if bz == nil {
 		return []sdk.ValAddress{}
 	}
-	k.cdc.MustUnmarshalBinary(bz, &valAddrs)
+	k.cdc.MustUnmarshalBinaryLengthPrefixed(bz, &valAddrs)
 	return valAddrs
 }
 
 // Sets a specific validator queue timeslice.
 func (k Keeper) SetValidatorQueueTimeSlice(ctx sdk.Context, timestamp time.Time, keys []sdk.ValAddress) {
 	store := ctx.KVStore(k.storeKey)
-	bz := k.cdc.MustMarshalBinary(keys)
+	bz := k.cdc.MustMarshalBinaryLengthPrefixed(keys)
 	store.Set(GetValidatorQueueTimeKey(timestamp), bz)
 }
 
@@ -325,7 +325,7 @@ func (k Keeper) GetAllMatureValidatorQueue(ctx sdk.Context, currTime time.Time) 
 	validatorTimesliceIterator := k.ValidatorQueueIterator(ctx, ctx.BlockHeader().Time)
 	for ; validatorTimesliceIterator.Valid(); validatorTimesliceIterator.Next() {
 		timeslice := []sdk.ValAddress{}
-		k.cdc.MustUnmarshalBinary(validatorTimesliceIterator.Value(), &timeslice)
+		k.cdc.MustUnmarshalBinaryLengthPrefixed(validatorTimesliceIterator.Value(), &timeslice)
 		matureValsAddrs = append(matureValsAddrs, timeslice...)
 	}
 	return matureValsAddrs
@@ -337,7 +337,7 @@ func (k Keeper) UnbondAllMatureValidatorQueue(ctx sdk.Context) {
 	validatorTimesliceIterator := k.ValidatorQueueIterator(ctx, ctx.BlockHeader().Time)
 	for ; validatorTimesliceIterator.Valid(); validatorTimesliceIterator.Next() {
 		timeslice := []sdk.ValAddress{}
-		k.cdc.MustUnmarshalBinary(validatorTimesliceIterator.Value(), &timeslice)
+		k.cdc.MustUnmarshalBinaryLengthPrefixed(validatorTimesliceIterator.Value(), &timeslice)
 		for _, valAddr := range timeslice {
 			val, found := k.GetValidator(ctx, valAddr)
 			if !found || val.GetStatus() != sdk.Unbonding {

@@ -32,7 +32,7 @@ func TestGovWithRandomMessages(t *testing.T) {
 	paramKeeper := params.NewKeeper(mapp.Cdc, paramKey, paramTKey)
 	stakeKeeper := stake.NewKeeper(mapp.Cdc, stakeKey, stakeTKey, bankKeeper, paramKeeper.Subspace(stake.DefaultParamspace), stake.DefaultCodespace)
 	govKey := sdk.NewKVStoreKey("gov")
-	govKeeper := gov.NewKeeper(mapp.Cdc, govKey, paramKeeper, paramKeeper.Subspace(gov.DefaultParamspace), bankKeeper, stakeKeeper, gov.DefaultCodespace)
+	govKeeper := gov.NewKeeper(mapp.Cdc, govKey, paramKeeper, paramKeeper.Subspace(gov.DefaultParamspace), bankKeeper, stakeKeeper, gov.DefaultCodespace, &sdk.Pool{})
 	mapp.Router().AddRoute("gov", gov.NewHandler(govKeeper))
 	mapp.SetEndBlocker(func(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
 		gov.EndBlocker(ctx, govKeeper)
@@ -50,7 +50,7 @@ func TestGovWithRandomMessages(t *testing.T) {
 	}
 
 	setup := func(r *rand.Rand, accs []simulation.Account) {
-		ctx := mapp.NewContext(false, abci.Header{})
+		ctx := mapp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
 		stake.InitGenesis(ctx, stakeKeeper, stake.DefaultGenesisState())
 		gov.InitGenesis(ctx, govKeeper, gov.DefaultGenesisState())
 	}

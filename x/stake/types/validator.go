@@ -87,7 +87,7 @@ func MustMarshalValidator(cdc *codec.Codec, validator Validator) []byte {
 		UnbondingMinTime:   validator.UnbondingMinTime,
 		Commission:         validator.Commission,
 	}
-	return cdc.MustMarshalBinary(val)
+	return cdc.MustMarshalBinaryLengthPrefixed(val)
 }
 
 // unmarshal a redelegation from a store key and value
@@ -106,7 +106,7 @@ func UnmarshalValidator(cdc *codec.Codec, operatorAddr, value []byte) (validator
 		return
 	}
 	var storeValue validatorValue
-	err = cdc.UnmarshalBinary(value, &storeValue)
+	err = cdc.UnmarshalBinaryLengthPrefixed(value, &storeValue)
 	if err != nil {
 		return
 	}
@@ -310,7 +310,7 @@ func (d Description) EnsureLength() (Description, sdk.Error) {
 func (v Validator) ABCIValidatorUpdate() abci.ValidatorUpdate {
 	return abci.ValidatorUpdate{
 		PubKey: tmtypes.TM2PB.PubKey(v.ConsPubKey),
-		Power:  v.BondedTokens().RoundInt64(),
+		Power:  v.BondedTokens().RawInt(),
 	}
 }
 
@@ -382,7 +382,7 @@ func (v Validator) SetInitialCommission(commission Commission) (Validator, sdk.E
 //_________________________________________________________________________________________________________
 
 // AddTokensFromDel adds tokens to a validator
-func (v Validator) AddTokensFromDel(pool Pool, amount sdk.Int) (Validator, Pool, sdk.Dec) {
+func (v Validator) AddTokensFromDel(pool Pool, amount int64) (Validator, Pool, sdk.Dec) {
 
 	// bondedShare/delegatedShare
 	exRate := v.DelegatorShareExRate()

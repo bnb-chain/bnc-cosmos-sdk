@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/x/stake"
-	"github.com/tendermint/tendermint/crypto/secp256k1"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -24,15 +22,15 @@ import (
 	"github.com/cosmos/cosmos-sdk/tests"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-
+	txbuilder "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
+	"github.com/cosmos/cosmos-sdk/x/stake"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
-
-	txbuilder "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmcfg "github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/ed25519"
+	"github.com/tendermint/tendermint/crypto/secp256k1"
 	"github.com/tendermint/tendermint/libs/cli"
 	dbm "github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/libs/log"
@@ -198,8 +196,8 @@ func InitializeTestLCD(
 	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
 	logger = log.NewFilter(logger, log.AllowError())
 
-	privValidatorFile := config.PrivValidatorFile()
-	privVal := pvm.LoadOrGenFilePV(privValidatorFile)
+	privVal := pvm.LoadOrGenFilePV(config.PrivValidatorKeyFile(),
+		config.PrivValidatorStateFile())
 	privVal.Reset()
 
 	db := dbm.NewMemDB()
@@ -217,7 +215,7 @@ func InitializeTestLCD(
 	for i := 0; i < nValidators; i++ {
 		operPrivKey := secp256k1.GenPrivKey()
 		operAddr := operPrivKey.PubKey().Address()
-		pubKey := privVal.PubKey
+		pubKey := privVal.GetPubKey()
 		delegation := 100
 		if i > 0 {
 			pubKey = ed25519.GenPrivKey().PubKey()
@@ -226,7 +224,7 @@ func InitializeTestLCD(
 		msg := stake.NewMsgCreateValidator(
 			sdk.ValAddress(operAddr),
 			pubKey,
-			sdk.NewCoin("steak", sdk.NewInt(int64(delegation))),
+			sdk.NewCoin("steak", sdk.NewDecWithoutFra(int64(delegation)).RawInt()),
 			stake.Description{Moniker: fmt.Sprintf("validator-%d", i+1)},
 			stake.NewCommissionMsg(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec()),
 		)
@@ -236,7 +234,7 @@ func InitializeTestLCD(
 		}
 		sig, err := operPrivKey.Sign(stdSignMsg.Bytes())
 		require.Nil(t, err)
-		tx := auth.NewStdTx([]sdk.Msg{msg}, auth.StdFee{}, []auth.StdSignature{{Signature: sig, PubKey: operPrivKey.PubKey()}}, "")
+		tx := auth.NewStdTx([]sdk.Msg{msg}, []auth.StdSignature{{Signature: sig, PubKey: operPrivKey.PubKey()}}, "", auth.DefaultSource, nil)
 		txBytes, err := cdc.MarshalJSON(tx)
 		require.Nil(t, err)
 		genTxs = append(genTxs, txBytes)
@@ -250,10 +248,10 @@ func InitializeTestLCD(
 	// add some tokens to init accounts
 	for _, addr := range initAddrs {
 		accAuth := auth.NewBaseAccountWithAddress(addr)
-		accAuth.Coins = sdk.Coins{sdk.NewInt64Coin("steak", 100)}
+		accAuth.Coins = sdk.Coins{sdk.NewCoin("steak", sdk.NewDecWithoutFra(100).RawInt())}
 		acc := gapp.NewGenesisAccount(&accAuth)
 		genesisState.Accounts = append(genesisState.Accounts, acc)
-		genesisState.StakeData.Pool.LooseTokens = genesisState.StakeData.Pool.LooseTokens.Add(sdk.NewDec(100))
+		genesisState.StakeData.Pool.LooseTokens = genesisState.StakeData.Pool.LooseTokens.Add(sdk.NewDecWithPrec(100, 0))
 	}
 
 	appState, err := codec.MarshalJSONIndent(cdc, genesisState)
@@ -336,7 +334,13 @@ func startTM(
 //
 // NOTE: This causes the thread to block.
 func startLCD(logger log.Logger, listenAddr string, cdc *codec.Codec) (net.Listener, error) {
-	return tmrpc.StartHTTPServer(listenAddr, createHandler(cdc), logger, tmrpc.Config{})
+	listener, err := tmrpc.Listen(listenAddr, tmrpc.Config{})
+	if err != nil {
+		return nil, err
+	}
+
+	go tmrpc.StartHTTPServer(listener, createHandler(cdc), logger)
+	return listener, nil
 }
 
 // Request makes a test LCD test request. It returns a response object and a

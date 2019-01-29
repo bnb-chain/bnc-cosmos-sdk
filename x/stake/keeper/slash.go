@@ -165,17 +165,17 @@ func (k Keeper) slashUnbondingDelegation(ctx sdk.Context, unbondingDelegation ty
 	}
 
 	// Calculate slash amount proportional to stake contributing to infraction
-	slashAmount = slashFactor.MulInt(unbondingDelegation.InitialBalance.Amount)
+	slashAmount = slashFactor.Mul(sdk.NewDec(unbondingDelegation.InitialBalance.Amount))
 
 	// Don't slash more tokens than held
 	// Possible since the unbonding delegation may already
 	// have been slashed, and slash amounts are calculated
 	// according to stake held at time of infraction
-	unbondingSlashAmount := sdk.MinInt(slashAmount.RoundInt(), unbondingDelegation.Balance.Amount)
+	unbondingSlashAmount := sdk.MinInt64(slashAmount.RawInt(), unbondingDelegation.Balance.Amount)
 
 	// Update unbonding delegation if necessary
-	if !unbondingSlashAmount.IsZero() {
-		unbondingDelegation.Balance.Amount = unbondingDelegation.Balance.Amount.Sub(unbondingSlashAmount)
+	if unbondingSlashAmount != 0 {
+		unbondingDelegation.Balance.Amount = unbondingDelegation.Balance.Amount - unbondingSlashAmount
 		k.SetUnbondingDelegation(ctx, unbondingDelegation)
 		pool := k.GetPool(ctx)
 
@@ -211,17 +211,17 @@ func (k Keeper) slashRedelegation(ctx sdk.Context, validator types.Validator, re
 	}
 
 	// Calculate slash amount proportional to stake contributing to infraction
-	slashAmount = slashFactor.MulInt(redelegation.InitialBalance.Amount)
+	slashAmount = slashFactor.Mul(sdk.NewDec(redelegation.InitialBalance.Amount))
 
 	// Don't slash more tokens than held
 	// Possible since the redelegation may already
 	// have been slashed, and slash amounts are calculated
 	// according to stake held at time of infraction
-	redelegationSlashAmount := sdk.MinInt(slashAmount.RoundInt(), redelegation.Balance.Amount)
+	redelegationSlashAmount := sdk.MinInt64(slashAmount.RawInt(), redelegation.Balance.Amount)
 
 	// Update redelegation if necessary
-	if !redelegationSlashAmount.IsZero() {
-		redelegation.Balance.Amount = redelegation.Balance.Amount.Sub(redelegationSlashAmount)
+	if redelegationSlashAmount != 0 {
+		redelegation.Balance.Amount = redelegation.Balance.Amount - redelegationSlashAmount
 		k.SetRedelegation(ctx, redelegation)
 	}
 

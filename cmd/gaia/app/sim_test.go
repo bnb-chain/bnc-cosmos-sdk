@@ -14,7 +14,6 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	authsim "github.com/cosmos/cosmos-sdk/x/auth/simulation"
 	banksim "github.com/cosmos/cosmos-sdk/x/bank/simulation"
 	distr "github.com/cosmos/cosmos-sdk/x/distribution"
 	distrsim "github.com/cosmos/cosmos-sdk/x/distribution/simulation"
@@ -24,7 +23,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/mock/simulation"
 	"github.com/cosmos/cosmos-sdk/x/slashing"
 	slashingsim "github.com/cosmos/cosmos-sdk/x/slashing/simulation"
-	stake "github.com/cosmos/cosmos-sdk/x/stake"
+	"github.com/cosmos/cosmos-sdk/x/stake"
 	stakesim "github.com/cosmos/cosmos-sdk/x/stake/simulation"
 )
 
@@ -53,7 +52,7 @@ func appStateFn(r *rand.Rand, accs []simulation.Account) json.RawMessage {
 
 	// Randomly generate some genesis accounts
 	for _, acc := range accs {
-		coins := sdk.Coins{sdk.Coin{"steak", sdk.NewInt(amt)}}
+		coins := sdk.Coins{sdk.Coin{"steak", amt}}
 		genesisAccounts = append(genesisAccounts, GenesisAccount{
 			Address: acc.Address,
 			Coins:   coins,
@@ -75,13 +74,13 @@ func appStateFn(r *rand.Rand, accs []simulation.Account) json.RawMessage {
 		valAddrs[i] = valAddr
 
 		validator := stake.NewValidator(valAddr, accs[i].PubKey, stake.Description{})
-		validator.Tokens = sdk.NewDec(amt)
-		validator.DelegatorShares = sdk.NewDec(amt)
-		delegation := stake.Delegation{accs[i].Address, valAddr, sdk.NewDec(amt), 0}
+		validator.Tokens = sdk.NewDecWithoutFra(amt)
+		validator.DelegatorShares = sdk.NewDecWithoutFra(amt)
+		delegation := stake.Delegation{accs[i].Address, valAddr, sdk.NewDecWithoutFra(amt), 0}
 		validators = append(validators, validator)
 		delegations = append(delegations, delegation)
 	}
-	stakeGenesis.Pool.LooseTokens = sdk.NewDec(amt*250 + (numInitiallyBonded * amt))
+	stakeGenesis.Pool.LooseTokens = sdk.NewDecWithoutFra(amt * (250 + (numInitiallyBonded * amt)))
 	stakeGenesis.Validators = validators
 	stakeGenesis.Bonds = delegations
 	mintGenesis := mint.DefaultGenesisState()
@@ -106,7 +105,6 @@ func appStateFn(r *rand.Rand, accs []simulation.Account) json.RawMessage {
 
 func testAndRunTxs(app *GaiaApp) []simulation.WeightedOperation {
 	return []simulation.WeightedOperation{
-		{5, authsim.SimulateDeductFee(app.accountKeeper, app.feeCollectionKeeper)},
 		{100, banksim.SingleInputSendMsg(app.accountKeeper, app.bankKeeper)},
 		{50, distrsim.SimulateMsgSetWithdrawAddress(app.accountKeeper, app.distrKeeper)},
 		{50, distrsim.SimulateMsgWithdrawDelegatorRewardsAll(app.accountKeeper, app.distrKeeper)},
@@ -127,7 +125,7 @@ func invariants(app *GaiaApp) []simulation.Invariant {
 	return []simulation.Invariant{
 		banksim.NonnegativeBalanceInvariant(app.accountKeeper),
 		govsim.AllInvariants(),
-		stakesim.AllInvariants(app.bankKeeper, app.stakeKeeper, app.feeCollectionKeeper, app.distrKeeper, app.accountKeeper),
+		stakesim.AllInvariants(app.bankKeeper, app.stakeKeeper, app.distrKeeper, app.accountKeeper),
 		slashingsim.AllInvariants(),
 	}
 }

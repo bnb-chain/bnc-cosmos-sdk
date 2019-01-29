@@ -27,7 +27,7 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 
 	store := ctx.KVStore(k.storeKey)
 	maxValidators := k.GetParams(ctx).MaxValidators
-	totalPower := sdk.ZeroInt()
+	var totalPower int64
 
 	// Retrieve the last validator set.
 	// The persistent set is updated later in this function.
@@ -50,7 +50,7 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 		// if we get to a zero-power validator (which we don't bond),
 		// there are no more possible bonded validators
 		// note: we must check the ABCI power, since we round before sending to Tendermint
-		if validator.Tokens.RoundInt64() == int64(0) {
+		if validator.Tokens.RawInt() == int64(0) {
 			break
 		}
 
@@ -72,14 +72,14 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 		oldPowerBytes, found := last[operatorBytes]
 
 		// calculate the new power bytes
-		newPower := validator.BondedTokens().RoundInt64()
-		newPowerBytes := k.cdc.MustMarshalBinary(sdk.NewInt(newPower))
+		newPower := validator.BondedTokens().RawInt()
+		newPowerBytes := k.cdc.MustMarshalBinaryLengthPrefixed(newPower)
 		// update the validator set if power has changed
 		if !found || !bytes.Equal(oldPowerBytes, newPowerBytes) {
 			updates = append(updates, validator.ABCIValidatorUpdate())
 
 			// set validator power on lookup index.
-			k.SetLastValidatorPower(ctx, operator, sdk.NewInt(newPower))
+			k.SetLastValidatorPower(ctx, operator, newPower)
 		}
 
 		// validator still in the validator set, so delete from the copy
@@ -87,7 +87,7 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 
 		// keep count
 		count++
-		totalPower = totalPower.Add(sdk.NewInt(newPower))
+		totalPower = totalPower + newPower
 	}
 
 	// sort the no-longer-bonded validators

@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/utils"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -191,22 +190,9 @@ func delegationsRequestHandlerFn(cdc *codec.Codec, kb keys.Keybase, cliCtx conte
 			i++
 		}
 
-		simulateGas, gas, err := client.ReadGasFlag(baseReq.Gas)
-		if err != nil {
-			utils.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
-			return
-		}
-
-		adjustment, ok := utils.ParseFloat64OrReturnBadRequest(w, baseReq.GasAdjustment, client.DefaultGasAdjustment)
-		if !ok {
-			return
-		}
 
 		txBldr := authtxb.TxBuilder{
 			Codec:         cdc,
-			Gas:           gas,
-			GasAdjustment: adjustment,
-			SimulateGas:   simulateGas,
 			ChainID:       baseReq.ChainID,
 		}
 
@@ -219,19 +205,9 @@ func delegationsRequestHandlerFn(cdc *codec.Codec, kb keys.Keybase, cliCtx conte
 
 			baseReq.Sequence++
 
-			if utils.HasDryRunArg(r) || txBldr.SimulateGas {
-				newBldr, err := utils.EnrichCtxWithGas(txBldr, cliCtx, baseReq.Name, []sdk.Msg{msg})
-				if err != nil {
-					utils.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
-					return
-				}
-
-				if utils.HasDryRunArg(r) {
-					utils.WriteSimulationResponse(w, newBldr.Gas)
-					return
-				}
-
-				txBldr = newBldr
+			if utils.HasDryRunArg(r) {
+				// Todo return something
+				return
 			}
 
 			if utils.HasGenerateOnlyArg(r) {

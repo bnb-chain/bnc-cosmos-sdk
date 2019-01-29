@@ -10,15 +10,15 @@ import (
 )
 
 var (
-	coinPos  = sdk.NewInt64Coin("steak", 1000)
-	coinZero = sdk.NewInt64Coin("steak", 0)
-	coinNeg  = sdk.NewInt64Coin("steak", -10000)
+	coinPos  = sdk.NewCoin("steak", 1000)
+	coinZero = sdk.NewCoin("steak", 0)
+	coinNeg  = sdk.NewCoin("steak", -10000)
 )
 
 // test ValidateBasic for MsgCreateValidator
 func TestMsgCreateValidator(t *testing.T) {
-	commission1 := NewCommissionMsg(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec())
-	commission2 := NewCommissionMsg(sdk.NewDec(5), sdk.NewDec(5), sdk.NewDec(5))
+	commission1 := NewCommissionMsg(sdk.NewDecWithoutFra(1), sdk.NewDecWithoutFra(1), sdk.NewDecWithoutFra(1))
+	commission2 := NewCommissionMsg(sdk.NewDecWithoutFra(5), sdk.NewDecWithoutFra(5), sdk.NewDecWithoutFra(5))
 
 	tests := []struct {
 		name, moniker, identity, website, details string
@@ -77,8 +77,8 @@ func TestMsgEditValidator(t *testing.T) {
 
 // test ValidateBasic and GetSigners for MsgCreateValidatorOnBehalfOf
 func TestMsgCreateValidatorOnBehalfOf(t *testing.T) {
-	commission1 := NewCommissionMsg(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec())
-	commission2 := NewCommissionMsg(sdk.NewDec(5), sdk.NewDec(5), sdk.NewDec(5))
+	commission1 := NewCommissionMsg(sdk.NewDecWithoutFra(1), sdk.NewDecWithoutFra(1), sdk.NewDecWithoutFra(1))
+	commission2 := NewCommissionMsg(sdk.NewDecWithoutFra(5), sdk.NewDecWithoutFra(5), sdk.NewDecWithoutFra(5))
 
 	tests := []struct {
 		name, moniker, identity, website, details string

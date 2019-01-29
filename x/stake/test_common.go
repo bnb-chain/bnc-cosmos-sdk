@@ -5,7 +5,6 @@ import (
 	"github.com/tendermint/tendermint/crypto/ed25519"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
 
@@ -17,18 +16,14 @@ var (
 	addr3 = sdk.AccAddress(ed25519.GenPrivKey().PubKey().Address())
 	priv4 = ed25519.GenPrivKey()
 	addr4 = sdk.AccAddress(priv4.PubKey().Address())
-	coins = sdk.Coins{sdk.NewCoin("foocoin", sdk.NewInt(10))}
-	fee   = auth.NewStdFee(
-		100000,
-		sdk.Coins{sdk.NewCoin("foocoin", sdk.NewInt(0))}...,
-	)
+	coins = sdk.Coins{sdk.NewCoin("foocoin", 10)}
 
 	commissionMsg = NewCommissionMsg(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec())
 )
 
 func NewTestMsgCreateValidator(address sdk.ValAddress, pubKey crypto.PubKey, amt int64) MsgCreateValidator {
 	return types.NewMsgCreateValidator(
-		address, pubKey, sdk.NewCoin("steak", sdk.NewInt(amt)), Description{}, commissionMsg,
+		address, pubKey, sdk.NewCoin("steak", sdk.NewDecWithoutFra(amt).RawInt()), Description{}, commissionMsg,
 	)
 }
 
@@ -38,7 +33,7 @@ func NewTestMsgCreateValidatorWithCommission(address sdk.ValAddress, pubKey cryp
 	commission := NewCommissionMsg(commissionRate, sdk.OneDec(), sdk.ZeroDec())
 
 	return types.NewMsgCreateValidator(
-		address, pubKey, sdk.NewCoin("steak", sdk.NewInt(amt)), Description{}, commission,
+		address, pubKey, sdk.NewCoin("steak", amt), Description{}, commission,
 	)
 }
 
@@ -46,7 +41,7 @@ func NewTestMsgDelegate(delAddr sdk.AccAddress, valAddr sdk.ValAddress, amt int6
 	return MsgDelegate{
 		DelegatorAddr: delAddr,
 		ValidatorAddr: valAddr,
-		Delegation:    sdk.NewCoin("steak", sdk.NewInt(amt)),
+		Delegation:    sdk.NewCoin("steak", sdk.NewDecWithoutFra(amt).RawInt()),
 	}
 }
 
@@ -57,6 +52,6 @@ func NewTestMsgCreateValidatorOnBehalfOf(delAddr sdk.AccAddress, valAddr sdk.Val
 		DelegatorAddr: delAddr,
 		ValidatorAddr: valAddr,
 		PubKey:        valPubKey,
-		Delegation:    sdk.NewCoin("steak", sdk.NewInt(amt)),
+		Delegation:    sdk.NewCoin("steak", sdk.NewDecWithoutFra(amt).RawInt()),
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/cosmos/cosmos-sdk/client"
@@ -20,8 +21,10 @@ import (
 )
 
 const (
-	flagTags = "tag"
-	flagAny  = "any"
+	flagTags    = "tag"
+	flagAny     = "any"
+	flagPage    = "page"
+	flagPerPage = "perPage"
 )
 
 // default client command to search through tagged transactions
@@ -35,19 +38,21 @@ passed to the --tags option. To match any transaction, use the --any option.
 
 For example:
 
-$ gaiacli tendermint txs --tag test1,test2
+$ gaiacli tendermint txs --tag test1,test2 --page 0 --perPage 30
 
 will match any transaction tagged with both test1,test2. To match a transaction tagged with either
 test1 or test2, use:
 
-$ gaiacli tendermint txs --tag test1,test2 --any
+$ gaiacli tendermint txs --tag test1,test2 --any --page 0 --perPage 30
 `),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			tags := viper.GetStringSlice(flagTags)
+			page := viper.GetInt(flagPage)
+			perPage := viper.GetInt(flagPerPage)
 
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			txs, err := searchTxs(cliCtx, cdc, tags)
+			txs, err := searchTxs(cliCtx, cdc, tags, page, perPage)
 			if err != nil {
 				return err
 			}
@@ -79,7 +84,7 @@ $ gaiacli tendermint txs --tag test1,test2 --any
 	return cmd
 }
 
-func searchTxs(cliCtx context.CLIContext, cdc *codec.Codec, tags []string) ([]Info, error) {
+func searchTxs(cliCtx context.CLIContext, cdc *codec.Codec, tags []string, page, perPage int) ([]Info, error) {
 	if len(tags) == 0 {
 		return nil, errors.New("must declare at least one tag to search")
 	}
@@ -95,9 +100,6 @@ func searchTxs(cliCtx context.CLIContext, cdc *codec.Codec, tags []string) ([]In
 
 	prove := !cliCtx.TrustNode
 
-	// TODO: take these as args
-	page := 0
-	perPage := 100
 	res, err := node.TxSearch(query, prove, page, perPage)
 	if err != nil {
 		return nil, err
@@ -145,6 +147,27 @@ func SearchTxRequestHandlerFn(cliCtx context.CLIContext, cdc *codec.Codec) http.
 			w.Write([]byte("You need to provide at least a tag as a key=value pair to search for. Postfix the key with _bech32 to search bech32-encoded addresses or public keys"))
 			return
 		}
+		pageStr := r.FormValue("page")
+		if pageStr == "" {
+			pageStr = "0"
+		}
+		page, err := strconv.Atoi(pageStr)
+		if err != nil || page < 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("page parameter is not a valid non-negative integer"))
+			return
+		}
+
+		perPageStr := r.FormValue("perPage")
+		if perPageStr == "" {
+			perPageStr = "30" // should be consistent with tendermint/tendermint/rpc/core/pipe.go:19
+		}
+		perPage, err := strconv.Atoi(perPageStr)
+		if err != nil || perPage <= 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("perPage parameter is not a valid positive integer"))
+			return
+		}
 
 		keyValue := strings.Split(tag, "=")
 		key := keyValue[0]
@@ -167,7 +190,7 @@ func SearchTxRequestHandlerFn(cliCtx context.CLIContext, cdc *codec.Codec) http.
 			tag = strings.TrimRight(key, "_bech32") + "='" + sdk.AccAddress(bz).String() + "'"
 		}
 
-		txs, err := searchTxs(cliCtx, cdc, []string{tag})
+		txs, err := searchTxs(cliCtx, cdc, []string{tag}, page, perPage)
 		if err != nil {
 			utils.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return

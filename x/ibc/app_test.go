@@ -4,14 +4,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/crypto/ed25519"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/mock"
-
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto/ed25519"
 )
 
 // initialize the mock application for this module
@@ -36,19 +35,19 @@ func TestIBCMsgs(t *testing.T) {
 
 	priv1 := ed25519.GenPrivKey()
 	addr1 := sdk.AccAddress(priv1.PubKey().Address())
-	coins := sdk.Coins{sdk.NewInt64Coin("foocoin", 10)}
+	coins := sdk.Coins{sdk.NewCoin("foocoin", 10)}
 	var emptyCoins sdk.Coins
 
 	acc := &auth.BaseAccount{
 		Address: addr1,
 		Coins:   coins,
 	}
-	accs := []auth.Account{acc}
+	accs := []sdk.Account{acc}
 
 	mock.SetGenesis(mapp, accs)
 
 	// A checkTx context (true)
-	ctxCheck := mapp.BaseApp.NewContext(true, abci.Header{})
+	ctxCheck := mapp.BaseApp.NewContext(sdk.RunTxModeCheck, abci.Header{})
 	res1 := mapp.AccountKeeper.GetAccount(ctxCheck, addr1)
 	require.Equal(t, acc, res1)
 

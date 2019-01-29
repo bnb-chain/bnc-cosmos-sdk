@@ -44,6 +44,10 @@ func (msg MsgSetWithdrawAddress) GetSignBytes() []byte {
 	return sdk.MustSortJSON(b)
 }
 
+func (msg MsgSetWithdrawAddress) GetInvolvedAddresses() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.DelegatorAddr, msg.WithdrawAddr}
+}
+
 // quick validity check
 func (msg MsgSetWithdrawAddress) ValidateBasic() sdk.Error {
 	if msg.DelegatorAddr == nil {
@@ -93,6 +97,10 @@ func (msg MsgWithdrawDelegatorRewardsAll) ValidateBasic() sdk.Error {
 	return nil
 }
 
+func (msg MsgWithdrawDelegatorRewardsAll) GetInvolvedAddresses() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.DelegatorAddr}
+}
+
 //______________________________________________________________________
 
 // msg struct for delegation withdraw from a single validator
@@ -136,6 +144,10 @@ func (msg MsgWithdrawDelegatorReward) ValidateBasic() sdk.Error {
 	return nil
 }
 
+func (msg MsgWithdrawDelegatorReward) GetInvolvedAddresses() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.DelegatorAddr, sdk.AccAddress(msg.DelegatorAddr)}
+}
+
 //______________________________________________________________________
 
 // msg struct for validator withdraw
@@ -172,4 +184,8 @@ func (msg MsgWithdrawValidatorRewardsAll) ValidateBasic() sdk.Error {
 		return ErrNilValidatorAddr(DefaultCodespace)
 	}
 	return nil
+}
+
+func (msg MsgWithdrawValidatorRewardsAll) GetInvolvedAddresses() []sdk.AccAddress {
+	return msg.GetSigners()
 }

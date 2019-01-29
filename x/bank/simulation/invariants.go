@@ -4,18 +4,19 @@ import (
 	"errors"
 	"fmt"
 
+	abci "github.com/tendermint/tendermint/abci/types"
+
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/mock"
 	"github.com/cosmos/cosmos-sdk/x/mock/simulation"
-	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 // NonnegativeBalanceInvariant checks that all accounts in the application have non-negative balances
 func NonnegativeBalanceInvariant(mapper auth.AccountKeeper) simulation.Invariant {
 	return func(app *baseapp.BaseApp) error {
-		ctx := app.NewContext(false, abci.Header{})
+		ctx := app.NewContext(sdk.RunTxModeDeliver, abci.Header{})
 		accts := mock.GetAllAccounts(mapper, ctx)
 		for _, acc := range accts {
 			coins := acc.GetCoins()
@@ -33,15 +34,16 @@ func NonnegativeBalanceInvariant(mapper auth.AccountKeeper) simulation.Invariant
 // is what is expected
 func TotalCoinsInvariant(mapper auth.AccountKeeper, totalSupplyFn func() sdk.Coins) simulation.Invariant {
 	return func(app *baseapp.BaseApp) error {
-		ctx := app.NewContext(false, abci.Header{})
+		ctx := app.NewContext(sdk.RunTxModeDeliver, abci.Header{})
 		totalCoins := sdk.Coins{}
 
-		chkAccount := func(acc auth.Account) bool {
+		chkAccount := func(acc sdk.Account) bool {
 			coins := acc.GetCoins()
 			totalCoins = totalCoins.Plus(coins)
 			return false
 		}
 
+		app.DeliverState.WriteAccountCache()
 		mapper.IterateAccounts(ctx, chkAccount)
 		if !totalSupplyFn().IsEqual(totalCoins) {
 			return errors.New("total calculated coins doesn't equal expected coins")
