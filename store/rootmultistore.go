@@ -300,7 +300,11 @@ func (rs *rootMultiStore) Query(req abci.RequestQuery) abci.ResponseQuery {
 		return sdk.ErrInternal(errMsg.Error()).QueryResult()
 	}
 
-	res.Proof = buildMultiStoreProof(res.Proof, storeName, commitInfo.StoreInfos)
+	// Restore origin path and append proof op.
+	res.Proof.Ops = append(res.Proof.Ops, NewMultiStoreProofOp(
+		[]byte(storeName),
+		NewMultiStoreProof(commitInfo.StoreInfos),
+	).ProofOp())
 
 	return res
 }
@@ -387,9 +391,9 @@ type commitInfo struct {
 // Hash returns the simple merkle root hash of the stores sorted by name.
 func (ci commitInfo) Hash() []byte {
 	// TODO cache to ci.hash []byte
-	m := make(map[string]merkle.Hasher, len(ci.StoreInfos))
+	m := make(map[string][]byte, len(ci.StoreInfos))
 	for _, storeInfo := range ci.StoreInfos {
-		m[storeInfo.Name] = storeInfo
+		m[storeInfo.Name] = storeInfo.Hash()
 	}
 	return merkle.SimpleHashFromMap(m)
 }
@@ -422,7 +426,7 @@ type storeCore struct {
 func (si storeInfo) Hash() []byte {
 	// Doesn't write Name, since merkle.SimpleHashFromMap() will
 	// include them via the keys.
-	bz, _ := cdc.MarshalBinary(si.Core) // Does not error
+	bz, _ := cdc.MarshalBinaryLengthPrefixed(si.Core) // Does not error
 	hasher := tmhash.New()
 	_, err := hasher.Write(bz)
 	if err != nil {
@@ -441,7 +445,7 @@ func getLatestVersion(db dbm.DB) int64 {
 	if latestBytes == nil {
 		return 0
 	}
-	err := cdc.UnmarshalBinary(latestBytes, &latest)
+	err := cdc.UnmarshalBinaryLengthPrefixed(latestBytes, &latest)
 	if err != nil {
 		panic(err)
 	}
@@ -450,7 +454,7 @@ func getLatestVersion(db dbm.DB) int64 {
 
 // Set the latest version.
 func setLatestVersion(batch dbm.Batch, version int64) {
-	latestBytes, _ := cdc.MarshalBinary(version) // Does not error
+	latestBytes, _ := cdc.MarshalBinaryLengthPrefixed(version) // Does not error
 	batch.Set([]byte(latestVersionKey), latestBytes)
 }
 
@@ -493,7 +497,7 @@ func getCommitInfo(db dbm.DB, ver int64) (commitInfo, error) {
 
 	// Parse bytes.
 	var cInfo commitInfo
-	err := cdc.UnmarshalBinary(cInfoBytes, &cInfo)
+	err := cdc.UnmarshalBinaryLengthPrefixed(cInfoBytes, &cInfo)
 	if err != nil {
 		return commitInfo{}, fmt.Errorf("failed to get rootMultiStore: %v", err)
 	}
@@ -502,7 +506,7 @@ func getCommitInfo(db dbm.DB, ver int64) (commitInfo, error) {
 
 // Set a commitInfo for given version.
 func setCommitInfo(batch dbm.Batch, version int64, cInfo commitInfo) {
-	cInfoBytes, err := cdc.MarshalBinary(cInfo)
+	cInfoBytes, err := cdc.MarshalBinaryLengthPrefixed(cInfo)
 	if err != nil {
 		panic(err)
 	}

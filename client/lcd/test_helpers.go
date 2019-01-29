@@ -196,8 +196,8 @@ func InitializeTestLCD(
 	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
 	logger = log.NewFilter(logger, log.AllowError())
 
-	privValidatorFile := config.PrivValidatorFile()
-	privVal := pvm.LoadOrGenFilePV(privValidatorFile)
+	privVal := pvm.LoadOrGenFilePV(config.PrivValidatorKeyFile(),
+		config.PrivValidatorStateFile())
 	privVal.Reset()
 
 	db := dbm.NewMemDB()
@@ -215,7 +215,7 @@ func InitializeTestLCD(
 	for i := 0; i < nValidators; i++ {
 		operPrivKey := secp256k1.GenPrivKey()
 		operAddr := operPrivKey.PubKey().Address()
-		pubKey := privVal.PubKey
+		pubKey := privVal.GetPubKey()
 		delegation := 100
 		if i > 0 {
 			pubKey = ed25519.GenPrivKey().PubKey()
@@ -334,7 +334,13 @@ func startTM(
 //
 // NOTE: This causes the thread to block.
 func startLCD(logger log.Logger, listenAddr string, cdc *codec.Codec) (net.Listener, error) {
-	return tmrpc.StartHTTPServer(listenAddr, createHandler(cdc), logger, tmrpc.Config{})
+	listener, err := tmrpc.Listen(listenAddr, tmrpc.Config{})
+	if err != nil {
+		return nil, err
+	}
+
+	go tmrpc.StartHTTPServer(listener, createHandler(cdc), logger)
+	return listener, nil
 }
 
 // Request makes a test LCD test request. It returns a response object and a

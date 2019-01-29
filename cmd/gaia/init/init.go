@@ -149,7 +149,7 @@ func InitializeNodeValidatorFiles(config *cfg.Config) (nodeID string, valPubKey 
 		return
 	}
 	nodeID = string(nodeKey.ID())
-	valPubKey = ReadOrCreatePrivValidator(config.PrivValidatorFile())
+	valPubKey = ReadOrCreatePrivValidator(config.PrivValidatorKeyFile(), config.PrivValidatorStateFile())
 	return
 }
 
@@ -270,13 +270,13 @@ func WriteGenesisFile(genesisFile, chainID string, validators []types.GenesisVal
 }
 
 // read of create the private key file for this config
-func ReadOrCreatePrivValidator(privValFile string) crypto.PubKey {
+func ReadOrCreatePrivValidator(privValKeyFile, privValStateFile string) crypto.PubKey {
 	// private validator
 	var privValidator *privval.FilePV
-	if common.FileExists(privValFile) {
-		privValidator = privval.LoadFilePV(privValFile)
+	if common.FileExists(privValKeyFile) && common.FileExists(privValStateFile) {
+		privValidator = privval.LoadFilePV(privValKeyFile, privValStateFile)
 	} else {
-		privValidator = privval.GenFilePV(privValFile)
+		privValidator = privval.GenFilePV(privValKeyFile, privValStateFile)
 		privValidator.Save()
 	}
 	return privValidator.GetPubKey()

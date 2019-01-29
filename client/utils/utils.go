@@ -117,7 +117,7 @@ func SignStdTx(txBldr authtxb.TxBuilder, cliCtx context.CLIContext, name string,
 
 func parseQueryResponse(cdc *amino.Codec, rawRes []byte) error {
 	var simulationResult sdk.Result
-	if err := cdc.UnmarshalBinary(rawRes, &simulationResult); err != nil {
+	if err := cdc.UnmarshalBinaryLengthPrefixed(rawRes, &simulationResult); err != nil {
 		return err
 	}
 	return nil

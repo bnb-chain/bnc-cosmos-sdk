@@ -394,9 +394,9 @@ func TestIAVLStoreQuery(t *testing.T) {
 		{Key: k1, Value: v3},
 		{Key: k2, Value: v2},
 	}
-	valExpSubEmpty := cdc.MustMarshalBinary(KVs0)
-	valExpSub1 := cdc.MustMarshalBinary(KVs1)
-	valExpSub2 := cdc.MustMarshalBinary(KVs2)
+	valExpSubEmpty := cdc.MustMarshalBinaryLengthPrefixed(KVs0)
+	valExpSub1 := cdc.MustMarshalBinaryLengthPrefixed(KVs1)
+	valExpSub2 := cdc.MustMarshalBinaryLengthPrefixed(KVs2)
 
 	cid := iavlStore.Commit()
 	ver := cid.Version

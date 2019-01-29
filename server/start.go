@@ -128,7 +128,7 @@ func startInProcess(ctx *Context, appCreator AppCreator) (*node.Node, error) {
 	// create & start tendermint node
 	tmNode, err := node.NewNode(
 		cfg,
-		pvm.LoadOrGenFilePV(cfg.PrivValidatorFile()),
+		pvm.LoadOrGenFilePV(cfg.PrivValidatorKeyFile(), cfg.PrivValidatorStateFile()),
 		nodeKey,
 		cliCreator,
 		node.DefaultGenesisDocProviderFunc(cfg),
@@ -145,7 +145,12 @@ func startInProcess(ctx *Context, appCreator AppCreator) (*node.Node, error) {
 		return nil, err
 	}
 
-	// trap signal (run forever)
-	tmNode.RunForever()
-	return tmNode, nil
+	TrapSignal(func() {
+		if tmNode.IsRunning() {
+			_ = tmNode.Stop()
+		}
+	})
+
+	// run forever (the node will not be returned)
+	select {}
 }
