@@ -9,6 +9,10 @@ type Msg interface {
 
 	// Return the message type.
 	// Must be alphanumeric or empty.
+	Route() string
+
+	// Returns a human-readable string for the message, intended for utilization
+	// within tags
 	Type() string
 
 	// ValidateBasic does a simple validation check that
@@ -22,6 +26,9 @@ type Msg interface {
 	// CONTRACT: All signatures must be present to be valid.
 	// CONTRACT: Returns addrs in some deterministic order.
 	GetSigners() []AccAddress
+
+	// Get involved addresses of this msg so that we can publish account balance change
+	GetInvolvedAddresses() []AccAddress
 }
 
 //__________________________________________________________
@@ -54,7 +61,8 @@ func NewTestMsg(addrs ...AccAddress) *TestMsg {
 }
 
 //nolint
-func (msg *TestMsg) Type() string { return "TestMsg" }
+func (msg *TestMsg) Route() string { return "TestMsg" }
+func (msg *TestMsg) Type() string  { return "Test message" }
 func (msg *TestMsg) GetSignBytes() []byte {
 	bz, err := json.Marshal(msg.signers)
 	if err != nil {
@@ -64,5 +72,8 @@ func (msg *TestMsg) GetSignBytes() []byte {
 }
 func (msg *TestMsg) ValidateBasic() Error { return nil }
 func (msg *TestMsg) GetSigners() []AccAddress {
+	return msg.signers
+}
+func (msg *TestMsg) GetInvolvedAddresses() []AccAddress {
 	return msg.signers
 }

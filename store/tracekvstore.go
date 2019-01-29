@@ -82,11 +82,6 @@ func (tkv *TraceKVStore) Prefix(prefix []byte) KVStore {
 	return prefixStore{tkv, prefix}
 }
 
-// Gas implements the KVStore interface.
-func (tkv *TraceKVStore) Gas(meter GasMeter, config GasConfig) KVStore {
-	return NewGasKVStore(meter, config, tkv.parent)
-}
-
 // Iterator implements the KVStore interface. It delegates the Iterator call
 // the to the parent KVStore.
 func (tkv *TraceKVStore) Iterator(start, end []byte) sdk.Iterator {
@@ -179,6 +174,7 @@ func (tkv *TraceKVStore) CacheWrapWithTrace(_ io.Writer, _ TraceContext) CacheWr
 
 // writeOperation writes a KVStore operation to the underlying io.Writer as
 // JSON-encoded data where the key/value pair is base64 encoded.
+// nolint: errcheck
 func writeOperation(w io.Writer, op operation, tc TraceContext, key, value []byte) {
 	traceOp := traceOperation{
 		Operation: op,

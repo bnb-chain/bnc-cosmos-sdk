@@ -3,20 +3,20 @@ package ibc
 import (
 	"fmt"
 
+	codec "github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	wire "github.com/cosmos/cosmos-sdk/wire"
 )
 
 // IBC Mapper
 type Mapper struct {
 	key       sdk.StoreKey
-	cdc       *wire.Codec
+	cdc       *codec.Codec
 	codespace sdk.CodespaceType
 }
 
 // XXX: The Mapper should not take a CoinKeeper. Rather have the CoinKeeper
 // take an Mapper.
-func NewMapper(cdc *wire.Codec, key sdk.StoreKey, codespace sdk.CodespaceType) Mapper {
+func NewMapper(cdc *codec.Codec, key sdk.StoreKey, codespace sdk.CodespaceType) Mapper {
 	// XXX: How are these codecs supposed to work?
 	return Mapper{
 		key:       key,
@@ -33,13 +33,13 @@ func (ibcm Mapper) PostIBCPacket(ctx sdk.Context, packet IBCPacket) sdk.Error {
 	// write everything into the state
 	store := ctx.KVStore(ibcm.key)
 	index := ibcm.getEgressLength(store, packet.DestChain)
-	bz, err := ibcm.cdc.MarshalBinary(packet)
+	bz, err := ibcm.cdc.MarshalBinaryLengthPrefixed(packet)
 	if err != nil {
 		panic(err)
 	}
 
 	store.Set(EgressKey(packet.DestChain, index), bz)
-	bz, err = ibcm.cdc.MarshalBinary(index + 1)
+	bz, err = ibcm.cdc.MarshalBinaryLengthPrefixed(index + 1)
 	if err != nil {
 		panic(err)
 	}
@@ -60,16 +60,16 @@ func (ibcm Mapper) ReceiveIBCPacket(ctx sdk.Context, packet IBCPacket) sdk.Error
 // --------------------------
 // Functions for accessing the underlying KVStore.
 
-func marshalBinaryPanic(cdc *wire.Codec, value interface{}) []byte {
-	res, err := cdc.MarshalBinary(value)
+func marshalBinaryPanic(cdc *codec.Codec, value interface{}) []byte {
+	res, err := cdc.MarshalBinaryLengthPrefixed(value)
 	if err != nil {
 		panic(err)
 	}
 	return res
 }
 
-func unmarshalBinaryPanic(cdc *wire.Codec, bz []byte, ptr interface{}) {
-	err := cdc.UnmarshalBinary(bz, ptr)
+func unmarshalBinaryPanic(cdc *codec.Codec, bz []byte, ptr interface{}) {
+	err := cdc.UnmarshalBinaryLengthPrefixed(bz, ptr)
 	if err != nil {
 		panic(err)
 	}

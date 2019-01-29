@@ -5,10 +5,9 @@ import (
 	"io"
 	"strings"
 
-	"golang.org/x/crypto/ripemd160"
-
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/merkle"
+	"github.com/tendermint/tendermint/crypto/tmhash"
 	dbm "github.com/tendermint/tendermint/libs/db"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -68,6 +67,9 @@ func (rs *rootMultiStore) MountStoreWithDB(key StoreKey, typ StoreType, db dbm.D
 	if _, ok := rs.storesParams[key]; ok {
 		panic(fmt.Sprintf("rootMultiStore duplicate store key %v", key))
 	}
+	if _, ok := rs.keysByName[key.Name()]; ok {
+		panic(fmt.Sprintf("rootMultiStore duplicate store key name %v", key))
+	}
 	rs.storesParams[key] = storeParams{
 		key: key,
 		typ: typ,
@@ -117,26 +119,26 @@ func (rs *rootMultiStore) LoadVersion(ver int64) error {
 		return err
 	}
 
+	// Convert StoreInfos slice to map
+	infos := make(map[StoreKey]storeInfo)
+	for _, storeInfo := range cInfo.StoreInfos {
+		infos[rs.nameToKey(storeInfo.Name)] = storeInfo
+	}
+
 	// Load each Store
 	var newStores = make(map[StoreKey]CommitStore)
-	for _, storeInfo := range cInfo.StoreInfos {
-		key, commitID := rs.nameToKey(storeInfo.Name), storeInfo.Core.CommitID
-		storeParams := rs.storesParams[key]
-		store, err := rs.loadCommitStoreFromParams(key, commitID, storeParams)
+	for key, storeParams := range rs.storesParams {
+		var id CommitID
+		info, ok := infos[key]
+		if ok {
+			id = info.Core.CommitID
+		}
+
+		store, err := rs.loadCommitStoreFromParams(key, id, storeParams)
 		if err != nil {
 			return fmt.Errorf("failed to load rootMultiStore: %v", err)
 		}
 		newStores[key] = store
-	}
-
-	// TODO: detecting transient is quite adhoc
-	// If any nontransient CommitStoreLoaders were not used, return error.
-	for key, param := range rs.storesParams {
-		if param.typ != sdk.StoreTypeTransient {
-			if _, ok := newStores[key]; !ok {
-				return fmt.Errorf("unused CommitStoreLoader: %v", key)
-			}
-		}
 	}
 
 	// Success.
@@ -288,6 +290,22 @@ func (rs *rootMultiStore) Query(req abci.RequestQuery) abci.ResponseQuery {
 	// trim the path and make the query
 	req.Path = subpath
 	res := queryable.Query(req)
+
+	if !req.Prove || !RequireProof(subpath) {
+		return res
+	}
+
+	commitInfo, errMsg := getCommitInfo(rs.db, res.Height)
+	if errMsg != nil {
+		return sdk.ErrInternal(errMsg.Error()).QueryResult()
+	}
+
+	// Restore origin path and append proof op.
+	res.Proof.Ops = append(res.Proof.Ops, NewMultiStoreProofOp(
+		[]byte(storeName),
+		NewMultiStoreProof(commitInfo.StoreInfos),
+	).ProofOp())
+
 	return res
 }
 
@@ -373,9 +391,9 @@ type commitInfo struct {
 // Hash returns the simple merkle root hash of the stores sorted by name.
 func (ci commitInfo) Hash() []byte {
 	// TODO cache to ci.hash []byte
-	m := make(map[string]merkle.Hasher, len(ci.StoreInfos))
+	m := make(map[string][]byte, len(ci.StoreInfos))
 	for _, storeInfo := range ci.StoreInfos {
-		m[storeInfo.Name] = storeInfo
+		m[storeInfo.Name] = storeInfo.Hash()
 	}
 	return merkle.SimpleHashFromMap(m)
 }
@@ -408,8 +426,8 @@ type storeCore struct {
 func (si storeInfo) Hash() []byte {
 	// Doesn't write Name, since merkle.SimpleHashFromMap() will
 	// include them via the keys.
-	bz, _ := cdc.MarshalBinary(si.Core) // Does not error
-	hasher := ripemd160.New()
+	bz, _ := cdc.MarshalBinaryLengthPrefixed(si.Core) // Does not error
+	hasher := tmhash.New()
 	_, err := hasher.Write(bz)
 	if err != nil {
 		// TODO: Handle with #870
@@ -427,7 +445,7 @@ func getLatestVersion(db dbm.DB) int64 {
 	if latestBytes == nil {
 		return 0
 	}
-	err := cdc.UnmarshalBinary(latestBytes, &latest)
+	err := cdc.UnmarshalBinaryLengthPrefixed(latestBytes, &latest)
 	if err != nil {
 		panic(err)
 	}
@@ -436,7 +454,7 @@ func getLatestVersion(db dbm.DB) int64 {
 
 // Set the latest version.
 func setLatestVersion(batch dbm.Batch, version int64) {
-	latestBytes, _ := cdc.MarshalBinary(version) // Does not error
+	latestBytes, _ := cdc.MarshalBinaryLengthPrefixed(version) // Does not error
 	batch.Set([]byte(latestVersionKey), latestBytes)
 }
 
@@ -479,7 +497,7 @@ func getCommitInfo(db dbm.DB, ver int64) (commitInfo, error) {
 
 	// Parse bytes.
 	var cInfo commitInfo
-	err := cdc.UnmarshalBinary(cInfoBytes, &cInfo)
+	err := cdc.UnmarshalBinaryLengthPrefixed(cInfoBytes, &cInfo)
 	if err != nil {
 		return commitInfo{}, fmt.Errorf("failed to get rootMultiStore: %v", err)
 	}
@@ -488,7 +506,7 @@ func getCommitInfo(db dbm.DB, ver int64) (commitInfo, error) {
 
 // Set a commitInfo for given version.
 func setCommitInfo(batch dbm.Batch, version int64, cInfo commitInfo) {
-	cInfoBytes, err := cdc.MarshalBinary(cInfo)
+	cInfoBytes, err := cdc.MarshalBinaryLengthPrefixed(cInfo)
 	if err != nil {
 		panic(err)
 	}

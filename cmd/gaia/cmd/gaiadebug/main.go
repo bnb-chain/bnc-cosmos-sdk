@@ -138,11 +138,17 @@ func runPubKeyCmd(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+
+	consenusPub, err := sdk.Bech32ifyConsPub(pubKey)
+	if err != nil {
+		return err
+	}
 	fmt.Println("Address:", pubKey.Address())
 	fmt.Printf("Hex: %X\n", pubkeyBytes)
 	fmt.Println("JSON (base64):", string(pubKeyJSONBytes))
 	fmt.Println("Bech32 Acc:", accPub)
-	fmt.Println("Bech32 Val:", valPub)
+	fmt.Println("Bech32 Validator Operator:", valPub)
+	fmt.Println("Bech32 Validator Consensus:", consenusPub)
 	return nil
 }
 
@@ -207,7 +213,7 @@ func runTxCmd(cmd *cobra.Command, args []string) error {
 	var tx = auth.StdTx{}
 	cdc := gaia.MakeCodec()
 
-	err = cdc.UnmarshalBinary(txBytes, &tx)
+	err = cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx)
 	if err != nil {
 		return err
 	}

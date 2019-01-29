@@ -1,9 +1,17 @@
 package config
 
-//_____________________________________________________________________
+// BaseConfig defines the server's basic configuration
+type BaseConfig struct {
+}
 
-// Configuration structure for command functions that share configuration.
-// For example: init, init gen-tx and testnet commands need similar input and run the same code
+// Config defines the server's top level configuration
+type Config struct {
+	BaseConfig `mapstructure:",squash"`
+}
+
+func DefaultConfig() *Config {
+	return &Config{BaseConfig{}}
+}
 
 // Storage for init gen-tx command input parameters
 type GenTx struct {

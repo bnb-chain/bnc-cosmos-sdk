@@ -1,11 +1,12 @@
+// nolint
 package types
 
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/golang/protobuf/proto"
-
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
 )
@@ -30,7 +31,7 @@ type Context struct {
 }
 
 // create a new context
-func NewContext(ms MultiStore, header abci.Header, isCheckTx bool, logger log.Logger) Context {
+func NewContext(ms MultiStore, header abci.Header, runTxMode RunTxMode, logger log.Logger) Context {
 	c := Context{
 		Context: context.Background(),
 		pst:     newThePast(),
@@ -40,10 +41,10 @@ func NewContext(ms MultiStore, header abci.Header, isCheckTx bool, logger log.Lo
 	c = c.WithBlockHeader(header)
 	c = c.WithBlockHeight(header.Height)
 	c = c.WithChainID(header.ChainID)
+	c = c.WithRunTxMode(runTxMode)
 	c = c.WithTxBytes(nil)
 	c = c.WithLogger(logger)
-	c = c.WithSigningValidators(nil)
-	c = c.WithGasMeter(NewInfiniteGasMeter())
+	c = c.WithVoteInfos(nil)
 	return c
 }
 
@@ -69,12 +70,12 @@ func (c Context) Value(key interface{}) interface{} {
 
 // KVStore fetches a KVStore from the MultiStore.
 func (c Context) KVStore(key StoreKey) KVStore {
-	return c.multiStore().GetKVStore(key).Gas(c.GasMeter(), cachedDefaultGasConfig)
+	return c.multiStore().GetKVStore(key)
 }
 
 // TransientStore fetches a TransientStore from the MultiStore.
 func (c Context) TransientStore(key StoreKey) KVStore {
-	return c.multiStore().GetKVStore(key).Gas(c.GasMeter(), cachedTransientGasConfig)
+	return c.multiStore().GetKVStore(key)
 }
 
 //----------------------------------------
@@ -131,10 +132,11 @@ const (
 	contextKeyBlockHeight
 	contextKeyConsensusParams
 	contextKeyChainID
+	contextKeyRunTxMode
 	contextKeyTxBytes
 	contextKeyLogger
-	contextKeySigningValidators
-	contextKeyGasMeter
+	contextKeyVoteInfos
+	contextKeyAccountCache
 )
 
 // NOTE: Do not expose MultiStore.
@@ -144,62 +146,91 @@ func (c Context) multiStore() MultiStore {
 	return c.Value(contextKeyMultiStore).(MultiStore)
 }
 
-// nolint
-func (c Context) BlockHeader() abci.Header {
-	return c.Value(contextKeyBlockHeader).(abci.Header)
-}
-func (c Context) BlockHeight() int64 {
-	return c.Value(contextKeyBlockHeight).(int64)
-}
+func (c Context) BlockHeader() abci.Header { return c.Value(contextKeyBlockHeader).(abci.Header) }
+
+func (c Context) BlockHeight() int64 { return c.Value(contextKeyBlockHeight).(int64) }
+
 func (c Context) ConsensusParams() abci.ConsensusParams {
 	return c.Value(contextKeyConsensusParams).(abci.ConsensusParams)
 }
-func (c Context) ChainID() string {
-	return c.Value(contextKeyChainID).(string)
+
+func (c Context) ChainID() string { return c.Value(contextKeyChainID).(string) }
+
+func (c Context) TxBytes() []byte { return c.Value(contextKeyTxBytes).([]byte) }
+
+func (c Context) Logger() log.Logger { return c.Value(contextKeyLogger).(log.Logger) }
+
+func (c Context) VoteInfos() []abci.VoteInfo {
+	return c.Value(contextKeyVoteInfos).([]abci.VoteInfo)
 }
-func (c Context) TxBytes() []byte {
-	return c.Value(contextKeyTxBytes).([]byte)
+
+func (c Context) IsCheckTx() bool {
+	mode := c.Value(contextKeyRunTxMode).(RunTxMode)
+	return (mode == RunTxModeCheck || mode == RunTxModeCheckAfterPre)
 }
-func (c Context) Logger() log.Logger {
-	return c.Value(contextKeyLogger).(log.Logger)
+
+func (c Context) IsReCheckTx() bool {
+	mode := c.Value(contextKeyRunTxMode).(RunTxMode)
+	return (mode == RunTxModeReCheck)
 }
-func (c Context) SigningValidators() []abci.SigningValidator {
-	return c.Value(contextKeySigningValidators).([]abci.SigningValidator)
+
+func (c Context) IsDeliverTx() bool {
+	mode := c.Value(contextKeyRunTxMode).(RunTxMode)
+	return (mode == RunTxModeDeliver || mode == RunTxModeDeliverAfterPre)
 }
-func (c Context) GasMeter() GasMeter {
-	return c.Value(contextKeyGasMeter).(GasMeter)
+
+func (c Context) AccountCache() AccountCache {
+	return c.Value(contextKeyAccountCache).(AccountCache)
 }
-func (c Context) WithMultiStore(ms MultiStore) Context {
-	return c.withValue(contextKeyMultiStore, ms)
-}
+
+func (c Context) WithMultiStore(ms MultiStore) Context { return c.withValue(contextKeyMultiStore, ms) }
+
 func (c Context) WithBlockHeader(header abci.Header) Context {
 	var _ proto.Message = &header // for cloning.
 	return c.withValue(contextKeyBlockHeader, header)
 }
-func (c Context) WithBlockHeight(height int64) Context {
-	return c.withValue(contextKeyBlockHeight, height)
+
+func (c Context) WithBlockTime(newTime time.Time) Context {
+	newHeader := c.BlockHeader()
+	newHeader.Time = newTime
+	return c.WithBlockHeader(newHeader)
 }
+
+func (c Context) WithProposer(addr ConsAddress) Context {
+	newHeader := c.BlockHeader()
+	newHeader.ProposerAddress = addr.Bytes()
+	return c.WithBlockHeader(newHeader)
+}
+
+func (c Context) WithBlockHeight(height int64) Context {
+	newHeader := c.BlockHeader()
+	newHeader.Height = height
+	return c.withValue(contextKeyBlockHeight, height).withValue(contextKeyBlockHeader, newHeader)
+}
+
 func (c Context) WithConsensusParams(params *abci.ConsensusParams) Context {
 	if params == nil {
 		return c
 	}
-	return c.withValue(contextKeyConsensusParams, params).
-		WithGasMeter(NewGasMeter(params.TxSize.MaxGas))
+	return c.withValue(contextKeyConsensusParams, params)
 }
-func (c Context) WithChainID(chainID string) Context {
-	return c.withValue(contextKeyChainID, chainID)
+
+func (c Context) WithChainID(chainID string) Context { return c.withValue(contextKeyChainID, chainID) }
+
+func (c Context) WithTxBytes(txBytes []byte) Context { return c.withValue(contextKeyTxBytes, txBytes) }
+
+func (c Context) WithLogger(logger log.Logger) Context { return c.withValue(contextKeyLogger, logger) }
+
+func (c Context) WithVoteInfos(VoteInfos []abci.VoteInfo) Context {
+	return c.withValue(contextKeyVoteInfos, VoteInfos)
 }
-func (c Context) WithTxBytes(txBytes []byte) Context {
-	return c.withValue(contextKeyTxBytes, txBytes)
+
+func (c Context) WithRunTxMode(runTxMode RunTxMode) Context {
+	return c.withValue(contextKeyRunTxMode, runTxMode)
 }
-func (c Context) WithLogger(logger log.Logger) Context {
-	return c.withValue(contextKeyLogger, logger)
-}
-func (c Context) WithSigningValidators(SigningValidators []abci.SigningValidator) Context {
-	return c.withValue(contextKeySigningValidators, SigningValidators)
-}
-func (c Context) WithGasMeter(meter GasMeter) Context {
-	return c.withValue(contextKeyGasMeter, meter)
+
+func (c Context) WithAccountCache(cache AccountCache) Context {
+	return c.withValue(contextKeyAccountCache, cache)
 }
 
 // Cache the multistore and return a new cached context. The cached context is

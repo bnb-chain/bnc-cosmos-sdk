@@ -21,6 +21,21 @@ func TestStoreType(t *testing.T) {
 
 }
 
+func TestStoreMount(t *testing.T) {
+	db := dbm.NewMemDB()
+	store := NewCommitMultiStore(db)
+
+	key1 := sdk.NewKVStoreKey("store1")
+	key2 := sdk.NewKVStoreKey("store2")
+	dup1 := sdk.NewKVStoreKey("store1")
+
+	require.NotPanics(t, func() { store.MountStoreWithDB(key1, sdk.StoreTypeIAVL, db) })
+	require.NotPanics(t, func() { store.MountStoreWithDB(key2, sdk.StoreTypeIAVL, db) })
+
+	require.Panics(t, func() { store.MountStoreWithDB(key1, sdk.StoreTypeIAVL, db) })
+	require.Panics(t, func() { store.MountStoreWithDB(dup1, sdk.StoreTypeIAVL, db) })
+}
+
 func TestMultistoreCommitLoad(t *testing.T) {
 	var db dbm.DB = dbm.NewMemDB()
 	if useDebugDB {
@@ -200,7 +215,7 @@ func getExpectedCommitID(store *rootMultiStore, ver int64) CommitID {
 }
 
 func hashStores(stores map[StoreKey]CommitStore) []byte {
-	m := make(map[string]merkle.Hasher, len(stores))
+	m := make(map[string][]byte, len(stores))
 	for key, store := range stores {
 		name := key.Name()
 		m[name] = storeInfo{
@@ -209,7 +224,7 @@ func hashStores(stores map[StoreKey]CommitStore) []byte {
 				CommitID: store.LastCommitID(),
 				// StoreType: store.GetStoreType(),
 			},
-		}
+		}.Hash()
 	}
 	return merkle.SimpleHashFromMap(m)
 }

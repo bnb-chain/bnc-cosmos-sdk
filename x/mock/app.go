@@ -1,12 +1,13 @@
 package mock
 
 import (
+	"fmt"
 	"math/rand"
 	"os"
 
 	bam "github.com/cosmos/cosmos-sdk/baseapp"
+	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/wire"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
@@ -23,15 +24,14 @@ const chainID = ""
 // capabilities aren't needed for testing.
 type App struct {
 	*bam.BaseApp
-	Cdc        *wire.Codec // Cdc is public since the codec is passed into the module anyways
+	Cdc        *codec.Codec // Cdc is public since the codec is passed into the module anyways
 	KeyMain    *sdk.KVStoreKey
 	KeyAccount *sdk.KVStoreKey
 
 	// TODO: Abstract this out from not needing to be auth specifically
-	AccountMapper       auth.AccountMapper
-	FeeCollectionKeeper auth.FeeCollectionKeeper
+	AccountKeeper auth.AccountKeeper
 
-	GenesisAccounts  []auth.Account
+	GenesisAccounts  []sdk.Account
 	TotalCoinsSupply sdk.Coins
 }
 
@@ -42,22 +42,22 @@ func NewApp() *App {
 	db := dbm.NewMemDB()
 
 	// Create the cdc with some standard codecs
-	cdc := wire.NewCodec()
-	sdk.RegisterWire(cdc)
-	wire.RegisterCrypto(cdc)
-	auth.RegisterWire(cdc)
+	cdc := codec.New()
+	sdk.RegisterCodec(cdc)
+	codec.RegisterCrypto(cdc)
+	auth.RegisterCodec(cdc)
 
 	// Create your application object
 	app := &App{
-		BaseApp:          bam.NewBaseApp("mock", logger, db, auth.DefaultTxDecoder(cdc)),
+		BaseApp:          bam.NewBaseApp("mock", logger, db, auth.DefaultTxDecoder(cdc), false),
 		Cdc:              cdc,
 		KeyMain:          sdk.NewKVStoreKey("main"),
 		KeyAccount:       sdk.NewKVStoreKey("acc"),
 		TotalCoinsSupply: sdk.Coins{},
 	}
 
-	// Define the accountMapper
-	app.AccountMapper = auth.NewAccountMapper(
+	// Define the accountKeeper
+	app.AccountKeeper = auth.NewAccountKeeper(
 		app.Cdc,
 		app.KeyAccount,
 		auth.ProtoBaseAccount,
@@ -66,7 +66,7 @@ func NewApp() *App {
 	// Initialize the app. The chainers and blockers can be overwritten before
 	// calling complete setup.
 	app.SetInitChainer(app.InitChainer)
-	app.SetAnteHandler(auth.NewAnteHandler(app.AccountMapper, app.FeeCollectionKeeper))
+	app.SetAnteHandler(auth.NewAnteHandler(app.AccountKeeper))
 
 	// Not sealing for custom extension
 
@@ -75,23 +75,37 @@ func NewApp() *App {
 
 // CompleteSetup completes the application setup after the routes have been
 // registered.
-func (app *App) CompleteSetup(newKeys []*sdk.KVStoreKey) error {
+func (app *App) CompleteSetup(newKeys ...sdk.StoreKey) error {
 	newKeys = append(newKeys, app.KeyMain)
 	newKeys = append(newKeys, app.KeyAccount)
 
-	app.MountStoresIAVL(newKeys...)
+	for _, key := range newKeys {
+		switch key.(type) {
+		case *sdk.KVStoreKey:
+			app.MountStore(key, sdk.StoreTypeIAVL)
+		case *sdk.TransientStoreKey:
+			app.MountStore(key, sdk.StoreTypeTransient)
+		default:
+			return fmt.Errorf("unsupported StoreKey: %+v", key)
+		}
+	}
+
 	err := app.LoadLatestVersion(app.KeyMain)
+
+	accountStore := app.BaseApp.GetCommitMultiStore().GetKVStore(app.KeyAccount)
+	app.SetAccountStoreCache(app.Cdc, accountStore, 100)
 
 	return err
 }
 
 // InitChainer performs custom logic for initialization.
+// nolint: errcheck
 func (app *App) InitChainer(ctx sdk.Context, _ abci.RequestInitChain) abci.ResponseInitChain {
 	// Load the genesis accounts
 	for _, genacc := range app.GenesisAccounts {
-		acc := app.AccountMapper.NewAccountWithAddress(ctx, genacc.GetAddress())
+		acc := app.AccountKeeper.NewAccountWithAddress(ctx, genacc.GetAddress())
 		acc.SetCoins(genacc.GetCoins())
-		app.AccountMapper.SetAccount(ctx, acc)
+		app.AccountKeeper.SetAccount(ctx, acc)
 	}
 
 	return abci.ResponseInitChain{}
@@ -99,7 +113,7 @@ func (app *App) InitChainer(ctx sdk.Context, _ abci.RequestInitChain) abci.Respo
 
 // CreateGenAccounts generates genesis accounts loaded with coins, and returns
 // their addresses, pubkeys, and privkeys.
-func CreateGenAccounts(numAccs int, genCoins sdk.Coins) (genAccs []auth.Account, addrs []sdk.AccAddress, pubKeys []crypto.PubKey, privKeys []crypto.PrivKey) {
+func CreateGenAccounts(numAccs int, genCoins sdk.Coins) (genAccs []sdk.Account, addrs []sdk.AccAddress, pubKeys []crypto.PubKey, privKeys []crypto.PrivKey) {
 	for i := 0; i < numAccs; i++ {
 		privKey := ed25519.GenPrivKey()
 		pubKey := privKey.PubKey()
@@ -120,7 +134,7 @@ func CreateGenAccounts(numAccs int, genCoins sdk.Coins) (genAccs []auth.Account,
 }
 
 // SetGenesis sets the mock app genesis accounts.
-func SetGenesis(app *App, accs []auth.Account) {
+func SetGenesis(app *App, accs []sdk.Account) {
 	// Pass the accounts in via the application (lazy) instead of through
 	// RequestInitChain.
 	app.GenesisAccounts = accs
@@ -131,17 +145,12 @@ func SetGenesis(app *App, accs []auth.Account) {
 
 // GenTx generates a signed mock transaction.
 func GenTx(msgs []sdk.Msg, accnums []int64, seq []int64, priv ...crypto.PrivKey) auth.StdTx {
-	// Make the transaction free
-	fee := auth.StdFee{
-		Amount: sdk.Coins{sdk.NewInt64Coin("foocoin", 0)},
-		Gas:    100000,
-	}
 
 	sigs := make([]auth.StdSignature, len(priv))
 	memo := "testmemotestmemo"
 
 	for i, p := range priv {
-		sig, err := p.Sign(auth.StdSignBytes(chainID, accnums[i], seq[i], fee, msgs, memo))
+		sig, err := p.Sign(auth.StdSignBytes(chainID, accnums[i], seq[i], msgs, memo, auth.DefaultSource, nil))
 		if err != nil {
 			panic(err)
 		}
@@ -154,7 +163,7 @@ func GenTx(msgs []sdk.Msg, accnums []int64, seq []int64, priv ...crypto.PrivKey)
 		}
 	}
 
-	return auth.NewStdTx(msgs, fee, sigs, memo)
+	return auth.NewStdTx(msgs, sigs, memo, auth.DefaultSource, nil)
 }
 
 // GeneratePrivKeys generates a total n Ed25519 private keys.
@@ -207,12 +216,13 @@ func GeneratePrivKeyAddressPairsFromRand(rand *rand.Rand, n int) (keys []crypto.
 
 // RandomSetGenesis set genesis accounts with random coin values using the
 // provided addresses and coin denominations.
+// nolint: errcheck
 func RandomSetGenesis(r *rand.Rand, app *App, addrs []sdk.AccAddress, denoms []string) {
-	accts := make([]auth.Account, len(addrs), len(addrs))
+	accts := make([]sdk.Account, len(addrs), len(addrs))
 	randCoinIntervals := []BigInterval{
 		{sdk.NewIntWithDecimal(1, 0), sdk.NewIntWithDecimal(1, 1)},
 		{sdk.NewIntWithDecimal(1, 2), sdk.NewIntWithDecimal(1, 3)},
-		{sdk.NewIntWithDecimal(1, 40), sdk.NewIntWithDecimal(1, 50)},
+		{sdk.NewIntWithDecimal(1, 8), sdk.NewIntWithDecimal(1, 8)},
 	}
 
 	for i := 0; i < len(accts); i++ {
@@ -221,7 +231,7 @@ func RandomSetGenesis(r *rand.Rand, app *App, addrs []sdk.AccAddress, denoms []s
 		// generate a random coin for each denomination
 		for j := 0; j < len(denoms); j++ {
 			coins[j] = sdk.Coin{Denom: denoms[j],
-				Amount: RandFromBigInterval(r, randCoinIntervals),
+				Amount: RandFromBigInterval(r, randCoinIntervals).Int64(),
 			}
 		}
 
@@ -234,10 +244,10 @@ func RandomSetGenesis(r *rand.Rand, app *App, addrs []sdk.AccAddress, denoms []s
 	app.GenesisAccounts = accts
 }
 
-// GetAllAccounts returns all accounts in the accountMapper.
-func GetAllAccounts(mapper auth.AccountMapper, ctx sdk.Context) []auth.Account {
-	accounts := []auth.Account{}
-	appendAccount := func(acc auth.Account) (stop bool) {
+// GetAllAccounts returns all accounts in the accountKeeper.
+func GetAllAccounts(mapper auth.AccountKeeper, ctx sdk.Context) []sdk.Account {
+	accounts := []sdk.Account{}
+	appendAccount := func(acc sdk.Account) (stop bool) {
 		accounts = append(accounts, acc)
 		return false
 	}

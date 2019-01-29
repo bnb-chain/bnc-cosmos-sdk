@@ -129,10 +129,6 @@ func (kv kvStore) Prefix(prefix []byte) sdk.KVStore {
 	panic("not implemented")
 }
 
-func (kv kvStore) Gas(meter sdk.GasMeter, config sdk.GasConfig) sdk.KVStore {
-	panic("not implmeneted")
-}
-
 func (kv kvStore) Iterator(start, end []byte) sdk.Iterator {
 	panic("not implemented")
 }

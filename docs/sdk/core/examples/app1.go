@@ -18,7 +18,7 @@ const (
 func NewApp1(logger log.Logger, db dbm.DB) *bapp.BaseApp {
 
 	// Create the base application object.
-	app := bapp.NewBaseApp(app1Name, logger, db, tx1Decoder)
+	app := bapp.NewBaseApp(app1Name, logger, db, tx1Decoder, false)
 
 	// Create a key for accessing the account store.
 	keyAccount := sdk.NewKVStoreKey("acc")
@@ -56,7 +56,9 @@ func NewMsgSend(from, to sdk.AccAddress, amt sdk.Coins) MsgSend {
 }
 
 // Implements Msg.
-func (msg MsgSend) Type() string { return "send" }
+// nolint
+func (msg MsgSend) Route() string { return "send" }
+func (msg MsgSend) Type() string  { return "send" }
 
 // Implements Msg. Ensure the addresses are good and the
 // amount is positive.
@@ -91,6 +93,10 @@ func (msg MsgSend) GetSigners() []sdk.AccAddress {
 func (msg MsgSend) Tags() sdk.Tags {
 	return sdk.NewTags("sender", []byte(msg.From.String())).
 		AppendTag("receiver", []byte(msg.To.String()))
+}
+
+func (msg MsgSend) GetInvolvedAddresses() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.From, msg.To}
 }
 
 //------------------------------------------------------------------

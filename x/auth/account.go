@@ -3,41 +3,25 @@ package auth
 import (
 	"errors"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/wire"
 	"github.com/tendermint/tendermint/crypto"
+
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-// Account is a standard account using a sequence number for replay protection
-// and a pubkey for authentication.
-type Account interface {
-	GetAddress() sdk.AccAddress
-	SetAddress(sdk.AccAddress) error // errors if already set.
-
-	GetPubKey() crypto.PubKey // can return nil.
-	SetPubKey(crypto.PubKey) error
-
-	GetAccountNumber() int64
-	SetAccountNumber(int64) error
-
-	GetSequence() int64
-	SetSequence(int64) error
-
-	GetCoins() sdk.Coins
-	SetCoins(sdk.Coins) error
-}
-
 // AccountDecoder unmarshals account bytes
-type AccountDecoder func(accountBytes []byte) (Account, error)
+type AccountDecoder func(accountBytes []byte) (sdk.Account, error)
 
 //-----------------------------------------------------------
 // BaseAccount
 
-var _ Account = (*BaseAccount)(nil)
+var _ sdk.Account = (*BaseAccount)(nil)
 
-// BaseAccount - base account structure.
-// Extend this by embedding this in your AppAccount.
-// See the examples/basecoin/types/account.go for an example.
+// BaseAccount - a base account structure.
+// This can be extended by embedding within in your AppAccount.
+// There are examples of this in: examples/basecoin/types/account.go.
+// However one doesn't have to use BaseAccount as long as your struct
+// implements Account.
 type BaseAccount struct {
 	Address       sdk.AccAddress `json:"address"`
 	Coins         sdk.Coins      `json:"coins"`
@@ -47,7 +31,7 @@ type BaseAccount struct {
 }
 
 // Prototype function for BaseAccount
-func ProtoBaseAccount() Account {
+func ProtoBaseAccount() sdk.Account {
 	return &BaseAccount{}
 }
 
@@ -115,12 +99,37 @@ func (acc *BaseAccount) SetSequence(seq int64) error {
 	return nil
 }
 
+// Implements sdk.Account.
+func (acc *BaseAccount) Clone() sdk.Account {
+	// given the fact PubKey and Address doesn't change,
+	// it should be fine if not deep copy them. if both of
+	// the two interfaces can provide a Clone() method would be terrific.
+	clonedAcc := &BaseAccount{
+		PubKey:        acc.PubKey,
+		Address:       acc.Address,
+		AccountNumber: acc.AccountNumber,
+		Sequence:      acc.Sequence,
+	}
+
+	if acc.Coins == nil {
+		clonedAcc.Coins = nil
+	} else {
+		coins := make(sdk.Coins, 0, len(acc.Coins))
+		for _, coin := range acc.Coins {
+			coins = append(coins, sdk.Coin{Denom: coin.Denom, Amount: coin.Amount})
+		}
+		clonedAcc.Coins = coins
+	}
+
+	return clonedAcc
+}
+
 //----------------------------------------
 // Wire
 
-// Most users shouldn't use this, but this comes handy for tests.
-func RegisterBaseAccount(cdc *wire.Codec) {
-	cdc.RegisterInterface((*Account)(nil), nil)
+// Most users shouldn't use this, but this comes in handy for tests.
+func RegisterBaseAccount(cdc *codec.Codec) {
+	cdc.RegisterInterface((*sdk.Account)(nil), nil)
 	cdc.RegisterConcrete(&BaseAccount{}, "cosmos-sdk/BaseAccount", nil)
-	wire.RegisterCrypto(cdc)
+	codec.RegisterCrypto(cdc)
 }

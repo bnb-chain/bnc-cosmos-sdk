@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
 
@@ -13,7 +12,7 @@ import (
 
 func TestContextWithSigners(t *testing.T) {
 	ms, _, _ := setupMultiStore()
-	ctx := sdk.NewContext(ms, abci.Header{ChainID: "mychainid"}, false, log.NewNopLogger())
+	ctx := sdk.NewContext(ms, abci.Header{ChainID: "mychainid"}, sdk.RunTxModeDeliver, log.NewNopLogger())
 
 	_, _, addr1 := keyPubAddr()
 	_, _, addr2 := keyPubAddr()
@@ -26,7 +25,7 @@ func TestContextWithSigners(t *testing.T) {
 	signers := GetSigners(ctx)
 	require.Equal(t, 0, len(signers))
 
-	ctx2 := WithSigners(ctx, []Account{&acc1, &acc2})
+	ctx2 := WithSigners(ctx, []sdk.Account{&acc1, &acc2})
 
 	// original context is unchanged
 	signers = GetSigners(ctx)

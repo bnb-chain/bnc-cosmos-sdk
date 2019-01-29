@@ -1,7 +1,6 @@
 package app
 
 import (
-	"encoding/json"
 	"os"
 	"testing"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 
 	bapp "github.com/cosmos/cosmos-sdk/baseapp"
+	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/bank"
@@ -30,12 +30,12 @@ func InitTestChain(bc *bapp.BaseApp, chainID string, addrs ...sdk.AccAddress) {
 	for _, addr := range addrs {
 		acc := GenesisAccount{
 			Address: addr,
-			Coins:   sdk.Coins{{"testCoin", sdk.NewInt(100)}},
+			Coins:   sdk.Coins{{"testCoin", 100}},
 		}
 		accounts = append(accounts, &acc)
 	}
 	accountState := GenesisState{accounts}
-	genState, err := json.Marshal(accountState)
+	genState, err := codec.Cdc.MarshalJSON(accountState)
 	if err != nil {
 		panic(err)
 	}
@@ -61,14 +61,10 @@ func TestBadMsg(t *testing.T) {
 	addr2 := priv2.PubKey().Address().Bytes()
 
 	// Attempt to spend non-existent funds
-	msg := GenerateSpendMsg(addr1, addr2, sdk.Coins{{"testCoin", sdk.NewInt(100)}})
+	msg := GenerateSpendMsg(addr1, addr2, sdk.Coins{{"testCoin", 100}})
 
 	// Construct transaction
-	fee := auth.StdFee{
-		Gas:    1000000000000000,
-		Amount: sdk.Coins{{"testCoin", sdk.NewInt(0)}},
-	}
-	signBytes := auth.StdSignBytes("test-chain", 0, 0, fee, []sdk.Msg{msg}, "")
+	signBytes := auth.StdSignBytes("test-chain", 0, 0, []sdk.Msg{msg}, "", 0, nil)
 	sig, err := priv1.Sign(signBytes)
 	if err != nil {
 		panic(err)
@@ -82,7 +78,6 @@ func TestBadMsg(t *testing.T) {
 
 	tx := auth.StdTx{
 		Msgs:       []sdk.Msg{msg},
-		Fee:        fee,
 		Signatures: sigs,
 		Memo:       "",
 	}
@@ -108,13 +103,9 @@ func TestMsgSend(t *testing.T) {
 	InitTestChain(bc, "test-chain", addr1)
 
 	// Send funds to addr2
-	msg := GenerateSpendMsg(addr1, addr2, sdk.Coins{{"testCoin", sdk.NewInt(100)}})
+	msg := GenerateSpendMsg(addr1, addr2, sdk.Coins{{"testCoin", 100}})
 
-	fee := auth.StdFee{
-		Gas:    1000000000000000,
-		Amount: sdk.Coins{{"testCoin", sdk.NewInt(0)}},
-	}
-	signBytes := auth.StdSignBytes("test-chain", 0, 0, fee, []sdk.Msg{msg}, "")
+	signBytes := auth.StdSignBytes("test-chain", 0, 0, []sdk.Msg{msg}, "", 0, nil)
 	sig, err := priv1.Sign(signBytes)
 	if err != nil {
 		panic(err)
@@ -128,7 +119,6 @@ func TestMsgSend(t *testing.T) {
 
 	tx := auth.StdTx{
 		Msgs:       []sdk.Msg{msg},
-		Fee:        fee,
 		Signatures: sigs,
 		Memo:       "",
 	}

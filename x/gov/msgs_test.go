@@ -1,4 +1,4 @@
-package gov
+package gov_test
 
 import (
 	"testing"
@@ -6,15 +6,16 @@ import (
 	"github.com/stretchr/testify/require"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/mock"
 )
 
 var (
-	coinsPos         = sdk.Coins{sdk.NewInt64Coin("steak", 1000)}
+	coinsPos         = sdk.Coins{sdk.NewCoin(gov.DefaultDepositDenom, 1000)}
 	coinsZero        = sdk.Coins{}
-	coinsNeg         = sdk.Coins{sdk.NewInt64Coin("steak", -10000)}
-	coinsPosNotAtoms = sdk.Coins{sdk.NewInt64Coin("foo", 10000)}
-	coinsMulti       = sdk.Coins{sdk.NewInt64Coin("foo", 10000), sdk.NewInt64Coin("steak", 1000)}
+	coinsNeg         = sdk.Coins{sdk.NewCoin(gov.DefaultDepositDenom, -10000)}
+	coinsPosNotAtoms = sdk.Coins{sdk.NewCoin("foo", 10000)}
+	coinsMulti       = sdk.Coins{sdk.NewCoin("foo", 10000), sdk.NewCoin(gov.DefaultDepositDenom, 1000)}
 )
 
 // test ValidateBasic for MsgCreateValidator
@@ -22,25 +23,25 @@ func TestMsgSubmitProposal(t *testing.T) {
 	_, addrs, _, _ := mock.CreateGenAccounts(1, sdk.Coins{})
 	tests := []struct {
 		title, description string
-		proposalType       ProposalKind
+		proposalType       gov.ProposalKind
 		proposerAddr       sdk.AccAddress
 		initialDeposit     sdk.Coins
 		expectPass         bool
 	}{
-		{"Test Proposal", "the purpose of this proposal is to test", ProposalTypeText, addrs[0], coinsPos, true},
-		{"", "the purpose of this proposal is to test", ProposalTypeText, addrs[0], coinsPos, false},
-		{"Test Proposal", "", ProposalTypeText, addrs[0], coinsPos, false},
-		{"Test Proposal", "the purpose of this proposal is to test", ProposalTypeParameterChange, addrs[0], coinsPos, true},
-		{"Test Proposal", "the purpose of this proposal is to test", ProposalTypeSoftwareUpgrade, addrs[0], coinsPos, true},
-		{"Test Proposal", "the purpose of this proposal is to test", 0x05, addrs[0], coinsPos, false},
-		{"Test Proposal", "the purpose of this proposal is to test", ProposalTypeText, sdk.AccAddress{}, coinsPos, false},
-		{"Test Proposal", "the purpose of this proposal is to test", ProposalTypeText, addrs[0], coinsZero, true},
-		{"Test Proposal", "the purpose of this proposal is to test", ProposalTypeText, addrs[0], coinsNeg, false},
-		{"Test Proposal", "the purpose of this proposal is to test", ProposalTypeText, addrs[0], coinsMulti, true},
+		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeText, addrs[0], coinsPos, true},
+		{"", "the purpose of this proposal is to test", gov.ProposalTypeText, addrs[0], coinsPos, false},
+		{"Test Proposal", "", gov.ProposalTypeText, addrs[0], coinsPos, false},
+		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeParameterChange, addrs[0], coinsPos, true},
+		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeSoftwareUpgrade, addrs[0], coinsPos, true},
+		{"Test Proposal", "the purpose of this proposal is to test", 0x06, addrs[0], coinsPos, false},
+		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeText, sdk.AccAddress{}, coinsPos, false},
+		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeText, addrs[0], coinsZero, true},
+		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeText, addrs[0], coinsNeg, false},
+		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeText, addrs[0], coinsMulti, true},
 	}
 
 	for i, tc := range tests {
-		msg := NewMsgSubmitProposal(tc.title, tc.description, tc.proposalType, tc.proposerAddr, tc.initialDeposit)
+		msg := gov.NewMsgSubmitProposal(tc.title, tc.description, tc.proposalType, tc.proposerAddr, tc.initialDeposit)
 		if tc.expectPass {
 			require.Nil(t, msg.ValidateBasic(), "test: %v", i)
 		} else {
@@ -67,7 +68,7 @@ func TestMsgDeposit(t *testing.T) {
 	}
 
 	for i, tc := range tests {
-		msg := NewMsgDeposit(tc.depositerAddr, tc.proposalID, tc.depositAmount)
+		msg := gov.NewMsgDeposit(tc.depositerAddr, tc.proposalID, tc.depositAmount)
 		if tc.expectPass {
 			require.Nil(t, msg.ValidateBasic(), "test: %v", i)
 		} else {
@@ -82,20 +83,20 @@ func TestMsgVote(t *testing.T) {
 	tests := []struct {
 		proposalID int64
 		voterAddr  sdk.AccAddress
-		option     VoteOption
+		option     gov.VoteOption
 		expectPass bool
 	}{
-		{0, addrs[0], OptionYes, true},
-		{-1, addrs[0], OptionYes, false},
-		{0, sdk.AccAddress{}, OptionYes, false},
-		{0, addrs[0], OptionNo, true},
-		{0, addrs[0], OptionNoWithVeto, true},
-		{0, addrs[0], OptionAbstain, true},
-		{0, addrs[0], VoteOption(0x13), false},
+		{0, addrs[0], gov.OptionYes, true},
+		{-1, addrs[0], gov.OptionYes, false},
+		{0, sdk.AccAddress{}, gov.OptionYes, false},
+		{0, addrs[0], gov.OptionNo, true},
+		{0, addrs[0], gov.OptionNoWithVeto, true},
+		{0, addrs[0], gov.OptionAbstain, true},
+		{0, addrs[0], gov.VoteOption(0x13), false},
 	}
 
 	for i, tc := range tests {
-		msg := NewMsgVote(tc.voterAddr, tc.proposalID, tc.option)
+		msg := gov.NewMsgVote(tc.voterAddr, tc.proposalID, tc.option)
 		if tc.expectPass {
 			require.Nil(t, msg.ValidateBasic(), "test: %v", i)
 		} else {

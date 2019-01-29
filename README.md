@@ -1,3 +1,24 @@
+# Why we create this repo
+
+This repo is forked from [https://github.com/cosmos/cosmos-sdk](https://github.com/cosmos/cosmos-sdk).
+
+Our BinanceChain app leverages cosmos-sdk to fast build a dApp running with tendermint. As our app becomes more and more complex, the original cosmos-sdk can hardly fit all our requirements. 
+We changed a lot to our copied sdk, but it makes the future integration harder and harder. So we decided to fork cosmos-sdk.
+
+# How to use this repo
+
+We need to remove the original cosmos-sdk repo and clone our repo into that directory.
+The reason is that we need to keep the import path.
+
+```bash
+> cd $GOPATH/src/github.com
+> rm -rf cosmos/cosmos-sdk
+> git clone https://github.com/BiJie/bnc-cosmos-sdk.git cosmos/cosmos-sdk
+> cd cosmos-sdk
+> git checkout develop
+> make get_vendor_deps
+```
+
 # Cosmos SDK
 ![banner](docs/graphics/cosmos-sdk-image.png)
 
@@ -21,7 +42,7 @@ breaking changes.
 
 ## Gaia Testnet
 
-To join the latest testnet, follow 
+To join the latest testnet, follow
 [the guide](https://cosmos.network/docs/getting-started/full-node.html#setting-up-a-new-node).
 
 For status updates and genesis files, see the
@@ -29,7 +50,7 @@ For status updates and genesis files, see the
 
 ## Install
 
-See the 
+See the
 [install instructions](https://cosmos.network/docs/getting-started/installation.html).
 
 ## Quick Start

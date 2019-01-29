@@ -1,7 +1,13 @@
 package gov
 
 import (
+	"time"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
+)
+
+const (
+	DefaultDepositDenom = "steak"
 )
 
 // GenesisState - all staking state that must be provided at genesis
@@ -26,16 +32,16 @@ func DefaultGenesisState() GenesisState {
 	return GenesisState{
 		StartingProposalID: 1,
 		DepositProcedure: DepositProcedure{
-			MinDeposit:       sdk.Coins{sdk.NewInt64Coin("steak", 10)},
-			MaxDepositPeriod: 200,
+			MinDeposit:       sdk.Coins{sdk.NewCoin(DefaultDepositDenom, 2000e8)},
+			MaxDepositPeriod: time.Duration(2*7*24) * time.Hour, // 2 weeks
 		},
 		VotingProcedure: VotingProcedure{
-			VotingPeriod: 200,
+			VotingPeriod: time.Duration(2*7*24) * time.Hour, // 2 weeks
 		},
 		TallyingProcedure: TallyingProcedure{
-			Threshold:         sdk.NewRat(1, 2),
-			Veto:              sdk.NewRat(1, 3),
-			GovernancePenalty: sdk.NewRat(1, 100),
+			Threshold:         sdk.NewDecWithPrec(5, 1),
+			Veto:              sdk.NewDecWithPrec(334, 3),
+			GovernancePenalty: sdk.NewDecWithPrec(1, 2),
 		},
 	}
 }

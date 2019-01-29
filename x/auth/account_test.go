@@ -8,8 +8,8 @@ import (
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/ed25519"
 
+	codec "github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	wire "github.com/cosmos/cosmos-sdk/wire"
 )
 
 func keyPubAddr() (crypto.PrivKey, crypto.PubKey, sdk.AccAddress) {
@@ -56,7 +56,7 @@ func TestBaseAccountCoins(t *testing.T) {
 	_, _, addr := keyPubAddr()
 	acc := NewBaseAccountWithAddress(addr)
 
-	someCoins := sdk.Coins{sdk.NewInt64Coin("atom", 123), sdk.NewInt64Coin("eth", 246)}
+	someCoins := sdk.Coins{sdk.NewCoin("atom", 123), sdk.NewCoin("eth", 246)}
 
 	err := acc.SetCoins(someCoins)
 	require.Nil(t, err)
@@ -78,7 +78,7 @@ func TestBaseAccountMarshal(t *testing.T) {
 	_, pub, addr := keyPubAddr()
 	acc := NewBaseAccountWithAddress(addr)
 
-	someCoins := sdk.Coins{sdk.NewInt64Coin("atom", 123), sdk.NewInt64Coin("eth", 246)}
+	someCoins := sdk.Coins{sdk.NewCoin("atom", 123), sdk.NewCoin("eth", 246)}
 	seq := int64(7)
 
 	// set everything on the account
@@ -90,20 +90,19 @@ func TestBaseAccountMarshal(t *testing.T) {
 	require.Nil(t, err)
 
 	// need a codec for marshaling
-	codec := wire.NewCodec()
-	wire.RegisterCrypto(codec)
+	cdc := codec.New()
+	codec.RegisterCrypto(cdc)
 
-	b, err := codec.MarshalBinary(acc)
+	b, err := cdc.MarshalBinaryLengthPrefixed(acc)
 	require.Nil(t, err)
 
 	acc2 := BaseAccount{}
-	err = codec.UnmarshalBinary(b, &acc2)
+	err = cdc.UnmarshalBinaryLengthPrefixed(b, &acc2)
 	require.Nil(t, err)
 	require.Equal(t, acc, acc2)
 
 	// error on bad bytes
 	acc2 = BaseAccount{}
-	err = codec.UnmarshalBinary(b[:len(b)/2], &acc2)
+	err = cdc.UnmarshalBinaryLengthPrefixed(b[:len(b)/2], &acc2)
 	require.NotNil(t, err)
-
 }
