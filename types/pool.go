@@ -11,6 +11,15 @@ import (
 // deliver state
 type Pool struct {
 	accounts sync.Map // save tx/gov related addresses (string wrapped bytes) to be published
+	txs      sync.Map
+}
+
+func (p *Pool) AddTx(tx Tx, txHash string) {
+	p.txs.Store(txHash, tx)
+}
+
+func (p Pool) GetTxs() sync.Map{
+	return p.txs
 }
 
 func (p *Pool) AddAddrs(addrs []AccAddress) {
@@ -28,6 +37,7 @@ func (p Pool) TxRelatedAddrs() []string {
 	return addrs
 }
 
-func (p *Pool) ClearTxRelatedAddrs() {
+func (p *Pool) Clear() {
 	p.accounts = sync.Map{}
+	p.txs = sync.Map{}
 }
