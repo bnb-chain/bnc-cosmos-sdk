@@ -41,14 +41,14 @@ const (
 // BaseApp reflects the ABCI application implementation.
 type BaseApp struct {
 	// initialized on creation
-	Logger                  log.Logger
-	name                    string               // application name from abci.Info
-	db                      dbm.DB               // common DB backend
-	cms                     sdk.CommitMultiStore // Main (uncached) state
-	router                  Router               // handle any kind of message
-	queryRouter             QueryRouter          // router for redirecting query calls
-	codespacer              *sdk.Codespacer      // handle module codespacing
-	isPublishAccountBalance bool
+	Logger      log.Logger
+	name        string               // application name from abci.Info
+	db          dbm.DB               // common DB backend
+	cms         sdk.CommitMultiStore // Main (uncached) state
+	router      Router               // handle any kind of message
+	queryRouter QueryRouter          // router for redirecting query calls
+	codespacer  *sdk.Codespacer      // handle module codespacing
+	collect     sdk.CollectConfig
 
 	TxDecoder sdk.TxDecoder // unmarshal []byte into sdk.Tx
 
@@ -89,23 +89,23 @@ var _ abci.Application = (*BaseApp)(nil)
 // NOTE: The db is used to store the version number for now.
 // Accepts a user-defined TxDecoder
 // Accepts variable number of option functions, which act on the BaseApp to set configuration choices
-func NewBaseApp(name string, logger log.Logger, db dbm.DB, txDecoder sdk.TxDecoder, isPublish bool, options ...func(*BaseApp)) *BaseApp {
+func NewBaseApp(name string, logger log.Logger, db dbm.DB, txDecoder sdk.TxDecoder, collectConfig sdk.CollectConfig, options ...func(*BaseApp)) *BaseApp {
 	cache, err := lru.New(TxMsgCacheSize)
 	if err != nil {
 		panic(err)
 	}
 	app := &BaseApp{
-		Logger:                  logger,
-		name:                    name,
-		db:                      db,
-		cms:                     store.NewCommitMultiStore(db),
-		router:                  NewRouter(),
-		queryRouter:             NewQueryRouter(),
-		codespacer:              sdk.NewCodespacer(),
-		TxDecoder:               txDecoder,
-		isPublishAccountBalance: isPublish,
-		txMsgCache:              cache,
-		Pool:                    new(sdk.Pool),
+		Logger:      logger,
+		name:        name,
+		db:          db,
+		cms:         store.NewCommitMultiStore(db),
+		router:      NewRouter(),
+		queryRouter: NewQueryRouter(),
+		codespacer:  sdk.NewCodespacer(),
+		TxDecoder:   txDecoder,
+		collect:     collectConfig,
+		txMsgCache:  cache,
+		Pool:        new(sdk.Pool),
 	}
 
 	// Register the undefined & root codespaces, which should not be used by
@@ -832,8 +832,14 @@ func (app *BaseApp) RunTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx, txHash 
 
 	// only update state if all messages pass
 	if result.IsOK() {
-		if (mode == sdk.RunTxModeDeliver || mode == sdk.RunTxModeDeliverAfterPre) && app.isPublishAccountBalance {
-			app.Pool.AddAddrs(msgs[0].GetInvolvedAddresses())
+		if mode == sdk.RunTxModeDeliver || mode == sdk.RunTxModeDeliverAfterPre {
+			if app.collect.CollectAccountBalance {
+				app.Pool.AddAddrs(msgs[0].GetInvolvedAddresses())
+			}
+			if app.collect.CollectTxs {
+				// Should we add all msg here with no distinction ？
+				app.Pool.AddTx(tx, txHash)
+			}
 		}
 		accountCache.Write()
 		msCache.Write()
@@ -938,7 +944,7 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 
 	// Empty the Deliver state
 	app.DeliverState = nil
-	app.Pool.ClearTxRelatedAddrs()
+	app.Pool.Clear()
 
 	return abci.ResponseCommit{
 		Data: commitID.Hash,

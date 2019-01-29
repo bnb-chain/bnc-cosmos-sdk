@@ -103,3 +103,9 @@ func (config *Config) GetBech32ValidatorPubPrefix() string {
 func (config *Config) GetBech32ConsensusPubPrefix() string {
 	return config.bech32AddressPrefix["consensus_pub"]
 }
+
+// CollectConfig is the structure that holds configuration parameters whether to collect specified info during apply blocks.
+type CollectConfig struct {
+	CollectAccountBalance bool
+	CollectTxs            bool
+}
