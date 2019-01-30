@@ -380,6 +380,7 @@ func (app *asyncLocalClient) CommitSync() (*types.ResponseCommit, error) {
 	app.commitLock.Lock() // this must come before the wgCommit.Wait()
 	defer app.commitLock.Unlock()
 	app.checkTxMidLock.Unlock()
+	app.wgCommit.Wait() // wait for all the submitted CheckTx/DeliverTx/Query finish
 	app.rwLock.Lock()
 	defer app.rwLock.Unlock()
 	// only checkTxLock is locked here
