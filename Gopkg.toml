@@ -54,7 +54,7 @@
 [[override]]
   name = "github.com/tendermint/iavl"
   source = "github.com/ackratos/iavl"
-  branch = "feature/state_syncing"
+  branch = "feature/state_syncing_upgrade"
 
 [[override]]
   name = "github.com/tendermint/tendermint"

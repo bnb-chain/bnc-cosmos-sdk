@@ -113,14 +113,14 @@ func (rs *rootMultiStore) LoadVersion(ver int64) error {
 	}
 	// Otherwise, version is 1 or greater
 
-	// Get commitInfo
+	// Get CommitInfo
 	cInfo, err := getCommitInfo(rs.db, ver)
 	if err != nil {
 		return err
 	}
 
 	// Convert StoreInfos slice to map
-	infos := make(map[StoreKey]storeInfo)
+	infos := make(map[StoreKey]StoreInfo)
 	for _, storeInfo := range cInfo.StoreInfos {
 		infos[rs.nameToKey(storeInfo.Name)] = storeInfo
 	}
@@ -395,30 +395,30 @@ type storeParams struct {
 }
 
 //----------------------------------------
-// commitInfo
+// CommitInfo
 
-// NOTE: Keep commitInfo a simple immutable struct.
-type commitInfo struct {
+// NOTE: Keep CommitInfo a simple immutable struct.
+type CommitInfo struct {
 
 	// Version
 	Version int64
 
 	// Store info for
-	StoreInfos []storeInfo
+	StoreInfos []StoreInfo
 }
 
 // Hash returns the simple merkle root hash of the stores sorted by name.
-func (ci commitInfo) Hash() []byte {
+func (ci CommitInfo) Hash() []byte {
 	// TODO cache to ci.hash []byte
 	m := make(map[string][]byte, len(ci.StoreInfos))
 	for _, storeInfo := range ci.StoreInfos {
-		fmt.Printf("storeInfo Name:%s, Version: %d, Hash: %X\n", storeInfo.Name, storeInfo.Core.CommitID.Version, storeInfo.Core.CommitID.Hash)
+		fmt.Printf("StoreInfo Name:%s, Version: %d, Hash: %X\n", storeInfo.Name, storeInfo.Core.CommitID.Version, storeInfo.Core.CommitID.Hash)
 		m[storeInfo.Name] = storeInfo.Hash()
 	}
 	return merkle.SimpleHashFromMap(m)
 }
 
-func (ci commitInfo) CommitID() CommitID {
+func (ci CommitInfo) CommitID() CommitID {
 	return CommitID{
 		Version: ci.Version,
 		Hash:    ci.Hash(),
@@ -426,24 +426,24 @@ func (ci commitInfo) CommitID() CommitID {
 }
 
 //----------------------------------------
-// storeInfo
+// StoreInfo
 
-// storeInfo contains the name and core reference for an
+// StoreInfo contains the name and core reference for an
 // underlying store.  It is the leaf of the rootMultiStores top
 // level simple merkle tree.
-type storeInfo struct {
+type StoreInfo struct {
 	Name string
-	Core storeCore
+	Core StoreCore
 }
 
-type storeCore struct {
+type StoreCore struct {
 	// StoreType StoreType
 	CommitID CommitID
 	// ... maybe add more state
 }
 
 // Implements merkle.Hasher.
-func (si storeInfo) Hash() []byte {
+func (si StoreInfo) Hash() []byte {
 	// Doesn't write Name, since merkle.SimpleHashFromMap() will
 	// include them via the keys.
 	bz, _ := cdc.MarshalBinaryLengthPrefixed(si.Core) // Does not error
@@ -478,9 +478,9 @@ func setLatestVersion(batch dbm.Batch, version int64) {
 	batch.Set([]byte(latestVersionKey), latestBytes)
 }
 
-// Commits each store and returns a new commitInfo.
-func commitStores(version int64, storeMap map[StoreKey]CommitStore) commitInfo {
-	storeInfos := make([]storeInfo, 0, len(storeMap))
+// Commits each store and returns a new CommitInfo.
+func commitStores(version int64, storeMap map[StoreKey]CommitStore) CommitInfo {
+	storeInfos := make([]StoreInfo, 0, len(storeMap))
 
 	fmt.Printf("!!!cong!!!version=%d\n", version)
 	for key, store := range storeMap {
@@ -492,7 +492,7 @@ func commitStores(version int64, storeMap map[StoreKey]CommitStore) commitInfo {
 		}
 
 		// Record CommitID
-		si := storeInfo{}
+		si := StoreInfo{}
 		si.Name = key.Name()
 		si.Core.CommitID = commitID
 		// si.Core.StoreType = store.GetStoreType()
@@ -500,16 +500,16 @@ func commitStores(version int64, storeMap map[StoreKey]CommitStore) commitInfo {
 		storeInfos = append(storeInfos, si)
 	}
 
-	ci := commitInfo{
+	ci := CommitInfo{
 		Version:    version,
 		StoreInfos: storeInfos,
 	}
 	return ci
 }
 
-// Commits each store and returns a new commitInfo.
-func commitStoresAt(version int64, storeMap map[StoreKey]CommitStore) commitInfo {
-	storeInfos := make([]storeInfo, 0, len(storeMap))
+// Commits each store and returns a new CommitInfo.
+func commitStoresAt(version int64, storeMap map[StoreKey]CommitStore) CommitInfo {
+	storeInfos := make([]StoreInfo, 0, len(storeMap))
 
 	fmt.Printf("!!!cong!!!version=%d\n", version)
 	for key, store := range storeMap {
@@ -521,7 +521,7 @@ func commitStoresAt(version int64, storeMap map[StoreKey]CommitStore) commitInfo
 		}
 
 		// Record CommitID
-		si := storeInfo{}
+		si := StoreInfo{}
 		si.Name = key.Name()
 		si.Core.CommitID = commitID
 		// si.Core.StoreType = store.GetStoreType()
@@ -529,34 +529,34 @@ func commitStoresAt(version int64, storeMap map[StoreKey]CommitStore) commitInfo
 		storeInfos = append(storeInfos, si)
 	}
 
-	ci := commitInfo{
+	ci := CommitInfo{
 		Version:    version,
 		StoreInfos: storeInfos,
 	}
 	return ci
 }
 
-// Gets commitInfo from disk.
-func getCommitInfo(db dbm.DB, ver int64) (commitInfo, error) {
+// Gets CommitInfo from disk.
+func getCommitInfo(db dbm.DB, ver int64) (CommitInfo, error) {
 
 	// Get from DB.
 	cInfoKey := fmt.Sprintf(commitInfoKeyFmt, ver)
 	cInfoBytes := db.Get([]byte(cInfoKey))
 	if cInfoBytes == nil {
-		return commitInfo{}, fmt.Errorf("failed to get rootMultiStore: no data")
+		return CommitInfo{}, fmt.Errorf("failed to get rootMultiStore: no data")
 	}
 
 	// Parse bytes.
-	var cInfo commitInfo
+	var cInfo CommitInfo
 	err := cdc.UnmarshalBinaryLengthPrefixed(cInfoBytes, &cInfo)
 	if err != nil {
-		return commitInfo{}, fmt.Errorf("failed to get rootMultiStore: %v", err)
+		return CommitInfo{}, fmt.Errorf("failed to get rootMultiStore: %v", err)
 	}
 	return cInfo, nil
 }
 
-// Set a commitInfo for given version.
-func setCommitInfo(batch dbm.Batch, version int64, cInfo commitInfo) {
+// Set a CommitInfo for given version.
+func setCommitInfo(batch dbm.Batch, version int64, cInfo CommitInfo) {
 	cInfoBytes, err := cdc.MarshalBinaryLengthPrefixed(cInfo)
 	if err != nil {
 		panic(err)

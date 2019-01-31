@@ -447,12 +447,12 @@
   version = "v0.14.1"
 
 [[projects]]
-  branch = "feature/state_syncing"
+  branch = "feature/state_syncing_upgrade"
   digest = "1:7d76ffe80a0b76d72f50c7965066e8cecf347d3fb304af9db57e10e459de2703"
   name = "github.com/tendermint/iavl"
   packages = ["."]
   pruneopts = "UT"
-  revision = "e0b650f7ba684446613e4312b74ca1021190486d"
+  revision = ""
   source = "github.com/ackratos/iavl"
 
 [[projects]]

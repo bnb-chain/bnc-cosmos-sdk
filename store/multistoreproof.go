@@ -11,16 +11,16 @@ import (
 
 // MultiStoreProof defines a collection of store proofs in a multi-store
 type MultiStoreProof struct {
-	StoreInfos []storeInfo
+	StoreInfos []StoreInfo
 }
 
-func NewMultiStoreProof(storeInfos []storeInfo) *MultiStoreProof {
+func NewMultiStoreProof(storeInfos []StoreInfo) *MultiStoreProof {
 	return &MultiStoreProof{StoreInfos: storeInfos}
 }
 
 // ComputeRootHash returns the root hash for a given multi-store proof.
 func (proof *MultiStoreProof) ComputeRootHash() []byte {
-	ci := commitInfo{
+	ci := CommitInfo{
 		Version:    -1, // TODO: Not needed; improve code.
 		StoreInfos: proof.StoreInfos,
 	}

@@ -218,9 +218,9 @@ func hashStores(stores map[StoreKey]CommitStore) []byte {
 	m := make(map[string][]byte, len(stores))
 	for key, store := range stores {
 		name := key.Name()
-		m[name] = storeInfo{
+		m[name] = StoreInfo{
 			Name: name,
-			Core: storeCore{
+			Core: StoreCore{
 				CommitID: store.LastCommitID(),
 				// StoreType: store.GetStoreType(),
 			},
