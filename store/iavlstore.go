@@ -25,7 +25,7 @@ func LoadIAVLStore(db dbm.DB, id CommitID, pruning sdk.PruningStrategy) (CommitS
 	if err != nil {
 		return nil, err
 	}
-	iavl := newIAVLStore(tree, int64(0), int64(0))
+	iavl := newIAVLStore(tree, sdk.PruneNothing{})
 	iavl.SetPruning(pruning)
 	return iavl, nil
 }
@@ -42,26 +42,16 @@ type IavlStore struct {
 	// The underlying tree.
 	Tree *iavl.MutableTree
 
-	// How many old versions we hold onto.
-	// A value of 0 means keep no recent states.
-	numRecent int64
-
-	// This is the distance between state-sync waypoint states to be stored.
-	// See https://github.com/tendermint/tendermint/issues/828
-	// A value of 1 means store every state.
-	// A value of 0 means store no waypoints. (node cannot assist in state-sync)
-	// By default this value should be set the same across all nodes,
-	// so that nodes can know the waypoints their peers store.
-	storeEvery int64
+	// The strategy to prune historical versions
+	pruningStrategy sdk.PruningStrategy
 }
 
 // CONTRACT: tree should be fully loaded.
 // nolint: unparam
-func newIAVLStore(tree *iavl.MutableTree, numRecent int64, storeEvery int64) *IavlStore {
+func newIAVLStore(tree *iavl.MutableTree, ps sdk.PruningStrategy) *IavlStore {
 	st := &IavlStore{
-		Tree:       tree,
-		numRecent:  numRecent,
-		storeEvery: storeEvery,
+		Tree:            tree,
+		pruningStrategy: ps,
 	}
 	return st
 }
@@ -76,14 +66,9 @@ func (st *IavlStore) Commit() CommitID {
 	}
 
 	// Release an old version of history, if not a sync waypoint.
-	previous := version - 1
-	if st.numRecent < previous {
-		toRelease := previous - st.numRecent
-		if st.storeEvery == 0 || toRelease%st.storeEvery != 0 {
-			err := st.Tree.DeleteVersion(toRelease)
-			if err != nil && err.(cmn.Error).Data() != iavl.ErrVersionDoesNotExist {
-				panic(err)
-			}
+	for v, _ := range st.tree.GetVersions() {
+		if st.pruningStrategy.Prune(v, version) {
+			st.Tree.DeleteVersion(v)
 		}
 	}
 
@@ -118,16 +103,7 @@ func (st *IavlStore) LastCommitID() CommitID {
 
 // Implements Committer.
 func (st *IavlStore) SetPruning(pruning sdk.PruningStrategy) {
-	switch pruning {
-	case sdk.PruneEverything:
-		st.numRecent = 0
-		st.storeEvery = 0
-	case sdk.PruneNothing:
-		st.storeEvery = 1
-	case sdk.PruneSyncable:
-		st.numRecent = 100
-		st.storeEvery = 10000
-	}
+	st.pruningStrategy = pruning
 }
 
 // VersionExists returns whether or not a given version is stored.
