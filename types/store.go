@@ -12,18 +12,43 @@ import (
 // NOTE: These are implemented in cosmos-sdk/store.
 
 // PruningStrategy specfies how old states will be deleted over time
-type PruningStrategy uint8
+type PruningStrategy interface {
+	ShouldPrune(version, latestVersion int64) bool
+}
 
-const (
-	// PruneSyncable means only those states not needed for state syncing will be deleted (keeps last 100 + every 10000th)
-	PruneSyncable PruningStrategy = iota
+// PruneSyncable defines the frequency (how many) of states would be saved,
+// while all the others are not needed for state syncing and would be deleted.
+type PruneSyncable struct {
+	// How many old versions we hold onto.
+	// A value of 0 means keep no recent states.
+	NumRecent int64
 
-	// PruneEverything means all saved states will be deleted, storing only the current state
-	PruneEverything PruningStrategy = iota
+	// This is the distance between state-sync waypoint states to be stored.
+	// See https://github.com/tendermint/tendermint/issues/828
+	// A value of 1 means store every state.
+	// A value of 0 means store no waypoints. (node cannot assist in state-sync)
+	// By default this value should be set the same across all nodes,
+	// so that nodes can know the waypoints their peers store.
+	StoreEvery int64
+}
 
-	// PruneNothing means all historic states will be saved, nothing will be deleted
-	PruneNothing PruningStrategy = iota
-)
+func (strategy PruneSyncable) ShouldPrune(version, latestVersion int64) bool {
+	return (latestVersion-version > strategy.NumRecent) && (version%strategy.StoreEvery != 0)
+}
+
+// PruneEverything means all saved states will be deleted, storing only the current state
+type PruneEverything struct{}
+
+func (strategy PruneEverything) ShouldPrune(version, latestVersion int64) bool {
+	return true
+}
+
+// PruneNothing means all historic states will be saved, nothing will be deleted
+type PruneNothing struct{}
+
+func (strategy PruneNothing) ShouldPrune(version, latestVersion int64) bool {
+	return false
+}
 
 type Store interface { //nolint
 	GetStoreType() StoreType

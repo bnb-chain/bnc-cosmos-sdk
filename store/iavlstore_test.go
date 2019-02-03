@@ -47,7 +47,7 @@ func newTree(t *testing.T, db dbm.DB) (*iavl.MutableTree, CommitID) {
 func TestIAVLStoreGetSetHasDelete(t *testing.T) {
 	db := dbm.NewMemDB()
 	tree, _ := newTree(t, db)
-	iavlStore := newIAVLStore(tree, numRecent, storeEvery)
+	iavlStore := newIAVLStore(tree, sdk.PruneSyncable{numRecent, storeEvery})
 
 	key := "hello"
 
@@ -72,7 +72,7 @@ func TestIAVLStoreGetSetHasDelete(t *testing.T) {
 func TestIAVLIterator(t *testing.T) {
 	db := dbm.NewMemDB()
 	tree, _ := newTree(t, db)
-	iavlStore := newIAVLStore(tree, numRecent, storeEvery)
+	iavlStore := newIAVLStore(tree, sdk.PruneSyncable{numRecent, storeEvery})
 	iter := iavlStore.Iterator([]byte("aloha"), []byte("hellz"))
 	expected := []string{"aloha", "hello"}
 	var i int
@@ -145,7 +145,7 @@ func TestIAVLIterator(t *testing.T) {
 func TestIAVLSubspaceIterator(t *testing.T) {
 	db := dbm.NewMemDB()
 	tree, _ := newTree(t, db)
-	iavlStore := newIAVLStore(tree, numRecent, storeEvery)
+	iavlStore := newIAVLStore(tree, sdk.PruneSyncable{numRecent, storeEvery})
 
 	iavlStore.Set([]byte("test1"), []byte("test1"))
 	iavlStore.Set([]byte("test2"), []byte("test2"))
@@ -207,7 +207,7 @@ func TestIAVLSubspaceIterator(t *testing.T) {
 func TestIAVLReverseSubspaceIterator(t *testing.T) {
 	db := dbm.NewMemDB()
 	tree, _ := newTree(t, db)
-	iavlStore := newIAVLStore(tree, numRecent, storeEvery)
+	iavlStore := newIAVLStore(tree, sdk.PruneSyncable{numRecent, storeEvery})
 
 	iavlStore.Set([]byte("test1"), []byte("test1"))
 	iavlStore.Set([]byte("test2"), []byte("test2"))
@@ -326,7 +326,7 @@ type pruneState struct {
 func testPruning(t *testing.T, numRecent int64, storeEvery int64, states []pruneState) {
 	db := dbm.NewMemDB()
 	tree := iavl.NewMutableTree(db, cacheSize)
-	iavlStore := newIAVLStore(tree, numRecent, storeEvery)
+	iavlStore := newIAVLStore(tree, sdk.PruneSyncable{numRecent, storeEvery})
 	for step, state := range states {
 		for _, ver := range state.stored {
 			require.True(t, iavlStore.VersionExists(ver),
@@ -345,7 +345,7 @@ func testPruning(t *testing.T, numRecent int64, storeEvery int64, states []prune
 func TestIAVLNoPrune(t *testing.T) {
 	db := dbm.NewMemDB()
 	tree := iavl.NewMutableTree(db, cacheSize)
-	iavlStore := newIAVLStore(tree, numRecent, int64(1))
+	iavlStore := newIAVLStore(tree, sdk.PruneSyncable{numRecent, 1})
 	nextVersion(iavlStore)
 	for i := 1; i < 100; i++ {
 		for j := 1; j <= i; j++ {
@@ -360,7 +360,7 @@ func TestIAVLNoPrune(t *testing.T) {
 func TestIAVLPruneEverything(t *testing.T) {
 	db := dbm.NewMemDB()
 	tree := iavl.NewMutableTree(db, cacheSize)
-	iavlStore := newIAVLStore(tree, int64(0), int64(0))
+	iavlStore := newIAVLStore(tree, sdk.PruneEverything{})
 	nextVersion(iavlStore)
 	for i := 1; i < 100; i++ {
 		for j := 1; j < i; j++ {
@@ -378,7 +378,7 @@ func TestIAVLPruneEverything(t *testing.T) {
 func TestIAVLStoreQuery(t *testing.T) {
 	db := dbm.NewMemDB()
 	tree := iavl.NewMutableTree(db, cacheSize)
-	iavlStore := newIAVLStore(tree, numRecent, storeEvery)
+	iavlStore := newIAVLStore(tree, sdk.PruneSyncable{numRecent, storeEvery})
 
 	k1, v1 := []byte("key1"), []byte("val1")
 	k2, v2 := []byte("key2"), []byte("val2")
@@ -474,7 +474,7 @@ func BenchmarkIAVLIteratorNext(b *testing.B) {
 		value := cmn.RandBytes(50)
 		tree.Set(key, value)
 	}
-	iavlStore := newIAVLStore(tree, numRecent, storeEvery)
+	iavlStore := newIAVLStore(tree, sdk.PruneSyncable{numRecent, storeEvery})
 	iterators := make([]Iterator, b.N/treeSize)
 	for i := 0; i < len(iterators); i++ {
 		iterators[i] = iavlStore.Iterator([]byte{0}, []byte{255, 255, 255, 255, 255})
