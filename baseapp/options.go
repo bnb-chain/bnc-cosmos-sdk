@@ -27,7 +27,7 @@ func SetPruning(pruning string) func(*BaseApp) {
 		panic(fmt.Sprintf("invalid pruning strategy: %s", pruning))
 	}
 	return func(bap *BaseApp) {
-		bap.cms.SetPruning(pruningStrategy)
+		bap.SetPruning(pruningStrategy)
 	}
 }
 

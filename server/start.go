@@ -8,6 +8,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/server/concurrent"
 
 	"github.com/tendermint/tendermint/abci/server"
+	"github.com/tendermint/tendermint/blockchain"
 	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
 	cmn "github.com/tendermint/tendermint/libs/common"
 	"github.com/tendermint/tendermint/node"
@@ -23,6 +24,8 @@ const (
 	flagPruning        = "pruning"
 	flagSequentialABCI = "seq-abci"
 )
+
+var BlockStore *blockchain.BlockStore
 
 // StartCmd runs the service passed in, either stand-alone or in-process with
 // Tendermint.
@@ -139,6 +142,8 @@ func startInProcess(ctx *Context, appCreator AppCreator) (*node.Node, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	BlockStore = tmNode.BlockStore()
 
 	err = tmNode.Start()
 	if err != nil {

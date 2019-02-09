@@ -985,3 +985,7 @@ func (app *BaseApp) EndRecovery(height int64) error {
 func (app *BaseApp) GetDB() dbm.DB {
 	return app.db
 }
+
+func (app *BaseApp) SetPruning(strategy sdk.PruningStrategy) {
+	app.cms.SetPruning(strategy)
+}
