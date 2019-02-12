@@ -3,12 +3,11 @@ package server
 import (
 	"fmt"
 
+	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-
-	"github.com/cosmos/cosmos-sdk/client"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
 	"github.com/tendermint/tendermint/p2p"
 	pvm "github.com/tendermint/tendermint/privval"
@@ -38,8 +37,9 @@ func ShowValidatorCmd(ctx *Context) *cobra.Command {
 		Short: "Show this node's tendermint validator info",
 		RunE: func(cmd *cobra.Command, args []string) error {
 
+			password := viper.GetString(client.FlagPrivateKeyPassword)
 			cfg := ctx.Config
-			privValidator := pvm.LoadOrGenFilePV(cfg.PrivValidatorKeyFile(), cfg.PrivValidatorStateFile())
+			privValidator := pvm.LoadOrGenFilePV(cfg.PrivValidatorKeyFile(), cfg.PrivValidatorStateFile(), password)
 			valPubKey := privValidator.Key.PubKey
 
 			if viper.GetBool(client.FlagJson) {
@@ -65,8 +65,9 @@ func ShowAddressCmd(ctx *Context) *cobra.Command {
 		Use:   "show-address",
 		Short: "Shows this node's tendermint validator address",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			password := viper.GetString(client.FlagPrivateKeyPassword)
 			cfg := ctx.Config
-			privValidator := pvm.LoadOrGenFilePV(cfg.PrivValidatorKeyFile(), cfg.PrivValidatorStateFile())
+			privValidator := pvm.LoadOrGenFilePV(cfg.PrivValidatorKeyFile(), cfg.PrivValidatorStateFile(), password)
 			valAddr := (sdk.ValAddress)(privValidator.GetAddress())
 
 			if viper.GetBool(client.FlagJson) {

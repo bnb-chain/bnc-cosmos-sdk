@@ -4,9 +4,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-
-	"github.com/cosmos/cosmos-sdk/server/concurrent"
-
 	"github.com/tendermint/tendermint/abci/server"
 	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
 	cmn "github.com/tendermint/tendermint/libs/common"
@@ -14,6 +11,8 @@ import (
 	"github.com/tendermint/tendermint/p2p"
 	pvm "github.com/tendermint/tendermint/privval"
 	"github.com/tendermint/tendermint/proxy"
+
+	"github.com/cosmos/cosmos-sdk/server/concurrent"
 )
 
 const (
@@ -22,6 +21,7 @@ const (
 	flagTraceStore     = "trace-store"
 	flagPruning        = "pruning"
 	flagSequentialABCI = "seq-abci"
+	flagPVPassword     = "priv_validator_password"
 )
 
 // StartCmd runs the service passed in, either stand-alone or in-process with
@@ -37,8 +37,8 @@ func StartCmd(ctx *Context, appCreator AppCreator) *cobra.Command {
 			}
 
 			ctx.Logger.Info("Starting ABCI with Tendermint")
-
-			_, err := startInProcess(ctx, appCreator)
+			password := viper.GetString(flagPVPassword)
+			_, err := startInProcess(ctx, appCreator, password)
 			return err
 		},
 	}
@@ -95,7 +95,7 @@ func startStandAlone(ctx *Context, appCreator AppCreator) error {
 }
 
 // nolint: unparam
-func startInProcess(ctx *Context, appCreator AppCreator) (*node.Node, error) {
+func startInProcess(ctx *Context, appCreator AppCreator, password string) (*node.Node, error) {
 	cfg := ctx.Config
 	home := cfg.RootDir
 	traceWriterFile := viper.GetString(flagTraceStore)
@@ -128,7 +128,7 @@ func startInProcess(ctx *Context, appCreator AppCreator) (*node.Node, error) {
 	// create & start tendermint node
 	tmNode, err := node.NewNode(
 		cfg,
-		pvm.LoadOrGenFilePV(cfg.PrivValidatorKeyFile(), cfg.PrivValidatorStateFile()),
+		pvm.LoadOrGenFilePV(cfg.PrivValidatorKeyFile(), cfg.PrivValidatorStateFile(), password),
 		nodeKey,
 		cliCreator,
 		node.DefaultGenesisDocProviderFunc(cfg),
