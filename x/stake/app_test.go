@@ -29,7 +29,7 @@ func getMockApp(t *testing.T) (*mock.App, Keeper) {
 
 	keeper := NewKeeper(mApp.Cdc, keyStake, tkeyStake, bankKeeper, pk.Subspace(DefaultParamspace), mApp.RegisterCodespace(DefaultCodespace))
 
-	mApp.Router().AddRoute("stake", NewHandler(keeper))
+	mApp.Router().AddRoute("stake", NewStakeHandler(keeper))
 	mApp.SetEndBlocker(getEndBlocker(keeper))
 	mApp.SetInitChainer(getInitChainer(mApp, keeper))
 

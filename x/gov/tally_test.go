@@ -37,7 +37,7 @@ func TestTallyNoOneVotes(t *testing.T) {
 	mapp, _, keeper, sk, addrs, _, _ := getMockApp(t, 10)
 	mapp.BeginBlock(abci.RequestBeginBlock{})
 	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
-	stakeHandler := stake.NewHandler(sk)
+	stakeHandler := stake.NewStakeHandler(sk)
 
 	valAddrs := make([]sdk.ValAddress, len(addrs[:2]))
 	for i, addr := range addrs[:2] {
@@ -62,7 +62,7 @@ func TestTallyOnlyValidatorsAllYes(t *testing.T) {
 	mapp, _, keeper, sk, addrs, _, _ := getMockApp(t, 10)
 	mapp.BeginBlock(abci.RequestBeginBlock{})
 	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
-	stakeHandler := stake.NewHandler(sk)
+	stakeHandler := stake.NewStakeHandler(sk)
 
 	valAddrs := make([]sdk.ValAddress, len(addrs[:2]))
 	for i, addr := range addrs[:2] {
@@ -92,7 +92,7 @@ func TestTallyOnlyValidators51No(t *testing.T) {
 	mapp, _, keeper, sk, addrs, _, _ := getMockApp(t, 10)
 	mapp.BeginBlock(abci.RequestBeginBlock{})
 	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
-	stakeHandler := stake.NewHandler(sk)
+	stakeHandler := stake.NewStakeHandler(sk)
 
 	valAddrs := make([]sdk.ValAddress, len(addrs[:2]))
 	for i, addr := range addrs[:2] {
@@ -121,7 +121,7 @@ func TestTallyOnlyValidators51Yes(t *testing.T) {
 	mapp, _, keeper, sk, addrs, _, _ := getMockApp(t, 10)
 	mapp.BeginBlock(abci.RequestBeginBlock{})
 	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
-	stakeHandler := stake.NewHandler(sk)
+	stakeHandler := stake.NewStakeHandler(sk)
 
 	valAddrs := make([]sdk.ValAddress, len(addrs[:3]))
 	for i, addr := range addrs[:3] {
@@ -153,7 +153,7 @@ func TestTallyOnlyValidatorsVetoed(t *testing.T) {
 	mapp, _, keeper, sk, addrs, _, _ := getMockApp(t, 10)
 	mapp.BeginBlock(abci.RequestBeginBlock{})
 	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
-	stakeHandler := stake.NewHandler(sk)
+	stakeHandler := stake.NewStakeHandler(sk)
 
 	valAddrs := make([]sdk.ValAddress, len(addrs[:3]))
 	for i, addr := range addrs[:3] {
@@ -185,7 +185,7 @@ func TestTallyOnlyValidatorsAbstainPasses(t *testing.T) {
 	mapp, _, keeper, sk, addrs, _, _ := getMockApp(t, 10)
 	mapp.BeginBlock(abci.RequestBeginBlock{})
 	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
-	stakeHandler := stake.NewHandler(sk)
+	stakeHandler := stake.NewStakeHandler(sk)
 
 	valAddrs := make([]sdk.ValAddress, len(addrs[:3]))
 	for i, addr := range addrs[:3] {
@@ -217,7 +217,7 @@ func TestTallyOnlyValidatorsAbstainFails(t *testing.T) {
 	mapp, _, keeper, sk, addrs, _, _ := getMockApp(t, 10)
 	mapp.BeginBlock(abci.RequestBeginBlock{})
 	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
-	stakeHandler := stake.NewHandler(sk)
+	stakeHandler := stake.NewStakeHandler(sk)
 
 	valAddrs := make([]sdk.ValAddress, len(addrs[:3]))
 	for i, addr := range addrs[:3] {
@@ -249,7 +249,7 @@ func TestTallyOnlyValidatorsNonVoter(t *testing.T) {
 	mapp, _, keeper, sk, addrs, _, _ := getMockApp(t, 10)
 	mapp.BeginBlock(abci.RequestBeginBlock{})
 	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
-	stakeHandler := stake.NewHandler(sk)
+	stakeHandler := stake.NewStakeHandler(sk)
 
 	valAddrs := make([]sdk.ValAddress, len(addrs[:3]))
 	for i, addr := range addrs[:3] {
@@ -279,7 +279,7 @@ func TestTallyDelgatorOverride(t *testing.T) {
 	mapp, _, keeper, sk, addrs, _, _ := getMockApp(t, 10)
 	mapp.BeginBlock(abci.RequestBeginBlock{})
 	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
-	stakeHandler := stake.NewHandler(sk)
+	stakeHandler := stake.NewStakeHandler(sk)
 
 	valAddrs := make([]sdk.ValAddress, len(addrs[:3]))
 	for i, addr := range addrs[:3] {
@@ -316,7 +316,7 @@ func TestTallyDelgatorInherit(t *testing.T) {
 	mapp, _, keeper, sk, addrs, _, _ := getMockApp(t, 10)
 	mapp.BeginBlock(abci.RequestBeginBlock{})
 	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
-	stakeHandler := stake.NewHandler(sk)
+	stakeHandler := stake.NewStakeHandler(sk)
 
 	valAddrs := make([]sdk.ValAddress, len(addrs[:3]))
 	for i, addr := range addrs[:3] {
@@ -351,7 +351,7 @@ func TestTallyDelgatorMultipleOverride(t *testing.T) {
 	mapp, _, keeper, sk, addrs, _, _ := getMockApp(t, 10)
 	mapp.BeginBlock(abci.RequestBeginBlock{})
 	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
-	stakeHandler := stake.NewHandler(sk)
+	stakeHandler := stake.NewStakeHandler(sk)
 
 	valAddrs := make([]sdk.ValAddress, len(addrs[:3]))
 	for i, addr := range addrs[:3] {
@@ -390,7 +390,7 @@ func TestTallyDelgatorMultipleInherit(t *testing.T) {
 	mapp, _, keeper, sk, addrs, _, _ := getMockApp(t, 10)
 	mapp.BeginBlock(abci.RequestBeginBlock{})
 	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
-	stakeHandler := stake.NewHandler(sk)
+	stakeHandler := stake.NewStakeHandler(sk)
 
 	val1CreateMsg := stake.NewMsgCreateValidator(
 		sdk.ValAddress(addrs[0]), ed25519.GenPrivKey().PubKey(), sdk.NewCoin(gov.DefaultDepositDenom, 25), testDescription, testCommissionMsg,
@@ -437,7 +437,7 @@ func TestTallyJailedValidator(t *testing.T) {
 	mapp, _, keeper, sk, addrs, _, _ := getMockApp(t, 10)
 	mapp.BeginBlock(abci.RequestBeginBlock{})
 	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
-	stakeHandler := stake.NewHandler(sk)
+	stakeHandler := stake.NewStakeHandler(sk)
 
 	valAddrs := make([]sdk.ValAddress, len(addrs[:3]))
 	for i, addr := range addrs[:3] {

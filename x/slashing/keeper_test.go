@@ -32,7 +32,7 @@ func TestHandleDoubleSign(t *testing.T) {
 	ctx = ctx.WithBlockHeight(-1)
 	amtInt := sdk.NewDecWithoutFra(100).RawInt()
 	operatorAddr, val, amt := addrs[0], pks[0], amtInt
-	got := stake.NewHandler(sk)(ctx, NewTestMsgCreateValidator(operatorAddr, val, amt))
+	got := stake.NewStakeHandler(sk)(ctx, NewTestMsgCreateValidator(operatorAddr, val, amt))
 	require.True(t, got.IsOK())
 	validatorUpdates := stake.EndBlocker(ctx, sk)
 	keeper.AddValidators(ctx, validatorUpdates)
@@ -73,7 +73,7 @@ func TestSlashingPeriodCap(t *testing.T) {
 	amtInt := sdk.NewDecWithoutFra(100).RawInt()
 	operatorAddr, amt := addrs[0], amtInt
 	valConsPubKey, valConsAddr := pks[0], pks[0].Address()
-	got := stake.NewHandler(sk)(ctx, NewTestMsgCreateValidator(operatorAddr, valConsPubKey, amt))
+	got := stake.NewStakeHandler(sk)(ctx, NewTestMsgCreateValidator(operatorAddr, valConsPubKey, amt))
 	require.True(t, got.IsOK())
 	validatorUpdates := stake.EndBlocker(ctx, sk)
 	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
@@ -137,7 +137,7 @@ func TestHandleAbsentValidator(t *testing.T) {
 	ctx, ck, sk, _, keeper := createTestInput(t, keeperTestParams())
 	amtInt := sdk.NewDecWithoutFra(100).RawInt()
 	addr, val, amt := addrs[0], pks[0], amtInt
-	sh := stake.NewHandler(sk)
+	sh := stake.NewStakeHandler(sk)
 	slh := NewHandler(keeper)
 	got := sh(ctx, NewTestMsgCreateValidator(addr, val, amt))
 	require.True(t, got.IsOK())
@@ -290,7 +290,7 @@ func TestHandleNewValidator(t *testing.T) {
 	// initial setup
 	ctx, ck, sk, _, keeper := createTestInput(t, keeperTestParams())
 	addr, val, amt := addrs[0], pks[0], sdk.NewDecWithoutFra(100).RawInt()
-	sh := stake.NewHandler(sk)
+	sh := stake.NewStakeHandler(sk)
 
 	// 1000 first blocks not a validator
 	ctx = ctx.WithBlockHeight(keeper.SignedBlocksWindow(ctx) + 1)
@@ -330,7 +330,7 @@ func TestHandleAlreadyJailed(t *testing.T) {
 	ctx, _, sk, _, keeper := createTestInput(t, DefaultParams())
 	amtInt := int64(100)
 	addr, val, amt := addrs[0], pks[0], amtInt
-	sh := stake.NewHandler(sk)
+	sh := stake.NewStakeHandler(sk)
 	got := sh(ctx, NewTestMsgCreateValidator(addr, val, sdk.NewDecWithoutFra(amt).RawInt()))
 	require.True(t, got.IsOK())
 	validatorUpdates := stake.EndBlocker(ctx, sk)
@@ -383,7 +383,7 @@ func TestValidatorDippingInAndOut(t *testing.T) {
 	amtInt := int64(100)
 	addr, val, amt := addrs[0], pks[0], amtInt
 	consAddr := sdk.ConsAddress(addr)
-	sh := stake.NewHandler(sk)
+	sh := stake.NewStakeHandler(sk)
 	got := sh(ctx, NewTestMsgCreateValidator(addr, val, sdk.NewDecWithoutFra(amt).RawInt()))
 	require.True(t, got.IsOK())
 	validatorUpdates := stake.EndBlocker(ctx, sk)

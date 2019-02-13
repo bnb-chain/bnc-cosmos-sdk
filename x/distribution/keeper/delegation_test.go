@@ -10,7 +10,7 @@ import (
 
 func TestWithdrawDelegationRewardBasic(t *testing.T) {
 	ctx, accMapper, keeper, sk, fck := CreateTestInputAdvanced(t, false, sdk.NewDecWithoutFra(100).RawInt(), sdk.ZeroDec())
-	stakeHandler := stake.NewHandler(sk)
+	stakeHandler := stake.NewStakeHandler(sk)
 	denom := sk.GetParams(ctx).BondDenom
 
 	//first make a validator
@@ -45,7 +45,7 @@ func TestWithdrawDelegationRewardBasic(t *testing.T) {
 
 func TestWithdrawDelegationRewardWithCommission(t *testing.T) {
 	ctx, accMapper, keeper, sk, fck := CreateTestInputAdvanced(t, false, sdk.NewDecWithoutFra(100).RawInt(), sdk.ZeroDec())
-	stakeHandler := stake.NewHandler(sk)
+	stakeHandler := stake.NewStakeHandler(sk)
 	denom := sk.GetParams(ctx).BondDenom
 
 	//first make a validator with 10% commission
@@ -79,7 +79,7 @@ func TestWithdrawDelegationRewardWithCommission(t *testing.T) {
 
 func TestWithdrawDelegationRewardTwoDelegators(t *testing.T) {
 	ctx, accMapper, keeper, sk, fck := CreateTestInputAdvanced(t, false, sdk.NewDecWithoutFra(100).RawInt(), sdk.ZeroDec())
-	stakeHandler := stake.NewHandler(sk)
+	stakeHandler := stake.NewStakeHandler(sk)
 	denom := sk.GetParams(ctx).BondDenom
 
 	//first make a validator with 10% commission
@@ -121,7 +121,7 @@ func TestWithdrawDelegationRewardTwoDelegators(t *testing.T) {
 // with different rewards in the end
 func TestWithdrawDelegationRewardTwoDelegatorsUneven(t *testing.T) {
 	ctx, accMapper, keeper, sk, fck := CreateTestInputAdvanced(t, false, sdk.NewDecWithoutFra(100).RawInt(), sdk.ZeroDec())
-	stakeHandler := stake.NewHandler(sk)
+	stakeHandler := stake.NewStakeHandler(sk)
 	denom := sk.GetParams(ctx).BondDenom
 
 	//first make a validator with no commission
@@ -188,7 +188,7 @@ func TestWithdrawDelegationRewardTwoDelegatorsUneven(t *testing.T) {
 
 func TestWithdrawDelegationRewardsAll(t *testing.T) {
 	ctx, accMapper, keeper, sk, fck := CreateTestInputAdvanced(t, false, sdk.NewDecWithoutFra(100).RawInt(), sdk.ZeroDec())
-	stakeHandler := stake.NewHandler(sk)
+	stakeHandler := stake.NewStakeHandler(sk)
 	denom := sk.GetParams(ctx).BondDenom
 
 	//make some  validators with different commissions

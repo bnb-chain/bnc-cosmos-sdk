@@ -118,6 +118,7 @@ const (
 	ProposalTypeListTradingPair ProposalKind = 0x04
 	// ProposalTypeFeeChange belongs to ProposalTypeParameterChange. We use this to make it easily to distinguish。
 	ProposalTypeFeeChange ProposalKind = 0x05
+	ProposalTypeCreateValidator ProposalKind = 0x06
 )
 
 // String to proposalType byte.  Returns ff if invalid.
@@ -133,6 +134,8 @@ func ProposalTypeFromString(str string) (ProposalKind, error) {
 		return ProposalTypeListTradingPair, nil
 	case "FeeChange":
 		return ProposalTypeFeeChange, nil
+	case "CreateValidator":
+		return ProposalTypeCreateValidator, nil
 	default:
 		return ProposalKind(0xff), errors.Errorf("'%s' is not a valid proposal type", str)
 	}
@@ -195,6 +198,8 @@ func (pt ProposalKind) String() string {
 		return "ListTradingPair"
 	case ProposalTypeFeeChange:
 		return "FeeChange"
+	case ProposalTypeCreateValidator:
+		return "CreateValidator"
 	default:
 		return ""
 	}
@@ -337,8 +342,8 @@ func EmptyTallyResult() TallyResult {
 
 // checks if two proposals are equal
 func (resultA TallyResult) Equals(resultB TallyResult) bool {
-	return (resultA.Yes.Equal(resultB.Yes) &&
-		resultA.Abstain.Equal(resultB.Abstain) &&
-		resultA.No.Equal(resultB.No) &&
-		resultA.NoWithVeto.Equal(resultB.NoWithVeto))
+	return resultA.Yes.Equal(resultB.Yes) &&
+			resultA.Abstain.Equal(resultB.Abstain) &&
+			resultA.No.Equal(resultB.No) &&
+			resultA.NoWithVeto.Equal(resultB.NoWithVeto)
 }

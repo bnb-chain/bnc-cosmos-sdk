@@ -16,7 +16,7 @@ import (
 
 // SimulateMsgCreateValidator
 func SimulateMsgCreateValidator(m auth.AccountKeeper, k stake.Keeper) simulation.Operation {
-	handler := stake.NewHandler(k)
+	handler := stake.NewStakeHandler(k)
 	return func(r *rand.Rand, app *baseapp.BaseApp, ctx sdk.Context,
 		accs []simulation.Account, event func(string)) (
 		action string, fOp []simulation.FutureOperation, err error) {
@@ -73,7 +73,7 @@ func SimulateMsgCreateValidator(m auth.AccountKeeper, k stake.Keeper) simulation
 
 // SimulateMsgEditValidator
 func SimulateMsgEditValidator(k stake.Keeper) simulation.Operation {
-	handler := stake.NewHandler(k)
+	handler := stake.NewStakeHandler(k)
 	return func(r *rand.Rand, app *baseapp.BaseApp, ctx sdk.Context,
 		accs []simulation.Account, event func(string)) (
 		action string, fOp []simulation.FutureOperation, err error) {
@@ -113,7 +113,7 @@ func SimulateMsgEditValidator(k stake.Keeper) simulation.Operation {
 
 // SimulateMsgDelegate
 func SimulateMsgDelegate(m auth.AccountKeeper, k stake.Keeper) simulation.Operation {
-	handler := stake.NewHandler(k)
+	handler := stake.NewStakeHandler(k)
 	return func(r *rand.Rand, app *baseapp.BaseApp, ctx sdk.Context,
 		accs []simulation.Account, event func(string)) (
 		action string, fOp []simulation.FutureOperation, err error) {
@@ -151,7 +151,7 @@ func SimulateMsgDelegate(m auth.AccountKeeper, k stake.Keeper) simulation.Operat
 
 // SimulateMsgBeginUnbonding
 func SimulateMsgBeginUnbonding(m auth.AccountKeeper, k stake.Keeper) simulation.Operation {
-	handler := stake.NewHandler(k)
+	handler := stake.NewStakeHandler(k)
 	return func(r *rand.Rand, app *baseapp.BaseApp, ctx sdk.Context,
 		accs []simulation.Account, event func(string)) (
 		action string, fOp []simulation.FutureOperation, err error) {
@@ -189,7 +189,7 @@ func SimulateMsgBeginUnbonding(m auth.AccountKeeper, k stake.Keeper) simulation.
 
 // SimulateMsgBeginRedelegate
 func SimulateMsgBeginRedelegate(m auth.AccountKeeper, k stake.Keeper) simulation.Operation {
-	handler := stake.NewHandler(k)
+	handler := stake.NewStakeHandler(k)
 	return func(r *rand.Rand, app *baseapp.BaseApp, ctx sdk.Context,
 		accs []simulation.Account, event func(string)) (
 		action string, fOp []simulation.FutureOperation, err error) {

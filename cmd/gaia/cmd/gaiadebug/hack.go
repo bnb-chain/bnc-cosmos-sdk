@@ -180,7 +180,7 @@ func NewGaiaApp(logger log.Logger, db dbm.DB, baseAppOptions ...func(*bam.BaseAp
 	// register message routes
 	app.Router().
 		AddRoute("bank", bank.NewHandler(app.bankKeeper)).
-		AddRoute("stake", stake.NewHandler(app.stakeKeeper))
+		AddRoute("stake", stake.NewStakeHandler(app.stakeKeeper))
 
 	// initialize BaseApp
 	app.SetInitChainer(app.initChainer)
