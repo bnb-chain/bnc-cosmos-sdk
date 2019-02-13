@@ -10,7 +10,7 @@ import (
 
 func TestWithdrawValidatorRewardsAllNoDelegator(t *testing.T) {
 	ctx, accMapper, keeper, sk, fck := CreateTestInputAdvanced(t, false, sdk.NewDecWithoutFra(100).RawInt(), sdk.ZeroDec())
-	stakeHandler := stake.NewHandler(sk)
+	stakeHandler := stake.NewStakeHandler(sk)
 	denom := sk.GetParams(ctx).BondDenom
 
 	//first make a validator
@@ -35,7 +35,7 @@ func TestWithdrawValidatorRewardsAllNoDelegator(t *testing.T) {
 
 func TestWithdrawValidatorRewardsAllDelegatorNoCommission(t *testing.T) {
 	ctx, accMapper, keeper, sk, fck := CreateTestInputAdvanced(t, false, sdk.NewDecWithoutFra(100).RawInt(), sdk.ZeroDec())
-	stakeHandler := stake.NewHandler(sk)
+	stakeHandler := stake.NewStakeHandler(sk)
 	denom := sk.GetParams(ctx).BondDenom
 
 	//first make a validator
@@ -67,7 +67,7 @@ func TestWithdrawValidatorRewardsAllDelegatorNoCommission(t *testing.T) {
 
 func TestWithdrawValidatorRewardsAllDelegatorWithCommission(t *testing.T) {
 	ctx, accMapper, keeper, sk, fck := CreateTestInputAdvanced(t, false, sdk.NewDecWithoutFra(100).RawInt(), sdk.ZeroDec())
-	stakeHandler := stake.NewHandler(sk)
+	stakeHandler := stake.NewStakeHandler(sk)
 	denom := sk.GetParams(ctx).BondDenom
 
 	//first make a validator
@@ -104,7 +104,7 @@ func TestWithdrawValidatorRewardsAllDelegatorWithCommission(t *testing.T) {
 
 func TestWithdrawValidatorRewardsAllMultipleValidator(t *testing.T) {
 	ctx, accMapper, keeper, sk, fck := CreateTestInputAdvanced(t, false, sdk.NewDecWithoutFra(100).RawInt(), sdk.ZeroDec())
-	stakeHandler := stake.NewHandler(sk)
+	stakeHandler := stake.NewStakeHandler(sk)
 	denom := sk.GetParams(ctx).BondDenom
 
 	//make some  validators with different commissions
@@ -147,7 +147,7 @@ func TestWithdrawValidatorRewardsAllMultipleValidator(t *testing.T) {
 
 func TestWithdrawValidatorRewardsAllMultipleDelegator(t *testing.T) {
 	ctx, accMapper, keeper, sk, fck := CreateTestInputAdvanced(t, false, sdk.NewDecWithoutFra(100).RawInt(), sdk.ZeroDec())
-	stakeHandler := stake.NewHandler(sk)
+	stakeHandler := stake.NewStakeHandler(sk)
 	denom := sk.GetParams(ctx).BondDenom
 
 	//first make a validator with 10% commission

@@ -25,6 +25,11 @@ type MsgCreateValidator struct {
 	Delegation    sdk.Coin       `json:"delegation"`
 }
 
+type MsgCreateValidatorProposal struct {
+	MsgCreateValidator
+	ProposalId int64 `json:"proposal_id"`
+}
+
 // Default way to create validator. Delegator address and validator address are the same
 func NewMsgCreateValidator(valAddr sdk.ValAddress, pubkey crypto.PubKey,
 	selfDelegation sdk.Coin, description Description, commission CommissionMsg) MsgCreateValidator {
@@ -104,6 +109,18 @@ func (msg MsgCreateValidator) ValidateBasic() sdk.Error {
 	}
 
 	return nil
+}
+
+func (msg MsgCreateValidator) Equals(other MsgCreateValidator) bool {
+	if !msg.Commission.Equal(other.Commission) {
+		return false
+	}
+
+	return msg.Delegation.IsEqual(other.Delegation) &&
+		msg.DelegatorAddr.Equals(other.DelegatorAddr) &&
+		msg.ValidatorAddr.Equals(other.ValidatorAddr) &&
+		msg.PubKey.Equals(other.PubKey) &&
+		msg.Description.Equals(other.Description)
 }
 
 //______________________________________________________________________
