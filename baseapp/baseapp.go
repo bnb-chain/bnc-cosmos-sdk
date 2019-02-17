@@ -215,6 +215,17 @@ func LoadBlockDB() dbm.DB {
 	return dbm.NewDB("blockstore", dbType, conf.DBDir())
 }
 
+func LoadTxDB() dbm.DB {
+	conf := cfg.DefaultConfig()
+	err := viper.Unmarshal(conf)
+	if err != nil {
+		panic(err)
+	}
+
+	dbType := dbm.DBBackendType(conf.DBBackend)
+	return dbm.NewDB("tx_index", dbType, conf.DBDir())
+}
+
 // initializes the remaining logic from app.cms
 func (app *BaseApp) initFromStore(mainKey sdk.StoreKey) error {
 	// main store should exist.
