@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/tendermint/iavl"
 	abci "github.com/tendermint/tendermint/abci/types"
 	cmn "github.com/tendermint/tendermint/libs/common"
 	dbm "github.com/tendermint/tendermint/libs/db"
@@ -41,6 +42,10 @@ type Committer interface {
 type CommitStore interface {
 	Committer
 	Store
+}
+
+type TreeStore interface {
+	GetImmutableTree() *iavl.ImmutableTree
 }
 
 // Queryable allows a Store to expose internal state to the abci.Query

@@ -66,6 +66,10 @@ func newIAVLStore(tree *iavl.MutableTree, numRecent int64, storeEvery int64) *ia
 	return st
 }
 
+func (st *iavlStore) GetImmutableTree() *iavl.ImmutableTree {
+	return st.tree.ImmutableTree
+}
+
 // Implements Committer.
 func (st *iavlStore) Commit() CommitID {
 	// Save a new version.
