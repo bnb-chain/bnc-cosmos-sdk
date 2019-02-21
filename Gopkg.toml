@@ -58,7 +58,7 @@
 [[override]]
   name = "github.com/tendermint/tendermint"
   source = "github.com/BiJie/bnc-tendermint"
-  version = "=v0.29.1-br0"
+  version = "=v0.29.1-binance.2"
 
 ## deps without releases:
 
