@@ -76,3 +76,12 @@ func runMnemonicCmd(cmd *cobra.Command, args []string) error {
 
 	return nil
 }
+
+func printPrefixed(msg string) {
+	fmt.Printf("> %s\n", msg)
+}
+
+func printStep() {
+	printPrefixed("-------------------------------------")
+}
+
