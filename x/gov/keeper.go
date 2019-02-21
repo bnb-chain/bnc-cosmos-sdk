@@ -52,6 +52,9 @@ type Keeper struct {
 	// The codec codec for binary encoding/decoding.
 	cdc *codec.Codec
 
+	// Hooks registered
+	hooks GovHooks
+
 	// Reserved codespace
 	codespace sdk.CodespaceType
 
@@ -76,6 +79,15 @@ func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, paramsKeeper params.Keeper, p
 		codespace:    codespace,
 		pool:         pool,
 	}
+}
+
+// SetHooks set hooks for gov keeper
+func (keeper Keeper) SetHooks(hooks GovHooks) Keeper {
+	if keeper.hooks != nil {
+		panic("cannot set gov hooks twice")
+	}
+	keeper.hooks = hooks
+	return keeper
 }
 
 // =====================================================

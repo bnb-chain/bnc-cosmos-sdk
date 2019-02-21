@@ -560,6 +560,14 @@ func GetCmdSubmitListProposal(cdc *codec.Codec) *cobra.Command {
 			initPrice := viper.GetInt64(flagInitPrice)
 			expireTimestamp := viper.GetInt64(flagExpireTime)
 
+			if tradeAsset == "" {
+				return errors.New("base asset should not be empty")
+			}
+
+			if quoteAsset == "" {
+				return errors.New("quote asset should not be empty")
+			}
+
 			if initPrice <= 0 {
 				return errors.New("init price should greater than 0")
 			}
