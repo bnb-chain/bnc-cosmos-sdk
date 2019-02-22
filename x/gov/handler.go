@@ -27,6 +27,12 @@ func NewHandler(keeper Keeper) sdk.Handler {
 func handleMsgSubmitProposal(ctx sdk.Context, keeper Keeper, msg MsgSubmitProposal) sdk.Result {
 
 	proposal := keeper.NewTextProposal(ctx, msg.Title, msg.Description, msg.ProposalType)
+
+	hooksErr := keeper.OnProposalSubmitted(ctx, proposal)
+	if hooksErr != nil {
+		return ErrInvalidProposal(keeper.codespace, hooksErr.Error()).Result()
+	}
+
 	proposalID := proposal.GetProposalID()
 	proposalIDBytes := []byte(fmt.Sprintf("%d", proposalID))
 
