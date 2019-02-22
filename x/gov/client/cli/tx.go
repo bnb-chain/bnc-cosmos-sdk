@@ -7,6 +7,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/utils"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -15,9 +19,6 @@ import (
 	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/gov/client"
-	"github.com/pkg/errors"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 const (
