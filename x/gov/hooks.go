@@ -10,8 +10,12 @@ type GovHooks interface {
 }
 
 func (keeper Keeper) OnProposalSubmitted(ctx sdk.Context, proposal Proposal) error {
-	if keeper.hooks != nil {
-		return keeper.hooks.OnProposalSubmitted(ctx, proposal)
+	hs := keeper.hooks[proposal.GetProposalType()]
+	for _, hooks := range hs {
+		err := hooks.OnProposalSubmitted(ctx, proposal)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

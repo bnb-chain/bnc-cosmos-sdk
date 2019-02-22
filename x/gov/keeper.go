@@ -2,6 +2,7 @@ package gov
 
 import (
 	"fmt"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/bank"
@@ -53,7 +54,7 @@ type Keeper struct {
 	cdc *codec.Codec
 
 	// Hooks registered
-	hooks GovHooks
+	hooks map[ProposalKind][]GovHooks
 
 	// Reserved codespace
 	codespace sdk.CodespaceType
@@ -74,6 +75,7 @@ func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, paramsKeeper params.Keeper, p
 		paramSpace:   paramSpace.WithTypeTable(ParamTypeTable()),
 		ck:           ck,
 		ds:           ds,
+		hooks:        make(map[ProposalKind][]GovHooks),
 		vs:           ds.GetValidatorSet(),
 		cdc:          cdc,
 		codespace:    codespace,
@@ -81,12 +83,14 @@ func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, paramsKeeper params.Keeper, p
 	}
 }
 
-// SetHooks set hooks for gov keeper
-func (keeper Keeper) SetHooks(hooks GovHooks) Keeper {
-	if keeper.hooks != nil {
-		panic("cannot set gov hooks twice")
+// AddHooks add hooks for gov keeper
+func (keeper Keeper) AddHooks(proposalType ProposalKind, hooks GovHooks) Keeper {
+	hs := keeper.hooks[proposalType]
+	if hs == nil {
+		hs = make([]GovHooks, 0, 0)
 	}
-	keeper.hooks = hooks
+	hs = append(hs, hooks)
+	keeper.hooks[proposalType] = hs
 	return keeper
 }
 
