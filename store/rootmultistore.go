@@ -413,7 +413,6 @@ func (ci CommitInfo) Hash() []byte {
 	// TODO cache to ci.hash []byte
 	m := make(map[string][]byte, len(ci.StoreInfos))
 	for _, storeInfo := range ci.StoreInfos {
-		fmt.Printf("StoreInfo Name:%s, Version: %d, Hash: %X\n", storeInfo.Name, storeInfo.Core.CommitID.Version, storeInfo.Core.CommitID.Hash)
 		m[storeInfo.Name] = storeInfo.Hash()
 	}
 	return merkle.SimpleHashFromMap(m)
@@ -483,7 +482,6 @@ func setLatestVersion(batch dbm.Batch, version int64) {
 func commitStores(version int64, storeMap map[StoreKey]CommitStore) CommitInfo {
 	storeInfos := make([]StoreInfo, 0, len(storeMap))
 
-	fmt.Printf("!!!cong!!!version=%d\n", version)
 	for key, store := range storeMap {
 		// Commit
 		commitID := store.Commit()
@@ -497,7 +495,6 @@ func commitStores(version int64, storeMap map[StoreKey]CommitStore) CommitInfo {
 		si.Name = key.Name()
 		si.Core.CommitID = commitID
 		// si.Core.StoreType = store.GetStoreType()
-		fmt.Printf("!!!cong!!!key=%s, hash=%X\n", key.Name(), commitID.Hash)
 		storeInfos = append(storeInfos, si)
 	}
 
@@ -512,7 +509,6 @@ func commitStores(version int64, storeMap map[StoreKey]CommitStore) CommitInfo {
 func commitStoresAt(version int64, storeMap map[StoreKey]CommitStore) CommitInfo {
 	storeInfos := make([]StoreInfo, 0, len(storeMap))
 
-	fmt.Printf("!!!cong!!!version=%d\n", version)
 	for key, store := range storeMap {
 		// Commit
 		commitID := store.CommitAt(version)
@@ -526,7 +522,6 @@ func commitStoresAt(version int64, storeMap map[StoreKey]CommitStore) CommitInfo
 		si.Name = key.Name()
 		si.Core.CommitID = commitID
 		// si.Core.StoreType = store.GetStoreType()
-		fmt.Printf("!!!cong!!!key=%s, hash=%X\n", key.Name(), commitID.Hash)
 		storeInfos = append(storeInfos, si)
 	}
 
