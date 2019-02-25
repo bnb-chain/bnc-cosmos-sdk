@@ -21,10 +21,15 @@ const (
 	CodeInvalidVote             sdk.CodeType = 9
 	CodeInvalidGenesis          sdk.CodeType = 10
 	CodeInvalidProposalStatus   sdk.CodeType = 11
+	CodeInvalidProposal         sdk.CodeType = 12
 )
 
 //----------------------------------------
 // Error constructors
+
+func ErrInvalidProposal(codespace sdk.CodespaceType, msg string) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidProposal, fmt.Sprintf("Invalid proposal: %s", msg))
+}
 
 func ErrUnknownProposal(codespace sdk.CodespaceType, proposalID int64) sdk.Error {
 	return sdk.NewError(codespace, CodeUnknownProposal, fmt.Sprintf("Unknown proposal with id %d", proposalID))

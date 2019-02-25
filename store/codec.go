@@ -11,6 +11,7 @@ type (
 	Store            = types.Store
 	Committer        = types.Committer
 	CommitStore      = types.CommitStore
+	TreeStore        = types.TreeStore
 	MultiStore       = types.MultiStore
 	CacheMultiStore  = types.CacheMultiStore
 	CommitMultiStore = types.CommitMultiStore
