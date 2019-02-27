@@ -13,10 +13,11 @@ import (
 
 // PruningStrategy specfies how old states will be deleted over time
 type PruningStrategy interface {
-	Prune(version, latestVersion int64) bool
+	ShouldPrune(version, latestVersion int64) bool
 }
 
-// PruneSyncable means only those states not needed for state syncing will be deleted (keeps last 100 + every 10000th)
+// PruneSyncable defines the frequency (how many) of states would be saved,
+// while all the others are not needed for state syncing and would be deleted.
 type PruneSyncable struct {
 	// How many old versions we hold onto.
 	// A value of 0 means keep no recent states.
@@ -31,21 +32,21 @@ type PruneSyncable struct {
 	StoreEvery int64
 }
 
-func (strategy PruneSyncable) Prune(version, latestVersion int64) bool {
+func (strategy PruneSyncable) ShouldPrune(version, latestVersion int64) bool {
 	return (latestVersion-version > strategy.NumRecent) && (version%strategy.StoreEvery != 0)
 }
 
 // PruneEverything means all saved states will be deleted, storing only the current state
 type PruneEverything struct{}
 
-func (strategy PruneEverything) Prune(version, latestVersion int64) bool {
+func (strategy PruneEverything) ShouldPrune(version, latestVersion int64) bool {
 	return true
 }
 
 // PruneNothing means all historic states will be saved, nothing will be deleted
 type PruneNothing struct{}
 
-func (strategy PruneNothing) Prune(version, latestVersion int64) bool {
+func (strategy PruneNothing) ShouldPrune(version, latestVersion int64) bool {
 	return false
 }
 

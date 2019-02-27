@@ -66,10 +66,16 @@ func (st *IavlStore) Commit() CommitID {
 	}
 
 	// Release an old version of history, if not a sync waypoint.
-	for v, _ := range st.Tree.GetVersions() {
-		if st.pruningStrategy.Prune(v, version) {
-			st.Tree.DeleteVersion(v)
-		}
+	//for v, _ := range st.tree.GetVersions() {
+	//	if st.pruningStrategy.ShouldPrune(v, version) {
+	//		st.tree.DeleteVersion(v)
+	//	}
+	//}
+
+	// this is a special optimization for binance chain, 10001 should keep consistent with
+	// `numRecent` field of KeepRecentAndBreatheBlock
+	if version > 10001 && st.pruningStrategy.ShouldPrune(version-10001, version) {
+		st.Tree.DeleteVersion(version - 10001)
 	}
 
 	return CommitID{
