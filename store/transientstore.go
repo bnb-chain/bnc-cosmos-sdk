@@ -25,13 +25,6 @@ func (ts *transientStore) Commit() (id CommitID) {
 }
 
 // Implements CommitStore
-// Commit cleans up transientStore.
-func (ts *transientStore) CommitAt(version int64) (id CommitID) {
-	ts.dbStoreAdapter = dbStoreAdapter{dbm.NewMemDB()}
-	return
-}
-
-// Implements CommitStore
 func (ts *transientStore) SetPruning(pruning PruningStrategy) {
 }
 

@@ -85,21 +85,6 @@ func (st *IavlStore) Commit() CommitID {
 }
 
 // Implements Committer.
-func (st *IavlStore) CommitAt(version int64) CommitID {
-	// Save a new version.
-	hash, version, err := st.Tree.SaveVersionAt(version)
-	if err != nil {
-		// TODO: Do we want to extend Commit to allow returning errors?
-		panic(err)
-	}
-
-	return CommitID{
-		Version: version,
-		Hash:    hash,
-	}
-}
-
-// Implements Committer.
 func (st *IavlStore) LastCommitID() CommitID {
 	return CommitID{
 		Version: st.Tree.Version(),

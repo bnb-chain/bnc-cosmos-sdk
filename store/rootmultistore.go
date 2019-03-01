@@ -211,26 +211,6 @@ func (rs *rootMultiStore) Commit() CommitID {
 	return commitID
 }
 
-// Implements Committer/CommitStore.
-func (rs *rootMultiStore) CommitAt(version int64) CommitID {
-	// Commit stores.
-	commitInfo := commitStoresAt(version, rs.stores)
-
-	// Need to update atomically.
-	batch := rs.db.NewBatch()
-	setCommitInfo(batch, version, commitInfo)
-	setLatestVersion(batch, version)
-	batch.Write()
-
-	// Prepare for next version.
-	commitID := CommitID{
-		Version: version,
-		Hash:    commitInfo.Hash(),
-	}
-	rs.lastCommitID = commitID
-	return commitID
-}
-
 // Implements CacheWrapper/Store/CommitStore.
 func (rs *rootMultiStore) CacheWrap() CacheWrap {
 	return rs.CacheMultiStore().(CacheWrap)
@@ -485,33 +465,6 @@ func commitStores(version int64, storeMap map[StoreKey]CommitStore) CommitInfo {
 	for key, store := range storeMap {
 		// Commit
 		commitID := store.Commit()
-
-		if store.GetStoreType() == sdk.StoreTypeTransient {
-			continue
-		}
-
-		// Record CommitID
-		si := StoreInfo{}
-		si.Name = key.Name()
-		si.Core.CommitID = commitID
-		// si.Core.StoreType = store.GetStoreType()
-		storeInfos = append(storeInfos, si)
-	}
-
-	ci := CommitInfo{
-		Version:    version,
-		StoreInfos: storeInfos,
-	}
-	return ci
-}
-
-// Commits each store and returns a new CommitInfo.
-func commitStoresAt(version int64, storeMap map[StoreKey]CommitStore) CommitInfo {
-	storeInfos := make([]StoreInfo, 0, len(storeMap))
-
-	for key, store := range storeMap {
-		// Commit
-		commitID := store.CommitAt(version)
 
 		if store.GetStoreType() == sdk.StoreTypeTransient {
 			continue
