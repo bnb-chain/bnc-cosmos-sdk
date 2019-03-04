@@ -258,6 +258,10 @@ func (ac *accountStoreCache) Delete(addr sdk.AccAddress) {
 	ac.store.Delete(AddressStoreKey(addr))
 }
 
+func (ac *accountStoreCache) ClearCache() {
+	ac.cache.Purge()
+}
+
 func (ac *accountStoreCache) encodeAccount(acc sdk.Account) []byte {
 	bz, err := ac.cdc.MarshalBinaryBare(acc)
 	if err != nil {
@@ -301,6 +305,10 @@ func (ac *accountCache) SetAccount(addr sdk.AccAddress, acc sdk.Account) {
 
 func (ac *accountCache) Delete(addr sdk.AccAddress) {
 	ac.setAccountToCache(addr, nil, true, true)
+}
+
+func (ac *accountCache) ClearCache() {
+	ac.cache = sync.Map{}
 }
 
 func (ac *accountCache) Cache() sdk.AccountCache {
