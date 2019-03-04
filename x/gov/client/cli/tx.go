@@ -83,7 +83,7 @@ $ gaiacli gov submit-proposal --title="Test Proposal" --description="My awesome 
 			}
 
 			if proposal.Title == "" {
-				return errors.New("title should not be empty")
+				return errors.New("Title should not be empty")
 			}
 
 			if len(proposal.Title) > gov.MaxTitleLength {
