@@ -424,6 +424,43 @@ func (app *asyncLocalClient) EndBlockSync(req types.RequestEndBlock) (*types.Res
 
 //-------------------------------------------------------
 
+func (app *asyncLocalClient) LatestSnapshot() (height int64, numKeys []int64, err error) {
+	app.rwLock.RLock()
+	defer app.rwLock.RUnlock()
+
+	return app.Application.LatestSnapshot()
+}
+
+func (app *asyncLocalClient) ReadSnapshotChunk(height int64, startIndex, endIndex int64) (chunk [][]byte, err error) {
+	app.rwLock.RLock()
+	defer app.rwLock.RUnlock()
+
+	return app.Application.ReadSnapshotChunk(height, startIndex, endIndex)
+}
+
+func (app *asyncLocalClient) StartRecovery(height int64, numKeys []int64) error {
+	app.rwLock.Lock()
+	defer app.rwLock.Unlock()
+
+	return app.Application.StartRecovery(height, numKeys)
+}
+
+func (app *asyncLocalClient) WriteRecoveryChunk(chunk [][]byte) error {
+	app.rwLock.Lock()
+	defer app.rwLock.Unlock()
+
+	return app.Application.WriteRecoveryChunk(chunk)
+}
+
+func (app *asyncLocalClient) EndRecovery(height int64) error {
+	app.rwLock.Lock()
+	defer app.rwLock.Unlock()
+
+	return app.Application.EndRecovery(height)
+}
+
+//-------------------------------------------------------
+
 func (app *asyncLocalClient) callback(req *types.Request, res *types.Response) *abcicli.ReqRes {
 	app.Callback(req, res)
 	return newLocalReqRes(req, res)

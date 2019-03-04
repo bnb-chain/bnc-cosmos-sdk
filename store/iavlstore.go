@@ -25,43 +25,33 @@ func LoadIAVLStore(db dbm.DB, id CommitID, pruning sdk.PruningStrategy) (CommitS
 	if err != nil {
 		return nil, err
 	}
-	iavl := newIAVLStore(tree, int64(0), int64(0))
+	iavl := newIAVLStore(tree, sdk.PruneNothing{})
 	iavl.SetPruning(pruning)
 	return iavl, nil
 }
 
 //----------------------------------------
 
-var _ KVStore = (*iavlStore)(nil)
-var _ CommitStore = (*iavlStore)(nil)
-var _ Queryable = (*iavlStore)(nil)
+var _ KVStore = (*IavlStore)(nil)
+var _ CommitStore = (*IavlStore)(nil)
+var _ Queryable = (*IavlStore)(nil)
 
-// iavlStore Implements KVStore and CommitStore.
-type iavlStore struct {
+// IavlStore Implements KVStore and CommitStore.
+type IavlStore struct {
 
 	// The underlying tree.
-	tree *iavl.MutableTree
+	Tree *iavl.MutableTree
 
-	// How many old versions we hold onto.
-	// A value of 0 means keep no recent states.
-	numRecent int64
-
-	// This is the distance between state-sync waypoint states to be stored.
-	// See https://github.com/tendermint/tendermint/issues/828
-	// A value of 1 means store every state.
-	// A value of 0 means store no waypoints. (node cannot assist in state-sync)
-	// By default this value should be set the same across all nodes,
-	// so that nodes can know the waypoints their peers store.
-	storeEvery int64
+	// The strategy to prune historical versions
+	pruningStrategy sdk.PruningStrategy
 }
 
 // CONTRACT: tree should be fully loaded.
 // nolint: unparam
-func newIAVLStore(tree *iavl.MutableTree, numRecent int64, storeEvery int64) *iavlStore {
-	st := &iavlStore{
-		tree:       tree,
-		numRecent:  numRecent,
-		storeEvery: storeEvery,
+func newIAVLStore(tree *iavl.MutableTree, ps sdk.PruningStrategy) *IavlStore {
+	st := &IavlStore{
+		Tree:            tree,
+		pruningStrategy: ps,
 	}
 	return st
 }
@@ -71,24 +61,25 @@ func (st *iavlStore) GetImmutableTree() *iavl.ImmutableTree {
 }
 
 // Implements Committer.
-func (st *iavlStore) Commit() CommitID {
+func (st *IavlStore) Commit() CommitID {
 	// Save a new version.
-	hash, version, err := st.tree.SaveVersion()
+	hash, version, err := st.Tree.SaveVersion()
 	if err != nil {
 		// TODO: Do we want to extend Commit to allow returning errors?
 		panic(err)
 	}
 
 	// Release an old version of history, if not a sync waypoint.
-	previous := version - 1
-	if st.numRecent < previous {
-		toRelease := previous - st.numRecent
-		if st.storeEvery == 0 || toRelease%st.storeEvery != 0 {
-			err := st.tree.DeleteVersion(toRelease)
-			if err != nil && err.(cmn.Error).Data() != iavl.ErrVersionDoesNotExist {
-				panic(err)
-			}
-		}
+	//for v, _ := range st.Tree.GetVersions() {
+	//	if st.pruningStrategy.ShouldPrune(v, version) {
+	//		st.Tree.DeleteVersion(v)
+	//	}
+	//}
+
+	// this is a special optimization for binance chain, 10001 should keep consistent with
+	// `numRecent` field of KeepRecentAndBreatheBlock
+	if version > 10001 && st.pruningStrategy.ShouldPrune(version-10001, version) {
+		st.Tree.DeleteVersion(version - 10001)
 	}
 
 	return CommitID{
@@ -98,81 +89,72 @@ func (st *iavlStore) Commit() CommitID {
 }
 
 // Implements Committer.
-func (st *iavlStore) LastCommitID() CommitID {
+func (st *IavlStore) LastCommitID() CommitID {
 	return CommitID{
-		Version: st.tree.Version(),
-		Hash:    st.tree.Hash(),
+		Version: st.Tree.Version(),
+		Hash:    st.Tree.Hash(),
 	}
 }
 
 // Implements Committer.
-func (st *iavlStore) SetPruning(pruning sdk.PruningStrategy) {
-	switch pruning {
-	case sdk.PruneEverything:
-		st.numRecent = 0
-		st.storeEvery = 0
-	case sdk.PruneNothing:
-		st.storeEvery = 1
-	case sdk.PruneSyncable:
-		st.numRecent = 100
-		st.storeEvery = 10000
-	}
+func (st *IavlStore) SetPruning(pruning sdk.PruningStrategy) {
+	st.pruningStrategy = pruning
 }
 
 // VersionExists returns whether or not a given version is stored.
-func (st *iavlStore) VersionExists(version int64) bool {
-	return st.tree.VersionExists(version)
+func (st *IavlStore) VersionExists(version int64) bool {
+	return st.Tree.VersionExists(version)
 }
 
 // Implements Store.
-func (st *iavlStore) GetStoreType() StoreType {
+func (st *IavlStore) GetStoreType() StoreType {
 	return sdk.StoreTypeIAVL
 }
 
 // Implements Store.
-func (st *iavlStore) CacheWrap() CacheWrap {
+func (st *IavlStore) CacheWrap() CacheWrap {
 	return NewCacheKVStore(st)
 }
 
 // CacheWrapWithTrace implements the Store interface.
-func (st *iavlStore) CacheWrapWithTrace(w io.Writer, tc TraceContext) CacheWrap {
+func (st *IavlStore) CacheWrapWithTrace(w io.Writer, tc TraceContext) CacheWrap {
 	return NewCacheKVStore(NewTraceKVStore(st, w, tc))
 }
 
 // Implements KVStore.
-func (st *iavlStore) Set(key, value []byte) {
-	st.tree.Set(key, value)
+func (st *IavlStore) Set(key, value []byte) {
+	st.Tree.Set(key, value)
 }
 
 // Implements KVStore.
-func (st *iavlStore) Get(key []byte) (value []byte) {
-	_, v := st.tree.Get(key)
+func (st *IavlStore) Get(key []byte) (value []byte) {
+	_, v := st.Tree.Get(key)
 	return v
 }
 
 // Implements KVStore.
-func (st *iavlStore) Has(key []byte) (exists bool) {
-	return st.tree.Has(key)
+func (st *IavlStore) Has(key []byte) (exists bool) {
+	return st.Tree.Has(key)
 }
 
 // Implements KVStore.
-func (st *iavlStore) Delete(key []byte) {
-	st.tree.Remove(key)
+func (st *IavlStore) Delete(key []byte) {
+	st.Tree.Remove(key)
 }
 
 // Implements KVStore
-func (st *iavlStore) Prefix(prefix []byte) KVStore {
+func (st *IavlStore) Prefix(prefix []byte) KVStore {
 	return prefixStore{st, prefix}
 }
 
 // Implements KVStore.
-func (st *iavlStore) Iterator(start, end []byte) Iterator {
-	return newIAVLIterator(st.tree.ImmutableTree, start, end, true)
+func (st *IavlStore) Iterator(start, end []byte) Iterator {
+	return newIAVLIterator(st.Tree.ImmutableTree, start, end, true)
 }
 
 // Implements KVStore.
-func (st *iavlStore) ReverseIterator(start, end []byte) Iterator {
-	return newIAVLIterator(st.tree.ImmutableTree, start, end, false)
+func (st *IavlStore) ReverseIterator(start, end []byte) Iterator {
+	return newIAVLIterator(st.Tree.ImmutableTree, start, end, false)
 }
 
 // Handle gatest the latest height, if height is 0
@@ -196,13 +178,13 @@ func getHeight(tree *iavl.MutableTree, req abci.RequestQuery) int64 {
 // If latest-1 is not present, use latest (which must be present)
 // if you care to have the latest data to see a tx results, you must
 // explicitly set the height you want to see
-func (st *iavlStore) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
+func (st *IavlStore) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 	if len(req.Data) == 0 {
 		msg := "Query cannot be zero length"
 		return sdk.ErrTxDecode(msg).QueryResult()
 	}
 
-	tree := st.tree
+	tree := st.Tree
 
 	// store the height we chose in the response, with 0 being changed to the
 	// latest height

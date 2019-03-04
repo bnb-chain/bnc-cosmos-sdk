@@ -1,6 +1,7 @@
 package gov_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -38,6 +39,8 @@ func TestMsgSubmitProposal(t *testing.T) {
 		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeText, addrs[0], coinsZero, true},
 		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeText, addrs[0], coinsNeg, false},
 		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeText, addrs[0], coinsMulti, true},
+		{strings.Repeat("#", gov.MaxTitleLength*2), "the purpose of this proposal is to test", gov.ProposalTypeText, addrs[0], coinsMulti, false},
+		{"Test Proposal", strings.Repeat("#", gov.MaxDescriptionLength*2), gov.ProposalTypeText, addrs[0], coinsMulti, false},
 	}
 
 	for i, tc := range tests {
