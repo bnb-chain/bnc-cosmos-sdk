@@ -14,7 +14,7 @@ func TestVerifyIAVLStoreQueryProof(t *testing.T) {
 	// Create main tree for testing.
 	db := dbm.NewMemDB()
 	iStore, err := LoadIAVLStore(db, CommitID{}, sdk.PruneNothing{})
-	store := iStore.(*iavlStore)
+	store := iStore.(*IavlStore)
 	require.Nil(t, err)
 	store.Set([]byte("MYKEY"), []byte("MYVALUE"))
 	cid := store.Commit()
@@ -62,7 +62,7 @@ func TestVerifyMultiStoreQueryProof(t *testing.T) {
 	store.MountStoreWithDB(iavlStoreKey, sdk.StoreTypeIAVL, nil)
 	store.LoadVersion(0)
 
-	iavlStore := store.GetCommitStore(iavlStoreKey).(*iavlStore)
+	iavlStore := store.GetCommitStore(iavlStoreKey).(*IavlStore)
 	iavlStore.Set([]byte("MYKEY"), []byte("MYVALUE"))
 	cid := store.Commit()
 

@@ -66,9 +66,9 @@ func (st *IavlStore) Commit() CommitID {
 	}
 
 	// Release an old version of history, if not a sync waypoint.
-	//for v, _ := range st.tree.GetVersions() {
+	//for v, _ := range st.Tree.GetVersions() {
 	//	if st.pruningStrategy.ShouldPrune(v, version) {
-	//		st.tree.DeleteVersion(v)
+	//		st.Tree.DeleteVersion(v)
 	//	}
 	//}
 

@@ -270,53 +270,55 @@ func nextVersion(iavl *IavlStore) {
 	iavl.Commit()
 }
 
-func TestIAVLDefaultPruning(t *testing.T) {
-	//Expected stored / deleted version numbers for:
-	//numRecent = 5, storeEvery = 3
-	var states = []pruneState{
-		{[]int64{}, []int64{}},
-		{[]int64{1}, []int64{}},
-		{[]int64{1, 2}, []int64{}},
-		{[]int64{1, 2, 3}, []int64{}},
-		{[]int64{1, 2, 3, 4}, []int64{}},
-		{[]int64{1, 2, 3, 4, 5}, []int64{}},
-		{[]int64{1, 2, 3, 4, 5, 6}, []int64{}},
-		{[]int64{2, 3, 4, 5, 6, 7}, []int64{1}},
-		{[]int64{3, 4, 5, 6, 7, 8}, []int64{1, 2}},
-		{[]int64{3, 4, 5, 6, 7, 8, 9}, []int64{1, 2}},
-		{[]int64{3, 5, 6, 7, 8, 9, 10}, []int64{1, 2, 4}},
-		{[]int64{3, 6, 7, 8, 9, 10, 11}, []int64{1, 2, 4, 5}},
-		{[]int64{3, 6, 7, 8, 9, 10, 11, 12}, []int64{1, 2, 4, 5}},
-		{[]int64{3, 6, 8, 9, 10, 11, 12, 13}, []int64{1, 2, 4, 5, 7}},
-		{[]int64{3, 6, 9, 10, 11, 12, 13, 14}, []int64{1, 2, 4, 5, 7, 8}},
-		{[]int64{3, 6, 9, 10, 11, 12, 13, 14, 15}, []int64{1, 2, 4, 5, 7, 8}},
-	}
-	testPruning(t, int64(5), int64(3), states)
-}
+// Comment out as binance hard coded numRecent to 10000 in func (st *IavlStore) Commit() CommitID {
+//func TestIAVLDefaultPruning(t *testing.T) {
+//	//Expected stored / deleted version numbers for:
+//	//numRecent = 5, storeEvery = 3
+//	var states = []pruneState{
+//		{[]int64{}, []int64{}},
+//		{[]int64{1}, []int64{}},
+//		{[]int64{1, 2}, []int64{}},
+//		{[]int64{1, 2, 3}, []int64{}},
+//		{[]int64{1, 2, 3, 4}, []int64{}},
+//		{[]int64{1, 2, 3, 4, 5}, []int64{}},
+//		{[]int64{1, 2, 3, 4, 5, 6}, []int64{}},
+//		{[]int64{2, 3, 4, 5, 6, 7}, []int64{1}},
+//		{[]int64{3, 4, 5, 6, 7, 8}, []int64{1, 2}},
+//		{[]int64{3, 4, 5, 6, 7, 8, 9}, []int64{1, 2}},
+//		{[]int64{3, 5, 6, 7, 8, 9, 10}, []int64{1, 2, 4}},
+//		{[]int64{3, 6, 7, 8, 9, 10, 11}, []int64{1, 2, 4, 5}},
+//		{[]int64{3, 6, 7, 8, 9, 10, 11, 12}, []int64{1, 2, 4, 5}},
+//		{[]int64{3, 6, 8, 9, 10, 11, 12, 13}, []int64{1, 2, 4, 5, 7}},
+//		{[]int64{3, 6, 9, 10, 11, 12, 13, 14}, []int64{1, 2, 4, 5, 7, 8}},
+//		{[]int64{3, 6, 9, 10, 11, 12, 13, 14, 15}, []int64{1, 2, 4, 5, 7, 8}},
+//	}
+//	testPruning(t, int64(5), int64(3), states)
+//}
 
-func TestIAVLAlternativePruning(t *testing.T) {
-	//Expected stored / deleted version numbers for:
-	//numRecent = 3, storeEvery = 5
-	var states = []pruneState{
-		{[]int64{}, []int64{}},
-		{[]int64{1}, []int64{}},
-		{[]int64{1, 2}, []int64{}},
-		{[]int64{1, 2, 3}, []int64{}},
-		{[]int64{1, 2, 3, 4}, []int64{}},
-		{[]int64{2, 3, 4, 5}, []int64{1}},
-		{[]int64{3, 4, 5, 6}, []int64{1, 2}},
-		{[]int64{4, 5, 6, 7}, []int64{1, 2, 3}},
-		{[]int64{5, 6, 7, 8}, []int64{1, 2, 3, 4}},
-		{[]int64{5, 6, 7, 8, 9}, []int64{1, 2, 3, 4}},
-		{[]int64{5, 7, 8, 9, 10}, []int64{1, 2, 3, 4, 6}},
-		{[]int64{5, 8, 9, 10, 11}, []int64{1, 2, 3, 4, 6, 7}},
-		{[]int64{5, 9, 10, 11, 12}, []int64{1, 2, 3, 4, 6, 7, 8}},
-		{[]int64{5, 10, 11, 12, 13}, []int64{1, 2, 3, 4, 6, 7, 8, 9}},
-		{[]int64{5, 10, 11, 12, 13, 14}, []int64{1, 2, 3, 4, 6, 7, 8, 9}},
-		{[]int64{5, 10, 12, 13, 14, 15}, []int64{1, 2, 3, 4, 6, 7, 8, 9, 11}},
-	}
-	testPruning(t, int64(3), int64(5), states)
-}
+// Comment out as binance hard coded numRecent to 10000 in func (st *IavlStore) Commit() CommitID {
+//func TestIAVLAlternativePruning(t *testing.T) {
+//	//Expected stored / deleted version numbers for:
+//	//numRecent = 3, storeEvery = 5
+//	var states = []pruneState{
+//		{[]int64{}, []int64{}},
+//		{[]int64{1}, []int64{}},
+//		{[]int64{1, 2}, []int64{}},
+//		{[]int64{1, 2, 3}, []int64{}},
+//		{[]int64{1, 2, 3, 4}, []int64{}},
+//		{[]int64{2, 3, 4, 5}, []int64{1}},
+//		{[]int64{3, 4, 5, 6}, []int64{1, 2}},
+//		{[]int64{4, 5, 6, 7}, []int64{1, 2, 3}},
+//		{[]int64{5, 6, 7, 8}, []int64{1, 2, 3, 4}},
+//		{[]int64{5, 6, 7, 8, 9}, []int64{1, 2, 3, 4}},
+//		{[]int64{5, 7, 8, 9, 10}, []int64{1, 2, 3, 4, 6}},
+//		{[]int64{5, 8, 9, 10, 11}, []int64{1, 2, 3, 4, 6, 7}},
+//		{[]int64{5, 9, 10, 11, 12}, []int64{1, 2, 3, 4, 6, 7, 8}},
+//		{[]int64{5, 10, 11, 12, 13}, []int64{1, 2, 3, 4, 6, 7, 8, 9}},
+//		{[]int64{5, 10, 11, 12, 13, 14}, []int64{1, 2, 3, 4, 6, 7, 8, 9}},
+//		{[]int64{5, 10, 12, 13, 14, 15}, []int64{1, 2, 3, 4, 6, 7, 8, 9, 11}},
+//	}
+//	testPruning(t, int64(3), int64(5), states)
+//}
 
 type pruneState struct {
 	stored  []int64
@@ -357,23 +359,24 @@ func TestIAVLNoPrune(t *testing.T) {
 	}
 }
 
-func TestIAVLPruneEverything(t *testing.T) {
-	db := dbm.NewMemDB()
-	tree := iavl.NewMutableTree(db, cacheSize)
-	iavlStore := newIAVLStore(tree, sdk.PruneEverything{})
-	nextVersion(iavlStore)
-	for i := 1; i < 100; i++ {
-		for j := 1; j < i; j++ {
-			require.False(t, iavlStore.VersionExists(int64(j)),
-				"Unpruned version %d with latest version %d. Should prune all old versions",
-				j, i)
-		}
-		require.True(t, iavlStore.VersionExists(int64(i)),
-			"Missing current version on step %d, should not prune current state tree",
-			i)
-		nextVersion(iavlStore)
-	}
-}
+// Comment out as binance hard coded numRecent to 10000 in func (st *IavlStore) Commit() CommitID {
+//func TestIAVLPruneEverything(t *testing.T) {
+//	db := dbm.NewMemDB()
+//	tree := iavl.NewMutableTree(db, cacheSize)
+//	iavlStore := newIAVLStore(tree, sdk.PruneEverything{})
+//	nextVersion(iavlStore)
+//	for i := 1; i < 100; i++ {
+//		for j := 1; j < i; j++ {
+//			require.False(t, iavlStore.VersionExists(int64(j)),
+//				"Unpruned version %d with latest version %d. Should prune all old versions",
+//				j, i)
+//		}
+//		require.True(t, iavlStore.VersionExists(int64(i)),
+//			"Missing current version on step %d, should not prune current state tree",
+//			i)
+//		nextVersion(iavlStore)
+//	}
+//}
 
 func TestIAVLStoreQuery(t *testing.T) {
 	db := dbm.NewMemDB()

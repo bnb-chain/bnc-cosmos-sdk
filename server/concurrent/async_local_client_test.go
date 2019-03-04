@@ -88,6 +88,22 @@ func (app *TimedApplication) PreDeliverTx(tx []byte) types.ResponseDeliverTx {
 	return types.ResponseDeliverTx{}
 }
 
+func (cli *TimedApplication) LatestSnapshot() (height int64, numKeys []int64, err error) {
+	return 0, make([]int64, 0), nil
+}
+func (cli *TimedApplication) ReadSnapshotChunk(height int64, startIndex, endIndex int64) (chunk [][]byte, err error) {
+	return make([][]byte, 0), nil
+}
+func (cli *TimedApplication) StartRecovery(height int64, numKeys []int64) error {
+	return nil
+}
+func (cli *TimedApplication) WriteRecoveryChunk(chunk [][]byte) error {
+	return nil
+}
+func (cli *TimedApplication) EndRecovery(height int64) error {
+	return nil
+}
+
 var logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "TestLogger")
 
 func TestNewAsyncLocalClient(t *testing.T) {
