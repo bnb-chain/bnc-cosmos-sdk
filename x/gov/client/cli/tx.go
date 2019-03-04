@@ -82,6 +82,18 @@ $ gaiacli gov submit-proposal --title="Test Proposal" --description="My awesome 
 				return err
 			}
 
+			if proposal.Title == "" {
+				return errors.New("Title should not be empty")
+			}
+
+			if len(proposal.Title) > gov.MaxTitleLength {
+				return errors.New(fmt.Sprintf("Proposal title is longer than max length of %d", gov.MaxTitleLength))
+			}
+
+			if len(proposal.Description) > gov.MaxDescriptionLength {
+				return errors.New(fmt.Sprintf("Proposal description is longer than max length of %d", gov.MaxDescriptionLength))
+			}
+
 			txBldr := authtxb.NewTxBuilderFromCLI().WithCodec(cdc)
 			cliCtx := context.NewCLIContext().
 				WithCodec(cdc).
@@ -559,6 +571,14 @@ func GetCmdSubmitListProposal(cdc *codec.Codec) *cobra.Command {
 			quoteAsset := viper.GetString(flagQuoteAsset)
 			initPrice := viper.GetInt64(flagInitPrice)
 			expireTimestamp := viper.GetInt64(flagExpireTime)
+
+			if title == "" {
+				return errors.New("Title should not be empty")
+			}
+
+			if len(title) > gov.MaxTitleLength {
+				return errors.New(fmt.Sprintf("Proposal title is longer than max length of %d", gov.MaxTitleLength))
+			}
 
 			if tradeAsset == "" {
 				return errors.New("base asset should not be empty")
