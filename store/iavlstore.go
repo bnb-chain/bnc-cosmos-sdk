@@ -56,8 +56,8 @@ func newIAVLStore(tree *iavl.MutableTree, ps sdk.PruningStrategy) *IavlStore {
 	return st
 }
 
-func (st *iavlStore) GetImmutableTree() *iavl.ImmutableTree {
-	return st.tree.ImmutableTree
+func (st *IavlStore) GetImmutableTree() *iavl.ImmutableTree {
+	return st.Tree.ImmutableTree
 }
 
 // Implements Committer.
