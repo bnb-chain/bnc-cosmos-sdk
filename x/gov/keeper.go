@@ -445,7 +445,7 @@ func (keeper Keeper) GetDeposits(ctx sdk.Context, proposalID int64) sdk.Iterator
 func (keeper Keeper) RefundDeposits(ctx sdk.Context, proposalID int64) {
 	store := ctx.KVStore(keeper.storeKey)
 	depositsIterator := keeper.GetDeposits(ctx, proposalID)
-
+	defer depositsIterator.Close()
 	for ; depositsIterator.Valid(); depositsIterator.Next() {
 		deposit := &Deposit{}
 		keeper.cdc.MustUnmarshalBinaryLengthPrefixed(depositsIterator.Value(), deposit)
@@ -458,20 +458,16 @@ func (keeper Keeper) RefundDeposits(ctx sdk.Context, proposalID int64) {
 		keeper.pool.AddAddrs([]sdk.AccAddress{deposit.Depositer})
 		store.Delete(depositsIterator.Key())
 	}
-
-	depositsIterator.Close()
 }
 
 // Deletes all the deposits on a specific proposal without refunding them
 func (keeper Keeper) DeleteDeposits(ctx sdk.Context, proposalID int64) {
 	store := ctx.KVStore(keeper.storeKey)
 	depositsIterator := keeper.GetDeposits(ctx, proposalID)
-
+	defer depositsIterator.Close()
 	for ; depositsIterator.Valid(); depositsIterator.Next() {
 		store.Delete(depositsIterator.Key())
 	}
-
-	depositsIterator.Close()
 }
 
 // DistributeDeposits distributes deposits to proposer
