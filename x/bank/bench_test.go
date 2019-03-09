@@ -1,6 +1,7 @@
-package bank
+package bank_test
 
 import (
+	"github.com/cosmos/cosmos-sdk/x/bank"
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -14,9 +15,9 @@ import (
 func getBenchmarkMockApp() (*mock.App, error) {
 	mapp := mock.NewApp()
 
-	RegisterCodec(mapp.Cdc)
-	bankKeeper := NewBaseKeeper(mapp.AccountKeeper)
-	mapp.Router().AddRoute("bank", NewHandler(bankKeeper))
+	bank.RegisterCodec(mapp.Cdc)
+	bankKeeper := bank.NewBaseKeeper(mapp.AccountKeeper)
+	mapp.Router().AddRoute("bank", bank.NewHandler(bankKeeper))
 
 	err := mapp.CompleteSetup()
 	return mapp, err
