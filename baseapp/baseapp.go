@@ -23,6 +23,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	"github.com/cosmos/cosmos-sdk/x/bank"
 )
 
 // Key to store the header in the DB itself.
@@ -681,7 +682,7 @@ func (app *BaseApp) PreDeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
 }
 
 // Basic validator for msgs
-func validateBasicTxMsgs(msgs []sdk.Msg) sdk.Error {
+func validateBasicTxMsgs(height int64, msgs []sdk.Msg) sdk.Error {
 	if msgs == nil || len(msgs) != 1 {
 		// TODO: probably shouldn't be ErrInternal. Maybe new ErrInvalidMessage, or ?
 		return sdk.ErrInternal("Tx.GetMsgs() must return exactly one message")
@@ -689,13 +690,69 @@ func validateBasicTxMsgs(msgs []sdk.Msg) sdk.Error {
 
 	for _, msg := range msgs {
 		// Validate the Msg.
-		err := msg.ValidateBasic()
+		var err sdk.Error
+		switch msg := msg.(type) {
+		case bank.MsgSend:
+			err = validateMsgSend(height, msg)
+		default:
+			err = msg.ValidateBasic()
+		}
 		if err != nil {
 			err = err.WithDefaultCodespace(sdk.CodespaceRoot)
 			return err
 		}
 	}
 
+	return nil
+}
+
+func validateMsgSend(height int64, msg bank.MsgSend) sdk.Error {
+	if len(msg.Inputs) == 0 {
+		return bank.ErrNoInputs(bank.DefaultCodespace).TraceSDK("")
+	}
+	if len(msg.Outputs) == 0 {
+		return bank.ErrNoOutputs(bank.DefaultCodespace).TraceSDK("")
+	}
+	// make sure all inputs and outputs are individually valid
+	var totalIn, totalOut sdk.Coins
+	for _, in := range msg.Inputs {
+		if err := in.ValidateBasic(); err != nil {
+			return err.TraceSDK("")
+		}
+		totalIn = totalIn.Plus(in.Coins)
+	}
+
+	for _, out := range msg.Outputs {
+		if err := validateOutput(height, out); err != nil {
+			return err.TraceSDK("")
+		}
+		totalOut = totalOut.Plus(out.Coins)
+	}
+	// make sure inputs and outputs match
+	if !totalIn.IsEqual(totalOut) {
+		return sdk.ErrInvalidCoins(totalIn.String()).TraceSDK("inputs and outputs don't match")
+	}
+	return nil
+}
+
+func validateOutput(height int64, out bank.Output) sdk.Error {
+	if height >= 545000 {
+		if len(out.Address) != sdk.AddrLen {
+			return sdk.ErrInvalidAddress(out.Address.String())
+		}
+	} else {
+		// old logic
+		if len(out.Address) == 0 {
+			return sdk.ErrInvalidAddress(out.Address.String())
+		}
+	}
+
+	if !out.Coins.IsValid() {
+		return sdk.ErrInvalidCoins(out.Coins.String())
+	}
+	if !out.Coins.IsPositive() {
+		return sdk.ErrInvalidCoins(out.Coins.String())
+	}
 	return nil
 }
 
@@ -806,7 +863,7 @@ func (app *BaseApp) RunTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx, txHash 
 	}()
 
 	var msgs = tx.GetMsgs()
-	if err := validateBasicTxMsgs(msgs); err != nil {
+	if err := validateBasicTxMsgs(ctx.BlockHeight(), msgs); err != nil {
 		return err.Result()
 	}
 
