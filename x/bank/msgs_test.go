@@ -6,6 +6,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/tendermint/tendermint/crypto/secp256k1"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -26,8 +28,10 @@ func TestMsgSendRoute(t *testing.T) {
 }
 
 func TestInputValidation(t *testing.T) {
-	addr1 := sdk.AccAddress([]byte{1, 2})
-	addr2 := sdk.AccAddress([]byte{7, 8})
+	addr1 := sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
+	addr2 := sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
+	shortAddr := sdk.AccAddress([]byte{1, 2})
+	longAddr := sdk.AccAddress(append(secp256k1.GenPrivKey().PubKey().Address(), 1, 2))
 	someCoins := sdk.Coins{sdk.NewCoin("atom", 123)}
 	multiCoins := sdk.Coins{sdk.NewCoin("atom", 123), sdk.NewCoin("eth", 20)}
 
@@ -49,6 +53,8 @@ func TestInputValidation(t *testing.T) {
 		{true, NewInput(addr2, multiCoins)},
 
 		{false, NewInput(emptyAddr, someCoins)},  // empty address
+		{false, NewInput(shortAddr, someCoins)},  // invalid address length
+		{false, NewInput(longAddr, someCoins)},   // invalid address length
 		{false, NewInput(addr1, emptyCoins)},     // invalid coins
 		{false, NewInput(addr1, emptyCoins2)},    // invalid coins
 		{false, NewInput(addr1, someEmptyCoins)}, // invalid coins
@@ -68,8 +74,10 @@ func TestInputValidation(t *testing.T) {
 }
 
 func TestOutputValidation(t *testing.T) {
-	addr1 := sdk.AccAddress([]byte{1, 2})
-	addr2 := sdk.AccAddress([]byte{7, 8})
+	addr1 := sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
+	addr2 := sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
+	shortAddr := sdk.AccAddress([]byte{1, 2})
+	longAddr := sdk.AccAddress(append(secp256k1.GenPrivKey().PubKey().Address(), 1, 2))
 	someCoins := sdk.Coins{sdk.NewCoin("atom", 123)}
 	multiCoins := sdk.Coins{sdk.NewCoin("atom", 123), sdk.NewCoin("eth", 20)}
 
@@ -90,7 +98,10 @@ func TestOutputValidation(t *testing.T) {
 		{true, NewOutput(addr2, someCoins)},
 		{true, NewOutput(addr2, multiCoins)},
 
-		{false, NewOutput(emptyAddr, someCoins)},  // empty address
+		{false, NewOutput(emptyAddr, someCoins)}, // empty address
+		{false, NewOutput(shortAddr, someCoins)}, // invalid address length
+		{false, NewOutput(longAddr, someCoins)},  // invalid address length
+
 		{false, NewOutput(addr1, emptyCoins)},     // invalid coins
 		{false, NewOutput(addr1, emptyCoins2)},    // invalid coins
 		{false, NewOutput(addr1, someEmptyCoins)}, // invalid coins
@@ -110,8 +121,10 @@ func TestOutputValidation(t *testing.T) {
 }
 
 func TestMsgSendValidation(t *testing.T) {
-	addr1 := sdk.AccAddress([]byte{1, 2})
-	addr2 := sdk.AccAddress([]byte{7, 8})
+	addr1 := sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
+	addr2 := sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
+	shortAddr := sdk.AccAddress([]byte{1, 2})
+	longAddr := sdk.AccAddress(append(secp256k1.GenPrivKey().PubKey().Address(), 1, 2))
 	atom123 := sdk.Coins{sdk.NewCoin("atom", 123)}
 	atom124 := sdk.Coins{sdk.NewCoin("atom", 124)}
 	eth123 := sdk.Coins{sdk.NewCoin("eth", 123)}
@@ -135,10 +148,27 @@ func TestMsgSendValidation(t *testing.T) {
 		{false, MsgSend{Outputs: []Output{output1}}}, // just output
 		{false, MsgSend{
 			Inputs:  []Input{NewInput(emptyAddr, atom123)}, // invalid input
-			Outputs: []Output{output1}}},
+			Outputs: []Output{output1}},
+	    },
+		{false, MsgSend{
+			Inputs:  []Input{NewInput(shortAddr, atom123)}, // invalid input
+			Outputs: []Output{output1}},
+		},
+		{false, MsgSend{
+			Inputs:  []Input{NewInput(longAddr, atom123)}, // invalid input
+			Outputs: []Output{output1}},
+		},
 		{false, MsgSend{
 			Inputs:  []Input{input1},
 			Outputs: []Output{{emptyAddr, atom123}}}, // invalid output
+		},
+		{false, MsgSend{
+			Inputs:  []Input{input1},
+			Outputs: []Output{{shortAddr, atom123}}}, // invalid output
+		},
+		{false, MsgSend{
+			Inputs:  []Input{input1},
+			Outputs: []Output{{longAddr, atom123}}}, // invalid output
 		},
 		{false, MsgSend{
 			Inputs:  []Input{input1},

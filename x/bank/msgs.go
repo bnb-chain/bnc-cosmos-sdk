@@ -96,7 +96,7 @@ type Input struct {
 
 // ValidateBasic - validate transaction input
 func (in Input) ValidateBasic() sdk.Error {
-	if len(in.Address) == 0 {
+	if len(in.Address) != sdk.AddrLen {
 		return sdk.ErrInvalidAddress(in.Address.String())
 	}
 	if !in.Coins.IsValid() {
@@ -128,7 +128,7 @@ type Output struct {
 
 // ValidateBasic - validate transaction output
 func (out Output) ValidateBasic() sdk.Error {
-	if len(out.Address) == 0 {
+	if len(out.Address) != sdk.AddrLen {
 		return sdk.ErrInvalidAddress(out.Address.String())
 	}
 	if !out.Coins.IsValid() {
