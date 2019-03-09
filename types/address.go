@@ -50,9 +50,6 @@ func AccAddressFromHex(address string) (addr AccAddress, err error) {
 		return nil, err
 	}
 
-	if len(bz) != AddrLen {
-		return nil, fmt.Errorf("invalid address length, %s", address)
-	}
 	return AccAddress(bz), nil
 }
 
@@ -64,9 +61,6 @@ func AccAddressFromBech32(address string) (addr AccAddress, err error) {
 		return nil, err
 	}
 
-	if len(bz) != AddrLen {
-		return nil, fmt.Errorf("invalid address length, %s", address)
-	}
 	return AccAddress(bz), nil
 }
 
