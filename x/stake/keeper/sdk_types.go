@@ -14,6 +14,7 @@ var _ sdk.ValidatorSet = Keeper{}
 func (k Keeper) IterateValidators(ctx sdk.Context, fn func(index int64, validator sdk.Validator) (stop bool)) {
 	store := ctx.KVStore(k.storeKey)
 	iterator := sdk.KVStorePrefixIterator(store, ValidatorsKey)
+	defer iterator.Close()
 	i := int64(0)
 	for ; iterator.Valid(); iterator.Next() {
 		addr := iterator.Key()[1:]
@@ -24,13 +25,13 @@ func (k Keeper) IterateValidators(ctx sdk.Context, fn func(index int64, validato
 		}
 		i++
 	}
-	iterator.Close()
 }
 
 // iterate through the active validator set and perform the provided function
 func (k Keeper) IterateValidatorsBonded(ctx sdk.Context, fn func(index int64, validator sdk.Validator) (stop bool)) {
 	store := ctx.KVStore(k.storeKey)
 	iterator := sdk.KVStorePrefixIterator(store, LastValidatorPowerKey)
+	defer iterator.Close()
 	i := int64(0)
 	for ; iterator.Valid(); iterator.Next() {
 		address := AddressFromLastValidatorPowerKey(iterator.Key())
@@ -45,7 +46,6 @@ func (k Keeper) IterateValidatorsBonded(ctx sdk.Context, fn func(index int64, va
 		}
 		i++
 	}
-	iterator.Close()
 }
 
 // get the sdk.validator for a particular address
@@ -113,6 +113,7 @@ func (k Keeper) IterateDelegations(ctx sdk.Context, delAddr sdk.AccAddress,
 	store := ctx.KVStore(k.storeKey)
 	delegatorPrefixKey := GetDelegationsKey(delAddr)
 	iterator := sdk.KVStorePrefixIterator(store, delegatorPrefixKey) //smallest to largest
+	defer iterator.Close()
 	for i := int64(0); iterator.Valid(); iterator.Next() {
 		del := types.MustUnmarshalDelegation(k.cdc, iterator.Key(), iterator.Value())
 		stop := fn(i, del)
@@ -121,5 +122,4 @@ func (k Keeper) IterateDelegations(ctx sdk.Context, delAddr sdk.AccAddress,
 		}
 		i++
 	}
-	iterator.Close()
 }
