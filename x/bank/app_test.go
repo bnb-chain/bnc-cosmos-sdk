@@ -1,6 +1,7 @@
-package bank
+package bank_test
 
 import (
+	"github.com/cosmos/cosmos-sdk/x/bank"
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -42,41 +43,41 @@ var (
 	halfCoins = sdk.Coins{sdk.NewCoin("foocoin", 5)}
 	manyCoins = sdk.Coins{sdk.NewCoin("foocoin", 1), sdk.NewCoin("barcoin", 1)}
 
-	sendMsg1 = MsgSend{
-		Inputs:  []Input{NewInput(addr1, coins)},
-		Outputs: []Output{NewOutput(addr2, coins)},
+	sendMsg1 = bank.MsgSend{
+		Inputs:  []bank.Input{bank.NewInput(addr1, coins)},
+		Outputs: []bank.Output{bank.NewOutput(addr2, coins)},
 	}
-	sendMsg2 = MsgSend{
-		Inputs: []Input{NewInput(addr1, coins)},
-		Outputs: []Output{
-			NewOutput(addr2, halfCoins),
-			NewOutput(addr3, halfCoins),
-		},
-	}
-	sendMsg3 = MsgSend{
-		Inputs: []Input{
-			NewInput(addr1, coins),
-			NewInput(addr4, coins),
-		},
-		Outputs: []Output{
-			NewOutput(addr2, coins),
-			NewOutput(addr3, coins),
+	sendMsg2 = bank.MsgSend{
+		Inputs: []bank.Input{bank.NewInput(addr1, coins)},
+		Outputs: []bank.Output{
+			bank.NewOutput(addr2, halfCoins),
+			bank.NewOutput(addr3, halfCoins),
 		},
 	}
-	sendMsg4 = MsgSend{
-		Inputs: []Input{
-			NewInput(addr2, coins),
+	sendMsg3 = bank.MsgSend{
+		Inputs: []bank.Input{
+			bank.NewInput(addr1, coins),
+			bank.NewInput(addr4, coins),
 		},
-		Outputs: []Output{
-			NewOutput(addr1, coins),
+		Outputs: []bank.Output{
+			bank.NewOutput(addr2, coins),
+			bank.NewOutput(addr3, coins),
 		},
 	}
-	sendMsg5 = MsgSend{
-		Inputs: []Input{
-			NewInput(addr1, manyCoins),
+	sendMsg4 = bank.MsgSend{
+		Inputs: []bank.Input{
+			bank.NewInput(addr2, coins),
 		},
-		Outputs: []Output{
-			NewOutput(addr2, manyCoins),
+		Outputs: []bank.Output{
+			bank.NewOutput(addr1, coins),
+		},
+	}
+	sendMsg5 = bank.MsgSend{
+		Inputs: []bank.Input{
+			bank.NewInput(addr1, manyCoins),
+		},
+		Outputs: []bank.Output{
+			bank.NewOutput(addr2, manyCoins),
 		},
 	}
 )
