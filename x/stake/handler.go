@@ -183,7 +183,7 @@ func checkProposal(ctx sdk.Context, govKeeper gov.Keeper, msg MsgCreateValidator
 		return errors.New(fmt.Sprintf("unmarshal createValidator params failed, err=%s", err.Error()))
 	}
 
-	if msg.MsgCreateValidator.Equals(createValidatorParams) {
+	if !msg.MsgCreateValidator.Equals(createValidatorParams) {
 		return errors.New("createValidator msg is not identical to the proposal one")
 	}
 

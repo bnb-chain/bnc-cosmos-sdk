@@ -1,6 +1,9 @@
 package stake
 
 import (
+	"encoding/json"
+	"fmt"
+	"github.com/cosmos/cosmos-sdk/x/gov"
 	"testing"
 	"time"
 
@@ -1016,4 +1019,49 @@ func TestBondUnbondRedelegateSlashTwice(t *testing.T) {
 	// ergo validator should have been removed from the store
 	_, found = keeper.GetValidator(ctx, valA)
 	require.False(t, found)
+}
+
+func TestCreateValidatorAfterProposal(t *testing.T) {
+	ctx, _, keeper, govKeeper, _ := keep.CreateTestInputWithGov(t, false, 1000)
+
+	govKeeper.SetInitialProposalID(ctx, 0)
+	ctx = ctx.WithBlockHeight(1)
+
+	valA := sdk.ValAddress(keep.Addrs[0])
+	valB := sdk.ValAddress(keep.Addrs[1])
+	//valC := sdk.ValAddress(keep.Addrs[2])
+
+	temp,_ := json.Marshal(NewTestMsgCreateValidator(valA, keep.PKs[0], 100))
+	var createValidatorMsg MsgCreateValidator
+	err := json.Unmarshal(temp, &createValidatorMsg)
+	require.Nil(t, err)
+
+	proposalDescA := fmt.Sprintf("{\"moniker\":\"\",\"identity\":\"\",\"website\":\"\",\"details\":\"\",\"Commission\":{\"rate\":\"100000000\",\"max_rate\":\"100000000\",\"max_change_rate\":\"100000000\"},\"delegator_address\":\"%s\",\"validator_address\":\"%s\",\"pubkey\":[11,72,92,252,14,236,198,25,68,4,72,67,111,143,201,223,64,86,111,35,105,231,36,0,40,20,84,203,85,42,241,0],\"delegation\":{\"denom\":\"steak\",\"amount\":1000}}", keep.Addrs[0].String(), valA.String())
+
+	proposalA := govKeeper.NewTextProposal(ctx, "CreateValidatorProposal", proposalDescA, gov.ProposalTypeCreateValidator)
+
+	proposalA.SetStatus(gov.StatusPassed)
+	govKeeper.SetProposal(ctx, proposalA)
+
+	msgCreateValidatorA := MsgCreateValidatorProposal{
+		MsgCreateValidator: NewTestMsgCreateValidator(valA, keep.PKs[0], 100),
+		ProposalId: 0,
+	}
+	result := handleMsgCreateValidatorAfterProposal(ctx, msgCreateValidatorA, keeper, govKeeper)
+	t.Error(result.Log)
+	require.True(t, result.IsOK())
+
+	ctx = ctx.WithBlockHeight(2)
+	proposalDescB := fmt.Sprintf("{\"moniker\":\"\",\"identity\":\"\",\"website\":\"\",\"details\":\"\",\"Commission\":{\"rate\":\"100000000\",\"max_rate\":\"100000000\",\"max_change_rate\":\"100000000\"},\"delegator_address\":\"%s\",\"validator_address\":\"%s\",\"pubkey\":[181,41,253,88,251,89,180,7,86,212,217,58,191,114,128,77,127,146,252,139,227,200,242,114,80,198,60,87,44,39,67,47],\"delegation\":{\"denom\":\"steak\",\"amount\":1000}}", keep.Addrs[1].String(), valB.String())
+
+	proposalB := govKeeper.NewTextProposal(ctx, "CreateValidatorProposal", proposalDescB, gov.ProposalTypeCreateValidator)
+	proposalB.SetStatus(gov.StatusPassed)
+	govKeeper.SetProposal(ctx, proposalB)
+	msgCreateValidatorB := MsgCreateValidatorProposal{
+		MsgCreateValidator: NewTestMsgCreateValidator(valA, keep.PKs[0], 100),
+		ProposalId: 1,
+	}
+	result = handleMsgCreateValidatorAfterProposal(ctx, msgCreateValidatorB, keeper, govKeeper)
+	require.False(t, result.IsOK())
+
 }

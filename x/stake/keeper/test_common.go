@@ -18,6 +18,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/bank"
+	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/params"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
@@ -59,6 +60,7 @@ func MakeTestCodec() *codec.Codec {
 	cdc.RegisterInterface((*sdk.Msg)(nil), nil)
 	cdc.RegisterConcrete(bank.MsgSend{}, "test/stake/Send", nil)
 	cdc.RegisterConcrete(types.MsgCreateValidator{}, "test/stake/CreateValidator", nil)
+	cdc.RegisterConcrete(types.MsgCreateValidatorProposal{}, "test/stake/CreateValidatorProposal", nil)
 	cdc.RegisterConcrete(types.MsgEditValidator{}, "test/stake/EditValidator", nil)
 	cdc.RegisterConcrete(types.MsgBeginUnbonding{}, "test/stake/BeginUnbonding", nil)
 	cdc.RegisterConcrete(types.MsgBeginRedelegate{}, "test/stake/BeginRedelegate", nil)
@@ -131,6 +133,68 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initCoins int64) (sdk.Context
 	}
 
 	return ctx, accountKeeper, keeper
+}
+
+// hogpodge of all sorts of input required for testing
+func CreateTestInputWithGov(t *testing.T, isCheckTx bool, initCoins int64) (sdk.Context, auth.AccountKeeper, Keeper, gov.Keeper, *codec.Codec ) {
+
+	keyStake := sdk.NewKVStoreKey("stake")
+	tkeyStake := sdk.NewTransientStoreKey("transient_stake")
+	keyAcc := sdk.NewKVStoreKey("acc")
+	keyParams := sdk.NewKVStoreKey("params")
+	tkeyParams := sdk.NewTransientStoreKey("transient_params")
+	govKey := sdk.NewKVStoreKey("gov")
+
+	db := dbm.NewMemDB()
+	ms := store.NewCommitMultiStore(db)
+	ms.MountStoreWithDB(tkeyStake, sdk.StoreTypeTransient, nil)
+	ms.MountStoreWithDB(keyStake, sdk.StoreTypeIAVL, db)
+	ms.MountStoreWithDB(keyAcc, sdk.StoreTypeIAVL, db)
+	ms.MountStoreWithDB(keyParams, sdk.StoreTypeIAVL, db)
+	ms.MountStoreWithDB(tkeyParams, sdk.StoreTypeTransient, db)
+	ms.MountStoreWithDB(govKey, sdk.StoreTypeIAVL, db)
+	err := ms.LoadLatestVersion()
+	require.Nil(t, err)
+
+	mode := sdk.RunTxModeDeliver
+	if isCheckTx {
+		mode = sdk.RunTxModeCheck
+	}
+
+	ctx := sdk.NewContext(ms, abci.Header{ChainID: "foochainid"}, mode, log.NewNopLogger())
+	cdc := MakeTestCodec()
+	gov.RegisterCodec(cdc)
+	accountKeeper := auth.NewAccountKeeper(
+		cdc,                   // amino codec
+		keyAcc,                // target store
+		auth.ProtoBaseAccount, // prototype
+	)
+
+	accountCache := getAccountCache(cdc, ms, keyAcc)
+	ctx = ctx.WithAccountCache(accountCache)
+
+	ck := bank.NewBaseKeeper(accountKeeper)
+
+	pk := params.NewKeeper(cdc, keyParams, tkeyParams)
+	keeper := NewKeeper(cdc, keyStake, tkeyStake, ck, pk.Subspace(DefaultParamspace), types.DefaultCodespace)
+
+	govKeeper := gov.NewKeeper(cdc, govKey, pk, pk.Subspace(gov.DefaultParamspace), ck, keeper, gov.DefaultCodespace, &sdk.Pool{})
+
+	keeper.SetPool(ctx, types.InitialPool())
+	keeper.SetParams(ctx, types.DefaultParams())
+
+	// fill all the addresses with some coins, set the loose pool tokens simultaneously
+	for _, addr := range Addrs {
+		pool := keeper.GetPool(ctx)
+		_, _, err := ck.AddCoins(ctx, addr, sdk.Coins{
+			{keeper.BondDenom(ctx), sdk.NewDecWithoutFra(initCoins).RawInt()},
+		})
+		require.Nil(t, err)
+		pool.LooseTokens = pool.LooseTokens.Add(sdk.NewDecWithoutFra(initCoins))
+		keeper.SetPool(ctx, pool)
+	}
+
+	return ctx, accountKeeper, keeper, govKeeper, cdc
 }
 
 func NewPubKey(pk string) (res crypto.PubKey) {
