@@ -6,7 +6,7 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -108,6 +108,8 @@ func NewBaseApp(name string, logger log.Logger, db dbm.DB, txDecoder sdk.TxDecod
 		txMsgCache:  cache,
 		Pool:        new(sdk.Pool),
 	}
+
+	sdk.UpgradeMgr = sdk.NewUpgradeManager(sdk.MainNetConfig) // TODO: make this configurable
 
 	// Register the undefined & root codespaces, which should not be used by
 	// any modules.
@@ -506,6 +508,8 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		))
 	}
 
+	sdk.UpgradeMgr.SetHeight(req.Header.Height)
+
 	// Initialize the DeliverTx state. If this is the first block, it should
 	// already be initialized in InitChain. Otherwise app.DeliverState will be
 	// nil, since it is reset on Commit.
@@ -736,7 +740,7 @@ func validateMsgSend(height int64, msg bank.MsgSend) sdk.Error {
 }
 
 func validateOutput(height int64, out bank.Output) sdk.Error {
-	if height >= 545000 {
+	if sdk.IsLimitAddressLengthUpgrade() {
 		if len(out.Address) != sdk.AddrLen {
 			return sdk.ErrInvalidAddress(out.Address.String())
 		}

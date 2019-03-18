@@ -100,11 +100,11 @@ func startStandAlone(ctx *Context, appCreator AppCreator) error {
 // nolint: unparam
 func startInProcess(ctx *Context, appCreator AppCreator) (*node.Node, error) {
 	cfg := ctx.Config
-	home := cfg.RootDir
 	traceWriterFile := viper.GetString(flagTraceStore)
 	isSequentialABCI := viper.GetBool(flagSequentialABCI)
 
-	db, err := openDB(home)
+	dbProvider := node.DefaultDBProvider
+	db, err := dbProvider(&node.DBContext{"application", cfg})
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +135,7 @@ func startInProcess(ctx *Context, appCreator AppCreator) (*node.Node, error) {
 		nodeKey,
 		cliCreator,
 		node.DefaultGenesisDocProviderFunc(cfg),
-		node.DefaultDBProvider,
+		dbProvider,
 		node.DefaultMetricsProvider(cfg.Instrumentation),
 		ctx.Logger.With("module", "node"),
 	)
