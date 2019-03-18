@@ -13,7 +13,7 @@ The reason is that we need to keep the import path.
 ```bash
 > cd $GOPATH/src/github.com
 > rm -rf cosmos/cosmos-sdk
-> git clone https://github.com/BiJie/bnc-cosmos-sdk.git cosmos/cosmos-sdk
+> git clone https://github.com/binance-chain/bnc-cosmos-sdk.git cosmos/cosmos-sdk
 > cd cosmos-sdk
 > git checkout develop
 > make get_vendor_deps
