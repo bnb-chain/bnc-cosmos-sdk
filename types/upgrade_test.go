@@ -67,3 +67,16 @@ func TestIsLimitAddressLengthFork(t *testing.T) {
 		require.Equal(t, tc.heightResult, IsUpgradeHeight(UpgradeLimitAddressLength))
 	}
 }
+
+func TestAddConfig(t *testing.T) {
+	config := UpgradeConfig{
+		map[string]int64{
+			UpgradeLimitAddressLength: 545000,
+		},
+	}
+	UpgradeMgr = NewUpgradeManager(config)
+
+	require.Panics(t, func() {
+		UpgradeMgr.AddConfig(config)
+	})
+}

@@ -1,6 +1,6 @@
 package types
 
-var UpgradeMgr = &UpgradeManager{}
+var UpgradeMgr = NewUpgradeManager(UpgradeConfig{})
 
 const UpgradeLimitAddressLength = "UpgradeLimitAddressLength" // limit address length to 20 bytes
 
@@ -25,6 +25,14 @@ func NewUpgradeManager(config UpgradeConfig) *UpgradeManager {
 	}
 }
 
+func (mgr *UpgradeManager) AddConfig(config UpgradeConfig) {
+	if mgr.Config.HeightMap != nil {
+		for name, height := range mgr.Config.HeightMap {
+			mgr.AddUpgradeHeight(name, height)
+		}
+	}
+}
+
 func (mgr *UpgradeManager) SetHeight(height int64) {
 	mgr.Height = height
 }
@@ -36,6 +44,10 @@ func (mgr *UpgradeManager) GetHeight() int64 {
 func (mgr *UpgradeManager) AddUpgradeHeight(name string, height int64) {
 	if mgr.Config.HeightMap == nil {
 		mgr.Config.HeightMap = map[string]int64{}
+	}
+
+	if _, ok := mgr.Config.HeightMap[name]; ok {
+		panic("add duplicate upgrade height config")
 	}
 
 	mgr.Config.HeightMap[name] = height
