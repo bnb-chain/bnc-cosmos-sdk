@@ -20,6 +20,8 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 		switch msg := msg.(type) {
 		case types.MsgCreateValidatorProposal:
 			return handleMsgCreateValidatorAfterProposal(ctx, msg, k, govKeeper)
+		case types.MsgRemoveValidator:
+			return handleMsgRemoveValidatorAfterProposal(ctx, msg, k, govKeeper)
 		// disabled other msg handling
 		//case types.MsgEditValidator:
 		//	return handleMsgEditValidator(ctx, msg, k)
@@ -105,12 +107,45 @@ func handleMsgCreateValidatorAfterProposal(ctx sdk.Context, msg MsgCreateValidat
 	height := ctx.BlockHeader().Height
 	// do not checkProposal for the genesis txs
 	if height != 0 {
-		if err := checkProposal(ctx, k.Codec(), govKeeper, msg); err != nil {
+		if err := checkCreateProposal(ctx, k.Codec(), govKeeper, msg); err != nil {
 			return ErrInvalidProposal(k.Codespace(), err.Error()).Result()
 		}
 	}
 
 	return handleMsgCreateValidator(ctx, msg.MsgCreateValidator, k)
+}
+
+func handleMsgRemoveValidatorAfterProposal(ctx sdk.Context, msg MsgRemoveValidator, k keeper.Keeper, govKeeper gov.Keeper) sdk.Result {
+	// do not checkProposal for the genesis txs
+	if ctx.BlockHeight() != 0 {
+		if err := checkRemoveProposal(ctx, k.Codec(), govKeeper, msg); err != nil {
+			return ErrInvalidProposal(k.Codespace(), err.Error()).Result()
+		}
+	}
+
+	var tags sdk.Tags
+	var result sdk.Result
+	k.IterateDelegationsToValidator(ctx, msg.ValidatorAddr, func(del sdk.Delegation) (stop bool) {
+		msgBeginUnbonding := MsgBeginUnbonding{
+			ValidatorAddr: del.GetValidatorAddr(),
+			DelegatorAddr: del.GetDelegatorAddr(),
+			SharesAmount: del.GetShares(),
+		}
+		result = handleMsgBeginUnbonding(ctx, msgBeginUnbonding, k)
+		// handleMsgBeginUnbonding return error, abort execution
+		if !result.IsOK() {
+			return true
+		}
+		tags = tags.AppendTags(result.Tags)
+		return false
+	})
+
+	// If there is a failure in handleMsgBeginUnbonding, return the error message
+	if !result.IsOK() {
+		return result
+	}
+
+	return sdk.Result{Tags: tags}
 }
 
 func handleMsgCreateValidator(ctx sdk.Context, msg MsgCreateValidator, k keeper.Keeper) sdk.Result {
@@ -164,28 +199,55 @@ func handleMsgCreateValidator(ctx sdk.Context, msg MsgCreateValidator, k keeper.
 	}
 }
 
-func checkProposal(ctx sdk.Context, cdc *codec.Codec, govKeeper gov.Keeper, msg MsgCreateValidatorProposal) error {
+func checkCreateProposal(ctx sdk.Context, cdc *codec.Codec, govKeeper gov.Keeper, msg MsgCreateValidatorProposal) error {
 	proposal := govKeeper.GetProposal(ctx, msg.ProposalId)
 	if proposal == nil {
-		return errors.New(fmt.Sprintf("proposal %d does not exist", msg.ProposalId))
+		return fmt.Errorf("proposal %d does not exist", msg.ProposalId)
 	}
 	if proposal.GetProposalType() != gov.ProposalTypeCreateValidator {
-		return errors.New(fmt.Sprintf("proposal type %s is not equal to %s",
-			proposal.GetProposalType(), gov.ProposalTypeCreateValidator))
+		return fmt.Errorf("proposal type %s is not equal to %s",
+			proposal.GetProposalType().String(), gov.ProposalTypeCreateValidator.String())
 	}
 	if proposal.GetStatus() != gov.StatusPassed {
-		return errors.New(fmt.Sprintf("proposal status %d is not not passed",
-			proposal.GetStatus()))
+		return fmt.Errorf("proposal status %s is not not passed",
+			proposal.GetStatus().String())
 	}
 
 	var createValidatorParams MsgCreateValidator
 	err := cdc.UnmarshalJSON([]byte(proposal.GetDescription()), &createValidatorParams)
 	if err != nil {
-		return errors.New(fmt.Sprintf("unmarshal createValidator params failed, err=%s", err.Error()))
+		return fmt.Errorf("unmarshal createValidator params failed, err=%s", err.Error())
 	}
 
 	if !msg.MsgCreateValidator.Equals(createValidatorParams) {
-		return errors.New("createValidator msg is not identical to the proposal one")
+		return fmt.Errorf("createValidator msg is not identical to the proposal one")
+	}
+
+	return nil
+}
+
+func checkRemoveProposal(ctx sdk.Context, cdc *codec.Codec, govKeeper gov.Keeper, msg MsgRemoveValidator) error {
+	proposal := govKeeper.GetProposal(ctx, msg.ProposalId)
+	if proposal == nil {
+		return fmt.Errorf("proposal %d does not exist", msg.ProposalId)
+	}
+	if proposal.GetProposalType() != gov.ProposalTypeRemoveValidator {
+		return fmt.Errorf("proposal type %s is not equal to %s",
+			proposal.GetProposalType().String(), gov.ProposalTypeRemoveValidator.String())
+	}
+	if proposal.GetStatus() != gov.StatusPassed {
+		return fmt.Errorf("proposal status %s is not not passed",
+			proposal.GetStatus().String())
+	}
+
+	var removeValidator MsgRemoveValidator
+	err := cdc.UnmarshalJSON([]byte(proposal.GetDescription()), &removeValidator)
+	if err != nil {
+		return fmt.Errorf("unmarshal removeValidator params failed, err=%s", err.Error())
+	}
+
+	if !msg.PubKey.Equals(removeValidator.PubKey) || !msg.ValidatorAddr.Equals(removeValidator.ValidatorAddr) {
+		return fmt.Errorf("removeValidator msg is not identical to the proposal one")
 	}
 
 	return nil
@@ -265,15 +327,13 @@ func handleMsgBeginUnbonding(ctx sdk.Context, msg types.MsgBeginUnbonding, k kee
 		return err.Result()
 	}
 
-	finishTime := types.MsgCdc.MustMarshalBinaryLengthPrefixed(ubd.MinTime)
-
 	tags := sdk.NewTags(
 		tags.Action, tags.ActionBeginUnbonding,
 		tags.Delegator, []byte(msg.DelegatorAddr.String()),
 		tags.SrcValidator, []byte(msg.ValidatorAddr.String()),
-		tags.EndTime, finishTime,
+		tags.EndTime, []byte(ubd.MinTime.String()),
 	)
-	return sdk.Result{Data: finishTime, Tags: tags}
+	return sdk.Result{Tags: tags}
 }
 
 func handleMsgBeginRedelegate(ctx sdk.Context, msg types.MsgBeginRedelegate, k keeper.Keeper) sdk.Result {

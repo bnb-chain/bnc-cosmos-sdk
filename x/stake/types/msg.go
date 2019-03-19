@@ -30,6 +30,12 @@ type MsgCreateValidatorProposal struct {
 	ProposalId int64 `json:"proposal_id"`
 }
 
+type MsgRemoveValidator struct {
+	ValidatorAddr sdk.ValAddress `json:"validator_address"`
+	PubKey        crypto.PubKey  `json:"pubkey"`
+	ProposalId    int64          `json:"proposal_id"`
+}
+
 // Default way to create validator. Delegator address and validator address are the same
 func NewMsgCreateValidator(valAddr sdk.ValAddress, pubkey crypto.PubKey,
 	selfDelegation sdk.Coin, description Description, commission CommissionMsg) MsgCreateValidator {

@@ -19,6 +19,7 @@ type (
 	Params                     = types.Params
 	Pool                       = types.Pool
 	MsgCreateValidator         = types.MsgCreateValidator
+	MsgRemoveValidator         = types.MsgRemoveValidator
 	MsgCreateValidatorProposal = types.MsgCreateValidatorProposal
 	MsgEditValidator           = types.MsgEditValidator
 	MsgDelegate                = types.MsgDelegate
