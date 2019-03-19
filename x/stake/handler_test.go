@@ -1,7 +1,6 @@
 package stake
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	"testing"
@@ -1024,22 +1023,14 @@ func TestBondUnbondRedelegateSlashTwice(t *testing.T) {
 func TestCreateValidatorAfterProposal(t *testing.T) {
 	ctx, _, keeper, govKeeper, _ := keep.CreateTestInputWithGov(t, false, 1000)
 
-	govKeeper.SetInitialProposalID(ctx, 0)
-	ctx = ctx.WithBlockHeight(1)
-
+	err := govKeeper.SetInitialProposalID(ctx, 0)
+	require.Nil(t, err)
 	valA := sdk.ValAddress(keep.Addrs[0])
 	valB := sdk.ValAddress(keep.Addrs[1])
-	//valC := sdk.ValAddress(keep.Addrs[2])
 
-	temp,_ := json.Marshal(NewTestMsgCreateValidator(valA, keep.PKs[0], 100))
-	var createValidatorMsg MsgCreateValidator
-	err := json.Unmarshal(temp, &createValidatorMsg)
-	require.Nil(t, err)
-
-	proposalDescA := fmt.Sprintf("{\"moniker\":\"\",\"identity\":\"\",\"website\":\"\",\"details\":\"\",\"Commission\":{\"rate\":\"100000000\",\"max_rate\":\"100000000\",\"max_change_rate\":\"100000000\"},\"delegator_address\":\"%s\",\"validator_address\":\"%s\",\"pubkey\":[11,72,92,252,14,236,198,25,68,4,72,67,111,143,201,223,64,86,111,35,105,231,36,0,40,20,84,203,85,42,241,0],\"delegation\":{\"denom\":\"steak\",\"amount\":1000}}", keep.Addrs[0].String(), valA.String())
-
+	ctx = ctx.WithBlockHeight(1)
+	proposalDescA := fmt.Sprintf("{\"type\": \"test/stake/CreateValidator\",\"value\": {\"Description\": {\"moniker\": \"\",\"identity\": \"\",\"website\": \"\",\"details\": \"\"},\"Commission\": {\"rate\": \"0\",\"max_rate\": \"0\",\"max_change_rate\": \"0\"},\"delegator_address\": \"%s\",\"validator_address\": \"%s\",\"pubkey\": {\"type\": \"tendermint/PubKeyEd25519\",\"value\": \"C0hc/A7sxhlEBEhDb4/J30BWbyNp5yQAKBRUy1Uq8QA=\"},\"delegation\": {\"denom\": \"steak\",\"amount\": \"10000000000\"}}}", keep.Addrs[0].String(), valA.String())
 	proposalA := govKeeper.NewTextProposal(ctx, "CreateValidatorProposal", proposalDescA, gov.ProposalTypeCreateValidator)
-
 	proposalA.SetStatus(gov.StatusPassed)
 	govKeeper.SetProposal(ctx, proposalA)
 
@@ -1048,17 +1039,16 @@ func TestCreateValidatorAfterProposal(t *testing.T) {
 		ProposalId: 0,
 	}
 	result := handleMsgCreateValidatorAfterProposal(ctx, msgCreateValidatorA, keeper, govKeeper)
-	t.Error(result.Log)
 	require.True(t, result.IsOK())
 
 	ctx = ctx.WithBlockHeight(2)
-	proposalDescB := fmt.Sprintf("{\"moniker\":\"\",\"identity\":\"\",\"website\":\"\",\"details\":\"\",\"Commission\":{\"rate\":\"100000000\",\"max_rate\":\"100000000\",\"max_change_rate\":\"100000000\"},\"delegator_address\":\"%s\",\"validator_address\":\"%s\",\"pubkey\":[181,41,253,88,251,89,180,7,86,212,217,58,191,114,128,77,127,146,252,139,227,200,242,114,80,198,60,87,44,39,67,47],\"delegation\":{\"denom\":\"steak\",\"amount\":1000}}", keep.Addrs[1].String(), valB.String())
-
+	proposalDescB := fmt.Sprintf("{\"type\": \"test/stake/CreateValidator\",\"value\": {\"Description\": {\"moniker\": \"\",\"identity\": \"\",\"website\": \"\",\"details\": \"\"},\"Commission\": {\"rate\": \"0\",\"max_rate\": \"0\",\"max_change_rate\": \"0\"},\"delegator_address\": \"%s\",\"validator_address\": \"%s\",\"pubkey\": {\"type\": \"tendermint/PubKeyEd25519\",\"value\": \"C0hc/A7sxhlEBEhDb4/J30BWbyNp5yQAKBRUy1Uq8QE=\"},\"delegation\": {\"denom\": \"steak\",\"amount\": \"10000000000\"}}}", keep.Addrs[1].String(), valB.String())
 	proposalB := govKeeper.NewTextProposal(ctx, "CreateValidatorProposal", proposalDescB, gov.ProposalTypeCreateValidator)
 	proposalB.SetStatus(gov.StatusPassed)
 	govKeeper.SetProposal(ctx, proposalB)
+
 	msgCreateValidatorB := MsgCreateValidatorProposal{
-		MsgCreateValidator: NewTestMsgCreateValidator(valA, keep.PKs[0], 100),
+		MsgCreateValidator: NewTestMsgCreateValidator(valB, keep.PKs[1], 1000), // I deliberately changed amount value to 1000, amount should be 100
 		ProposalId: 1,
 	}
 	result = handleMsgCreateValidatorAfterProposal(ctx, msgCreateValidatorB, keeper, govKeeper)
