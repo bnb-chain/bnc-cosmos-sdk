@@ -135,6 +135,50 @@ func GetCmdCreateValidator(cdc *codec.Codec) *cobra.Command {
 }
 
 // GetCmdEditValidator implements the create edit validator command.
+func GetCmdRemoveValidator(cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "remove-validator",
+		Short: "remove validator",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			txBldr := authtxb.NewTxBuilderFromCLI().WithCodec(cdc)
+			cliCtx := context.NewCLIContext().
+				WithCodec(cdc).
+				WithAccountDecoder(authcmd.GetAccountDecoder(cdc))
+
+			launcher, err := cliCtx.GetFromAddress()
+			if err != nil {
+				return err
+			}
+
+			proposalId := viper.GetInt64(FlagProposalID)
+			validatorAddr, err := sdk.ValAddressFromBech32(viper.GetString(FlagAddressValidator))
+			if err != nil {
+				return err
+			}
+			validatorConsAddr, err := sdk.ConsAddressFromBech32(viper.GetString(FlagConsAddrValidator))
+			if err != nil {
+				return err
+			}
+
+			msg := stake.NewMsgRemoveValidator(launcher, validatorAddr, validatorConsAddr,proposalId)
+
+			if cliCtx.GenerateOnly {
+				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg}, false)
+			}
+
+			// build and sign the transaction, then broadcast to Tendermint
+			return utils.CompleteAndBroadcastTxCli(txBldr, cliCtx, []sdk.Msg{msg})
+		},
+	}
+
+	cmd.Flags().Int64(FlagProposalID, 0, "id of the remove validator proposal")
+	cmd.Flags().String(FlagAddressValidator, "", "validator address")
+	cmd.Flags().String(FlagConsAddrValidator, "", "validator consensus address")
+
+	return cmd
+}
+
+// GetCmdEditValidator implements the create edit validator command.
 func GetCmdEditValidator(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "edit-validator",
