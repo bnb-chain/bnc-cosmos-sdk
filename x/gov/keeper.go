@@ -216,7 +216,7 @@ func (keeper Keeper) GetProposalsFiltered(ctx sdk.Context, voterAddr sdk.AccAddr
 	return matchingProposals
 }
 
-func (keeper Keeper) setInitialProposalID(ctx sdk.Context, proposalID int64) sdk.Error {
+func (keeper Keeper) SetInitialProposalID(ctx sdk.Context, proposalID int64) sdk.Error {
 	store := ctx.KVStore(keeper.storeKey)
 	bz := store.Get(KeyNextProposalID)
 	if bz != nil {

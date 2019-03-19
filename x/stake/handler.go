@@ -2,9 +2,10 @@ package stake
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+
+	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/stake/keeper"
@@ -104,7 +105,7 @@ func handleMsgCreateValidatorAfterProposal(ctx sdk.Context, msg MsgCreateValidat
 	height := ctx.BlockHeader().Height
 	// do not checkProposal for the genesis txs
 	if height != 0 {
-		if err := checkProposal(ctx, govKeeper, msg); err != nil {
+		if err := checkProposal(ctx, k.Codec(), govKeeper, msg); err != nil {
 			return ErrInvalidProposal(k.Codespace(), err.Error()).Result()
 		}
 	}
@@ -163,7 +164,7 @@ func handleMsgCreateValidator(ctx sdk.Context, msg MsgCreateValidator, k keeper.
 	}
 }
 
-func checkProposal(ctx sdk.Context, govKeeper gov.Keeper, msg MsgCreateValidatorProposal) error {
+func checkProposal(ctx sdk.Context, cdc *codec.Codec, govKeeper gov.Keeper, msg MsgCreateValidatorProposal) error {
 	proposal := govKeeper.GetProposal(ctx, msg.ProposalId)
 	if proposal == nil {
 		return errors.New(fmt.Sprintf("proposal %d does not exist", msg.ProposalId))
@@ -178,12 +179,12 @@ func checkProposal(ctx sdk.Context, govKeeper gov.Keeper, msg MsgCreateValidator
 	}
 
 	var createValidatorParams MsgCreateValidator
-	err := json.Unmarshal([]byte(proposal.GetDescription()), &createValidatorParams)
+	err := cdc.UnmarshalJSON([]byte(proposal.GetDescription()), &createValidatorParams)
 	if err != nil {
 		return errors.New(fmt.Sprintf("unmarshal createValidator params failed, err=%s", err.Error()))
 	}
 
-	if msg.MsgCreateValidator.Equals(createValidatorParams) {
+	if !msg.MsgCreateValidator.Equals(createValidatorParams) {
 		return errors.New("createValidator msg is not identical to the proposal one")
 	}
 

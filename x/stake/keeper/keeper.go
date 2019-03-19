@@ -51,6 +51,11 @@ func (k Keeper) Codespace() sdk.CodespaceType {
 	return k.codespace
 }
 
+// return the amino codec
+func (k Keeper) Codec() *codec.Codec {
+	return k.cdc
+}
+
 //_______________________________________________________________________
 
 // load the pool
