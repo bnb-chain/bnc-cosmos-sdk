@@ -24,6 +24,14 @@ func NormalizeProposalType(proposalType string) string {
 		return "ParameterChange"
 	case "SoftwareUpgrade", "software_upgrade":
 		return "SoftwareUpgrade"
+	case "ListTradingPair", "list_trading_pair":
+		return "ListTradingPair"
+	case "FeeChange", "fee_change":
+		return "FeeChange"
+	case "CreateValidator", "create_validator":
+		return "CreateValidator"
+	case "RemoveValidator", "remove_validator":
+		return "RemoveValidator"
 	}
 	return ""
 }
