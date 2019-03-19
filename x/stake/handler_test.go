@@ -2,16 +2,15 @@ package stake
 
 import (
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/x/gov"
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/gov"
 	keep "github.com/cosmos/cosmos-sdk/x/stake/keeper"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 //______________________________________________________________________
@@ -1036,7 +1035,7 @@ func TestCreateValidatorAfterProposal(t *testing.T) {
 
 	msgCreateValidatorA := MsgCreateValidatorProposal{
 		MsgCreateValidator: NewTestMsgCreateValidator(valA, keep.PKs[0], 100),
-		ProposalId: 0,
+		ProposalId:         0,
 	}
 	result := handleMsgCreateValidatorAfterProposal(ctx, msgCreateValidatorA, keeper, govKeeper)
 	require.True(t, result.IsOK())
@@ -1049,7 +1048,7 @@ func TestCreateValidatorAfterProposal(t *testing.T) {
 
 	msgCreateValidatorB := MsgCreateValidatorProposal{
 		MsgCreateValidator: NewTestMsgCreateValidator(valB, keep.PKs[1], 1000), // I deliberately changed amount value to 1000, amount should be 100
-		ProposalId: 1,
+		ProposalId:         1,
 	}
 	result = handleMsgCreateValidatorAfterProposal(ctx, msgCreateValidatorB, keeper, govKeeper)
 	require.False(t, result.IsOK())
