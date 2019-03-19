@@ -2,6 +2,7 @@ package types
 
 import (
 	"bytes"
+	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/crypto"
@@ -404,6 +405,9 @@ func (msg MsgRemoveValidator) ValidateBasic() sdk.Error {
 	}
 	if msg.ValidatorAddr == nil {
 		return ErrNilValidatorAddr(DefaultCodespace)
+	}
+	if msg.ProposalId < 0 {
+		return ErrInvalidProposal(DefaultCodespace, fmt.Sprintf("negative proposal id %d", msg.ProposalId))
 	}
 	return nil
 }
