@@ -340,13 +340,15 @@ func handleMsgBeginUnbonding(ctx sdk.Context, msg types.MsgBeginUnbonding, k kee
 		return err.Result()
 	}
 
+	finishTime := types.MsgCdc.MustMarshalBinaryLengthPrefixed(ubd.MinTime)
+
 	tags := sdk.NewTags(
 		tags.Action, tags.ActionBeginUnbonding,
 		tags.Delegator, []byte(msg.DelegatorAddr.String()),
 		tags.SrcValidator, []byte(msg.ValidatorAddr.String()),
-		tags.EndTime, []byte(ubd.MinTime.String()),
+		tags.EndTime, finishTime,
 	)
-	return sdk.Result{Tags: tags}
+	return sdk.Result{Data: finishTime, Tags: tags}
 }
 
 func handleMsgBeginRedelegate(ctx sdk.Context, msg types.MsgBeginRedelegate, k keeper.Keeper) sdk.Result {
