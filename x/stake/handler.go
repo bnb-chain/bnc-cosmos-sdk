@@ -123,7 +123,7 @@ func handleMsgRemoveValidatorAfterProposal(ctx sdk.Context, msg MsgRemoveValidat
 
 	var tags sdk.Tags
 	var result sdk.Result
-	k.IterateDelegationsToValidator(ctx, msg.ValidatorAddr, func(del sdk.Delegation) (stop bool) {
+	k.IterateDelegationsToValidator(ctx, msg.ValAddr, func(del sdk.Delegation) (stop bool) {
 		msgBeginUnbonding := MsgBeginUnbonding{
 			ValidatorAddr: del.GetValidatorAddr(),
 			DelegatorAddr: del.GetDelegatorAddr(),
@@ -243,16 +243,16 @@ func checkRemoveProposal(ctx sdk.Context, keeper keeper.Keeper, govKeeper gov.Ke
 	if err != nil {
 		return fmt.Errorf("unmarshal removeValidator params failed, err=%s", err.Error())
 	}
-	if !msg.ValidatorAddr.Equals(removeValidator.ValidatorAddr) {
+	if !msg.ValAddr.Equals(removeValidator.ValAddr) || !msg.ValConsAddr.Equals(removeValidator.ValConsAddr) {
 		return fmt.Errorf("removeValidator msg is not identical to the proposal one")
 	}
 
-	_, ok := keeper.GetValidator(ctx, msg.ValidatorAddr)
+	_, ok := keeper.GetValidator(ctx, msg.ValAddr)
 	if !ok {
 		return fmt.Errorf("trying to remove a non-existing validator")
 	}
-	// Remove self validator
-	if sdk.ValAddress(msg.LauncherAddr).Equals(msg.ValidatorAddr) {
+	// Remove it own validator
+	if sdk.ValAddress(msg.LauncherAddr).Equals(msg.ValAddr) {
 		return nil
 	}
 	// If the launcher isn't the target validator operator, then the launcher must be the operator of other active validator

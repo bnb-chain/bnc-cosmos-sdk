@@ -5,13 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	keep "github.com/cosmos/cosmos-sdk/x/stake/keeper"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 //______________________________________________________________________
@@ -1080,7 +1079,6 @@ func TestRemoveValidatorAfterProposal(t *testing.T) {
 	got = handleMsgCreateValidator(ctx, msgCreateValidator, keeper)
 	require.True(t, got.IsOK(), "expected no error on runMsgCreateValidator")
 
-
 	updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
 	require.Equal(t, 3, len(updates))
 
@@ -1093,47 +1091,46 @@ func TestRemoveValidatorAfterProposal(t *testing.T) {
 	require.True(t, got.IsOK(), "expected no error on runMsgCreateValidator")
 
 	ctx = ctx.WithBlockHeight(1)
-	proposalDesc := fmt.Sprintf("{\"type\": \"test/stake/RemoveValidator\",\"value\": {\"proposal_id\": \"%d\",\"validator_address\": \"%s\"}}", 0, valA.String())
+	proposalDesc := fmt.Sprintf("{\"type\": \"test/stake/RemoveValidator\",\"value\": {\"val_addr\": \"%s\", \"val_cons_addr\": \"%s\"}}", valA.String(), sdk.ConsAddress(keep.PKs[0].Address()).String())
 
 	proposal := govKeeper.NewTextProposal(ctx, "RemoveValidatorProposal", proposalDesc, gov.ProposalTypeRemoveValidator)
 	proposal.SetStatus(gov.StatusPassed)
 	govKeeper.SetProposal(ctx, proposal)
 
 	// Launcher isn't a bonded validator
-	msgRemoveValidator := NewMsgRemoveValidator(sdk.AccAddress(valD), valA, 0)
+	msgRemoveValidator := NewMsgRemoveValidator(sdk.AccAddress(valD), valA, sdk.ConsAddress(keep.PKs[0].Address()), 0)
 	result := handleMsgRemoveValidatorAfterProposal(ctx, msgRemoveValidator, keeper, govKeeper)
 	require.False(t, result.IsOK())
 
 	// Launcher isn't a validator
-	msgRemoveValidator = NewMsgRemoveValidator(sdk.AccAddress(valE), valA, 0)
+	msgRemoveValidator = NewMsgRemoveValidator(sdk.AccAddress(valE), valA, sdk.ConsAddress(keep.PKs[0].Address()), 0)
 	result = handleMsgRemoveValidatorAfterProposal(ctx, msgRemoveValidator, keeper, govKeeper)
 	require.False(t, result.IsOK())
 
 	// Launcher is a bonded validator
-	msgRemoveValidator = NewMsgRemoveValidator(sdk.AccAddress(valC), valA, 0)
+	msgRemoveValidator = NewMsgRemoveValidator(sdk.AccAddress(valC), valA, sdk.ConsAddress(keep.PKs[0].Address()), 0)
 	result = handleMsgRemoveValidatorAfterProposal(ctx, msgRemoveValidator, keeper, govKeeper)
 	require.True(t, result.IsOK())
 
-
 	ctx = ctx.WithBlockHeight(2)
-	proposalDesc = fmt.Sprintf("{\"type\": \"test/stake/RemoveValidator\",\"value\": {\"proposal_id\": \"%d\",\"validator_address\": \"%s\"}}", 1, valD.String())
+	proposalDesc = fmt.Sprintf("{\"type\": \"test/stake/RemoveValidator\",\"value\": {\"val_addr\": \"%s\",\"val_cons_addr\": \"%s\"}}", valD.String(), sdk.ConsAddress(keep.PKs[3].Address()).String())
 	proposal = govKeeper.NewTextProposal(ctx, "RemoveValidatorProposal", proposalDesc, gov.ProposalTypeRemoveValidator)
 	proposal.SetStatus(gov.StatusPassed)
 	govKeeper.SetProposal(ctx, proposal)
 
 	// Launcher is the operator of target validator
-	msgRemoveValidator = NewMsgRemoveValidator(sdk.AccAddress(valD), valD, 1)
+	msgRemoveValidator = NewMsgRemoveValidator(sdk.AccAddress(valD), valD, sdk.ConsAddress(keep.PKs[3].Address()), 1)
 	result = handleMsgRemoveValidatorAfterProposal(ctx, msgRemoveValidator, keeper, govKeeper)
 	require.True(t, result.IsOK())
 
 	ctx = ctx.WithBlockHeight(2)
-	proposalDesc = fmt.Sprintf("{\"type\": \"test/stake/RemoveValidator\",\"value\": {\"proposal_id\": \"%d\",\"validator_address\": \"%s\"}}", 2, valF.String())
+	proposalDesc = fmt.Sprintf("{\"type\": \"test/stake/RemoveValidator\",\"value\": {\"validator_address\": \"%s\",\"val_cons_addr\": \"%s\"}}", valF.String(), sdk.ConsAddress(keep.PKs[5].Address()).String())
 	proposal = govKeeper.NewTextProposal(ctx, "RemoveValidatorProposal", proposalDesc, gov.ProposalTypeRemoveValidator)
 	proposal.SetStatus(gov.StatusPassed)
 	govKeeper.SetProposal(ctx, proposal)
 
 	// Try to remove a different validator
-	msgRemoveValidator = NewMsgRemoveValidator(sdk.AccAddress(valF), valB, 2)
+	msgRemoveValidator = NewMsgRemoveValidator(sdk.AccAddress(valF), valB, sdk.ConsAddress(keep.PKs[1].Address()), 2)
 	result = handleMsgRemoveValidatorAfterProposal(ctx, msgRemoveValidator, keeper, govKeeper)
 	require.False(t, result.IsOK())
 }

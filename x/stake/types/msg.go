@@ -363,16 +363,19 @@ func (msg MsgBeginUnbonding) GetInvolvedAddresses() []sdk.AccAddress {
 }
 
 type MsgRemoveValidator struct {
-	LauncherAddr  sdk.AccAddress `json:"launcher_addr"`
-	ValidatorAddr sdk.ValAddress `json:"validator_address"`
-	ProposalId    int64          `json:"proposal_id"`
+	LauncherAddr sdk.AccAddress  `json:"launcher_addr"`
+	ValAddr      sdk.ValAddress  `json:"val_addr"`
+	ValConsAddr  sdk.ConsAddress `json:"val_cons_addr"`
+	ProposalId   int64           `json:"proposal_id"`
 }
 
-func NewMsgRemoveValidator(launcherAddr sdk.AccAddress, valAddr sdk.ValAddress,  proposalId int64) MsgRemoveValidator {
+func NewMsgRemoveValidator(launcherAddr sdk.AccAddress, valAddr sdk.ValAddress,
+	valConsAddr sdk.ConsAddress, proposalId int64) MsgRemoveValidator {
 	return MsgRemoveValidator{
-		LauncherAddr:launcherAddr,
-		ValidatorAddr: valAddr,
-		ProposalId:    proposalId,
+		LauncherAddr: launcherAddr,
+		ValAddr:      valAddr,
+		ValConsAddr:  valConsAddr,
+		ProposalId:   proposalId,
 	}
 }
 
@@ -384,13 +387,15 @@ func (msg MsgRemoveValidator) GetSigners() []sdk.AccAddress { return []sdk.AccAd
 // get the bytes for the message signer to sign on
 func (msg MsgRemoveValidator) GetSignBytes() []byte {
 	b, err := MsgCdc.MarshalJSON(struct {
-		LauncherAddr  sdk.AccAddress `json:"launcher_addr"`
-		ValidatorAddr sdk.ValAddress `json:"validator_address"`
-		ProposalId    int64          `json:"proposal_id"`
+		LauncherAddr sdk.AccAddress  `json:"launcher_addr"`
+		ValAddr      sdk.ValAddress  `json:"val_addr"`
+		ValConsAddr  sdk.ConsAddress `json:"val_cons_addr"`
+		ProposalId   int64           `json:"proposal_id"`
 	}{
 		LauncherAddr: msg.LauncherAddr,
-		ValidatorAddr: msg.ValidatorAddr,
-		ProposalId: msg.ProposalId,
+		ValAddr:      msg.ValAddr,
+		ValConsAddr:  msg.ValConsAddr,
+		ProposalId:   msg.ProposalId,
 	})
 	if err != nil {
 		panic(err)
@@ -403,8 +408,11 @@ func (msg MsgRemoveValidator) ValidateBasic() sdk.Error {
 	if msg.LauncherAddr == nil {
 		return ErrNilLauncherAddr(DefaultCodespace)
 	}
-	if msg.ValidatorAddr == nil {
+	if msg.ValAddr == nil {
 		return ErrNilValidatorAddr(DefaultCodespace)
+	}
+	if msg.ValConsAddr == nil {
+		return ErrNilValidatorConsAddr(DefaultCodespace)
 	}
 	if msg.ProposalId < 0 {
 		return ErrInvalidProposal(DefaultCodespace, fmt.Sprintf("negative proposal id %d", msg.ProposalId))
