@@ -79,7 +79,7 @@ func getAccountCache(cdc *codec.Codec, ms sdk.MultiStore, accountKey *sdk.KVStor
 	return auth.NewAccountCache(accountStoreCache)
 }
 
-// hogpodge of all sorts of input required for testing
+// hodgepodge of all sorts of input required for testing
 func CreateTestInput(t *testing.T, isCheckTx bool, initCoins int64) (sdk.Context, auth.AccountKeeper, Keeper) {
 
 	keyStake := sdk.NewKVStoreKey("stake")
@@ -135,7 +135,7 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initCoins int64) (sdk.Context
 	return ctx, accountKeeper, keeper
 }
 
-// hogpodge of all sorts of input required for testing
+// hodgepodge of all sorts of input required for testing
 func CreateTestInputWithGov(t *testing.T, isCheckTx bool, initCoins int64) (sdk.Context, auth.AccountKeeper, Keeper, gov.Keeper, *codec.Codec ) {
 
 	keyStake := sdk.NewKVStoreKey("stake")
