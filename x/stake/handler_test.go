@@ -1055,3 +1055,85 @@ func TestCreateValidatorAfterProposal(t *testing.T) {
 	require.False(t, result.IsOK())
 
 }
+
+func TestRemoveValidatorAfterProposal(t *testing.T) {
+	ctx, _, keeper, govKeeper, _ := keep.CreateTestInputWithGov(t, false, 1000)
+
+	err := govKeeper.SetInitialProposalID(ctx, 0)
+	require.Nil(t, err)
+	valA := sdk.ValAddress(keep.Addrs[0])
+	valB := sdk.ValAddress(keep.Addrs[1])
+	valC := sdk.ValAddress(keep.Addrs[2])
+	valD := sdk.ValAddress(keep.Addrs[3])
+	valE := sdk.ValAddress(keep.Addrs[4])
+	valF := sdk.ValAddress(keep.Addrs[5])
+
+	msgCreateValidator := NewTestMsgCreateValidator(valA, keep.PKs[0], 10)
+	got := handleMsgCreateValidator(ctx, msgCreateValidator, keeper)
+	require.True(t, got.IsOK(), "expected no error on runMsgCreateValidator")
+
+	msgCreateValidator = NewTestMsgCreateValidator(valB, keep.PKs[1], 10)
+	got = handleMsgCreateValidator(ctx, msgCreateValidator, keeper)
+	require.True(t, got.IsOK(), "expected no error on runMsgCreateValidator")
+
+	msgCreateValidator = NewTestMsgCreateValidator(valC, keep.PKs[2], 10)
+	got = handleMsgCreateValidator(ctx, msgCreateValidator, keeper)
+	require.True(t, got.IsOK(), "expected no error on runMsgCreateValidator")
+
+
+	updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	require.Equal(t, 3, len(updates))
+
+	msgCreateValidator = NewTestMsgCreateValidator(valD, keep.PKs[3], 10)
+	got = handleMsgCreateValidator(ctx, msgCreateValidator, keeper)
+	require.True(t, got.IsOK(), "expected no error on runMsgCreateValidator")
+
+	msgCreateValidator = NewTestMsgCreateValidator(valF, keep.PKs[5], 10)
+	got = handleMsgCreateValidator(ctx, msgCreateValidator, keeper)
+	require.True(t, got.IsOK(), "expected no error on runMsgCreateValidator")
+
+	ctx = ctx.WithBlockHeight(1)
+	proposalDesc := fmt.Sprintf("{\"type\": \"test/stake/RemoveValidator\",\"value\": {\"proposal_id\": \"%d\",\"validator_address\": \"%s\"}}", 0, valA.String())
+
+	proposal := govKeeper.NewTextProposal(ctx, "RemoveValidatorProposal", proposalDesc, gov.ProposalTypeRemoveValidator)
+	proposal.SetStatus(gov.StatusPassed)
+	govKeeper.SetProposal(ctx, proposal)
+
+	// Launcher isn't a bonded validator
+	msgRemoveValidator := NewMsgRemoveValidator(sdk.AccAddress(valD), valA, 0)
+	result := handleMsgRemoveValidatorAfterProposal(ctx, msgRemoveValidator, keeper, govKeeper)
+	require.False(t, result.IsOK())
+
+	// Launcher isn't a validator
+	msgRemoveValidator = NewMsgRemoveValidator(sdk.AccAddress(valE), valA, 0)
+	result = handleMsgRemoveValidatorAfterProposal(ctx, msgRemoveValidator, keeper, govKeeper)
+	require.False(t, result.IsOK())
+
+	// Launcher is a bonded validator
+	msgRemoveValidator = NewMsgRemoveValidator(sdk.AccAddress(valC), valA, 0)
+	result = handleMsgRemoveValidatorAfterProposal(ctx, msgRemoveValidator, keeper, govKeeper)
+	require.True(t, result.IsOK())
+
+
+	ctx = ctx.WithBlockHeight(2)
+	proposalDesc = fmt.Sprintf("{\"type\": \"test/stake/RemoveValidator\",\"value\": {\"proposal_id\": \"%d\",\"validator_address\": \"%s\"}}", 1, valD.String())
+	proposal = govKeeper.NewTextProposal(ctx, "RemoveValidatorProposal", proposalDesc, gov.ProposalTypeRemoveValidator)
+	proposal.SetStatus(gov.StatusPassed)
+	govKeeper.SetProposal(ctx, proposal)
+
+	// Launcher is the operator of target validator
+	msgRemoveValidator = NewMsgRemoveValidator(sdk.AccAddress(valD), valD, 1)
+	result = handleMsgRemoveValidatorAfterProposal(ctx, msgRemoveValidator, keeper, govKeeper)
+	require.True(t, result.IsOK())
+
+	ctx = ctx.WithBlockHeight(2)
+	proposalDesc = fmt.Sprintf("{\"type\": \"test/stake/RemoveValidator\",\"value\": {\"proposal_id\": \"%d\",\"validator_address\": \"%s\"}}", 2, valF.String())
+	proposal = govKeeper.NewTextProposal(ctx, "RemoveValidatorProposal", proposalDesc, gov.ProposalTypeRemoveValidator)
+	proposal.SetStatus(gov.StatusPassed)
+	govKeeper.SetProposal(ctx, proposal)
+
+	// Try to remove a different validator
+	msgRemoveValidator = NewMsgRemoveValidator(sdk.AccAddress(valF), valB, 2)
+	result = handleMsgRemoveValidatorAfterProposal(ctx, msgRemoveValidator, keeper, govKeeper)
+	require.False(t, result.IsOK())
+}

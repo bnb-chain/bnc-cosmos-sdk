@@ -30,12 +30,6 @@ type MsgCreateValidatorProposal struct {
 	ProposalId int64 `json:"proposal_id"`
 }
 
-type MsgRemoveValidator struct {
-	ValidatorAddr sdk.ValAddress `json:"validator_address"`
-	PubKey        crypto.PubKey  `json:"pubkey"`
-	ProposalId    int64          `json:"proposal_id"`
-}
-
 // Default way to create validator. Delegator address and validator address are the same
 func NewMsgCreateValidator(valAddr sdk.ValAddress, pubkey crypto.PubKey,
 	selfDelegation sdk.Coin, description Description, commission CommissionMsg) MsgCreateValidator {
@@ -365,4 +359,55 @@ func (msg MsgBeginUnbonding) ValidateBasic() sdk.Error {
 
 func (msg MsgBeginUnbonding) GetInvolvedAddresses() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.DelegatorAddr, sdk.AccAddress(msg.ValidatorAddr)}
+}
+
+type MsgRemoveValidator struct {
+	LauncherAddr  sdk.AccAddress `json:"launcher_addr"`
+	ValidatorAddr sdk.ValAddress `json:"validator_address"`
+	ProposalId    int64          `json:"proposal_id"`
+}
+
+func NewMsgRemoveValidator(launcherAddr sdk.AccAddress, valAddr sdk.ValAddress,  proposalId int64) MsgRemoveValidator {
+	return MsgRemoveValidator{
+		LauncherAddr:launcherAddr,
+		ValidatorAddr: valAddr,
+		ProposalId:    proposalId,
+	}
+}
+
+//nolint
+func (msg MsgRemoveValidator) Route() string                { return MsgRoute }
+func (msg MsgRemoveValidator) Type() string                 { return "remove_validator" }
+func (msg MsgRemoveValidator) GetSigners() []sdk.AccAddress { return []sdk.AccAddress{msg.LauncherAddr} }
+
+// get the bytes for the message signer to sign on
+func (msg MsgRemoveValidator) GetSignBytes() []byte {
+	b, err := MsgCdc.MarshalJSON(struct {
+		LauncherAddr  sdk.AccAddress `json:"launcher_addr"`
+		ValidatorAddr sdk.ValAddress `json:"validator_address"`
+		ProposalId    int64          `json:"proposal_id"`
+	}{
+		LauncherAddr: msg.LauncherAddr,
+		ValidatorAddr: msg.ValidatorAddr,
+		ProposalId: msg.ProposalId,
+	})
+	if err != nil {
+		panic(err)
+	}
+	return sdk.MustSortJSON(b)
+}
+
+// quick validity check
+func (msg MsgRemoveValidator) ValidateBasic() sdk.Error {
+	if msg.LauncherAddr == nil {
+		return ErrNilLauncherAddr(DefaultCodespace)
+	}
+	if msg.ValidatorAddr == nil {
+		return ErrNilValidatorAddr(DefaultCodespace)
+	}
+	return nil
+}
+
+func (msg MsgRemoveValidator) GetInvolvedAddresses() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.LauncherAddr}
 }

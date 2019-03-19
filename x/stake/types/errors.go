@@ -90,6 +90,10 @@ func ErrNilDelegatorAddr(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidInput, "delegator address is nil")
 }
 
+func ErrNilLauncherAddr(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidInput, "launcher address of remove validator is nil")
+}
+
 func ErrBadDenom(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidDelegation, "invalid coin denomination")
 }

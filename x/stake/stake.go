@@ -77,6 +77,7 @@ var (
 	RegisterCodec         = types.RegisterCodec
 
 	NewMsgCreateValidator           = types.NewMsgCreateValidator
+	NewMsgRemoveValidator           = types.NewMsgRemoveValidator
 	NewMsgCreateValidatorOnBehalfOf = types.NewMsgCreateValidatorOnBehalfOf
 	NewMsgEditValidator             = types.NewMsgEditValidator
 	NewMsgDelegate                  = types.NewMsgDelegate

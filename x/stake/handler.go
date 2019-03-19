@@ -2,10 +2,8 @@ package stake
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 
-	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/stake/keeper"
@@ -107,7 +105,7 @@ func handleMsgCreateValidatorAfterProposal(ctx sdk.Context, msg MsgCreateValidat
 	height := ctx.BlockHeader().Height
 	// do not checkProposal for the genesis txs
 	if height != 0 {
-		if err := checkCreateProposal(ctx, k.Codec(), govKeeper, msg); err != nil {
+		if err := checkCreateProposal(ctx, k, govKeeper, msg); err != nil {
 			return ErrInvalidProposal(k.Codespace(), err.Error()).Result()
 		}
 	}
@@ -118,7 +116,7 @@ func handleMsgCreateValidatorAfterProposal(ctx sdk.Context, msg MsgCreateValidat
 func handleMsgRemoveValidatorAfterProposal(ctx sdk.Context, msg MsgRemoveValidator, k keeper.Keeper, govKeeper gov.Keeper) sdk.Result {
 	// do not checkProposal for the genesis txs
 	if ctx.BlockHeight() != 0 {
-		if err := checkRemoveProposal(ctx, k.Codec(), govKeeper, msg); err != nil {
+		if err := checkRemoveProposal(ctx, k, govKeeper, msg); err != nil {
 			return ErrInvalidProposal(k.Codespace(), err.Error()).Result()
 		}
 	}
@@ -140,7 +138,7 @@ func handleMsgRemoveValidatorAfterProposal(ctx sdk.Context, msg MsgRemoveValidat
 		return false
 	})
 
-	// If there is a failure in handleMsgBeginUnbonding, return the error message
+	// If there is a failure in handling MsgBeginUnbonding, return an error
 	if !result.IsOK() {
 		return result
 	}
@@ -199,7 +197,7 @@ func handleMsgCreateValidator(ctx sdk.Context, msg MsgCreateValidator, k keeper.
 	}
 }
 
-func checkCreateProposal(ctx sdk.Context, cdc *codec.Codec, govKeeper gov.Keeper, msg MsgCreateValidatorProposal) error {
+func checkCreateProposal(ctx sdk.Context, keeper keeper.Keeper, govKeeper gov.Keeper, msg MsgCreateValidatorProposal) error {
 	proposal := govKeeper.GetProposal(ctx, msg.ProposalId)
 	if proposal == nil {
 		return fmt.Errorf("proposal %d does not exist", msg.ProposalId)
@@ -214,7 +212,7 @@ func checkCreateProposal(ctx sdk.Context, cdc *codec.Codec, govKeeper gov.Keeper
 	}
 
 	var createValidatorParams MsgCreateValidator
-	err := cdc.UnmarshalJSON([]byte(proposal.GetDescription()), &createValidatorParams)
+	err := keeper.Codec().UnmarshalJSON([]byte(proposal.GetDescription()), &createValidatorParams)
 	if err != nil {
 		return fmt.Errorf("unmarshal createValidator params failed, err=%s", err.Error())
 	}
@@ -226,7 +224,7 @@ func checkCreateProposal(ctx sdk.Context, cdc *codec.Codec, govKeeper gov.Keeper
 	return nil
 }
 
-func checkRemoveProposal(ctx sdk.Context, cdc *codec.Codec, govKeeper gov.Keeper, msg MsgRemoveValidator) error {
+func checkRemoveProposal(ctx sdk.Context, keeper keeper.Keeper, govKeeper gov.Keeper, msg MsgRemoveValidator) error {
 	proposal := govKeeper.GetProposal(ctx, msg.ProposalId)
 	if proposal == nil {
 		return fmt.Errorf("proposal %d does not exist", msg.ProposalId)
@@ -241,15 +239,30 @@ func checkRemoveProposal(ctx sdk.Context, cdc *codec.Codec, govKeeper gov.Keeper
 	}
 
 	var removeValidator MsgRemoveValidator
-	err := cdc.UnmarshalJSON([]byte(proposal.GetDescription()), &removeValidator)
+	err := keeper.Codec().UnmarshalJSON([]byte(proposal.GetDescription()), &removeValidator)
 	if err != nil {
 		return fmt.Errorf("unmarshal removeValidator params failed, err=%s", err.Error())
 	}
-
-	if !msg.PubKey.Equals(removeValidator.PubKey) || !msg.ValidatorAddr.Equals(removeValidator.ValidatorAddr) {
+	if !msg.ValidatorAddr.Equals(removeValidator.ValidatorAddr) {
 		return fmt.Errorf("removeValidator msg is not identical to the proposal one")
 	}
 
+	_, ok := keeper.GetValidator(ctx, msg.ValidatorAddr)
+	if !ok {
+		return fmt.Errorf("trying to remove a non-existing validator")
+	}
+	// Remove self validator
+	if sdk.ValAddress(msg.LauncherAddr).Equals(msg.ValidatorAddr) {
+		return nil
+	}
+	// If the launcher isn't the target validator operator, then the launcher must be the operator of other active validator
+	launcherValidator, ok := keeper.GetValidator(ctx, sdk.ValAddress(msg.LauncherAddr))
+	if !ok {
+		return fmt.Errorf("the launcher is not a validator operator")
+	}
+	if launcherValidator.Status != sdk.Bonded {
+		return fmt.Errorf("the status of launcher validator is not bonded")
+	}
 	return nil
 }
 
