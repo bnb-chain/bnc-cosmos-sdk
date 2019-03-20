@@ -1,6 +1,6 @@
 package types
 
-var UpgradeMgr = &UpgradeManager{}
+var UpgradeMgr = NewUpgradeManager(UpgradeConfig{})
 
 const UpgradeLimitAddressLength = "UpgradeLimitAddressLength" // limit address length to 20 bytes
 
@@ -22,6 +22,12 @@ type UpgradeManager struct {
 func NewUpgradeManager(config UpgradeConfig) *UpgradeManager {
 	return &UpgradeManager{
 		Config: config,
+	}
+}
+
+func (mgr *UpgradeManager) AddConfig(config UpgradeConfig) {
+	for name, height := range config.HeightMap {
+		mgr.AddUpgradeHeight(name, height)
 	}
 }
 
