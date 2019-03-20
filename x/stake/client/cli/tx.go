@@ -159,13 +159,29 @@ func GetCmdRemoveValidator(cdc *codec.Codec) *cobra.Command {
 			if err != nil {
 				return err
 			}
-
-			msg := stake.NewMsgRemoveValidator(launcher, validatorAddr, validatorConsAddr,proposalId)
+			var msg sdk.Msg
+			msg = stake.NewMsgRemoveValidator(launcher, validatorAddr, validatorConsAddr,proposalId)
+			if proposalId == 0 {
+				amounstStr := viper.GetString(FlagAmount)
+				if amounstStr == "" {
+					return fmt.Errorf("Must specify amount to gov deposite when proposalId is zero using --amount")
+				}
+				amount, err := sdk.ParseCoin(amounstStr)
+				if err != nil {
+					return err
+				}
+				title := "remove validator"
+				description, err := json.Marshal(msg)
+				if err != nil {
+					return err
+				}
+				msg = gov.NewMsgSubmitProposal(title, string(description),
+					gov.ProposalTypeRemoveValidator, launcher, sdk.Coins{amount})
+			}
 
 			if cliCtx.GenerateOnly {
 				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg}, false)
 			}
-
 			// build and sign the transaction, then broadcast to Tendermint
 			return utils.CompleteAndBroadcastTxCli(txBldr, cliCtx, []sdk.Msg{msg})
 		},
@@ -174,6 +190,7 @@ func GetCmdRemoveValidator(cdc *codec.Codec) *cobra.Command {
 	cmd.Flags().Int64(FlagProposalID, 0, "id of the remove validator proposal")
 	cmd.Flags().String(FlagAddressValidator, "", "validator address")
 	cmd.Flags().String(FlagConsAddrValidator, "", "validator consensus address")
+	cmd.Flags().AddFlagSet(fsAmount)
 
 	return cmd
 }
