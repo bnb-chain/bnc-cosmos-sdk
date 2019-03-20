@@ -109,7 +109,7 @@ func NewBaseApp(name string, logger log.Logger, db dbm.DB, txDecoder sdk.TxDecod
 		Pool:        new(sdk.Pool),
 	}
 
-	sdk.UpgradeMgr = sdk.NewUpgradeManager(sdk.MainNetConfig) // TODO: make this configurable
+	sdk.UpgradeMgr.AddConfig(sdk.MainNetConfig) // TODO: make this configurable
 
 	// Register the undefined & root codespaces, which should not be used by
 	// any modules.
