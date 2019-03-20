@@ -2,6 +2,7 @@ package stake
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -211,13 +212,17 @@ func checkCreateProposal(ctx sdk.Context, keeper keeper.Keeper, govKeeper gov.Ke
 			proposal.GetStatus().String())
 	}
 
-	var createValidatorParams MsgCreateValidator
-	err := keeper.Codec().UnmarshalJSON([]byte(proposal.GetDescription()), &createValidatorParams)
+	var createValidatorJson CreateValidatorJsonMsg
+	err := json.Unmarshal([]byte(proposal.GetDescription()), &createValidatorJson)
 	if err != nil {
 		return fmt.Errorf("unmarshal createValidator params failed, err=%s", err.Error())
 	}
+	createValidatorMsgProposal, err := createValidatorJson.ToMsgCreateValidator()
+	if err != nil {
+		return fmt.Errorf("invalid pubkey, err=%s", err.Error())
+	}
 
-	if !msg.MsgCreateValidator.Equals(createValidatorParams) {
+	if !msg.MsgCreateValidator.Equals(createValidatorMsgProposal) {
 		return fmt.Errorf("createValidator msg is not identical to the proposal one")
 	}
 
@@ -240,7 +245,7 @@ func checkRemoveProposal(ctx sdk.Context, keeper keeper.Keeper, govKeeper gov.Ke
 
 	// Check proposal description
 	var proposalRemoveValidator MsgRemoveValidator
-	err := keeper.Codec().UnmarshalJSON([]byte(proposal.GetDescription()), &proposalRemoveValidator)
+	err := json.Unmarshal([]byte(proposal.GetDescription()), &proposalRemoveValidator)
 	if err != nil {
 		return fmt.Errorf("unmarshal removeValidator params failed, err=%s", err.Error())
 	}

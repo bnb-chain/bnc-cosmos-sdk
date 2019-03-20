@@ -29,6 +29,7 @@ type (
 	QueryDelegatorParams       = querier.QueryDelegatorParams
 	QueryValidatorParams       = querier.QueryValidatorParams
 	QueryBondsParams           = querier.QueryBondsParams
+	CreateValidatorJsonMsg     = types.CreateValidatorJsonMsg
 )
 
 var (

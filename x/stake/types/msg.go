@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"fmt"
+	"github.com/tendermint/tendermint/crypto/ed25519"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/crypto"
@@ -18,12 +19,39 @@ var _, _, _ sdk.Msg = &MsgCreateValidator{}, &MsgEditValidator{}, &MsgDelegate{}
 
 // MsgCreateValidator - struct for bonding transactions
 type MsgCreateValidator struct {
-	Description
+	Description	  Description
 	Commission    CommissionMsg
 	DelegatorAddr sdk.AccAddress `json:"delegator_address"`
 	ValidatorAddr sdk.ValAddress `json:"validator_address"`
 	PubKey        crypto.PubKey  `json:"pubkey"`
 	Delegation    sdk.Coin       `json:"delegation"`
+}
+
+type CreateValidatorJsonMsg struct {
+	Description   Description
+	Commission    CommissionMsg
+	DelegatorAddr sdk.AccAddress `json:"delegator_address"`
+	ValidatorAddr sdk.ValAddress `json:"validator_address"`
+	PubKey        []byte         `json:"pubkey"`
+	Delegation    sdk.Coin       `json:"delegation"`
+}
+
+func (jsonMsg CreateValidatorJsonMsg) ToMsgCreateValidator() (MsgCreateValidator, error) {
+	if len(jsonMsg.PubKey) != ed25519.PubKeyEd25519Size {
+		return MsgCreateValidator{}, fmt.Errorf("pubkey size should be %d", ed25519.PubKeyEd25519Size)
+	}
+
+	var pubkey ed25519.PubKeyEd25519
+	copy(pubkey[:], jsonMsg.PubKey)
+
+	return MsgCreateValidator{
+		Description: jsonMsg.Description,
+		Commission: jsonMsg.Commission,
+		DelegatorAddr:jsonMsg.DelegatorAddr,
+		ValidatorAddr: jsonMsg.ValidatorAddr,
+		PubKey: pubkey,
+		Delegation: jsonMsg.Delegation,
+	}, nil
 }
 
 type MsgCreateValidatorProposal struct {
@@ -114,6 +142,10 @@ func (msg MsgCreateValidator) ValidateBasic() sdk.Error {
 
 func (msg MsgCreateValidator) Equals(other MsgCreateValidator) bool {
 	if !msg.Commission.Equal(other.Commission) {
+		return false
+	}
+
+	if !msg.PubKey.Equals(other.PubKey) {
 		return false
 	}
 
