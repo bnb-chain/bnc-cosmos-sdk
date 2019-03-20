@@ -28,11 +28,11 @@ func GetCmdCreateValidator(cdc *codec.Codec) *cobra.Command {
 				WithCodec(cdc).
 				WithAccountDecoder(authcmd.GetAccountDecoder(cdc))
 
-			amounstStr := viper.GetString(FlagAmount)
-			if amounstStr == "" {
+			amountStr := viper.GetString(FlagAmount)
+			if amountStr == "" {
 				return fmt.Errorf("Must specify amount to stake using --amount")
 			}
-			amount, err := sdk.ParseCoin(amounstStr)
+			amount, err := sdk.ParseCoin(amountStr)
 			if err != nil {
 				return err
 			}
@@ -102,13 +102,21 @@ func GetCmdCreateValidator(cdc *codec.Codec) *cobra.Command {
 
 			proposalId := viper.GetInt64(FlagProposalID)
 			if proposalId == 0 {
-				title := ""
+				depositStr := viper.GetString(FlagDeposit)
+				if depositStr == "" {
+					return fmt.Errorf("must specify deposit amount when proposalId is zero using --deposit")
+				}
+				deposit, err := sdk.ParseCoin(depositStr)
+				if err != nil {
+					return err
+				}
+				title := "create validator"
 				description, err := json.Marshal(msg)
 				if err != nil {
 					return err
 				}
 				msg = gov.NewMsgSubmitProposal(title, string(description),
-					gov.ProposalTypeCreateValidator, valAddr, sdk.Coins{amount})
+					gov.ProposalTypeCreateValidator, valAddr, sdk.Coins{deposit})
 			} else {
 			    msg = stake.MsgCreateValidatorProposal{
 			    	MsgCreateValidator: msg.(stake.MsgCreateValidator),
@@ -123,6 +131,7 @@ func GetCmdCreateValidator(cdc *codec.Codec) *cobra.Command {
 	cmd.Flags().Int64(FlagProposalID, 0, "id of the CreateValidator proposal")
 	cmd.Flags().AddFlagSet(fsPk)
 	cmd.Flags().AddFlagSet(fsAmount)
+	cmd.Flags().String(FlagDeposit, "", "deposit token amount")
 	cmd.Flags().AddFlagSet(fsDescriptionCreate)
 	cmd.Flags().AddFlagSet(fsCommissionCreate)
 	cmd.Flags().AddFlagSet(fsDelegator)
@@ -150,7 +159,6 @@ func GetCmdRemoveValidator(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			proposalId := viper.GetInt64(FlagProposalID)
 			validatorAddr, err := sdk.ValAddressFromBech32(viper.GetString(FlagAddressValidator))
 			if err != nil {
 				return err
@@ -159,14 +167,16 @@ func GetCmdRemoveValidator(cdc *codec.Codec) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			proposalId := viper.GetInt64(FlagProposalID)
+
 			var msg sdk.Msg
-			msg = stake.NewMsgRemoveValidator(launcher, validatorAddr, validatorConsAddr,proposalId)
+			msg = stake.NewMsgRemoveValidator(launcher, validatorAddr, validatorConsAddr, proposalId)
 			if proposalId == 0 {
-				amounstStr := viper.GetString(FlagAmount)
-				if amounstStr == "" {
-					return fmt.Errorf("Must specify amount to gov deposite when proposalId is zero using --amount")
+				depositStr := viper.GetString(FlagDeposit)
+				if depositStr == "" {
+					return fmt.Errorf("must specify deposit amount when proposalId is zero using --deposit")
 				}
-				amount, err := sdk.ParseCoin(amounstStr)
+				deposit, err := sdk.ParseCoin(depositStr)
 				if err != nil {
 					return err
 				}
@@ -176,7 +186,7 @@ func GetCmdRemoveValidator(cdc *codec.Codec) *cobra.Command {
 					return err
 				}
 				msg = gov.NewMsgSubmitProposal(title, string(description),
-					gov.ProposalTypeRemoveValidator, launcher, sdk.Coins{amount})
+					gov.ProposalTypeRemoveValidator, launcher, sdk.Coins{deposit})
 			}
 
 			if cliCtx.GenerateOnly {
@@ -190,7 +200,7 @@ func GetCmdRemoveValidator(cdc *codec.Codec) *cobra.Command {
 	cmd.Flags().Int64(FlagProposalID, 0, "id of the remove validator proposal")
 	cmd.Flags().String(FlagAddressValidator, "", "validator address")
 	cmd.Flags().String(FlagConsAddrValidator, "", "validator consensus address")
-	cmd.Flags().AddFlagSet(fsAmount)
+	cmd.Flags().String(FlagDeposit, "", "deposit token amount")
 
 	return cmd
 }
