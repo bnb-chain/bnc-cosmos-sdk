@@ -779,6 +779,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, txHash string, mode
 	var data []byte   // NOTE: we just append them all (?!)
 	var tags sdk.Tags // also just append them all
 	var code sdk.ABCICodeType
+	routerCallRecordTx := make(map[string]bool)
 	for msgIdx, msg := range msgs {
 		// Match route.
 		msgRoute := msg.Route()
@@ -800,11 +801,17 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, txHash string, mode
 			code = msgResult.Code
 			break
 		}
+		routerCallRecordTx[msgRoute] = true
 
 		// Construct usable logs in multi-message transactions.
 		logs = append(logs, fmt.Sprintf("Msg %d: %s", msgIdx, msgResult.Log))
 	}
-
+	// All msgs are handled successfully
+	if code == sdk.ABCICodeOK {
+		for key, _ := range routerCallRecordTx {
+			ctx.RouterCallRecord()[key] = true
+		}
+	}
 	result = sdk.Result{
 		Code: code,
 		Data: data,
