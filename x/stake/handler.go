@@ -238,20 +238,26 @@ func checkRemoveProposal(ctx sdk.Context, keeper keeper.Keeper, govKeeper gov.Ke
 			proposal.GetStatus().String())
 	}
 
-	var removeValidator MsgRemoveValidator
-	err := keeper.Codec().UnmarshalJSON([]byte(proposal.GetDescription()), &removeValidator)
+	// Check proposal description
+	var proposalRemoveValidator MsgRemoveValidator
+	err := keeper.Codec().UnmarshalJSON([]byte(proposal.GetDescription()), &proposalRemoveValidator)
 	if err != nil {
 		return fmt.Errorf("unmarshal removeValidator params failed, err=%s", err.Error())
 	}
-	if !msg.ValAddr.Equals(removeValidator.ValAddr) || !msg.ValConsAddr.Equals(removeValidator.ValConsAddr) {
+	if !msg.ValAddr.Equals(proposalRemoveValidator.ValAddr) || !msg.ValConsAddr.Equals(proposalRemoveValidator.ValConsAddr) {
 		return fmt.Errorf("removeValidator msg is not identical to the proposal one")
 	}
 
-	_, ok := keeper.GetValidator(ctx, msg.ValAddr)
+	// Check validator information
+	validatorToRemove, ok := keeper.GetValidator(ctx, msg.ValAddr)
 	if !ok {
 		return fmt.Errorf("trying to remove a non-existing validator")
 	}
-	// Remove it own validator
+	if !validatorToRemove.ConsAddress().Equals(msg.ValConsAddr) {
+		return fmt.Errorf("consensus address can't match actual validator consensus address")
+	}
+
+	// Check launcher authority
 	if sdk.ValAddress(msg.LauncherAddr).Equals(msg.ValAddr) {
 		return nil
 	}
