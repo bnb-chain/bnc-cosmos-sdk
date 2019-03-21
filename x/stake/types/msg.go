@@ -437,17 +437,17 @@ func (msg MsgRemoveValidator) GetSignBytes() []byte {
 
 // quick validity check
 func (msg MsgRemoveValidator) ValidateBasic() sdk.Error {
-	if msg.LauncherAddr == nil {
+	if msg.LauncherAddr.Empty() {
 		return ErrNilLauncherAddr(DefaultCodespace)
 	}
-	if msg.ValAddr == nil {
+	if msg.ValAddr.Empty() {
 		return ErrNilValidatorAddr(DefaultCodespace)
 	}
-	if msg.ValConsAddr == nil {
+	if msg.ValConsAddr.Empty() {
 		return ErrNilValidatorConsAddr(DefaultCodespace)
 	}
-	if msg.ProposalId < 0 {
-		return ErrInvalidProposal(DefaultCodespace, fmt.Sprintf("negative proposal id %d", msg.ProposalId))
+	if msg.ProposalId <= 0 {
+		return ErrInvalidProposal(DefaultCodespace, fmt.Sprintf("Proposal id is expected to be positive, actual value is %d", msg.ProposalId))
 	}
 	return nil
 }
