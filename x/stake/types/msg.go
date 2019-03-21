@@ -3,10 +3,10 @@ package types
 import (
 	"bytes"
 	"fmt"
-	"github.com/tendermint/tendermint/crypto/ed25519"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/crypto/ed25519"
 )
 
 // name to identify transaction routes
@@ -19,7 +19,7 @@ var _, _, _ sdk.Msg = &MsgCreateValidator{}, &MsgEditValidator{}, &MsgDelegate{}
 
 // MsgCreateValidator - struct for bonding transactions
 type MsgCreateValidator struct {
-	Description	  Description
+	Description   Description
 	Commission    CommissionMsg
 	DelegatorAddr sdk.AccAddress `json:"delegator_address"`
 	ValidatorAddr sdk.ValAddress `json:"validator_address"`
@@ -45,12 +45,12 @@ func (jsonMsg CreateValidatorJsonMsg) ToMsgCreateValidator() (MsgCreateValidator
 	copy(pubkey[:], jsonMsg.PubKey)
 
 	return MsgCreateValidator{
-		Description: jsonMsg.Description,
-		Commission: jsonMsg.Commission,
-		DelegatorAddr:jsonMsg.DelegatorAddr,
+		Description:   jsonMsg.Description,
+		Commission:    jsonMsg.Commission,
+		DelegatorAddr: jsonMsg.DelegatorAddr,
 		ValidatorAddr: jsonMsg.ValidatorAddr,
-		PubKey: pubkey,
-		Delegation: jsonMsg.Delegation,
+		PubKey:        pubkey,
+		Delegation:    jsonMsg.Delegation,
 	}, nil
 }
 
