@@ -115,11 +115,8 @@ func handleMsgCreateValidatorAfterProposal(ctx sdk.Context, msg MsgCreateValidat
 }
 
 func handleMsgRemoveValidatorAfterProposal(ctx sdk.Context, msg MsgRemoveValidator, k keeper.Keeper, govKeeper gov.Keeper) sdk.Result {
-	// do not checkProposal for the genesis txs
-	if ctx.BlockHeight() != 0 {
-		if err := checkRemoveProposal(ctx, k, govKeeper, msg); err != nil {
-			return ErrInvalidProposal(k.Codespace(), err.Error()).Result()
-		}
+	if err := checkRemoveProposal(ctx, k, govKeeper, msg); err != nil {
+		return ErrInvalidProposal(k.Codespace(), err.Error()).Result()
 	}
 
 	var tags sdk.Tags
