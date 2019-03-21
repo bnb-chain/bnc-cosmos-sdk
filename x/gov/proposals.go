@@ -119,6 +119,7 @@ const (
 	// ProposalTypeFeeChange belongs to ProposalTypeParameterChange. We use this to make it easily to distinguish。
 	ProposalTypeFeeChange ProposalKind = 0x05
 	ProposalTypeCreateValidator ProposalKind = 0x06
+	ProposalTypeRemoveValidator ProposalKind = 0x07
 )
 
 // String to proposalType byte.  Returns ff if invalid.
@@ -136,6 +137,8 @@ func ProposalTypeFromString(str string) (ProposalKind, error) {
 		return ProposalTypeFeeChange, nil
 	case "CreateValidator":
 		return ProposalTypeCreateValidator, nil
+	case "RemoveValidator":
+		return ProposalTypeRemoveValidator, nil
 	default:
 		return ProposalKind(0xff), errors.Errorf("'%s' is not a valid proposal type", str)
 	}
@@ -147,7 +150,9 @@ func validProposalType(pt ProposalKind) bool {
 		pt == ProposalTypeParameterChange ||
 		pt == ProposalTypeSoftwareUpgrade ||
 		pt == ProposalTypeListTradingPair ||
-		pt == ProposalTypeFeeChange {
+		pt == ProposalTypeFeeChange ||
+		pt == ProposalTypeCreateValidator ||
+		pt == ProposalTypeRemoveValidator {
 		return true
 	}
 	return false
@@ -200,6 +205,8 @@ func (pt ProposalKind) String() string {
 		return "FeeChange"
 	case ProposalTypeCreateValidator:
 		return "CreateValidator"
+	case ProposalTypeRemoveValidator:
+		return "RemoveValidator"
 	default:
 		return ""
 	}

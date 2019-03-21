@@ -2,10 +2,9 @@ package stake
 
 import (
 	"bytes"
-	"errors"
+	"encoding/json"
 	"fmt"
 
-	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/stake/keeper"
@@ -20,6 +19,8 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 		switch msg := msg.(type) {
 		case types.MsgCreateValidatorProposal:
 			return handleMsgCreateValidatorAfterProposal(ctx, msg, k, govKeeper)
+		case types.MsgRemoveValidator:
+			return handleMsgRemoveValidatorAfterProposal(ctx, msg, k, govKeeper)
 		// disabled other msg handling
 		//case types.MsgEditValidator:
 		//	return handleMsgEditValidator(ctx, msg, k)
@@ -105,12 +106,42 @@ func handleMsgCreateValidatorAfterProposal(ctx sdk.Context, msg MsgCreateValidat
 	height := ctx.BlockHeader().Height
 	// do not checkProposal for the genesis txs
 	if height != 0 {
-		if err := checkProposal(ctx, k.Codec(), govKeeper, msg); err != nil {
+		if err := checkCreateProposal(ctx, k, govKeeper, msg); err != nil {
 			return ErrInvalidProposal(k.Codespace(), err.Error()).Result()
 		}
 	}
 
 	return handleMsgCreateValidator(ctx, msg.MsgCreateValidator, k)
+}
+
+func handleMsgRemoveValidatorAfterProposal(ctx sdk.Context, msg MsgRemoveValidator, k keeper.Keeper, govKeeper gov.Keeper) sdk.Result {
+	if err := checkRemoveProposal(ctx, k, govKeeper, msg); err != nil {
+		return ErrInvalidProposal(k.Codespace(), err.Error()).Result()
+	}
+
+	var tags sdk.Tags
+	var result sdk.Result
+	k.IterateDelegationsToValidator(ctx, msg.ValAddr, func(del sdk.Delegation) (stop bool) {
+		msgBeginUnbonding := MsgBeginUnbonding{
+			ValidatorAddr: del.GetValidatorAddr(),
+			DelegatorAddr: del.GetDelegatorAddr(),
+			SharesAmount: del.GetShares(),
+		}
+		result = handleMsgBeginUnbonding(ctx, msgBeginUnbonding, k)
+		// handleMsgBeginUnbonding return error, abort execution
+		if !result.IsOK() {
+			return true
+		}
+		tags = tags.AppendTags(result.Tags)
+		return false
+	})
+
+	// If there is a failure in handling MsgBeginUnbonding, return an error
+	if !result.IsOK() {
+		return result
+	}
+
+	return sdk.Result{Tags: tags}
 }
 
 func handleMsgCreateValidator(ctx sdk.Context, msg MsgCreateValidator, k keeper.Keeper) sdk.Result {
@@ -164,30 +195,82 @@ func handleMsgCreateValidator(ctx sdk.Context, msg MsgCreateValidator, k keeper.
 	}
 }
 
-func checkProposal(ctx sdk.Context, cdc *codec.Codec, govKeeper gov.Keeper, msg MsgCreateValidatorProposal) error {
+func checkCreateProposal(ctx sdk.Context, keeper keeper.Keeper, govKeeper gov.Keeper, msg MsgCreateValidatorProposal) error {
 	proposal := govKeeper.GetProposal(ctx, msg.ProposalId)
 	if proposal == nil {
-		return errors.New(fmt.Sprintf("proposal %d does not exist", msg.ProposalId))
+		return fmt.Errorf("proposal %d does not exist", msg.ProposalId)
 	}
 	if proposal.GetProposalType() != gov.ProposalTypeCreateValidator {
-		return errors.New(fmt.Sprintf("proposal type %s is not equal to %s",
-			proposal.GetProposalType(), gov.ProposalTypeCreateValidator))
+		return fmt.Errorf("proposal type %s is not equal to %s",
+			proposal.GetProposalType().String(), gov.ProposalTypeCreateValidator.String())
 	}
 	if proposal.GetStatus() != gov.StatusPassed {
-		return errors.New(fmt.Sprintf("proposal status %d is not not passed",
-			proposal.GetStatus()))
+		return fmt.Errorf("proposal status %s is not not passed",
+			proposal.GetStatus().String())
 	}
 
-	var createValidatorParams MsgCreateValidator
-	err := cdc.UnmarshalJSON([]byte(proposal.GetDescription()), &createValidatorParams)
+	var createValidatorJson CreateValidatorJsonMsg
+	err := json.Unmarshal([]byte(proposal.GetDescription()), &createValidatorJson)
 	if err != nil {
-		return errors.New(fmt.Sprintf("unmarshal createValidator params failed, err=%s", err.Error()))
+		return fmt.Errorf("unmarshal createValidator params failed, err=%s", err.Error())
+	}
+	createValidatorMsgProposal, err := createValidatorJson.ToMsgCreateValidator()
+	if err != nil {
+		return fmt.Errorf("invalid pubkey, err=%s", err.Error())
 	}
 
-	if !msg.MsgCreateValidator.Equals(createValidatorParams) {
-		return errors.New("createValidator msg is not identical to the proposal one")
+	if !msg.MsgCreateValidator.Equals(createValidatorMsgProposal) {
+		return fmt.Errorf("createValidator msg is not identical to the proposal one")
 	}
 
+	return nil
+}
+
+func checkRemoveProposal(ctx sdk.Context, keeper keeper.Keeper, govKeeper gov.Keeper, msg MsgRemoveValidator) error {
+	proposal := govKeeper.GetProposal(ctx, msg.ProposalId)
+	if proposal == nil {
+		return fmt.Errorf("proposal %d does not exist", msg.ProposalId)
+	}
+	if proposal.GetProposalType() != gov.ProposalTypeRemoveValidator {
+		return fmt.Errorf("proposal type %s is not equal to %s",
+			proposal.GetProposalType().String(), gov.ProposalTypeRemoveValidator.String())
+	}
+	if proposal.GetStatus() != gov.StatusPassed {
+		return fmt.Errorf("proposal status %s is not not passed",
+			proposal.GetStatus().String())
+	}
+
+	// Check proposal description
+	var proposalRemoveValidator MsgRemoveValidator
+	err := json.Unmarshal([]byte(proposal.GetDescription()), &proposalRemoveValidator)
+	if err != nil {
+		return fmt.Errorf("unmarshal removeValidator params failed, err=%s", err.Error())
+	}
+	if !msg.ValAddr.Equals(proposalRemoveValidator.ValAddr) || !msg.ValConsAddr.Equals(proposalRemoveValidator.ValConsAddr) {
+		return fmt.Errorf("removeValidator msg is not identical to the proposal one")
+	}
+
+	// Check validator information
+	validatorToRemove, ok := keeper.GetValidator(ctx, msg.ValAddr)
+	if !ok {
+		return fmt.Errorf("trying to remove a non-existing validator")
+	}
+	if !validatorToRemove.ConsAddress().Equals(msg.ValConsAddr) {
+		return fmt.Errorf("consensus address can't match actual validator consensus address")
+	}
+
+	// Check launcher authority
+	if sdk.ValAddress(msg.LauncherAddr).Equals(msg.ValAddr) {
+		return nil
+	}
+	// If the launcher isn't the target validator operator, then the launcher must be the operator of other active validator
+	launcherValidator, ok := keeper.GetValidator(ctx, sdk.ValAddress(msg.LauncherAddr))
+	if !ok {
+		return fmt.Errorf("the launcher is not a validator operator")
+	}
+	if launcherValidator.Status != sdk.Bonded {
+		return fmt.Errorf("the status of launcher validator is not bonded")
+	}
 	return nil
 }
 

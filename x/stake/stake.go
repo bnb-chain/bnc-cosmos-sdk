@@ -19,6 +19,7 @@ type (
 	Params                     = types.Params
 	Pool                       = types.Pool
 	MsgCreateValidator         = types.MsgCreateValidator
+	MsgRemoveValidator         = types.MsgRemoveValidator
 	MsgCreateValidatorProposal = types.MsgCreateValidatorProposal
 	MsgEditValidator           = types.MsgEditValidator
 	MsgDelegate                = types.MsgDelegate
@@ -28,6 +29,7 @@ type (
 	QueryDelegatorParams       = querier.QueryDelegatorParams
 	QueryValidatorParams       = querier.QueryValidatorParams
 	QueryBondsParams           = querier.QueryBondsParams
+	CreateValidatorJsonMsg     = types.CreateValidatorJsonMsg
 )
 
 var (
@@ -76,6 +78,7 @@ var (
 	RegisterCodec         = types.RegisterCodec
 
 	NewMsgCreateValidator           = types.NewMsgCreateValidator
+	NewMsgRemoveValidator           = types.NewMsgRemoveValidator
 	NewMsgCreateValidatorOnBehalfOf = types.NewMsgCreateValidatorOnBehalfOf
 	NewMsgEditValidator             = types.NewMsgEditValidator
 	NewMsgDelegate                  = types.NewMsgDelegate

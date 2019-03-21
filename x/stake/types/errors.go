@@ -29,6 +29,10 @@ func ErrNilValidatorAddr(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidInput, "validator address is nil")
 }
 
+func ErrNilValidatorConsAddr(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidInput, "validator consensus address is nil")
+}
+
 func ErrBadValidatorAddr(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidAddress, "validator address is invalid")
 }
@@ -88,6 +92,10 @@ func ErrCommissionGTMaxChangeRate(codespace sdk.CodespaceType) sdk.Error {
 
 func ErrNilDelegatorAddr(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidInput, "delegator address is nil")
+}
+
+func ErrNilLauncherAddr(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidInput, "launcher address of remove validator is nil")
 }
 
 func ErrBadDenom(codespace sdk.CodespaceType) sdk.Error {

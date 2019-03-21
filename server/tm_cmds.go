@@ -67,7 +67,7 @@ func ShowAddressCmd(ctx *Context) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := ctx.Config
 			privValidator := pvm.LoadOrGenFilePV(cfg.PrivValidatorKeyFile(), cfg.PrivValidatorStateFile())
-			valAddr := (sdk.ValAddress)(privValidator.GetAddress())
+			valAddr := (sdk.ConsAddress)(privValidator.GetAddress())
 
 			if viper.GetBool(client.FlagJson) {
 				return printlnJSON(valAddr)

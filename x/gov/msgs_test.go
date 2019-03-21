@@ -34,7 +34,7 @@ func TestMsgSubmitProposal(t *testing.T) {
 		{"Test Proposal", "", gov.ProposalTypeText, addrs[0], coinsPos, false},
 		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeParameterChange, addrs[0], coinsPos, true},
 		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeSoftwareUpgrade, addrs[0], coinsPos, true},
-		{"Test Proposal", "the purpose of this proposal is to test", 0x06, addrs[0], coinsPos, false},
+		{"Test Proposal", "the purpose of this proposal is to test", 0x08, addrs[0], coinsPos, false},
 		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeText, sdk.AccAddress{}, coinsPos, false},
 		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeText, addrs[0], coinsZero, true},
 		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeText, addrs[0], coinsNeg, false},

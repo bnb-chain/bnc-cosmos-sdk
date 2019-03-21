@@ -30,7 +30,9 @@ const (
 	FlagNodeID        = "node-id"
 	FlagIP            = "ip"
 
-	FlagProposalID = "proposal-id"
+	FlagProposalID        = "proposal-id"
+	FlagConsAddrValidator = "cons-addr-validator"
+	FlagDeposit           = "deposit"
 
 	FlagOutputDocument = "output-document" // inspired by wget -O
 )
