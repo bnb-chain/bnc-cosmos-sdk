@@ -124,10 +124,10 @@ func (msg MsgCreateValidator) GetInvolvedAddresses() []sdk.AccAddress {
 
 // quick validity check
 func (msg MsgCreateValidator) ValidateBasic() sdk.Error {
-	if msg.DelegatorAddr == nil {
+	if msg.DelegatorAddr.Empty() {
 		return ErrNilDelegatorAddr(DefaultCodespace)
 	}
-	if msg.ValidatorAddr == nil {
+	if msg.ValidatorAddr.Empty() {
 		return ErrNilValidatorAddr(DefaultCodespace)
 	}
 	if !(msg.Delegation.Amount > 0) {
@@ -135,6 +135,12 @@ func (msg MsgCreateValidator) ValidateBasic() sdk.Error {
 	}
 	if msg.Description == (Description{}) {
 		return sdk.NewError(DefaultCodespace, CodeInvalidInput, "description must be included")
+	}
+	if msg.Commission == (CommissionMsg{}) {
+		return sdk.NewError(DefaultCodespace, CodeInvalidInput, "commission must be included")
+	}
+	if _, err := msg.Description.EnsureLength(); err != nil {
+		return err
 	}
 
 	return nil
