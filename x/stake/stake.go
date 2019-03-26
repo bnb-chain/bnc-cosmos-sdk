@@ -64,16 +64,17 @@ var (
 	KeyMaxValidators  = types.KeyMaxValidators
 	KeyBondDenom      = types.KeyBondDenom
 
-	DefaultParams         = types.DefaultParams
-	InitialPool           = types.InitialPool
-	NewValidator          = types.NewValidator
-	NewDescription        = types.NewDescription
-	NewCommission         = types.NewCommission
-	NewCommissionMsg      = types.NewCommissionMsg
-	NewCommissionWithTime = types.NewCommissionWithTime
-	NewGenesisState       = types.NewGenesisState
-	DefaultGenesisState   = types.DefaultGenesisState
-	RegisterCodec         = types.RegisterCodec
+	DefaultParams           = types.DefaultParams
+	InitialPool             = types.InitialPool
+	NewValidator            = types.NewValidator
+	NewValidatorWithFeeAddr = types.NewValidatorWithFeeAddr
+	NewDescription          = types.NewDescription
+	NewCommission           = types.NewCommission
+	NewCommissionMsg        = types.NewCommissionMsg
+	NewCommissionWithTime   = types.NewCommissionWithTime
+	NewGenesisState         = types.NewGenesisState
+	DefaultGenesisState     = types.DefaultGenesisState
+	RegisterCodec           = types.RegisterCodec
 
 	NewMsgCreateValidator           = types.NewMsgCreateValidator
 	NewMsgCreateValidatorOnBehalfOf = types.NewMsgCreateValidatorOnBehalfOf
