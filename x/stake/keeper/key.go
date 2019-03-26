@@ -61,7 +61,7 @@ func AddressFromLastValidatorPowerKey(key []byte) []byte {
 // Power index is the key used in the power-store, and represents the relative
 // power ranking of the validator.
 // VALUE: validator operator address ([]byte)
-func GetValidatorsByPowerIndexKey(validator types.Validator, pool types.Pool) []byte {
+func GetValidatorsByPowerIndexKey(validator types.Validator) []byte {
 	// NOTE the address doesn't need to be stored because counter bytes must always be different
 	return getValidatorPowerRank(validator)
 }
@@ -98,6 +98,18 @@ func getValidatorPowerRank(validator types.Validator) []byte {
 	copy(key[powerBytesLen+1:], operAddrInvr)
 
 	return key
+}
+
+func parseValidatorPowerRankKey(key []byte) (operAddr []byte) {
+	powerBytesLen := 8
+	if len(key) != 1+powerBytesLen+sdk.AddrLen {
+		panic("Invalid validator power rank key length")
+	}
+	operAddr = cp(key[powerBytesLen+1:])
+	for i, b := range operAddr {
+		operAddr[i] = ^b
+	}
+	return operAddr
 }
 
 // gets the prefix for all unbonding delegations from a delegator

@@ -47,7 +47,7 @@ func TestNewQuerier(t *testing.T) {
 		validators[i] = types.NewValidator(sdk.ValAddress(keep.Addrs[i]), keep.PKs[i], types.Description{})
 		validators[i], pool, _ = validators[i].AddTokensFromDel(pool, sdk.NewDecWithoutFra(amt).RawInt())
 		keeper.SetValidator(ctx, validators[i])
-		keeper.SetValidatorByPowerIndex(ctx, validators[i], pool)
+		keeper.SetValidatorByPowerIndex(ctx, validators[i])
 	}
 	keeper.SetPool(ctx, pool)
 
@@ -185,8 +185,7 @@ func TestQueryDelegation(t *testing.T) {
 	// Create Validators and Delegation
 	val1 := types.NewValidator(addrVal1, pk1, types.Description{})
 	keeper.SetValidator(ctx, val1)
-	pool := keeper.GetPool(ctx)
-	keeper.SetValidatorByPowerIndex(ctx, val1, pool)
+	keeper.SetValidatorByPowerIndex(ctx, val1)
 
 	keeper.Delegate(ctx, addrAcc2, sdk.NewCoin("steak", sdk.NewDecWithoutFra(20).RawInt()), val1, true)
 
