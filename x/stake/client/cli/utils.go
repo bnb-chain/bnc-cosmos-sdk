@@ -47,7 +47,7 @@ func getShares(
 			WithCodec(cdc).
 			WithAccountDecoder(authcmd.GetAccountDecoder(cdc))
 
-		resQuery, err := cliCtx.QueryStore(key, storeName)
+		resQuery, _, err := cliCtx.QueryStore(key, storeName)
 		if err != nil {
 			return sharesAmount, errors.Errorf("cannot find delegation to determine percent Error: %v", err)
 		}

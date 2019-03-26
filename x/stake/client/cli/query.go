@@ -29,7 +29,7 @@ func GetCmdQueryValidator(storeName string, cdc *codec.Codec) *cobra.Command {
 			key := stake.GetValidatorKey(addr)
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			res, err := cliCtx.QueryStore(key, storeName)
+			res, _, err := cliCtx.QueryStore(key, storeName)
 			if err != nil {
 				return err
 			} else if len(res) == 0 {
@@ -133,7 +133,7 @@ func GetCmdQueryDelegation(storeName string, cdc *codec.Codec) *cobra.Command {
 			key := stake.GetDelegationKey(delAddr, valAddr)
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			res, err := cliCtx.QueryStore(key, storeName)
+			res, _, err := cliCtx.QueryStore(key, storeName)
 			if err != nil {
 				return err
 			}
@@ -235,7 +235,7 @@ func GetCmdQueryUnbondingDelegation(storeName string, cdc *codec.Codec) *cobra.C
 			key := stake.GetUBDKey(delAddr, valAddr)
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			res, err := cliCtx.QueryStore(key, storeName)
+			res, _, err := cliCtx.QueryStore(key, storeName)
 			if err != nil {
 				return err
 			}
@@ -339,7 +339,7 @@ func GetCmdQueryRedelegation(storeName string, cdc *codec.Codec) *cobra.Command 
 			key := stake.GetREDKey(delAddr, valSrcAddr, valDstAddr)
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			res, err := cliCtx.QueryStore(key, storeName)
+			res, _, err := cliCtx.QueryStore(key, storeName)
 			if err != nil {
 				return err
 			}
@@ -428,7 +428,7 @@ func GetCmdQueryPool(storeName string, cdc *codec.Codec) *cobra.Command {
 			key := stake.PoolKey
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			res, err := cliCtx.QueryStore(key, storeName)
+			res, _, err := cliCtx.QueryStore(key, storeName)
 			if err != nil {
 				return err
 			}
@@ -465,7 +465,7 @@ func GetCmdQueryParams(storeName string, cdc *codec.Codec) *cobra.Command {
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			bz, err := cliCtx.QueryWithData("custom/stake/"+stake.QueryParameters, nil)
+			bz, _, err := cliCtx.QueryWithData("custom/stake/"+stake.QueryParameters, nil)
 			if err != nil {
 				return err
 			}

@@ -29,25 +29,25 @@ func (ctx CLIContext) GetNode() (rpcclient.Client, error) {
 }
 
 // Query performs a query for information about the connected node.
-func (ctx CLIContext) Query(path string, data cmn.HexBytes) (res []byte, err error) {
+func (ctx CLIContext) Query(path string, data cmn.HexBytes) (res []byte, height int64, err error) {
 	return ctx.query(path, data)
 }
 
 // Query information about the connected node with a data payload
-func (ctx CLIContext) QueryWithData(path string, data []byte) (res []byte, err error) {
+func (ctx CLIContext) QueryWithData(path string, data []byte) (res []byte, height int64, err error) {
 	return ctx.query(path, data)
 }
 
 // QueryStore performs a query from a Tendermint node with the provided key and
 // store name.
-func (ctx CLIContext) QueryStore(key cmn.HexBytes, storeName string) (res []byte, err error) {
+func (ctx CLIContext) QueryStore(key cmn.HexBytes, storeName string) (res []byte, height int64, err error) {
 	return ctx.queryStore(key, storeName, "key")
 }
 
 // QuerySubspace performs a query from a Tendermint node with the provided
 // store name and subspace.
 func (ctx CLIContext) QuerySubspace(subspace []byte, storeName string) (res []sdk.KVPair, err error) {
-	resRaw, err := ctx.queryStore(subspace, storeName, "subspace")
+	resRaw, _, err := ctx.queryStore(subspace, storeName, "subspace")
 	if err != nil {
 		return res, err
 	}
@@ -63,7 +63,7 @@ func (ctx CLIContext) GetAccount(address []byte) (sdk.Account, error) {
 		return nil, errors.New("account decoder required but not provided")
 	}
 
-	res, err := ctx.QueryStore(auth.AddressStoreKey(address), ctx.AccountStore)
+	res, _, err := ctx.QueryStore(auth.AddressStoreKey(address), ctx.AccountStore)
 	if err != nil {
 		return nil, err
 	} else if len(res) == 0 {
@@ -118,7 +118,7 @@ func (ctx CLIContext) EnsureAccountExists() error {
 		return err
 	}
 
-	accountBytes, err := ctx.QueryStore(auth.AddressStoreKey(addr), ctx.AccountStore)
+	accountBytes, _, err := ctx.QueryStore(auth.AddressStoreKey(addr), ctx.AccountStore)
 	if err != nil {
 		return err
 	}
@@ -134,7 +134,7 @@ func (ctx CLIContext) EnsureAccountExists() error {
 // address. Instead of using the context's from name, a direct address is
 // given. An error is returned if it does not.
 func (ctx CLIContext) EnsureAccountExistsFromAddr(addr sdk.AccAddress) error {
-	accountBytes, err := ctx.QueryStore(auth.AddressStoreKey(addr), ctx.AccountStore)
+	accountBytes, _, err := ctx.QueryStore(auth.AddressStoreKey(addr), ctx.AccountStore)
 	if err != nil {
 		return err
 	}
@@ -148,10 +148,10 @@ func (ctx CLIContext) EnsureAccountExistsFromAddr(addr sdk.AccAddress) error {
 
 // query performs a query from a Tendermint node with the provided store name
 // and path.
-func (ctx CLIContext) query(path string, key cmn.HexBytes) (res []byte, err error) {
+func (ctx CLIContext) query(path string, key cmn.HexBytes) (res []byte, height int64, err error) {
 	node, err := ctx.GetNode()
 	if err != nil {
-		return res, err
+		return res, 0, err
 	}
 
 	opts := rpcclient.ABCIQueryOptions{
@@ -161,25 +161,25 @@ func (ctx CLIContext) query(path string, key cmn.HexBytes) (res []byte, err erro
 
 	result, err := node.ABCIQueryWithOptions(path, key, opts)
 	if err != nil {
-		return res, err
+		return res, 0, err
 	}
 
 	resp := result.Response
 	if !resp.IsOK() {
-		return res, errors.Errorf(resp.Log)
+		return res, 0, errors.Errorf(resp.Log)
 	}
 
 	// data from trusted node or subspace query doesn't need verification
 	if ctx.TrustNode || !isQueryStoreWithProof(path) {
-		return resp.Value, nil
+		return resp.Value, resp.Height, nil
 	}
 
 	err = ctx.verifyProof(path, resp)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return resp.Value, nil
+	return resp.Value, resp.Height, nil
 }
 
 // Verify verifies the consensus proof at given height.
@@ -230,7 +230,7 @@ func (ctx CLIContext) verifyProof(queryPath string, resp abci.ResponseQuery) err
 
 // queryStore performs a query from a Tendermint node with the provided a store
 // name and path.
-func (ctx CLIContext) queryStore(key cmn.HexBytes, storeName, endPath string) ([]byte, error) {
+func (ctx CLIContext) queryStore(key cmn.HexBytes, storeName, endPath string) ([]byte, int64, error) {
 	path := fmt.Sprintf("/store/%s/%s", storeName, endPath)
 	return ctx.query(path, key)
 }

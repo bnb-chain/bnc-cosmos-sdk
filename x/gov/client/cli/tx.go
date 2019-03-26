@@ -284,7 +284,7 @@ func GetCmdQueryProposal(queryRoute string, cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			res, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/proposal", queryRoute), bz)
+			res, _,err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/proposal", queryRoute), bz)
 			if err != nil {
 				return err
 			}
@@ -345,7 +345,7 @@ func GetCmdQueryProposals(queryRoute string, cdc *codec.Codec) *cobra.Command {
 
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			res, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/proposals", queryRoute), bz)
+			res, _,err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/proposals", queryRoute), bz)
 			if err != nil {
 				return err
 			}
@@ -401,7 +401,7 @@ func GetCmdQueryVote(queryRoute string, cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			res, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/vote", queryRoute), bz)
+			res, _,err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/vote", queryRoute), bz)
 			if err != nil {
 				return err
 			}
@@ -434,7 +434,7 @@ func GetCmdQueryVotes(queryRoute string, cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			res, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/votes", queryRoute), bz)
+			res,_, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/votes", queryRoute), bz)
 			if err != nil {
 				return err
 			}
@@ -473,7 +473,7 @@ func GetCmdQueryDeposit(queryRoute string, cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			res, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/deposit", queryRoute), bz)
+			res, _,err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/deposit", queryRoute), bz)
 			if err != nil {
 				return err
 			}
@@ -506,7 +506,7 @@ func GetCmdQueryDeposits(queryRoute string, cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			res, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/deposits", queryRoute), bz)
+			res, _,err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/deposits", queryRoute), bz)
 			if err != nil {
 				return err
 			}
@@ -538,7 +538,7 @@ func GetCmdQueryTally(queryRoute string, cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			res, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/tally", queryRoute), bz)
+			res,_, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/tally", queryRoute), bz)
 			if err != nil {
 				return err
 			}
