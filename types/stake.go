@@ -47,7 +47,6 @@ type Validator interface {
 	GetTokens() Dec               // validation tokens
 	GetCommission() Dec           // validator commission rate
 	GetDelegatorShares() Dec      // Total out standing delegator shares
-	GetBondHeight() int64         // height in which the validator became active
 }
 
 // validator which fulfills abci validator interface for use in Tendermint

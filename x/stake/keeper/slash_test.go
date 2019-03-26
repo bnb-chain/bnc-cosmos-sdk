@@ -26,7 +26,6 @@ func setupHelper(t *testing.T, amt int64) (sdk.Context, Keeper, types.Params) {
 	for i := 0; i < numVals; i++ {
 		validator := types.NewValidator(addrVals[i], PKs[i], types.Description{})
 		validator, pool, _ = validator.AddTokensFromDel(pool, sdk.NewDecWithoutFra(amt).RawInt())
-		validator.BondIntraTxCounter = int16(i)
 		pool.BondedTokens = pool.BondedTokens.Add(sdk.NewDecWithoutFra(amt))
 		keeper.SetPool(ctx, pool)
 		validator = TestingUpdateValidator(keeper, ctx, validator)

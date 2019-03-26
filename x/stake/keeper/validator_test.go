@@ -130,8 +130,6 @@ func TestUpdateBondedValidatorsDecreaseCliff(t *testing.T) {
 	for i := 0; i < len(validators); i++ {
 		moniker := fmt.Sprintf("val#%d", int64(i))
 		val := types.NewValidator(sdk.ValAddress(Addrs[i]), PKs[i], types.Description{Moniker: moniker})
-		val.BondHeight = int64(i)
-		val.BondIntraTxCounter = int16(i)
 		val, pool, _ = val.AddTokensFromDel(pool, sdk.NewDecWithoutFra(int64((i+1)*10)).RawInt())
 
 		keeper.SetPool(ctx, pool)
@@ -334,8 +332,6 @@ func GetValidatorSortingUnmixed(t *testing.T) {
 	require.Equal(t, len(resValidators), n)
 	assert.True(ValEq(t, validators[3], resValidators[0]))
 	assert.True(ValEq(t, validators[4], resValidators[1]))
-	require.Equal(t, int64(0), resValidators[0].BondHeight, "%v", resValidators)
-	require.Equal(t, int64(0), resValidators[1].BondHeight, "%v", resValidators)
 
 	// no change in voting power - no change in sort
 	ctx = ctx.WithBlockHeight(20)
@@ -442,7 +438,6 @@ func TestGetValidatorsEdgeCases(t *testing.T) {
 		moniker := fmt.Sprintf("val#%d", int64(i))
 		validators[i] = types.NewValidator(sdk.ValAddress(Addrs[i]), PKs[i], types.Description{Moniker: moniker})
 		validators[i], pool, _ = validators[i].AddTokensFromDel(pool, sdk.NewDecWithoutFra(amt).RawInt())
-		validators[i].BondIntraTxCounter = int16(i)
 		keeper.SetPool(ctx, pool)
 		validators[i] = TestingUpdateValidator(keeper, ctx, validators[i])
 	}
@@ -503,9 +498,8 @@ func TestGetValidatorsEdgeCases(t *testing.T) {
 	require.Equal(t, nMax, uint16(len(resValidators)))
 	assert.True(ValEq(t, validators[0], resValidators[0]))
 	assert.True(ValEq(t, validators[2], resValidators[1]))
-	validator, exists := keeper.GetValidator(ctx, validators[3].OperatorAddr)
+	_, exists := keeper.GetValidator(ctx, validators[3].OperatorAddr)
 	require.Equal(t, exists, true)
-	require.Equal(t, int64(40), validator.BondHeight)
 }
 
 func TestValidatorBondHeight(t *testing.T) {
@@ -522,9 +516,6 @@ func TestValidatorBondHeight(t *testing.T) {
 	validators[0] = types.NewValidator(sdk.ValAddress(Addrs[0]), PKs[0], types.Description{})
 	validators[1] = types.NewValidator(sdk.ValAddress(Addrs[1]), PKs[1], types.Description{})
 	validators[2] = types.NewValidator(sdk.ValAddress(Addrs[2]), PKs[2], types.Description{})
-	validators[0].BondIntraTxCounter = 0
-	validators[1].BondIntraTxCounter = 1
-	validators[2].BondIntraTxCounter = 2
 
 	validators[0], pool, _ = validators[0].AddTokensFromDel(pool, sdk.NewDecWithoutFra(200).RawInt())
 	validators[1], pool, _ = validators[1].AddTokensFromDel(pool, sdk.NewDecWithoutFra(100).RawInt())
@@ -573,7 +564,6 @@ func TestFullValidatorSetPowerChange(t *testing.T) {
 		pool := keeper.GetPool(ctx)
 		validators[i] = types.NewValidator(sdk.ValAddress(Addrs[i]), PKs[i], types.Description{})
 		validators[i], pool, _ = validators[i].AddTokensFromDel(pool, sdk.NewDecWithoutFra(amt).RawInt())
-		validators[i].BondIntraTxCounter = int16(i)
 		keeper.SetPool(ctx, pool)
 		TestingUpdateValidator(keeper, ctx, validators[i])
 	}
@@ -810,7 +800,6 @@ func TestApplyAndReturnValidatorSetUpdatesPowerDecrease(t *testing.T) {
 		pool := keeper.GetPool(ctx)
 		validators[i] = types.NewValidator(sdk.ValAddress(Addrs[i]), PKs[i], types.Description{})
 		validators[i], pool, _ = validators[i].AddTokensFromDel(pool, sdk.NewDecWithoutFra(amt).RawInt())
-		validators[i].BondIntraTxCounter = int16(i)
 		keeper.SetPool(ctx, pool)
 	}
 	validators[0] = TestingUpdateValidator(keeper, ctx, validators[0])
@@ -858,7 +847,6 @@ func TestApplyAndReturnValidatorSetUpdatesNewValidator(t *testing.T) {
 		valAddr := sdk.ValAddress(valPubKey.Address().Bytes())
 
 		validators[i] = types.NewValidator(valAddr, valPubKey, types.Description{})
-		validators[i].BondIntraTxCounter = int16(i)
 		validators[i], pool, _ = validators[i].AddTokensFromDel(pool, sdk.NewDecWithoutFra(amt).RawInt())
 
 		keeper.SetPool(ctx, pool)
@@ -944,7 +932,6 @@ func TestApplyAndReturnValidatorSetUpdatesBondTransition(t *testing.T) {
 
 		validators[i] = types.NewValidator(valAddr, valPubKey, types.Description{Moniker: moniker})
 		validators[i], pool, _ = validators[i].AddTokensFromDel(pool, sdk.NewDecWithoutFra(amt).RawInt())
-		validators[i].BondIntraTxCounter = int16(i)
 		keeper.SetPool(ctx, pool)
 		keeper.SetValidator(ctx, validators[i])
 		keeper.SetValidatorByPowerIndex(ctx, validators[i], pool)

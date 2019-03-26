@@ -30,8 +30,6 @@ type Validator struct {
 	DelegatorShares sdk.Dec        `json:"delegator_shares"` // total shares issued to a validator's delegators
 
 	Description        Description `json:"description"`           // description terms for the validator
-	BondHeight         int64       `json:"bond_height"`           // earliest height as a bonded validator
-	BondIntraTxCounter int16       `json:"bond_intra_tx_counter"` // block-local tx index of validator change
 
 	UnbondingHeight  int64     `json:"unbonding_height"` // if unbonding, height at which this validator has begun unbonding
 	UnbondingMinTime time.Time `json:"unbonding_time"`   // if unbonding, min time for the validator to complete unbonding
@@ -54,8 +52,6 @@ func NewValidatorWithFeeAddr(feeAddr sdk.AccAddress, operator sdk.ValAddress, pu
 		Tokens:             sdk.ZeroDec(),
 		DelegatorShares:    sdk.ZeroDec(),
 		Description:        description,
-		BondHeight:         int64(0),
-		BondIntraTxCounter: int16(0),
 		UnbondingHeight:    int64(0),
 		UnbondingMinTime:   time.Unix(0, 0).UTC(),
 		Commission:         NewCommission(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec()),
@@ -99,7 +95,6 @@ func (v Validator) HumanReadableString() (string, error) {
 	resp += fmt.Sprintf("Tokens: %s\n", v.Tokens)
 	resp += fmt.Sprintf("Delegator Shares: %s\n", v.DelegatorShares)
 	resp += fmt.Sprintf("Description: %s\n", v.Description)
-	resp += fmt.Sprintf("Bond Height: %d\n", v.BondHeight)
 	resp += fmt.Sprintf("Unbonding Height: %d\n", v.UnbondingHeight)
 	resp += fmt.Sprintf("Minimum Unbonding Time: %v\n", v.UnbondingMinTime)
 	resp += fmt.Sprintf("Commission: {%s}\n", v.Commission)
@@ -121,8 +116,6 @@ type bechValidator struct {
 	DelegatorShares sdk.Dec        `json:"delegator_shares"` // total shares issued to a validator's delegators
 
 	Description        Description `json:"description"`           // description terms for the validator
-	BondHeight         int64       `json:"bond_height"`           // earliest height as a bonded validator
-	BondIntraTxCounter int16       `json:"bond_intra_tx_counter"` // block-local tx index of validator change
 
 	UnbondingHeight  int64     `json:"unbonding_height"` // if unbonding, height at which this validator has begun unbonding
 	UnbondingMinTime time.Time `json:"unbonding_time"`   // if unbonding, min time for the validator to complete unbonding
@@ -146,8 +139,6 @@ func (v Validator) MarshalJSON() ([]byte, error) {
 		Tokens:             v.Tokens,
 		DelegatorShares:    v.DelegatorShares,
 		Description:        v.Description,
-		BondHeight:         v.BondHeight,
-		BondIntraTxCounter: v.BondIntraTxCounter,
 		UnbondingHeight:    v.UnbondingHeight,
 		UnbondingMinTime:   v.UnbondingMinTime,
 		Commission:         v.Commission,
@@ -173,8 +164,6 @@ func (v *Validator) UnmarshalJSON(data []byte) error {
 		Status:             bv.Status,
 		DelegatorShares:    bv.DelegatorShares,
 		Description:        bv.Description,
-		BondHeight:         bv.BondHeight,
-		BondIntraTxCounter: bv.BondIntraTxCounter,
 		UnbondingHeight:    bv.UnbondingHeight,
 		UnbondingMinTime:   bv.UnbondingMinTime,
 		Commission:         bv.Commission,
@@ -412,4 +401,3 @@ func (v Validator) GetPower() sdk.Dec            { return v.BondedTokens() }
 func (v Validator) GetTokens() sdk.Dec           { return v.Tokens }
 func (v Validator) GetCommission() sdk.Dec       { return v.Commission.Rate }
 func (v Validator) GetDelegatorShares() sdk.Dec  { return v.DelegatorShares }
-func (v Validator) GetBondHeight() int64         { return v.BondHeight }

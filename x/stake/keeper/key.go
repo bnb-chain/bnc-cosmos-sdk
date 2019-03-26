@@ -84,18 +84,18 @@ func getValidatorPowerRank(validator types.Validator) []byte {
 	binary.BigEndian.PutUint64(tendermintPowerBytes[:], uint64(tendermintPower))
 
 	powerBytes := tendermintPowerBytes
-	powerBytesLen := len(powerBytes)
+	powerBytesLen := len(powerBytes) // 8
 
-	// key is of format prefix || powerbytes || heightBytes || counterBytes
-	key := make([]byte, 1+powerBytesLen+8+2)
+	// key is of format prefix || powerbytes || addrBytes
+	key := make([]byte, 1+powerBytesLen+sdk.AddrLen)
 
 	key[0] = ValidatorsByPowerIndexKey[0]
 	copy(key[1:powerBytesLen+1], powerBytes)
-
-	// include heightBytes height is inverted (older validators first)
-	binary.BigEndian.PutUint64(key[powerBytesLen+1:powerBytesLen+9], ^uint64(validator.BondHeight))
-	// include counterBytes, counter is inverted (first txns have priority)
-	binary.BigEndian.PutUint16(key[powerBytesLen+9:powerBytesLen+11], ^uint16(validator.BondIntraTxCounter))
+	operAddrInvr := cp(validator.OperatorAddr)
+	for i, b := range operAddrInvr {
+		operAddrInvr[i] = ^b
+	}
+	copy(key[powerBytesLen+1:], operAddrInvr)
 
 	return key
 }
@@ -261,4 +261,15 @@ func GetREDsByDelToValDstIndexKey(delAddr sdk.AccAddress, valDstAddr sdk.ValAddr
 	return append(
 		GetREDsToValDstIndexKey(valDstAddr),
 		delAddr.Bytes()...)
+}
+
+//-------------------------------------------------
+
+func cp(bz []byte) (ret []byte) {
+	if bz == nil {
+		return nil
+	}
+	ret = make([]byte, len(bz))
+	copy(ret, bz)
+	return ret
 }

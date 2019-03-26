@@ -27,8 +27,7 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, data types.GenesisState) (res [
 	keeper.SetPool(ctx, data.Pool)
 	keeper.SetParams(ctx, data.Params)
 
-	for i, validator := range data.Validators {
-		validator.BondIntraTxCounter = int16(i) // set the intra-tx counter to the order the validators are presented
+	for _, validator := range data.Validators {
 		keeper.SetValidator(ctx, validator)
 
 		if validator.Tokens.IsZero() {

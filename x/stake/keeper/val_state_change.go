@@ -45,6 +45,8 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 		validator := k.mustGetValidator(ctx, operator)
 
 		if validator.Jailed {
+			validatorOperatorString := validator.OperatorAddr.String()
+			_=validatorOperatorString
 			panic("should never retrieve a jailed validator from the power store")
 		}
 
@@ -184,8 +186,6 @@ func (k Keeper) bondValidator(ctx sdk.Context, validator types.Validator) types.
 	pool := k.GetPool(ctx)
 
 	k.DeleteValidatorByPowerIndex(ctx, validator, pool)
-
-	validator.BondHeight = ctx.BlockHeight()
 
 	// set the status
 	validator, pool = validator.UpdateStatus(pool, sdk.Bonded)

@@ -103,12 +103,20 @@ func (k Keeper) SetValidatorByPowerIndex(ctx sdk.Context, validator types.Valida
 	if validator.Jailed {
 		return
 	}
+	if validator.OperatorAddr.String() == "cosmosvaloper15ky9du8a2wlstz6fpx3p4mqpjyrm5cgzyl2307" {
+		jailed := validator.Jailed
+		_=jailed
+	}
 	store := ctx.KVStore(k.storeKey)
 	store.Set(GetValidatorsByPowerIndexKey(validator, pool), validator.OperatorAddr)
 }
 
 // validator index
 func (k Keeper) DeleteValidatorByPowerIndex(ctx sdk.Context, validator types.Validator, pool types.Pool) {
+	if validator.OperatorAddr.String() == "cosmosvaloper15ky9du8a2wlstz6fpx3p4mqpjyrm5cgzyl2307" {
+		jailed := validator.Jailed
+		_=jailed
+	}
 	store := ctx.KVStore(k.storeKey)
 	store.Delete(GetValidatorsByPowerIndexKey(validator, pool))
 }
@@ -132,7 +140,6 @@ func (k Keeper) AddValidatorTokensAndShares(ctx sdk.Context, validator types.Val
 	// increment the intra-tx counter
 	// in case of a conflict, the validator which least recently changed power takes precedence
 	counter := k.GetIntraTxCounter(ctx)
-	validator.BondIntraTxCounter = counter
 	k.SetIntraTxCounter(ctx, counter+1)
 	k.SetValidator(ctx, validator)
 	k.SetPool(ctx, pool)
