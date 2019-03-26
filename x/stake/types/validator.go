@@ -408,10 +408,23 @@ func (v Validator) AddTokensFromDel(pool Pool, amount int64) (Validator, Pool, s
 
 // RemoveDelShares removes delegator shares from a validator.
 func (v Validator) RemoveDelShares(pool Pool, delShares sdk.Dec) (Validator, Pool, sdk.Dec) {
-	issuedTokens := v.DelegatorShareExRate().Mul(delShares)
-	v.Tokens = v.Tokens.Sub(issuedTokens)
-	v.DelegatorShares = v.DelegatorShares.Sub(delShares)
+	remainingShares := v.DelegatorShares.Sub(delShares)
+	var issuedTokens sdk.Dec
+	if remainingShares.IsZero() {
 
+		// last delegation share gets any trimmings
+		issuedTokens = v.Tokens
+		v.Tokens = sdk.ZeroDec()
+	} else {
+		// leave excess tokens in the validator
+		// however fully use all the delegator shares
+		issuedTokens = v.DelegatorShareExRate().Mul(delShares)
+		v.Tokens = v.Tokens.Sub(issuedTokens)
+		if v.Tokens.LTE(sdk.ZeroDec()) {
+			panic("attempting to remove more tokens than available in validator")
+		}
+	}
+	v.DelegatorShares = remainingShares
 	if v.Status == sdk.Bonded {
 		pool = pool.bondedTokensToLoose(issuedTokens)
 	}
