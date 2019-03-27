@@ -70,7 +70,7 @@ func GetValidatorsByPowerIndexKey(ctx sdk.Context, validator types.Validator) []
 	return getValidatorPowerRank(validator)
 }
 
-// Remove any existing power key for validators.
+// Remove all existing power rank key for validators, and build new power rank key
 func RebuildPowerRankKeyForUpgrade(ctx sdk.Context, keeper Keeper) error {
 	store := ctx.KVStore(keeper.storeKey)
 
