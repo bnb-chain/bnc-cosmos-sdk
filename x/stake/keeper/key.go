@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"encoding/binary"
+	"fmt"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -67,6 +68,29 @@ func GetValidatorsByPowerIndexKey(ctx sdk.Context, validator types.Validator) []
 		return getValidatorPowerRankNew(validator)
 	}
 	return getValidatorPowerRank(validator)
+}
+
+// Remove any existing power key for validators.
+func RebuidPowerRankKeyForUpgrade(ctx sdk.Context, keeper Keeper) error {
+	store := ctx.KVStore(keeper.storeKey)
+
+	iterator := sdk.KVStorePrefixIterator(store, ValidatorsByPowerIndexKey)
+	defer iterator.Close()
+
+	var validators []types.Validator
+	for ; iterator.Valid(); iterator.Next() {
+		valAddr := sdk.ValAddress(parseValidatorPowerRankKey(iterator.Key()))
+		validator, found := keeper.GetValidator(ctx, valAddr)
+		if !found {
+			return fmt.Errorf("can't load valiator: %s", valAddr.String())
+		}
+		validators = append(validators, validator)
+	}
+	// Rebuild power rank key for validators
+	for _, val := range validators {
+		store.Set(getValidatorPowerRankNew(val), val.OperatorAddr)
+	}
+	return nil
 }
 
 // get the bonded validator index key for an operator address
