@@ -31,7 +31,7 @@ func TestGetValidatorPowerRank(t *testing.T) {
 	x := new(big.Int).Exp(big.NewInt(2), big.NewInt(20), big.NewInt(0))
 	val4.Tokens = sdk.NewDecWithoutFra(x.Int64())
 
-	tests := []struct {
+	tests1 := []struct {
 		validator types.Validator
 		wantHex   string
 	}{
@@ -40,9 +40,21 @@ func TestGetValidatorPowerRank(t *testing.T) {
 		{val3, "23000000003b9aca00ffffffffffffffffffff"}, // "3b9aca00" is 1000000000 in base 10
 		{val4, "2300005f5e10000000ffffffffffffffffffff"}, // "5f5e10000000" is 2^20.e8 in base 10
 	}
-	for i, tt := range tests {
+	tests2 := []struct {
+		validator types.Validator
+		wantHex   string
+	}{
+		{val1, "2300000000000000009c288ede7df62742fc3b7d0962045a8cef0f79f6"},
+		{val2, "230000000005f5e1009c288ede7df62742fc3b7d0962045a8cef0f79f6"}, // "5f5e100" is	100000000 in base 10.
+		{val3, "23000000003b9aca009c288ede7df62742fc3b7d0962045a8cef0f79f6"}, // "3b9aca00" is 1000000000 in base 10
+		{val4, "2300005f5e100000009c288ede7df62742fc3b7d0962045a8cef0f79f6"}, // "5f5e10000000" is 2^20.e8 in base 10
+	}
+	for i, tt := range tests1 {
 		got := hex.EncodeToString(getValidatorPowerRank(tt.validator))
-
+		assert.Equal(t, tt.wantHex, got, "Keys did not match on test case %d", i)
+	}
+	for i, tt := range tests2 {
+		got := hex.EncodeToString(getValidatorPowerRankNew(tt.validator))
 		assert.Equal(t, tt.wantHex, got, "Keys did not match on test case %d", i)
 	}
 }
