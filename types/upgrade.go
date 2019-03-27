@@ -193,7 +193,3 @@ func Upgrade(name string, before func(), in func(), after func()) {
 		}
 	}
 }
-
-func IsChangeValidatorPowerKey() bool {
-	return IsUpgrade(UpgradeChangeValidatorPowerKey)
-}
