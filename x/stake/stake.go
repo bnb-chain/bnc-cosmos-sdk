@@ -38,7 +38,7 @@ var (
 	GetValidatorKey              = keeper.GetValidatorKey
 	GetValidatorByConsAddrKey    = keeper.GetValidatorByConsAddrKey
 	GetValidatorsByPowerIndexKey = keeper.GetValidatorsByPowerIndexKey
-	RebuidPowerRankKeyForUpgrade = keeper.RebuidPowerRankKeyForUpgrade
+	RebuildPowerRankKeyForUpgrade = keeper.RebuildPowerRankKeyForUpgrade
 	GetDelegationKey             = keeper.GetDelegationKey
 	GetDelegationsKey            = keeper.GetDelegationsKey
 	PoolKey                      = keeper.PoolKey

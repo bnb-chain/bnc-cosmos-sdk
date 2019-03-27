@@ -71,7 +71,7 @@ func GetValidatorsByPowerIndexKey(ctx sdk.Context, validator types.Validator) []
 }
 
 // Remove any existing power key for validators.
-func RebuidPowerRankKeyForUpgrade(ctx sdk.Context, keeper Keeper) error {
+func RebuildPowerRankKeyForUpgrade(ctx sdk.Context, keeper Keeper) error {
 	store := ctx.KVStore(keeper.storeKey)
 
 	iterator := sdk.KVStorePrefixIterator(store, ValidatorsByPowerIndexKey)
@@ -79,16 +79,17 @@ func RebuidPowerRankKeyForUpgrade(ctx sdk.Context, keeper Keeper) error {
 
 	var validators []types.Validator
 	for ; iterator.Valid(); iterator.Next() {
-		valAddr := sdk.ValAddress(parseValidatorPowerRankKey(iterator.Key()))
+		valAddr := sdk.ValAddress(iterator.Value())
 		validator, found := keeper.GetValidator(ctx, valAddr)
 		if !found {
 			return fmt.Errorf("can't load valiator: %s", valAddr.String())
 		}
 		validators = append(validators, validator)
+		store.Delete(iterator.Key())
 	}
 	// Rebuild power rank key for validators
 	for _, val := range validators {
-		store.Set(getValidatorPowerRankNew(val), val.OperatorAddr)
+		keeper.SetNewValidatorByPowerIndex(ctx, val)
 	}
 	return nil
 }
