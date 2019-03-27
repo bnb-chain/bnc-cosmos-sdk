@@ -61,8 +61,11 @@ func AddressFromLastValidatorPowerKey(key []byte) []byte {
 // Power index is the key used in the power-store, and represents the relative
 // power ranking of the validator.
 // VALUE: validator operator address ([]byte)
-func GetValidatorsByPowerIndexKey(validator types.Validator, pool types.Pool) []byte {
+func GetValidatorsByPowerIndexKey(ctx sdk.Context, validator types.Validator) []byte {
 	// NOTE the address doesn't need to be stored because counter bytes must always be different
+	if sdk.IsChangeValidatorPowerKey() {
+		return getValidatorPowerRankNew(validator)
+	}
 	return getValidatorPowerRank(validator)
 }
 
@@ -98,6 +101,47 @@ func getValidatorPowerRank(validator types.Validator) []byte {
 	binary.BigEndian.PutUint16(key[powerBytesLen+9:powerBytesLen+11], ^uint16(validator.BondIntraTxCounter))
 
 	return key
+}
+
+// get the power ranking of a validator
+// Comparing with getValidatorPowerRank, getValidatorPowerRankNew won't include BondHeight and BondIntraTxCounter to build rank key
+// Instead, validator operator address will be included.
+// nolint: unparam
+func getValidatorPowerRankNew(validator types.Validator) []byte {
+
+	potentialPower := validator.Tokens
+
+	tendermintPower := potentialPower.RawInt()
+	tendermintPowerBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(tendermintPowerBytes[:], uint64(tendermintPower))
+
+	powerBytes := tendermintPowerBytes
+	powerBytesLen := len(powerBytes) // 8
+
+	// key is of format prefix || powerbytes || addrBytes
+	key := make([]byte, 1+powerBytesLen+sdk.AddrLen)
+
+	key[0] = ValidatorsByPowerIndexKey[0]
+	copy(key[1:powerBytesLen+1], powerBytes)
+	operAddrInvr := cp(validator.OperatorAddr)
+	for i, b := range operAddrInvr {
+		operAddrInvr[i] = ^b
+	}
+	copy(key[powerBytesLen+1:], operAddrInvr)
+
+	return key
+}
+
+func parseValidatorPowerRankKey(key []byte) (operAddr []byte) {
+	powerBytesLen := 8
+	if len(key) != 1+powerBytesLen+sdk.AddrLen {
+		panic("Invalid validator power rank key length")
+	}
+	operAddr = cp(key[powerBytesLen+1:])
+	for i, b := range operAddr {
+		operAddr[i] = ^b
+	}
+	return operAddr
 }
 
 // gets the prefix for all unbonding delegations from a delegator
@@ -261,4 +305,15 @@ func GetREDsByDelToValDstIndexKey(delAddr sdk.AccAddress, valDstAddr sdk.ValAddr
 	return append(
 		GetREDsToValDstIndexKey(valDstAddr),
 		delAddr.Bytes()...)
+}
+
+//-------------------------------------------------
+
+func cp(bz []byte) (ret []byte) {
+	if bz == nil {
+		return nil
+	}
+	ret = make([]byte, len(bz))
+	copy(ret, bz)
+	return ret
 }
