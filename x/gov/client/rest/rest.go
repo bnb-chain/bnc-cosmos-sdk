@@ -3,16 +3,17 @@ package rest
 import (
 	"fmt"
 	"net/http"
+	"time"
+
+	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/utils"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/gov"
-
 	"github.com/cosmos/cosmos-sdk/x/gov/client"
-	"github.com/gorilla/mux"
-	"github.com/pkg/errors"
 )
 
 // REST Variable names
@@ -44,6 +45,7 @@ type postProposalReq struct {
 	BaseReq        utils.BaseReq  `json:"base_req"`
 	Title          string         `json:"title"`           //  Title of the proposal
 	Description    string         `json:"description"`     //  Description of the proposal
+	VotingPeriod   int64          `json:"voting_period"`   // Voting period in seconds
 	ProposalType   string         `json:"proposal_type"`   //  Type of proposal. Initial set {PlainTextProposal, SoftwareUpgradeProposal}
 	Proposer       sdk.AccAddress `json:"proposer"`        //  Address of the proposer
 	InitialDeposit sdk.Coins      `json:"initial_deposit"` // Coins to add to the proposal's deposit
@@ -81,8 +83,19 @@ func postProposalHandlerFn(cdc *codec.Codec, cliCtx context.CLIContext) http.Han
 			return
 		}
 
+		if req.VotingPeriod <= 0 {
+			utils.WriteErrorResponse(w, http.StatusBadRequest, "voting period should be positive")
+			return
+		}
+
+		votingPeriod := time.Duration(req.VotingPeriod) * time.Second
+		if votingPeriod > gov.MaxVotingPeriod {
+			utils.WriteErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("voting period should be less than %d seconds", gov.MaxVotingPeriod/time.Second))
+			return
+		}
+
 		// create the message
-		msg := gov.NewMsgSubmitProposal(req.Title, req.Description, proposalType, req.Proposer, req.InitialDeposit)
+		msg := gov.NewMsgSubmitProposal(req.Title, req.Description, proposalType, req.Proposer, req.InitialDeposit, votingPeriod)
 		err = msg.ValidateBasic()
 		if err != nil {
 			utils.WriteErrorResponse(w, http.StatusBadRequest, err.Error())

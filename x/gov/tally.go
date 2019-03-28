@@ -13,7 +13,7 @@ type validatorGovInfo struct {
 	Vote            VoteOption     // Vote of the validator
 }
 
-func Tally(ctx sdk.Context, keeper Keeper, proposal Proposal) (passes bool, tallyResults TallyResult) {
+func Tally(ctx sdk.Context, keeper Keeper, proposal Proposal) (passes bool, refundDeposits bool, tallyResults TallyResult) {
 	results := make(map[VoteOption]sdk.Dec)
 	results[OptionYes] = sdk.ZeroDec()
 	results[OptionAbstain] = sdk.ZeroDec()
@@ -85,27 +85,37 @@ func Tally(ctx sdk.Context, keeper Keeper, proposal Proposal) (passes bool, tall
 	}
 
 	tallyingProcedure := keeper.GetTallyingProcedure(ctx)
-
+	totalPower := keeper.vs.TotalPower(ctx)
 	tallyResults = TallyResult{
 		Yes:        results[OptionYes],
 		Abstain:    results[OptionAbstain],
 		No:         results[OptionNo],
 		NoWithVeto: results[OptionNoWithVeto],
+		Total:      totalPower,
 	}
 
+	// If there is no staked coins, the proposal fails
+	if keeper.vs.TotalPower(ctx).IsZero() {
+		return false, true, tallyResults
+	}
+	// If there is not enough quorum of votes, the proposal fails
+	percentVoting := totalVotingPower.Quo(totalPower)
+	if percentVoting.LT(tallyingProcedure.Quorum) {
+		return false, true, tallyResults
+	}
 	// If no one votes, proposal fails
 	if totalVotingPower.Sub(results[OptionAbstain]).Equal(sdk.ZeroDec()) {
-		return false, tallyResults
+		return false, true, tallyResults
 	}
 	// If more than 1/3 of voters veto, proposal fails
 	if results[OptionNoWithVeto].Quo(totalVotingPower).GT(tallyingProcedure.Veto) {
-		return false, tallyResults
+		return false, false, tallyResults
 	}
 	// If more than 1/2 of non-abstaining voters vote Yes, proposal passes
 	if results[OptionYes].Quo(totalVotingPower.Sub(results[OptionAbstain])).GT(tallyingProcedure.Threshold) {
-		return true, tallyResults
+		return true, true, tallyResults
 	}
 	// If more than 1/2 of non-abstaining voters vote No, proposal fails
 
-	return false, tallyResults
+	return false, false, tallyResults
 }
