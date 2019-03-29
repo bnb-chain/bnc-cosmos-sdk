@@ -57,7 +57,7 @@ func NewStakeHandler(k Keeper) sdk.Handler {
 }
 
 // Called every block, update validator set
-func EndBlocker(ctx sdk.Context, k keeper.Keeper) (ValidatorUpdates []abci.ValidatorUpdate) {
+func EndBlocker(ctx sdk.Context, k keeper.Keeper) (ValidatorUpdates []abci.ValidatorUpdate, completedUnbondingDelegations []types.UnbondingDelegation) {
 	endBlockerTags := sdk.EmptyTags()
 
 	k.UnbondAllMatureValidatorQueue(ctx)
@@ -68,6 +68,9 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) (ValidatorUpdates []abci.Valid
 		if err != nil {
 			continue
 		}
+		// Here the unbonding delegation must exist
+		ubd, _ := k.GetUnbondingDelegation(ctx, dvPair.DelegatorAddr, dvPair.ValidatorAddr)
+		completedUnbondingDelegations = append(completedUnbondingDelegations, ubd)
 		endBlockerTags.AppendTags(sdk.NewTags(
 			tags.Action, ActionCompleteUnbonding,
 			tags.Delegator, []byte(dvPair.DelegatorAddr.String()),
