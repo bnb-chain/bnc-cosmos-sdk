@@ -3,6 +3,7 @@ package gov_test
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -27,24 +28,28 @@ func TestMsgSubmitProposal(t *testing.T) {
 		proposalType       gov.ProposalKind
 		proposerAddr       sdk.AccAddress
 		initialDeposit     sdk.Coins
+		votingPeriod       time.Duration
 		expectPass         bool
 	}{
-		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeText, addrs[0], coinsPos, true},
-		{"", "the purpose of this proposal is to test", gov.ProposalTypeText, addrs[0], coinsPos, false},
-		{"Test Proposal", "", gov.ProposalTypeText, addrs[0], coinsPos, false},
-		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeParameterChange, addrs[0], coinsPos, true},
-		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeSoftwareUpgrade, addrs[0], coinsPos, true},
-		{"Test Proposal", "the purpose of this proposal is to test", 0x08, addrs[0], coinsPos, false},
-		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeText, sdk.AccAddress{}, coinsPos, false},
-		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeText, addrs[0], coinsZero, true},
-		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeText, addrs[0], coinsNeg, false},
-		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeText, addrs[0], coinsMulti, true},
-		{strings.Repeat("#", gov.MaxTitleLength*2), "the purpose of this proposal is to test", gov.ProposalTypeText, addrs[0], coinsMulti, false},
-		{"Test Proposal", strings.Repeat("#", gov.MaxDescriptionLength*2), gov.ProposalTypeText, addrs[0], coinsMulti, false},
+		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeText, addrs[0], coinsPos, 1000 * time.Second, true},
+		{"", "the purpose of this proposal is to test", gov.ProposalTypeText, addrs[0], coinsPos, 1000 * time.Second, false},
+		{"Test Proposal", "", gov.ProposalTypeText, addrs[0], coinsPos, 1000 * time.Second, false},
+		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeParameterChange, addrs[0], coinsPos, 1000 * time.Second, true},
+		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeSoftwareUpgrade, addrs[0], coinsPos, 1000 * time.Second, true},
+		{"Test Proposal", "the purpose of this proposal is to test", 0x08, addrs[0], coinsPos, 1, false},
+		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeText, sdk.AccAddress{}, coinsPos, 1000 * time.Second, false},
+		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeText, addrs[0], coinsZero, 1000 * time.Second, true},
+		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeText, addrs[0], coinsNeg, 1000 * time.Second, false},
+		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeText, addrs[0], coinsMulti, 1000 * time.Second, true},
+		{strings.Repeat("#", gov.MaxTitleLength*2), "the purpose of this proposal is to test", gov.ProposalTypeText, addrs[0], coinsMulti, 1000 * time.Second, false},
+		{"Test Proposal", strings.Repeat("#", gov.MaxDescriptionLength*2), gov.ProposalTypeText, addrs[0], coinsMulti, 1000 * time.Second, false},
+		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeParameterChange, addrs[0], coinsPos, 0, false},
+		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeParameterChange, addrs[0], coinsPos, 2 * gov.MaxVotingPeriod, false},
+		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeText, sdk.AccAddress{0, 1}, coinsZero, 1000 * time.Second, false},
 	}
 
 	for i, tc := range tests {
-		msg := gov.NewMsgSubmitProposal(tc.title, tc.description, tc.proposalType, tc.proposerAddr, tc.initialDeposit)
+		msg := gov.NewMsgSubmitProposal(tc.title, tc.description, tc.proposalType, tc.proposerAddr, tc.initialDeposit, tc.votingPeriod)
 		if tc.expectPass {
 			require.Nil(t, msg.ValidateBasic(), "test: %v", i)
 		} else {
@@ -65,6 +70,7 @@ func TestMsgDeposit(t *testing.T) {
 		{0, addrs[0], coinsPos, true},
 		{-1, addrs[0], coinsPos, false},
 		{1, sdk.AccAddress{}, coinsPos, false},
+		{1, sdk.AccAddress{0, 1}, coinsPos, false},
 		{1, addrs[0], coinsZero, true},
 		{1, addrs[0], coinsNeg, false},
 		{1, addrs[0], coinsMulti, true},
@@ -92,6 +98,7 @@ func TestMsgVote(t *testing.T) {
 		{0, addrs[0], gov.OptionYes, true},
 		{-1, addrs[0], gov.OptionYes, false},
 		{0, sdk.AccAddress{}, gov.OptionYes, false},
+		{0, sdk.AccAddress{1, 2}, gov.OptionYes, false},
 		{0, addrs[0], gov.OptionNo, true},
 		{0, addrs[0], gov.OptionNoWithVeto, true},
 		{0, addrs[0], gov.OptionAbstain, true},

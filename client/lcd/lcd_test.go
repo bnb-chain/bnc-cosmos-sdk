@@ -1156,6 +1156,7 @@ func doSubmitProposal(t *testing.T, port, seed, name, password string, proposerA
 		"title": "Test",
 		"description": "test",
 		"proposal_type": "Text",
+		"voting_period": "1000",
 		"proposer": "%s",
 		"initial_deposit": [{ "denom": "steak", "amount": "%d" }],
 		"base_req": {

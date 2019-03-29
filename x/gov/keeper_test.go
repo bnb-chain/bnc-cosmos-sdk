@@ -4,10 +4,11 @@ import (
 	"testing"
 	"time"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/gov"
 )
 
 func TestGetSetProposal(t *testing.T) {
@@ -15,7 +16,7 @@ func TestGetSetProposal(t *testing.T) {
 	mapp.BeginBlock(abci.RequestBeginBlock{})
 	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
 
-	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText)
+	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 1000*time.Second)
 	proposalID := proposal.GetProposalID()
 	keeper.SetProposal(ctx, proposal)
 
@@ -28,12 +29,12 @@ func TestIncrementProposalNumber(t *testing.T) {
 	mapp.BeginBlock(abci.RequestBeginBlock{})
 	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
 
-	keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText)
-	keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText)
-	keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText)
-	keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText)
-	keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText)
-	proposal6 := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText)
+	keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 1000*time.Second)
+	keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 1000*time.Second)
+	keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 1000*time.Second)
+	keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 1000*time.Second)
+	keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 1000*time.Second)
+	proposal6 := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 1000*time.Second)
 
 	require.Equal(t, int64(6), proposal6.GetProposalID())
 }
@@ -43,7 +44,7 @@ func TestActivateVotingPeriod(t *testing.T) {
 	mapp.BeginBlock(abci.RequestBeginBlock{})
 	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
 
-	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText)
+	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 1000*time.Second)
 
 	require.True(t, proposal.GetVotingStartTime().Equal(time.Time{}))
 	require.Nil(t, keeper.ActiveProposalQueuePeek(ctx))
@@ -54,13 +55,80 @@ func TestActivateVotingPeriod(t *testing.T) {
 	require.Equal(t, proposal.GetProposalID(), keeper.ActiveProposalQueuePeek(ctx).GetProposalID())
 }
 
+func TestPushActiveProposalQueue(t *testing.T) {
+	mapp, _, keeper, _, _, _, _ := getMockApp(t, 0)
+	mapp.BeginBlock(abci.RequestBeginBlock{})
+	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
+
+	// insert one proposal
+	proposal1 := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 1000*time.Second)
+
+	keeper.ActivateVotingPeriod(ctx, proposal1)
+
+	require.Equal(t, proposal1.GetProposalID(), keeper.ActiveProposalQueuePop(ctx).GetProposalID())
+
+	require.Nil(t, keeper.ActiveProposalQueuePop(ctx))
+
+	// insert two proposal
+	proposal2 := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 1000*time.Second)
+	proposal3 := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 2000*time.Second)
+
+	keeper.ActivateVotingPeriod(ctx, proposal2)
+	keeper.ActivateVotingPeriod(ctx, proposal3)
+
+	require.Equal(t, proposal2.GetProposalID(), keeper.ActiveProposalQueuePop(ctx).GetProposalID())
+	require.Equal(t, proposal3.GetProposalID(), keeper.ActiveProposalQueuePop(ctx).GetProposalID())
+
+	// insert two proposal
+	proposal4 := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 2000*time.Second)
+	proposal5 := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 1000*time.Second)
+
+	keeper.ActivateVotingPeriod(ctx, proposal4)
+	keeper.ActivateVotingPeriod(ctx, proposal5)
+
+	require.Equal(t, proposal5.GetProposalID(), keeper.ActiveProposalQueuePop(ctx).GetProposalID())
+	require.Equal(t, proposal4.GetProposalID(), keeper.ActiveProposalQueuePop(ctx).GetProposalID())
+
+	require.Nil(t, keeper.ActiveProposalQueuePop(ctx))
+
+	// insert multiple proposals in order
+	proposal6 := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 1000*time.Second)
+	proposal7 := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 2000*time.Second)
+	proposal8 := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 3000*time.Second)
+
+	keeper.ActivateVotingPeriod(ctx, proposal6)
+	keeper.ActivateVotingPeriod(ctx, proposal7)
+	keeper.ActivateVotingPeriod(ctx, proposal8)
+
+	require.Equal(t, proposal6.GetProposalID(), keeper.ActiveProposalQueuePop(ctx).GetProposalID())
+	require.Equal(t, proposal7.GetProposalID(), keeper.ActiveProposalQueuePop(ctx).GetProposalID())
+	require.Equal(t, proposal8.GetProposalID(), keeper.ActiveProposalQueuePop(ctx).GetProposalID())
+
+	require.Nil(t, keeper.ActiveProposalQueuePop(ctx))
+
+	// insert multiple proposals in random order
+	proposal9 := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 1000*time.Second)
+	proposal10 := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 2000*time.Second)
+	proposal11 := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 3000*time.Second)
+
+	keeper.ActivateVotingPeriod(ctx, proposal11)
+	keeper.ActivateVotingPeriod(ctx, proposal9)
+	keeper.ActivateVotingPeriod(ctx, proposal10)
+
+	require.Equal(t, proposal9.GetProposalID(), keeper.ActiveProposalQueuePop(ctx).GetProposalID())
+	require.Equal(t, proposal10.GetProposalID(), keeper.ActiveProposalQueuePop(ctx).GetProposalID())
+	require.Equal(t, proposal11.GetProposalID(), keeper.ActiveProposalQueuePop(ctx).GetProposalID())
+
+	require.Nil(t, keeper.ActiveProposalQueuePop(ctx))
+}
+
 func TestDeposits(t *testing.T) {
 	mapp, ck, keeper, _, addrs, _, _ := getMockApp(t, 2)
 	SortAddresses(addrs)
 	mapp.BeginBlock(abci.RequestBeginBlock{})
 	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
 
-	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText)
+	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 1000*time.Second)
 	proposalID := proposal.GetProposalID()
 
 	fiveHundredSteak := sdk.Coins{sdk.NewCoin(gov.DefaultDepositDenom, 500e8)}
@@ -149,7 +217,7 @@ func TestVotes(t *testing.T) {
 	mapp.BeginBlock(abci.RequestBeginBlock{})
 	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
 
-	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText)
+	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 1000*time.Second)
 	proposalID := proposal.GetProposalID()
 
 	proposal.SetStatus(gov.StatusVotingPeriod)
@@ -209,10 +277,10 @@ func TestProposalQueues(t *testing.T) {
 	require.Nil(t, keeper.ActiveProposalQueuePeek(ctx))
 
 	// create test proposals
-	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText)
-	proposal2 := keeper.NewTextProposal(ctx, "Test2", "description", gov.ProposalTypeText)
-	proposal3 := keeper.NewTextProposal(ctx, "Test3", "description", gov.ProposalTypeText)
-	proposal4 := keeper.NewTextProposal(ctx, "Test4", "description", gov.ProposalTypeText)
+	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 1000*time.Second)
+	proposal2 := keeper.NewTextProposal(ctx, "Test2", "description", gov.ProposalTypeText, 1000*time.Second)
+	proposal3 := keeper.NewTextProposal(ctx, "Test3", "description", gov.ProposalTypeText, 1000*time.Second)
+	proposal4 := keeper.NewTextProposal(ctx, "Test4", "description", gov.ProposalTypeText, 1000*time.Second)
 
 	// test pushing to inactive proposal queue
 	keeper.InactiveProposalQueuePush(ctx, proposal)

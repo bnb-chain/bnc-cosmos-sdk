@@ -1031,7 +1031,7 @@ func TestCreateValidatorAfterProposal(t *testing.T) {
 	ctx = ctx.WithBlockHeight(1)
 	msgCreateValidator := NewTestMsgCreateValidator(valA, keep.PKs[0], 10)
 	proposalDesc, _ := json.Marshal(msgCreateValidator)
-	proposalA := govKeeper.NewTextProposal(ctx, "CreateValidatorProposal", string(proposalDesc), gov.ProposalTypeCreateValidator)
+	proposalA := govKeeper.NewTextProposal(ctx, "CreateValidatorProposal", string(proposalDesc), gov.ProposalTypeCreateValidator, 1000*time.Second)
 	proposalA.SetStatus(gov.StatusPassed)
 	govKeeper.SetProposal(ctx, proposalA)
 
@@ -1045,7 +1045,7 @@ func TestCreateValidatorAfterProposal(t *testing.T) {
 	ctx = ctx.WithBlockHeight(2)
 	msgCreateValidator = NewTestMsgCreateValidator(valB, keep.PKs[1], 10)
 	proposalDesc, _ = json.Marshal(msgCreateValidator)
-	proposalB := govKeeper.NewTextProposal(ctx, "CreateValidatorProposal", string(proposalDesc), gov.ProposalTypeCreateValidator)
+	proposalB := govKeeper.NewTextProposal(ctx, "CreateValidatorProposal", string(proposalDesc), gov.ProposalTypeCreateValidator, 1000*time.Second)
 	proposalB.SetStatus(gov.StatusPassed)
 	govKeeper.SetProposal(ctx, proposalB)
 
@@ -1097,7 +1097,7 @@ func TestRemoveValidatorAfterProposal(t *testing.T) {
 	removeValidatorMsg := NewMsgRemoveValidator(nil, valA, sdk.ConsAddress(keep.PKs[0].Address()), 0)
 	proposalDesc, _ := json.Marshal(removeValidatorMsg)
 
-	proposal := govKeeper.NewTextProposal(ctx, "RemoveValidatorProposal", string(proposalDesc), gov.ProposalTypeRemoveValidator)
+	proposal := govKeeper.NewTextProposal(ctx, "RemoveValidatorProposal", string(proposalDesc), gov.ProposalTypeRemoveValidator, 1000*time.Second)
 	proposal.SetStatus(gov.StatusPassed)
 	govKeeper.SetProposal(ctx, proposal)
 
@@ -1119,7 +1119,7 @@ func TestRemoveValidatorAfterProposal(t *testing.T) {
 	ctx = ctx.WithBlockHeight(2)
 	removeValidatorMsg = NewMsgRemoveValidator(nil, valD, sdk.ConsAddress(keep.PKs[3].Address()), 0)
 	proposalDesc, _ = json.Marshal(removeValidatorMsg)
-	proposal = govKeeper.NewTextProposal(ctx, "RemoveValidatorProposal", string(proposalDesc), gov.ProposalTypeRemoveValidator)
+	proposal = govKeeper.NewTextProposal(ctx, "RemoveValidatorProposal", string(proposalDesc), gov.ProposalTypeRemoveValidator, 1000*time.Second)
 	proposal.SetStatus(gov.StatusPassed)
 	govKeeper.SetProposal(ctx, proposal)
 
@@ -1131,7 +1131,7 @@ func TestRemoveValidatorAfterProposal(t *testing.T) {
 	ctx = ctx.WithBlockHeight(2)
 	removeValidatorMsg = NewMsgRemoveValidator(nil, valF, sdk.ConsAddress(keep.PKs[5].Address()), 0)
 	proposalDesc, _ = json.Marshal(removeValidatorMsg)
-	proposal = govKeeper.NewTextProposal(ctx, "RemoveValidatorProposal", string(proposalDesc), gov.ProposalTypeRemoveValidator)
+	proposal = govKeeper.NewTextProposal(ctx, "RemoveValidatorProposal", string(proposalDesc), gov.ProposalTypeRemoveValidator, 1000*time.Second)
 	proposal.SetStatus(gov.StatusPassed)
 	govKeeper.SetProposal(ctx, proposal)
 
