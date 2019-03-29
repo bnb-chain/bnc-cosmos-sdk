@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/tendermint/tendermint/crypto"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/bank"
@@ -20,7 +22,7 @@ var (
 	ParamStoreKeyDepositParams = []byte("depositparams")
 	ParamStoreKeyTallyParams   = []byte("tallyparams")
 
-	DepositedCoinsAccAddr = sdk.AccAddress{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+	DepositedCoinsAccAddr = sdk.AccAddress(crypto.AddressHash([]byte("BinanceChainDepositedCoins")))
 )
 
 // Type declaration for parameters
