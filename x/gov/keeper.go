@@ -17,8 +17,8 @@ const (
 
 // Parameter store key
 var (
-	ParamStoreKeyDepositProcedure  = []byte("depositprocedure")
-	ParamStoreKeyTallyingProcedure = []byte("tallyingprocedure")
+	ParamStoreKeyDepositParams = []byte("depositparams")
+	ParamStoreKeyTallyParams   = []byte("tallyparams")
 
 	DepositedCoinsAccAddr = sdk.AccAddress{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 )
@@ -26,8 +26,8 @@ var (
 // Type declaration for parameters
 func ParamTypeTable() params.TypeTable {
 	return params.NewTypeTable(
-		ParamStoreKeyDepositProcedure, DepositParams{},
-		ParamStoreKeyTallyingProcedure, TallyParams{},
+		ParamStoreKeyDepositParams, DepositParams{},
+		ParamStoreKeyTallyParams, TallyParams{},
 	)
 }
 
@@ -271,32 +271,32 @@ func (keeper Keeper) ActivateVotingPeriod(ctx sdk.Context, proposal Proposal) {
 }
 
 // =====================================================
-// Procedures
+// Params
 
-// Returns the current Deposit Procedure from the global param store
+// Returns the current Deposit Params from the global param store
 // nolint: errcheck
-func (keeper Keeper) GetDepositProcedure(ctx sdk.Context) DepositParams {
-	var depositProcedure DepositParams
-	keeper.paramSpace.Get(ctx, ParamStoreKeyDepositProcedure, &depositProcedure)
-	return depositProcedure
+func (keeper Keeper) GetDepositParams(ctx sdk.Context) DepositParams {
+	var depositParams DepositParams
+	keeper.paramSpace.Get(ctx, ParamStoreKeyDepositParams, &depositParams)
+	return depositParams
 }
 
-// Returns the current Tallying Procedure from the global param store
+// Returns the current Tally Params from the global param store
 // nolint: errcheck
-func (keeper Keeper) GetTallyingProcedure(ctx sdk.Context) TallyParams {
-	var tallyingProcedure TallyParams
-	keeper.paramSpace.Get(ctx, ParamStoreKeyTallyingProcedure, &tallyingProcedure)
-	return tallyingProcedure
-}
-
-// nolint: errcheck
-func (keeper Keeper) setDepositProcedure(ctx sdk.Context, depositProcedure DepositParams) {
-	keeper.paramSpace.Set(ctx, ParamStoreKeyDepositProcedure, &depositProcedure)
+func (keeper Keeper) GetTallyParams(ctx sdk.Context) TallyParams {
+	var tallyParams TallyParams
+	keeper.paramSpace.Get(ctx, ParamStoreKeyTallyParams, &tallyParams)
+	return tallyParams
 }
 
 // nolint: errcheck
-func (keeper Keeper) setTallyingProcedure(ctx sdk.Context, tallyingProcedure TallyParams) {
-	keeper.paramSpace.Set(ctx, ParamStoreKeyTallyingProcedure, &tallyingProcedure)
+func (keeper Keeper) setDepositParams(ctx sdk.Context, depositParams DepositParams) {
+	keeper.paramSpace.Set(ctx, ParamStoreKeyDepositParams, &depositParams)
+}
+
+// nolint: errcheck
+func (keeper Keeper) setTallyParams(ctx sdk.Context, tallyParams TallyParams) {
+	keeper.paramSpace.Set(ctx, ParamStoreKeyTallyParams, &tallyParams)
 }
 
 // =====================================================
@@ -407,7 +407,7 @@ func (keeper Keeper) AddDeposit(ctx sdk.Context, proposalID int64, depositerAddr
 	// Check if deposit tipped proposal into voting period
 	// Active voting period if so
 	activatedVotingPeriod := false
-	if proposal.GetStatus() == StatusDepositPeriod && proposal.GetTotalDeposit().IsGTE(keeper.GetDepositProcedure(ctx).MinDeposit) {
+	if proposal.GetStatus() == StatusDepositPeriod && proposal.GetTotalDeposit().IsGTE(keeper.GetDepositParams(ctx).MinDeposit) {
 		keeper.ActivateVotingPeriod(ctx, proposal)
 		activatedVotingPeriod = true
 	}

@@ -139,7 +139,7 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags, passedProposa
 			fmt.Sprintf("proposal %d (%s) didn't meet minimum deposit of %v (had only %v); distribute to validator",
 				inactiveProposal.GetProposalID(),
 				inactiveProposal.GetTitle(),
-				keeper.GetDepositProcedure(ctx).MinDeposit,
+				keeper.GetDepositParams(ctx).MinDeposit,
 				inactiveProposal.GetTotalDeposit(),
 			),
 		)
@@ -192,14 +192,14 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags, passedProposa
 }
 
 func ShouldPopInactiveProposalQueue(ctx sdk.Context, keeper Keeper) bool {
-	depositProcedure := keeper.GetDepositProcedure(ctx)
+	depositParams := keeper.GetDepositParams(ctx)
 	peekProposal := keeper.InactiveProposalQueuePeek(ctx)
 
 	if peekProposal == nil {
 		return false
 	} else if peekProposal.GetStatus() != StatusDepositPeriod {
 		return true
-	} else if !ctx.BlockHeader().Time.Before(peekProposal.GetSubmitTime().Add(depositProcedure.MaxDepositPeriod)) {
+	} else if !ctx.BlockHeader().Time.Before(peekProposal.GetSubmitTime().Add(depositParams.MaxDepositPeriod)) {
 		return true
 	}
 	return false

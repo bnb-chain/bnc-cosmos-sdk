@@ -48,19 +48,19 @@ func InitGenesis(ctx sdk.Context, k Keeper, data GenesisState) {
 		// TODO: Handle this with #870
 		panic(err)
 	}
-	k.setDepositProcedure(ctx, data.DepositParams)
-	k.setTallyingProcedure(ctx, data.TallyParams)
+	k.setDepositParams(ctx, data.DepositParams)
+	k.setTallyParams(ctx, data.TallyParams)
 }
 
 // WriteGenesis - output genesis parameters
 func WriteGenesis(ctx sdk.Context, k Keeper) GenesisState {
 	startingProposalID, _ := k.getNewProposalID(ctx)
-	depositProcedure := k.GetDepositProcedure(ctx)
-	tallyingProcedure := k.GetTallyingProcedure(ctx)
+	depositParams := k.GetDepositParams(ctx)
+	tallyingParams := k.GetTallyParams(ctx)
 
 	return GenesisState{
 		StartingProposalID: startingProposalID,
-		DepositParams:      depositProcedure,
-		TallyParams:        tallyingProcedure,
+		DepositParams:      depositParams,
+		TallyParams:        tallyingParams,
 	}
 }

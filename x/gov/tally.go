@@ -84,7 +84,7 @@ func Tally(ctx sdk.Context, keeper Keeper, proposal Proposal) (passes bool, refu
 		totalVotingPower = totalVotingPower.Add(votingPower)
 	}
 
-	tallyingProcedure := keeper.GetTallyingProcedure(ctx)
+	tallyingParams := keeper.GetTallyParams(ctx)
 	totalPower := keeper.vs.TotalPower(ctx)
 	tallyResults = TallyResult{
 		Yes:        results[OptionYes],
@@ -100,7 +100,7 @@ func Tally(ctx sdk.Context, keeper Keeper, proposal Proposal) (passes bool, refu
 	}
 	// If there is not enough quorum of votes, the proposal fails
 	percentVoting := totalVotingPower.Quo(totalPower)
-	if percentVoting.LT(tallyingProcedure.Quorum) {
+	if percentVoting.LT(tallyingParams.Quorum) {
 		return false, true, tallyResults
 	}
 	// If no one votes, proposal fails
@@ -108,11 +108,11 @@ func Tally(ctx sdk.Context, keeper Keeper, proposal Proposal) (passes bool, refu
 		return false, true, tallyResults
 	}
 	// If more than 1/3 of voters veto, proposal fails
-	if results[OptionNoWithVeto].Quo(totalVotingPower).GT(tallyingProcedure.Veto) {
+	if results[OptionNoWithVeto].Quo(totalVotingPower).GT(tallyingParams.Veto) {
 		return false, false, tallyResults
 	}
 	// If more than 1/2 of non-abstaining voters vote Yes, proposal passes
-	if results[OptionYes].Quo(totalVotingPower.Sub(results[OptionAbstain])).GT(tallyingProcedure.Threshold) {
+	if results[OptionYes].Quo(totalVotingPower.Sub(results[OptionAbstain])).GT(tallyingParams.Threshold) {
 		return true, true, tallyResults
 	}
 	// If more than 1/2 of non-abstaining voters vote No, proposal fails

@@ -48,7 +48,7 @@ func TestTickExpiredDepositPeriod(t *testing.T) {
 	require.False(t, gov.ShouldPopInactiveProposalQueue(ctx, keeper))
 
 	newHeader = ctx.BlockHeader()
-	newHeader.Time = ctx.BlockHeader().Time.Add(keeper.GetDepositProcedure(ctx).MaxDepositPeriod)
+	newHeader.Time = ctx.BlockHeader().Time.Add(keeper.GetDepositParams(ctx).MaxDepositPeriod)
 	ctx = ctx.WithBlockHeader(newHeader)
 
 	require.NotNil(t, keeper.InactiveProposalQueuePeek(ctx))
@@ -103,7 +103,7 @@ func TestTickMultipleExpiredDepositPeriod(t *testing.T) {
 	require.True(t, res.IsOK())
 
 	newHeader = ctx.BlockHeader()
-	newHeader.Time = ctx.BlockHeader().Time.Add(keeper.GetDepositProcedure(ctx).MaxDepositPeriod).Add(time.Duration(-1) * time.Second)
+	newHeader.Time = ctx.BlockHeader().Time.Add(keeper.GetDepositParams(ctx).MaxDepositPeriod).Add(time.Duration(-1) * time.Second)
 	ctx = ctx.WithBlockHeader(newHeader)
 
 	require.NotNil(t, keeper.InactiveProposalQueuePeek(ctx))
