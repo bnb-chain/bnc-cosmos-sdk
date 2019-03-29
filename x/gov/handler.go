@@ -111,13 +111,13 @@ func handleMsgVote(ctx sdk.Context, keeper Keeper, msg MsgVote) sdk.Result {
 }
 
 // Called every block, process inflation, update validator set
-func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags, passedProposals, failedProposals []int64) {
+func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags, refundProposals, notRefundProposals []int64) {
 
 	logger := ctx.Logger().With("module", "x/gov")
 
 	resTags = sdk.NewTags()
-	passedProposals = make([]int64, 0)
-	failedProposals = make([]int64, 0)
+	refundProposals = make([]int64, 0)
+	notRefundProposals = make([]int64, 0)
 
 	// Delete proposals that haven't met minDeposit
 	for ShouldPopInactiveProposalQueue(ctx, keeper) {
@@ -132,6 +132,9 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags, passedProposa
 		keeper.DistributeDeposits(ctx, inactiveProposal.GetProposalID())
 
 		keeper.DeleteProposal(ctx, inactiveProposal)
+
+		notRefundProposals = append(notRefundProposals, inactiveProposal.GetProposalID())
+
 		resTags.AppendTag(tags.Action, tags.ActionProposalDropped)
 		resTags.AppendTag(tags.ProposalID, proposalIDBytes)
 
@@ -139,7 +142,7 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags, passedProposa
 			fmt.Sprintf("proposal %d (%s) didn't meet minimum deposit of %v (had only %v); distribute to validator",
 				inactiveProposal.GetProposalID(),
 				inactiveProposal.GetTitle(),
-				keeper.GetDepositProcedure(ctx).MinDeposit,
+				keeper.GetDepositParams(ctx).MinDeposit,
 				inactiveProposal.GetTotalDeposit(),
 			),
 		)
@@ -164,7 +167,7 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags, passedProposa
 
 			// refund deposits
 			keeper.RefundDeposits(ctx, activeProposal.GetProposalID())
-			passedProposals = append(passedProposals, activeProposal.GetProposalID())
+			refundProposals = append(refundProposals, activeProposal.GetProposalID())
 		} else {
 			activeProposal.SetStatus(StatusRejected)
 			action = tags.ActionProposalRejected
@@ -172,10 +175,11 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags, passedProposa
 			// if votes reached quorum and not all votes are abstain, distribute deposits to validator, else refund deposits
 			if refundDeposits {
 				keeper.RefundDeposits(ctx, activeProposal.GetProposalID())
+				refundProposals = append(refundProposals, activeProposal.GetProposalID())
 			} else {
 				keeper.DistributeDeposits(ctx, activeProposal.GetProposalID())
+				notRefundProposals = append(notRefundProposals, activeProposal.GetProposalID())
 			}
-			failedProposals = append(failedProposals, activeProposal.GetProposalID())
 		}
 
 		activeProposal.SetTallyResult(tallyResults)
@@ -192,14 +196,14 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags, passedProposa
 }
 
 func ShouldPopInactiveProposalQueue(ctx sdk.Context, keeper Keeper) bool {
-	depositProcedure := keeper.GetDepositProcedure(ctx)
+	depositParams := keeper.GetDepositParams(ctx)
 	peekProposal := keeper.InactiveProposalQueuePeek(ctx)
 
 	if peekProposal == nil {
 		return false
 	} else if peekProposal.GetStatus() != StatusDepositPeriod {
 		return true
-	} else if !ctx.BlockHeader().Time.Before(peekProposal.GetSubmitTime().Add(depositProcedure.MaxDepositPeriod)) {
+	} else if !ctx.BlockHeader().Time.Before(peekProposal.GetSubmitTime().Add(depositParams.MaxDepositPeriod)) {
 		return true
 	}
 	return false

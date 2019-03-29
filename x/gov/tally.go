@@ -6,11 +6,11 @@ import (
 
 // validatorGovInfo used for tallying
 type validatorGovInfo struct {
-	Address         sdk.ValAddress // address of the validator operator
-	Power           sdk.Dec        // Power of a Validator
-	DelegatorShares sdk.Dec        // Total outstanding delegator shares
-	Minus           sdk.Dec        // Minus of validator, used to compute validator's voting power
-	Vote            VoteOption     // Vote of the validator
+	Address             sdk.ValAddress // address of the validator operator
+	Power               sdk.Dec        // Power of a Validator
+	DelegatorShares     sdk.Dec        // Total outstanding delegator shares
+	DelegatorDeductions sdk.Dec        // Delegator deductions from validator's delegators voting independently
+	Vote                VoteOption     // Vote of the validator
 }
 
 func Tally(ctx sdk.Context, keeper Keeper, proposal Proposal) (passes bool, refundDeposits bool, tallyResults TallyResult) {
@@ -25,11 +25,11 @@ func Tally(ctx sdk.Context, keeper Keeper, proposal Proposal) (passes bool, refu
 
 	keeper.vs.IterateValidatorsBonded(ctx, func(index int64, validator sdk.Validator) (stop bool) {
 		currValidators[validator.GetOperator().String()] = validatorGovInfo{
-			Address:         validator.GetOperator(),
-			Power:           validator.GetPower(),
-			DelegatorShares: validator.GetDelegatorShares(),
-			Minus:           sdk.ZeroDec(),
-			Vote:            OptionEmpty,
+			Address:             validator.GetOperator(),
+			Power:               validator.GetPower(),
+			DelegatorShares:     validator.GetDelegatorShares(),
+			DelegatorDeductions: sdk.ZeroDec(),
+			Vote:                OptionEmpty,
 		}
 		return false
 	})
@@ -53,7 +53,7 @@ func Tally(ctx sdk.Context, keeper Keeper, proposal Proposal) (passes bool, refu
 				valAddrStr := delegation.GetValidatorAddr().String()
 
 				if val, ok := currValidators[valAddrStr]; ok {
-					val.Minus = val.Minus.Add(delegation.GetShares())
+					val.DelegatorDeductions = val.DelegatorDeductions.Add(delegation.GetShares())
 					currValidators[valAddrStr] = val
 
 					delegatorShare := delegation.GetShares().Quo(val.DelegatorShares)
@@ -76,7 +76,7 @@ func Tally(ctx sdk.Context, keeper Keeper, proposal Proposal) (passes bool, refu
 			continue
 		}
 
-		sharesAfterMinus := val.DelegatorShares.Sub(val.Minus)
+		sharesAfterMinus := val.DelegatorShares.Sub(val.DelegatorDeductions)
 		percentAfterMinus := sharesAfterMinus.Quo(val.DelegatorShares)
 		votingPower := val.Power.Mul(percentAfterMinus)
 
@@ -84,7 +84,7 @@ func Tally(ctx sdk.Context, keeper Keeper, proposal Proposal) (passes bool, refu
 		totalVotingPower = totalVotingPower.Add(votingPower)
 	}
 
-	tallyingProcedure := keeper.GetTallyingProcedure(ctx)
+	tallyingParams := keeper.GetTallyParams(ctx)
 	totalPower := keeper.vs.TotalPower(ctx)
 	tallyResults = TallyResult{
 		Yes:        results[OptionYes],
@@ -100,7 +100,7 @@ func Tally(ctx sdk.Context, keeper Keeper, proposal Proposal) (passes bool, refu
 	}
 	// If there is not enough quorum of votes, the proposal fails
 	percentVoting := totalVotingPower.Quo(totalPower)
-	if percentVoting.LT(tallyingProcedure.Quorum) {
+	if percentVoting.LT(tallyingParams.Quorum) {
 		return false, true, tallyResults
 	}
 	// If no one votes, proposal fails
@@ -108,11 +108,11 @@ func Tally(ctx sdk.Context, keeper Keeper, proposal Proposal) (passes bool, refu
 		return false, true, tallyResults
 	}
 	// If more than 1/3 of voters veto, proposal fails
-	if results[OptionNoWithVeto].Quo(totalVotingPower).GT(tallyingProcedure.Veto) {
+	if results[OptionNoWithVeto].Quo(totalVotingPower).GT(tallyingParams.Veto) {
 		return false, false, tallyResults
 	}
 	// If more than 1/2 of non-abstaining voters vote Yes, proposal passes
-	if results[OptionYes].Quo(totalVotingPower.Sub(results[OptionAbstain])).GT(tallyingProcedure.Threshold) {
+	if results[OptionYes].Quo(totalVotingPower.Sub(results[OptionAbstain])).GT(tallyingParams.Threshold) {
 		return true, true, tallyResults
 	}
 	// If more than 1/2 of non-abstaining voters vote No, proposal fails
