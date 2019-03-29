@@ -70,9 +70,6 @@ func (msg MsgSubmitProposal) ValidateBasic() sdk.Error {
 	if !validProposalType(msg.ProposalType) {
 		return ErrInvalidProposalType(DefaultCodespace, msg.ProposalType)
 	}
-	if msg.Proposer.Empty() {
-		return sdk.ErrInvalidAddress("address of proposer should not be empty")
-	}
 	if len(msg.Proposer) != sdk.AddrLen {
 		return sdk.ErrInvalidAddress(fmt.Sprintf("length of address(%s) should be %d", string(msg.Proposer), sdk.AddrLen))
 	}
@@ -138,9 +135,6 @@ func (msg MsgDeposit) Type() string  { return "deposit" }
 
 // Implements Msg.
 func (msg MsgDeposit) ValidateBasic() sdk.Error {
-	if msg.Depositer.Empty() {
-		return sdk.ErrInvalidAddress("address of depositor should not be empty")
-	}
 	if len(msg.Depositer) != sdk.AddrLen {
 		return sdk.ErrInvalidAddress(fmt.Sprintf("length of address(%s) should be %d", string(msg.Depositer), sdk.AddrLen))
 	}
@@ -206,9 +200,6 @@ func (msg MsgVote) Type() string  { return "vote" }
 
 // Implements Msg.
 func (msg MsgVote) ValidateBasic() sdk.Error {
-	if msg.Voter.Empty() {
-		return sdk.ErrInvalidAddress("address of voter should not be empty")
-	}
 	if len(msg.Voter) != sdk.AddrLen {
 		return sdk.ErrInvalidAddress(fmt.Sprintf("length of address(%s) should be %d", string(msg.Voter), sdk.AddrLen))
 	}

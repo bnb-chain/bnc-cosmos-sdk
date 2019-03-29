@@ -532,30 +532,20 @@ func (keeper Keeper) ActiveProposalQueuePop(ctx sdk.Context) Proposal {
 // Add a proposalID to the ProposalQueue sorted by expire time
 func (keeper Keeper) ActiveProposalQueuePush(ctx sdk.Context, proposal Proposal) {
 	proposalQueue := keeper.getActiveProposalQueue(ctx)
-	if len(proposalQueue) == 0 {
-		proposalQueue = append(proposalQueue, proposal.GetProposalID())
-	} else {
-		votingExpireTime := proposal.GetVotingStartTime().Add(proposal.GetVotingPeriod())
 
-		// sort proposal queue by expire time
-		newProposalQueue := make(ProposalQueue, 0, len(proposalQueue)+1)
-		for idx, proposalId := range proposalQueue {
-			tmpProposal := keeper.GetProposal(ctx, proposalId)
-			tmpVotingExpireTime := tmpProposal.GetVotingStartTime().Add(tmpProposal.GetVotingPeriod())
-			if tmpVotingExpireTime.After(votingExpireTime) {
-				newProposalQueue = append(newProposalQueue, proposal.GetProposalID())
-				newProposalQueue = append(newProposalQueue, proposalQueue[idx:]...)
-				break
-			} else {
-				newProposalQueue = append(newProposalQueue, proposalId)
-			}
-		}
-		// insert proposal if there is no proposal in proposal queue which voting expire time after proposal
-		if len(newProposalQueue) == len(proposalQueue) {
-			newProposalQueue = append(newProposalQueue, proposal.GetProposalID())
-		}
+	proposalQueue = append(proposalQueue, proposal.GetProposalID())
 
-		proposalQueue = newProposalQueue
+	votingExpireTime := proposal.GetVotingStartTime().Add(proposal.GetVotingPeriod())
+	// for the original slice is sorted, just use bubble sort here
+	for i := len(proposalQueue) - 2; i >= 0; i-- {
+		tmpProposal := keeper.GetProposal(ctx, proposalQueue[i])
+		tmpVotingExpireTime := tmpProposal.GetVotingStartTime().Add(tmpProposal.GetVotingPeriod())
+
+		if tmpVotingExpireTime.After(votingExpireTime) {
+			proposalQueue[i], proposalQueue[i+1] = proposalQueue[i+1], proposalQueue[i]
+		} else {
+			break
+		}
 	}
 	keeper.setActiveProposalQueue(ctx, proposalQueue)
 }
