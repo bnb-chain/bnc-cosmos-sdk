@@ -1,7 +1,6 @@
 package types
 
 import (
-	"bytes"
 	"fmt"
 	"time"
 
@@ -21,6 +20,7 @@ import (
 // exchange rate. Voting power can be calculated as total bonds multiplied by
 // exchange rate.
 type Validator struct {
+	FeeAddr      sdk.AccAddress `json:"fee_addr"`         // address for fee collection
 	OperatorAddr sdk.ValAddress `json:"operator_address"` // address of the validator's operator; bech encoded in JSON
 	ConsPubKey   crypto.PubKey  `json:"consensus_pubkey"` // the consensus public key of the validator; bech encoded in JSON
 	Jailed       bool           `json:"jailed"`           // has the validator been jailed from bonded status?
@@ -41,7 +41,12 @@ type Validator struct {
 
 // NewValidator - initialize a new validator
 func NewValidator(operator sdk.ValAddress, pubKey crypto.PubKey, description Description) Validator {
+	return NewValidatorWithFeeAddr(sdk.AccAddress(operator), operator, pubKey, description)
+}
+
+func NewValidatorWithFeeAddr(feeAddr sdk.AccAddress, operator sdk.ValAddress, pubKey crypto.PubKey, description Description) Validator {
 	return Validator{
+		FeeAddr:            feeAddr,
 		OperatorAddr:       operator,
 		ConsPubKey:         pubKey,
 		Jailed:             false,
@@ -59,6 +64,7 @@ func NewValidator(operator sdk.ValAddress, pubKey crypto.PubKey, description Des
 
 // what's kept in the store value
 type validatorValue struct {
+	FeeAddr            sdk.AccAddress
 	ConsPubKey         crypto.PubKey
 	Jailed             bool
 	Status             sdk.BondStatus
@@ -75,6 +81,7 @@ type validatorValue struct {
 // return the redelegation without fields contained within the key for the store
 func MustMarshalValidator(cdc *codec.Codec, validator Validator) []byte {
 	val := validatorValue{
+		FeeAddr:            validator.FeeAddr,
 		ConsPubKey:         validator.ConsPubKey,
 		Jailed:             validator.Jailed,
 		Status:             validator.Status,
@@ -112,6 +119,7 @@ func UnmarshalValidator(cdc *codec.Codec, operatorAddr, value []byte) (validator
 	}
 
 	return Validator{
+		FeeAddr:            storeValue.FeeAddr,
 		OperatorAddr:       operatorAddr,
 		ConsPubKey:         storeValue.ConsPubKey,
 		Jailed:             storeValue.Jailed,
@@ -137,6 +145,7 @@ func (v Validator) HumanReadableString() (string, error) {
 	}
 
 	resp := "Validator \n"
+	resp += fmt.Sprintf("Fee Address: %s\n", v.FeeAddr)
 	resp += fmt.Sprintf("Operator Address: %s\n", v.OperatorAddr)
 	resp += fmt.Sprintf("Validator Consensus Pubkey: %s\n", bechConsPubKey)
 	resp += fmt.Sprintf("Jailed: %v\n", v.Jailed)
@@ -156,6 +165,7 @@ func (v Validator) HumanReadableString() (string, error) {
 
 // this is a helper struct used for JSON de- and encoding only
 type bechValidator struct {
+	FeeAddr      sdk.AccAddress `json:"fee_addr"`         // the bech32 address for fee collection
 	OperatorAddr sdk.ValAddress `json:"operator_address"` // the bech32 address of the validator's operator
 	ConsPubKey   string         `json:"consensus_pubkey"` // the bech32 consensus public key of the validator
 	Jailed       bool           `json:"jailed"`           // has the validator been jailed from bonded status?
@@ -182,6 +192,7 @@ func (v Validator) MarshalJSON() ([]byte, error) {
 	}
 
 	return codec.Cdc.MarshalJSON(bechValidator{
+		FeeAddr:            v.FeeAddr,
 		OperatorAddr:       v.OperatorAddr,
 		ConsPubKey:         bechConsPubKey,
 		Jailed:             v.Jailed,
@@ -208,6 +219,7 @@ func (v *Validator) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	*v = Validator{
+		FeeAddr:            bv.FeeAddr,
 		OperatorAddr:       bv.OperatorAddr,
 		ConsPubKey:         consPubKey,
 		Jailed:             bv.Jailed,
@@ -228,8 +240,9 @@ func (v *Validator) UnmarshalJSON(data []byte) error {
 
 // only the vitals - does not check bond height of IntraTxCounter
 func (v Validator) Equal(v2 Validator) bool {
-	return v.ConsPubKey.Equals(v2.ConsPubKey) &&
-		bytes.Equal(v.OperatorAddr, v2.OperatorAddr) &&
+	return v.FeeAddr.Equals(v2.FeeAddr) &&
+		v.ConsPubKey.Equals(v2.ConsPubKey) &&
+		v.OperatorAddr.Equals(v2.OperatorAddr) &&
 		v.Status.Equal(v2.Status) &&
 		v.Tokens.Equal(v2.Tokens) &&
 		v.DelegatorShares.Equal(v2.DelegatorShares) &&
@@ -445,6 +458,7 @@ var _ sdk.Validator = Validator{}
 func (v Validator) GetJailed() bool              { return v.Jailed }
 func (v Validator) GetMoniker() string           { return v.Description.Moniker }
 func (v Validator) GetStatus() sdk.BondStatus    { return v.Status }
+func (v Validator) GetFeeAddr() sdk.AccAddress   { return v.FeeAddr }
 func (v Validator) GetOperator() sdk.ValAddress  { return v.OperatorAddr }
 func (v Validator) GetConsPubKey() crypto.PubKey { return v.ConsPubKey }
 func (v Validator) GetConsAddr() sdk.ConsAddress { return sdk.ConsAddress(v.ConsPubKey.Address()) }
