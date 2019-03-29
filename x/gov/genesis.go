@@ -12,16 +12,16 @@ const (
 
 // GenesisState - all staking state that must be provided at genesis
 type GenesisState struct {
-	StartingProposalID int64             `json:"starting_proposalID"`
-	DepositProcedure   DepositProcedure  `json:"deposit_period"`
-	TallyingProcedure  TallyingProcedure `json:"tallying_procedure"`
+	StartingProposalID int64         `json:"starting_proposalID"`
+	DepositParams      DepositParams `json:"deposit_params"`
+	TallyParams        TallyParams   `json:"tally_params"`
 }
 
-func NewGenesisState(startingProposalID int64, dp DepositProcedure, tp TallyingProcedure) GenesisState {
+func NewGenesisState(startingProposalID int64, dp DepositParams, tp TallyParams) GenesisState {
 	return GenesisState{
 		StartingProposalID: startingProposalID,
-		DepositProcedure:   dp,
-		TallyingProcedure:  tp,
+		DepositParams:      dp,
+		TallyParams:        tp,
 	}
 }
 
@@ -29,11 +29,11 @@ func NewGenesisState(startingProposalID int64, dp DepositProcedure, tp TallyingP
 func DefaultGenesisState() GenesisState {
 	return GenesisState{
 		StartingProposalID: 1,
-		DepositProcedure: DepositProcedure{
+		DepositParams: DepositParams{
 			MinDeposit:       sdk.Coins{sdk.NewCoin(DefaultDepositDenom, 2000e8)},
 			MaxDepositPeriod: time.Duration(2*24) * time.Hour, // 2 days
 		},
-		TallyingProcedure: TallyingProcedure{
+		TallyParams: TallyParams{
 			Quorum:    sdk.NewDecWithPrec(5, 1),
 			Threshold: sdk.NewDecWithPrec(5, 1),
 			Veto:      sdk.NewDecWithPrec(334, 3),
@@ -48,8 +48,8 @@ func InitGenesis(ctx sdk.Context, k Keeper, data GenesisState) {
 		// TODO: Handle this with #870
 		panic(err)
 	}
-	k.setDepositProcedure(ctx, data.DepositProcedure)
-	k.setTallyingProcedure(ctx, data.TallyingProcedure)
+	k.setDepositProcedure(ctx, data.DepositParams)
+	k.setTallyingProcedure(ctx, data.TallyParams)
 }
 
 // WriteGenesis - output genesis parameters
@@ -60,7 +60,7 @@ func WriteGenesis(ctx sdk.Context, k Keeper) GenesisState {
 
 	return GenesisState{
 		StartingProposalID: startingProposalID,
-		DepositProcedure:   depositProcedure,
-		TallyingProcedure:  tallyingProcedure,
+		DepositParams:      depositProcedure,
+		TallyParams:        tallyingProcedure,
 	}
 }

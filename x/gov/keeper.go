@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/tendermint/tendermint/crypto"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/bank"
@@ -14,7 +12,7 @@ import (
 
 // Parameter store default namestore
 const (
-	DefaultParamspace = "gov"
+	DefaultParamSpace = "gov"
 )
 
 // Parameter store key
@@ -22,14 +20,14 @@ var (
 	ParamStoreKeyDepositProcedure  = []byte("depositprocedure")
 	ParamStoreKeyTallyingProcedure = []byte("tallyingprocedure")
 
-	DepositedCoinsAccAddr = sdk.AccAddress(crypto.AddressHash([]byte("00000000000000000000")))
+	DepositedCoinsAccAddr = sdk.AccAddress{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 )
 
 // Type declaration for parameters
 func ParamTypeTable() params.TypeTable {
 	return params.NewTypeTable(
-		ParamStoreKeyDepositProcedure, DepositProcedure{},
-		ParamStoreKeyTallyingProcedure, TallyingProcedure{},
+		ParamStoreKeyDepositProcedure, DepositParams{},
+		ParamStoreKeyTallyingProcedure, TallyParams{},
 	)
 }
 
@@ -277,27 +275,27 @@ func (keeper Keeper) ActivateVotingPeriod(ctx sdk.Context, proposal Proposal) {
 
 // Returns the current Deposit Procedure from the global param store
 // nolint: errcheck
-func (keeper Keeper) GetDepositProcedure(ctx sdk.Context) DepositProcedure {
-	var depositProcedure DepositProcedure
+func (keeper Keeper) GetDepositProcedure(ctx sdk.Context) DepositParams {
+	var depositProcedure DepositParams
 	keeper.paramSpace.Get(ctx, ParamStoreKeyDepositProcedure, &depositProcedure)
 	return depositProcedure
 }
 
 // Returns the current Tallying Procedure from the global param store
 // nolint: errcheck
-func (keeper Keeper) GetTallyingProcedure(ctx sdk.Context) TallyingProcedure {
-	var tallyingProcedure TallyingProcedure
+func (keeper Keeper) GetTallyingProcedure(ctx sdk.Context) TallyParams {
+	var tallyingProcedure TallyParams
 	keeper.paramSpace.Get(ctx, ParamStoreKeyTallyingProcedure, &tallyingProcedure)
 	return tallyingProcedure
 }
 
 // nolint: errcheck
-func (keeper Keeper) setDepositProcedure(ctx sdk.Context, depositProcedure DepositProcedure) {
+func (keeper Keeper) setDepositProcedure(ctx sdk.Context, depositProcedure DepositParams) {
 	keeper.paramSpace.Set(ctx, ParamStoreKeyDepositProcedure, &depositProcedure)
 }
 
 // nolint: errcheck
-func (keeper Keeper) setTallyingProcedure(ctx sdk.Context, tallyingProcedure TallyingProcedure) {
+func (keeper Keeper) setTallyingProcedure(ctx sdk.Context, tallyingProcedure TallyParams) {
 	keeper.paramSpace.Set(ctx, ParamStoreKeyTallyingProcedure, &tallyingProcedure)
 }
 
