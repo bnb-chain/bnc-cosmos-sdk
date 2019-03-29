@@ -39,6 +39,9 @@ type Proposal interface {
 
 	GetVotingStartTime() time.Time
 	SetVotingStartTime(time.Time)
+
+	GetVotingPeriod() time.Duration
+	SetVotingPeriod(time.Duration)
 }
 
 // checks if two proposals are equal
@@ -51,7 +54,8 @@ func ProposalEqual(proposalA Proposal, proposalB Proposal) bool {
 		proposalA.GetTallyResult().Equals(proposalB.GetTallyResult()) &&
 		proposalA.GetSubmitTime().Equal(proposalB.GetSubmitTime()) &&
 		proposalA.GetTotalDeposit().IsEqual(proposalB.GetTotalDeposit()) &&
-		proposalA.GetVotingStartTime().Equal(proposalB.GetVotingStartTime()) {
+		proposalA.GetVotingStartTime().Equal(proposalB.GetVotingStartTime()) &&
+		proposalA.GetVotingPeriod() == proposalB.GetVotingPeriod() {
 		return true
 	}
 	return false
@@ -60,10 +64,11 @@ func ProposalEqual(proposalA Proposal, proposalB Proposal) bool {
 //-----------------------------------------------------------
 // Text Proposals
 type TextProposal struct {
-	ProposalID   int64        `json:"proposal_id"`   //  ID of the proposal
-	Title        string       `json:"title"`         //  Title of the proposal
-	Description  string       `json:"description"`   //  Description of the proposal
-	ProposalType ProposalKind `json:"proposal_type"` //  Type of proposal. Initial set {PlainTextProposal, SoftwareUpgradeProposal}
+	ProposalID   int64         `json:"proposal_id"`   //  ID of the proposal
+	Title        string        `json:"title"`         //  Title of the proposal
+	Description  string        `json:"description"`   //  Description of the proposal
+	ProposalType ProposalKind  `json:"proposal_type"` //  Type of proposal. Initial set {PlainTextProposal, SoftwareUpgradeProposal}
+	VotingPeriod time.Duration `json:"voting_period"` //  Length of the voting period
 
 	Status      ProposalStatus `json:"proposal_status"` //  Status of the Proposal {Pending, Active, Passed, Rejected}
 	TallyResult TallyResult    `json:"tally_result"`    //  Result of Tallys
@@ -98,6 +103,10 @@ func (tp TextProposal) GetVotingStartTime() time.Time              { return tp.V
 func (tp *TextProposal) SetVotingStartTime(votingStartTime time.Time) {
 	tp.VotingStartTime = votingStartTime
 }
+func (tp TextProposal) GetVotingPeriod() time.Duration { return tp.VotingPeriod }
+func (tp *TextProposal) SetVotingPeriod(votingPeriod time.Duration) {
+	tp.VotingPeriod = votingPeriod
+}
 
 //-----------------------------------------------------------
 // ProposalQueue
@@ -117,7 +126,7 @@ const (
 	ProposalTypeSoftwareUpgrade ProposalKind = 0x03
 	ProposalTypeListTradingPair ProposalKind = 0x04
 	// ProposalTypeFeeChange belongs to ProposalTypeParameterChange. We use this to make it easily to distinguish。
-	ProposalTypeFeeChange ProposalKind = 0x05
+	ProposalTypeFeeChange       ProposalKind = 0x05
 	ProposalTypeCreateValidator ProposalKind = 0x06
 	ProposalTypeRemoveValidator ProposalKind = 0x07
 )
@@ -335,6 +344,7 @@ type TallyResult struct {
 	Abstain    sdk.Dec `json:"abstain"`
 	No         sdk.Dec `json:"no"`
 	NoWithVeto sdk.Dec `json:"no_with_veto"`
+	Total      sdk.Dec `json:"total"`
 }
 
 // checks if two proposals are equal
@@ -344,13 +354,15 @@ func EmptyTallyResult() TallyResult {
 		Abstain:    sdk.ZeroDec(),
 		No:         sdk.ZeroDec(),
 		NoWithVeto: sdk.ZeroDec(),
+		Total:      sdk.ZeroDec(),
 	}
 }
 
 // checks if two proposals are equal
 func (resultA TallyResult) Equals(resultB TallyResult) bool {
 	return resultA.Yes.Equal(resultB.Yes) &&
-			resultA.Abstain.Equal(resultB.Abstain) &&
-			resultA.No.Equal(resultB.No) &&
-			resultA.NoWithVeto.Equal(resultB.NoWithVeto)
+		resultA.Abstain.Equal(resultB.Abstain) &&
+		resultA.No.Equal(resultB.No) &&
+		resultA.NoWithVeto.Equal(resultB.NoWithVeto) &&
+		resultA.Total.Equal(resultB.Total)
 }

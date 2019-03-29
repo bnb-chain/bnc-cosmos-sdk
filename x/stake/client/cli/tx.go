@@ -2,7 +2,10 @@ package cli
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"time"
+
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/utils"
@@ -110,17 +113,29 @@ func GetCmdCreateValidator(cdc *codec.Codec) *cobra.Command {
 				if err != nil {
 					return err
 				}
-				title := "create validator"
+				title := fmt.Sprintf("create validator %s", valAddr.String())
+
 				description, err := json.Marshal(msg)
 				if err != nil {
 					return err
 				}
+				votingPeriodInSeconds := viper.GetInt64(FlagVotingPeriod)
+
+				if votingPeriodInSeconds <= 0 {
+					return errors.New("voting period should be positive")
+				}
+
+				votingPeriod := time.Duration(votingPeriodInSeconds) * time.Second
+				if votingPeriod > gov.MaxVotingPeriod {
+					return errors.New(fmt.Sprintf("voting period should be less than %d seconds", gov.MaxVotingPeriod/time.Second))
+				}
+
 				msg = gov.NewMsgSubmitProposal(title, string(description),
-					gov.ProposalTypeCreateValidator, valAddr, sdk.Coins{deposit})
+					gov.ProposalTypeCreateValidator, valAddr, sdk.Coins{deposit}, votingPeriod)
 			} else {
-			    msg = stake.MsgCreateValidatorProposal{
-			    	MsgCreateValidator: msg.(stake.MsgCreateValidator),
-			    	ProposalId: proposalId,
+				msg = stake.MsgCreateValidatorProposal{
+					MsgCreateValidator: msg.(stake.MsgCreateValidator),
+					ProposalId:         proposalId,
 				}
 			}
 			// build and sign the transaction, then broadcast to Tendermint
@@ -129,6 +144,7 @@ func GetCmdCreateValidator(cdc *codec.Codec) *cobra.Command {
 	}
 
 	cmd.Flags().Int64(FlagProposalID, 0, "id of the CreateValidator proposal")
+	cmd.Flags().Int64(FlagVotingPeriod, 7*24*60*60, "voting period in seconds")
 	cmd.Flags().AddFlagSet(fsPk)
 	cmd.Flags().AddFlagSet(fsAmount)
 	cmd.Flags().String(FlagDeposit, "", "deposit token amount")
@@ -185,8 +201,18 @@ func GetCmdRemoveValidator(cdc *codec.Codec) *cobra.Command {
 				if err != nil {
 					return err
 				}
+
+				votingPeriodInSeconds := viper.GetInt64(FlagVotingPeriod)
+				if votingPeriodInSeconds <= 0 {
+					return errors.New("voting period should be positive")
+				}
+				votingPeriod := time.Duration(votingPeriodInSeconds) * time.Second
+				if votingPeriod > gov.MaxVotingPeriod {
+					return errors.New(fmt.Sprintf("voting period should be less than %d seconds", gov.MaxVotingPeriod/time.Second))
+				}
+
 				msg = gov.NewMsgSubmitProposal(title, string(description),
-					gov.ProposalTypeRemoveValidator, launcher, sdk.Coins{deposit})
+					gov.ProposalTypeRemoveValidator, launcher, sdk.Coins{deposit}, votingPeriod)
 			}
 
 			if cliCtx.GenerateOnly {
@@ -198,6 +224,7 @@ func GetCmdRemoveValidator(cdc *codec.Codec) *cobra.Command {
 	}
 
 	cmd.Flags().Int64(FlagProposalID, 0, "id of the remove validator proposal")
+	cmd.Flags().Int64(FlagVotingPeriod, 7*24*60*60, "voting period in seconds")
 	cmd.Flags().String(FlagAddressValidator, "", "validator address")
 	cmd.Flags().String(FlagConsAddrValidator, "", "validator consensus address")
 	cmd.Flags().String(FlagDeposit, "", "deposit token amount")

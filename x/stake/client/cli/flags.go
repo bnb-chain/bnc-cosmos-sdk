@@ -33,6 +33,7 @@ const (
 	FlagProposalID        = "proposal-id"
 	FlagConsAddrValidator = "cons-addr-validator"
 	FlagDeposit           = "deposit"
+	FlagVotingPeriod      = "voting-period"
 
 	FlagOutputDocument = "output-document" // inspired by wget -O
 )

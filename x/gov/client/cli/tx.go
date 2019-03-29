@@ -26,6 +26,7 @@ const (
 	flagTitle             = "title"
 	flagDescription       = "description"
 	flagProposalType      = "type"
+	flagVotingPeriod      = "voting-period"
 	flagDeposit           = "deposit"
 	flagVoter             = "voter"
 	flagOption            = "option"
@@ -40,15 +41,17 @@ const (
 )
 
 type proposal struct {
-	Title       string
-	Description string
-	Type        string
-	Deposit     string
+	Title        string `json:"title"`
+	Description  string `json:"description"`
+	VotingPeriod int64  `json:"voting_period"`
+	Type         string `json:"type"`
+	Deposit      string `json:"deposit"`
 }
 
 var proposalFlags = []string{
 	flagTitle,
 	flagDescription,
+	flagVotingPeriod,
 	flagProposalType,
 	flagDeposit,
 }
@@ -68,13 +71,14 @@ where proposal.json contains:
 {
   "title": "Test Proposal",
   "description": "My awesome proposal",
+  "voting_period": 1000,
   "type": "Text",
   "deposit": "1000:test"
 }
 
 is equivalent to
 
-$ CLI gov submit-proposal --title="Test Proposal" --description="My awesome proposal" --type="Text" --deposit="1000:test"
+$ CLI gov submit-proposal --title="Test Proposal" --description="My awesome proposal" --type="Text" --deposit="1000:test" --voting-period=1000
 `),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			proposal, err := parseSubmitProposalFlags()
@@ -99,6 +103,15 @@ $ CLI gov submit-proposal --title="Test Proposal" --description="My awesome prop
 				WithCodec(cdc).
 				WithAccountDecoder(authcmd.GetAccountDecoder(cdc))
 
+			if proposal.VotingPeriod <= 0 {
+				return errors.New("voting period should be positive")
+			}
+
+			votingPeriod := time.Duration(proposal.VotingPeriod) * time.Second
+			if votingPeriod > gov.MaxVotingPeriod {
+				return errors.New(fmt.Sprintf("voting period should be less than %d seconds", gov.MaxVotingPeriod/time.Second))
+			}
+
 			fromAddr, err := cliCtx.GetFromAddress()
 			if err != nil {
 				return err
@@ -114,7 +127,7 @@ $ CLI gov submit-proposal --title="Test Proposal" --description="My awesome prop
 				return err
 			}
 
-			msg := gov.NewMsgSubmitProposal(proposal.Title, proposal.Description, proposalType, fromAddr, amount)
+			msg := gov.NewMsgSubmitProposal(proposal.Title, proposal.Description, proposalType, fromAddr, amount, votingPeriod)
 			err = msg.ValidateBasic()
 			if err != nil {
 				return err
@@ -133,6 +146,7 @@ $ CLI gov submit-proposal --title="Test Proposal" --description="My awesome prop
 
 	cmd.Flags().String(flagTitle, "", "title of proposal")
 	cmd.Flags().String(flagDescription, "", "description of proposal")
+	cmd.Flags().Int64(flagVotingPeriod, 7*24*60*60, "voting period in seconds")
 	cmd.Flags().String(flagProposalType, "", "proposalType of proposal, types: text/parameter_change/software_upgrade")
 	cmd.Flags().String(flagDeposit, "", "deposit of proposal")
 	cmd.Flags().String(flagProposal, "", "proposal file path (if this path is given, other proposal flags are ignored)")
@@ -147,6 +161,7 @@ func parseSubmitProposalFlags() (*proposal, error) {
 	if proposalFile == "" {
 		proposal.Title = viper.GetString(flagTitle)
 		proposal.Description = viper.GetString(flagDescription)
+		proposal.VotingPeriod = viper.GetInt64(flagVotingPeriod)
 		proposal.Type = client.NormalizeProposalType(viper.GetString(flagProposalType))
 		proposal.Deposit = viper.GetString(flagDeposit)
 		return proposal, nil
@@ -571,6 +586,7 @@ func GetCmdSubmitListProposal(cdc *codec.Codec) *cobra.Command {
 			quoteAsset := viper.GetString(flagQuoteAsset)
 			initPrice := viper.GetInt64(flagInitPrice)
 			expireTimestamp := viper.GetInt64(flagExpireTime)
+			votingPeriodInSeconds := viper.GetInt64(flagVotingPeriod)
 
 			if title == "" {
 				return errors.New("Title should not be empty")
@@ -597,6 +613,15 @@ func GetCmdSubmitListProposal(cdc *codec.Codec) *cobra.Command {
 				return errors.New("expire time should after now")
 			}
 
+			if votingPeriodInSeconds <= 0 {
+				return errors.New("voting period should be positive")
+			}
+
+			votingPeriod := time.Duration(votingPeriodInSeconds) * time.Second
+			if votingPeriod > gov.MaxVotingPeriod {
+				return errors.New(fmt.Sprintf("voting period should be less than %d seconds", gov.MaxVotingPeriod/time.Second))
+			}
+
 			fromAddr, err := cliCtx.GetFromAddress()
 			if err != nil {
 				return err
@@ -619,7 +644,7 @@ func GetCmdSubmitListProposal(cdc *codec.Codec) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			msg := gov.NewMsgSubmitProposal(title, string(listParamsBz), gov.ProposalTypeListTradingPair, fromAddr, amount)
+			msg := gov.NewMsgSubmitProposal(title, string(listParamsBz), gov.ProposalTypeListTradingPair, fromAddr, amount, votingPeriod)
 
 			err = msg.ValidateBasic()
 			if err != nil {
@@ -633,6 +658,7 @@ func GetCmdSubmitListProposal(cdc *codec.Codec) *cobra.Command {
 
 	cmd.Flags().String(flagTitle, "", "title of proposal")
 	cmd.Flags().String(flagDescription, "", "description of proposal")
+	cmd.Flags().Int64(flagVotingPeriod, 7*24*60*60, "voting period in seconds")
 	cmd.Flags().String(flagDeposit, "", "deposit of proposal")
 	cmd.Flags().String(flagBaseAsset, "", "base asset symbol")
 	cmd.Flags().String(flagQuoteAsset, "", "quote asset symbol")

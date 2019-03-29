@@ -14,15 +14,13 @@ const (
 type GenesisState struct {
 	StartingProposalID int64             `json:"starting_proposalID"`
 	DepositProcedure   DepositProcedure  `json:"deposit_period"`
-	VotingProcedure    VotingProcedure   `json:"voting_period"`
 	TallyingProcedure  TallyingProcedure `json:"tallying_procedure"`
 }
 
-func NewGenesisState(startingProposalID int64, dp DepositProcedure, vp VotingProcedure, tp TallyingProcedure) GenesisState {
+func NewGenesisState(startingProposalID int64, dp DepositProcedure, tp TallyingProcedure) GenesisState {
 	return GenesisState{
 		StartingProposalID: startingProposalID,
 		DepositProcedure:   dp,
-		VotingProcedure:    vp,
 		TallyingProcedure:  tp,
 	}
 }
@@ -33,15 +31,12 @@ func DefaultGenesisState() GenesisState {
 		StartingProposalID: 1,
 		DepositProcedure: DepositProcedure{
 			MinDeposit:       sdk.Coins{sdk.NewCoin(DefaultDepositDenom, 2000e8)},
-			MaxDepositPeriod: time.Duration(2*7*24) * time.Hour, // 2 weeks
-		},
-		VotingProcedure: VotingProcedure{
-			VotingPeriod: time.Duration(2*7*24) * time.Hour, // 2 weeks
+			MaxDepositPeriod: time.Duration(2*24) * time.Hour, // 2 days
 		},
 		TallyingProcedure: TallyingProcedure{
-			Threshold:         sdk.NewDecWithPrec(5, 1),
-			Veto:              sdk.NewDecWithPrec(334, 3),
-			GovernancePenalty: sdk.NewDecWithPrec(1, 2),
+			Quorum:    sdk.NewDecWithPrec(5, 1),
+			Threshold: sdk.NewDecWithPrec(5, 1),
+			Veto:      sdk.NewDecWithPrec(334, 3),
 		},
 	}
 }
@@ -54,7 +49,6 @@ func InitGenesis(ctx sdk.Context, k Keeper, data GenesisState) {
 		panic(err)
 	}
 	k.setDepositProcedure(ctx, data.DepositProcedure)
-	k.setVotingProcedure(ctx, data.VotingProcedure)
 	k.setTallyingProcedure(ctx, data.TallyingProcedure)
 }
 
@@ -62,13 +56,11 @@ func InitGenesis(ctx sdk.Context, k Keeper, data GenesisState) {
 func WriteGenesis(ctx sdk.Context, k Keeper) GenesisState {
 	startingProposalID, _ := k.getNewProposalID(ctx)
 	depositProcedure := k.GetDepositProcedure(ctx)
-	votingProcedure := k.GetVotingProcedure(ctx)
 	tallyingProcedure := k.GetTallyingProcedure(ctx)
 
 	return GenesisState{
 		StartingProposalID: startingProposalID,
 		DepositProcedure:   depositProcedure,
-		VotingProcedure:    votingProcedure,
 		TallyingProcedure:  tallyingProcedure,
 	}
 }

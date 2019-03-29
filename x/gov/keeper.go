@@ -2,6 +2,7 @@ package gov
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -17,7 +18,6 @@ const (
 // Parameter store key
 var (
 	ParamStoreKeyDepositProcedure  = []byte("depositprocedure")
-	ParamStoreKeyVotingProcedure   = []byte("votingprocedure")
 	ParamStoreKeyTallyingProcedure = []byte("tallyingprocedure")
 )
 
@@ -25,7 +25,6 @@ var (
 func ParamTypeTable() params.TypeTable {
 	return params.NewTypeTable(
 		ParamStoreKeyDepositProcedure, DepositProcedure{},
-		ParamStoreKeyVotingProcedure, VotingProcedure{},
 		ParamStoreKeyTallyingProcedure, TallyingProcedure{},
 	)
 }
@@ -98,7 +97,7 @@ func (keeper Keeper) AddHooks(proposalType ProposalKind, hooks GovHooks) Keeper 
 // Proposals
 
 // Creates a NewProposal
-func (keeper Keeper) NewTextProposal(ctx sdk.Context, title string, description string, proposalType ProposalKind) Proposal {
+func (keeper Keeper) NewTextProposal(ctx sdk.Context, title string, description string, proposalType ProposalKind, votingPeriod time.Duration) Proposal {
 	proposalID, err := keeper.getNewProposalID(ctx)
 	if err != nil {
 		return nil
@@ -108,6 +107,7 @@ func (keeper Keeper) NewTextProposal(ctx sdk.Context, title string, description 
 		Title:        title,
 		Description:  description,
 		ProposalType: proposalType,
+		VotingPeriod: votingPeriod,
 		Status:       StatusDepositPeriod,
 		TallyResult:  EmptyTallyResult(),
 		TotalDeposit: sdk.Coins{},
@@ -279,14 +279,6 @@ func (keeper Keeper) GetDepositProcedure(ctx sdk.Context) DepositProcedure {
 	return depositProcedure
 }
 
-// Returns the current Voting Procedure from the global param store
-// nolint: errcheck
-func (keeper Keeper) GetVotingProcedure(ctx sdk.Context) VotingProcedure {
-	var votingProcedure VotingProcedure
-	keeper.paramSpace.Get(ctx, ParamStoreKeyVotingProcedure, &votingProcedure)
-	return votingProcedure
-}
-
 // Returns the current Tallying Procedure from the global param store
 // nolint: errcheck
 func (keeper Keeper) GetTallyingProcedure(ctx sdk.Context) TallyingProcedure {
@@ -298,11 +290,6 @@ func (keeper Keeper) GetTallyingProcedure(ctx sdk.Context) TallyingProcedure {
 // nolint: errcheck
 func (keeper Keeper) setDepositProcedure(ctx sdk.Context, depositProcedure DepositProcedure) {
 	keeper.paramSpace.Set(ctx, ParamStoreKeyDepositProcedure, &depositProcedure)
-}
-
-// nolint: errcheck
-func (keeper Keeper) setVotingProcedure(ctx sdk.Context, votingProcedure VotingProcedure) {
-	keeper.paramSpace.Set(ctx, ParamStoreKeyVotingProcedure, &votingProcedure)
 }
 
 // nolint: errcheck
@@ -542,9 +529,34 @@ func (keeper Keeper) ActiveProposalQueuePop(ctx sdk.Context) Proposal {
 	return keeper.GetProposal(ctx, frontElement)
 }
 
-// Add a proposalID to the back of the ProposalQueue
+// Add a proposalID to the ProposalQueue sorted by expire time
 func (keeper Keeper) ActiveProposalQueuePush(ctx sdk.Context, proposal Proposal) {
-	proposalQueue := append(keeper.getActiveProposalQueue(ctx), proposal.GetProposalID())
+	proposalQueue := keeper.getActiveProposalQueue(ctx)
+	if len(proposalQueue) == 0 {
+		proposalQueue = append(proposalQueue, proposal.GetProposalID())
+	} else {
+		votingExpireTime := proposal.GetVotingStartTime().Add(proposal.GetVotingPeriod())
+
+		// sort proposal queue by expire time
+		newProposalQueue := make(ProposalQueue, 0, len(proposalQueue)+1)
+		for idx, proposalId := range proposalQueue {
+			tmpProposal := keeper.GetProposal(ctx, proposalId)
+			tmpVotingExpireTime := tmpProposal.GetVotingStartTime().Add(tmpProposal.GetVotingPeriod())
+			if tmpVotingExpireTime.After(votingExpireTime) {
+				newProposalQueue = append(newProposalQueue, proposal.GetProposalID())
+				newProposalQueue = append(newProposalQueue, proposalQueue[idx:]...)
+				break
+			} else {
+				newProposalQueue = append(newProposalQueue, proposalId)
+			}
+		}
+		// insert proposal if there is no proposal in proposal queue which voting expire time after proposal
+		if len(newProposalQueue) == len(proposalQueue) {
+			newProposalQueue = append(newProposalQueue, proposal.GetProposalID())
+		}
+
+		proposalQueue = newProposalQueue
+	}
 	keeper.setActiveProposalQueue(ctx, proposalQueue)
 }
 

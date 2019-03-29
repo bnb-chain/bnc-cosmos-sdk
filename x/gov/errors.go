@@ -3,6 +3,7 @@ package gov
 
 import (
 	"fmt"
+	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -22,6 +23,7 @@ const (
 	CodeInvalidGenesis          sdk.CodeType = 10
 	CodeInvalidProposalStatus   sdk.CodeType = 11
 	CodeInvalidProposal         sdk.CodeType = 12
+	CodeInvalidVotingPeriod     sdk.CodeType = 13
 )
 
 //----------------------------------------
@@ -69,4 +71,8 @@ func ErrInvalidVote(codespace sdk.CodespaceType, voteOption VoteOption) sdk.Erro
 
 func ErrInvalidGenesis(codespace sdk.CodespaceType, msg string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidVote, msg)
+}
+
+func ErrInvalidVotingPeriod(codespace sdk.CodespaceType, votingPeriod time.Duration) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidVotingPeriod, fmt.Sprintf("Voting period '%d' should larger than 0 and less than %s", votingPeriod, MaxVotingPeriod))
 }

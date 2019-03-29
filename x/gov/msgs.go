@@ -7,12 +7,13 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-// name to idetify transaction types
+// name to identify transaction types
 const (
 	MsgRoute = "gov"
 
 	MaxTitleLength           = 128
 	MaxDescriptionLength int = 2048
+	MaxVotingPeriod          = 2 * 7 * 24 * 60 * 60 * time.Second // 2 weeks
 )
 
 var _, _, _ sdk.Msg = MsgSubmitProposal{}, MsgDeposit{}, MsgVote{}
@@ -34,15 +35,17 @@ type MsgSubmitProposal struct {
 	ProposalType   ProposalKind   `json:"proposal_type"`   //  Type of proposal. Initial set {PlainTextProposal, SoftwareUpgradeProposal}
 	Proposer       sdk.AccAddress `json:"proposer"`        //  Address of the proposer
 	InitialDeposit sdk.Coins      `json:"initial_deposit"` //  Initial deposit paid by sender. Must be strictly positive.
+	VotingPeriod   time.Duration  `json:"voting_period"`   //  Length of the voting period (s)
 }
 
-func NewMsgSubmitProposal(title string, description string, proposalType ProposalKind, proposer sdk.AccAddress, initialDeposit sdk.Coins) MsgSubmitProposal {
+func NewMsgSubmitProposal(title string, description string, proposalType ProposalKind, proposer sdk.AccAddress, initialDeposit sdk.Coins, votingPeriod time.Duration) MsgSubmitProposal {
 	return MsgSubmitProposal{
 		Title:          title,
 		Description:    description,
 		ProposalType:   proposalType,
 		Proposer:       proposer,
 		InitialDeposit: initialDeposit,
+		VotingPeriod:   votingPeriod,
 	}
 }
 
@@ -67,8 +70,8 @@ func (msg MsgSubmitProposal) ValidateBasic() sdk.Error {
 	if !validProposalType(msg.ProposalType) {
 		return ErrInvalidProposalType(DefaultCodespace, msg.ProposalType)
 	}
-	if len(msg.Proposer) == 0 {
-		return sdk.ErrInvalidAddress(msg.Proposer.String())
+	if len(msg.Proposer) != sdk.AddrLen {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("length of address(%s) should be %d", string(msg.Proposer), sdk.AddrLen))
 	}
 	if !msg.InitialDeposit.IsValid() {
 		return sdk.ErrInvalidCoins(msg.InitialDeposit.String())
@@ -76,11 +79,14 @@ func (msg MsgSubmitProposal) ValidateBasic() sdk.Error {
 	if !msg.InitialDeposit.IsNotNegative() {
 		return sdk.ErrInvalidCoins(msg.InitialDeposit.String())
 	}
+	if msg.VotingPeriod <= 0 || msg.VotingPeriod > MaxVotingPeriod {
+		return ErrInvalidVotingPeriod(DefaultCodespace, msg.VotingPeriod)
+	}
 	return nil
 }
 
 func (msg MsgSubmitProposal) String() string {
-	return fmt.Sprintf("MsgSubmitProposal{%s, %s, %s, %v}", msg.Title, msg.Description, msg.ProposalType, msg.InitialDeposit)
+	return fmt.Sprintf("MsgSubmitProposal{%s, %s, %s, %v, %s}", msg.Title, msg.Description, msg.ProposalType, msg.InitialDeposit, msg.VotingPeriod)
 }
 
 // Implements Msg.
@@ -129,8 +135,8 @@ func (msg MsgDeposit) Type() string  { return "deposit" }
 
 // Implements Msg.
 func (msg MsgDeposit) ValidateBasic() sdk.Error {
-	if len(msg.Depositer) == 0 {
-		return sdk.ErrInvalidAddress(msg.Depositer.String())
+	if len(msg.Depositer) != sdk.AddrLen {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("length of address(%s) should be %d", string(msg.Depositer), sdk.AddrLen))
 	}
 	if !msg.Amount.IsValid() {
 		return sdk.ErrInvalidCoins(msg.Amount.String())
@@ -194,8 +200,8 @@ func (msg MsgVote) Type() string  { return "vote" }
 
 // Implements Msg.
 func (msg MsgVote) ValidateBasic() sdk.Error {
-	if len(msg.Voter.Bytes()) == 0 {
-		return sdk.ErrInvalidAddress(msg.Voter.String())
+	if len(msg.Voter) != sdk.AddrLen {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("length of address(%s) should be %d", string(msg.Voter), sdk.AddrLen))
 	}
 	if msg.ProposalID < 0 {
 		return ErrUnknownProposal(DefaultCodespace, msg.ProposalID)
