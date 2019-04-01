@@ -34,7 +34,7 @@ func CompleteAndBroadcastTxCli(txBldr authtxb.TxBuilder, cliCtx context.CLIConte
 	}
 
 	if cliCtx.DryRun {
-		return nil
+		return simulateMsgs(txBldr, cliCtx, name, msgs)
 	}
 
 	passphrase, err := keys.GetPassphrase(name)
@@ -50,6 +50,41 @@ func CompleteAndBroadcastTxCli(txBldr authtxb.TxBuilder, cliCtx context.CLIConte
 	// broadcast to a Tendermint node
 	_, err = cliCtx.BroadcastTx(txBytes)
 	return err
+}
+
+// nolint
+// SimulateMsgs simulates the transaction and print the transaction running result if no error
+func simulateMsgs(txBldr authtxb.TxBuilder, cliCtx context.CLIContext, name string, msgs []sdk.Msg) error {
+	txBytes, err := txBldr.BuildWithPubKey(name, msgs)
+	if err != nil {
+		return  err
+	}
+
+	// run a simulation (via /app/simulate query)
+	rawRes, err := cliCtx.Query("/app/simulate", txBytes)
+	if err != nil {
+		return err
+	}
+
+	result, err := parseQueryResponse(cliCtx.Codec, rawRes)
+	if err != nil {
+		return err
+	}
+
+	printTxResult(result)
+
+	return nil
+}
+
+func printTxResult(result sdk.Result) {
+	fmt.Println("simulation result:")
+	fmt.Println(fmt.Sprintf("code: %v", result.Code))
+	fmt.Println(fmt.Sprintf("log: %v", result.Log))
+	fmt.Println(fmt.Sprintf("fee_amount: %v", result.FeeAmount))
+	fmt.Println(fmt.Sprintf("fee_denom: %v", result.FeeDenom))
+	for _, tag := range result.Tags {
+		fmt.Println(fmt.Sprintf("tag: %s = %s", string(tag.Key), string(tag.Value)))
+	}
 }
 
 // PrintUnsignedStdTx builds an unsigned StdTx and prints it to os.Stdout.
@@ -115,12 +150,12 @@ func SignStdTx(txBldr authtxb.TxBuilder, cliCtx context.CLIContext, name string,
 	return txBldr.SignStdTx(name, passphrase, stdTx, appendSig)
 }
 
-func parseQueryResponse(cdc *amino.Codec, rawRes []byte) error {
+func parseQueryResponse(cdc *amino.Codec, rawRes []byte) (sdk.Result, error) {
 	var simulationResult sdk.Result
 	if err := cdc.UnmarshalBinaryLengthPrefixed(rawRes, &simulationResult); err != nil {
-		return err
+		return sdk.Result{}, err
 	}
-	return nil
+	return simulationResult, nil
 }
 
 func prepareTxBuilder(txBldr authtxb.TxBuilder, cliCtx context.CLIContext) (authtxb.TxBuilder, error) {
