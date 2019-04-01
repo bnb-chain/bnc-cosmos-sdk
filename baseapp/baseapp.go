@@ -927,16 +927,15 @@ func (app *BaseApp) RunTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx, txHash 
 		msCache.Write()
 	}
 
-	if mode == sdk.RunTxModeSimulate {
-		result = app.runMsgs(ctx, msgs, txHash, mode)
-		return
-	}
-
 	// Create a new context based off of the existing context with a cache wrapped
 	// multi-store in case message processing fails.
 	runMsgCtx, msCache, accountCache := app.cacheTxContext(ctx, txHash, mode)
 
 	result = app.runMsgs(runMsgCtx, msgs, txHash, mode)
+
+	if mode == sdk.RunTxModeSimulate {
+		return
+	}
 
 	// only update state if all messages pass
 	if result.IsOK() {
