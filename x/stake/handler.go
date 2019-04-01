@@ -64,12 +64,14 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) (ValidatorUpdates []abci.Valid
 
 	matureUnbonds := k.DequeueAllMatureUnbondingQueue(ctx, ctx.BlockHeader().Time)
 	for _, dvPair := range matureUnbonds {
+		ubd, found := k.GetUnbondingDelegation(ctx, dvPair.DelegatorAddr, dvPair.ValidatorAddr)
+		if !found {
+			continue
+		}
 		err := k.CompleteUnbonding(ctx, dvPair.DelegatorAddr, dvPair.ValidatorAddr)
 		if err != nil {
 			continue
 		}
-		// Here the unbonding delegation must exist
-		ubd, _ := k.GetUnbondingDelegation(ctx, dvPair.DelegatorAddr, dvPair.ValidatorAddr)
 		completedUnbondingDelegations = append(completedUnbondingDelegations, ubd)
 		endBlockerTags.AppendTags(sdk.NewTags(
 			tags.Action, ActionCompleteUnbonding,
