@@ -855,13 +855,13 @@ func (app *BaseApp) initializeContext(ctx sdk.Context, mode sdk.RunTxMode) sdk.C
 
 // cacheTxContext returns a new context based off of the provided context with
 // a cache wrapped multi-store.
-func (app *BaseApp) cacheTxContext(ctx sdk.Context, txBytes []byte, mode sdk.RunTxMode) (
+func (app *BaseApp) cacheTxContext(ctx sdk.Context, txHash string, mode sdk.RunTxMode) (
 	sdk.Context, sdk.CacheMultiStore, sdk.AccountCache) {
 	ms := ctx.MultiStore()
 	msCache := ms.CacheMultiStore()
 	if msCache.TracingEnabled() {
 		msCache = msCache.WithTracingContext(sdk.TraceContext(
-			map[string]interface{}{"txHash": fmt.Sprintf("%X", tmhash.Sum(txBytes))},
+			map[string]interface{}{"txHash": txHash},
 		)).(sdk.CacheMultiStore)
 	}
 	accountCache := getAccountCache(app, mode).Cache()
@@ -905,7 +905,7 @@ func (app *BaseApp) RunTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx, txHash 
 		// NOTE: Alternatively, we could require that anteHandler ensures that
 		// writes do not happen if aborted/failed.  This may have some
 		// performance benefits, but it'll be more difficult to get right.
-		anteCtx, msCache, accountCache = app.cacheTxContext(ctx, txBytes, mode)
+		anteCtx, msCache, accountCache = app.cacheTxContext(ctx, txHash, mode)
 
 		newCtx, result, abort := app.anteHandler(anteCtx.WithValue(TxHashKey, txHash), tx, mode)
 		if !newCtx.IsZero() {
@@ -934,7 +934,7 @@ func (app *BaseApp) RunTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx, txHash 
 
 	// Create a new context based off of the existing context with a cache wrapped
 	// multi-store in case message processing fails.
-	runMsgCtx, msCache, accountCache := app.cacheTxContext(ctx, txBytes, mode)
+	runMsgCtx, msCache, accountCache := app.cacheTxContext(ctx, txHash, mode)
 
 	result = app.runMsgs(runMsgCtx, msgs, txHash, mode)
 
@@ -989,7 +989,7 @@ func (app *BaseApp) ReRunTx(txBytes []byte, tx sdk.Tx) (result sdk.Result) {
 		// NOTE: Alternatively, we could require that anteHandler ensures that
 		// writes do not happen if aborted/failed.  This may have some
 		// performance benefits, but it'll be more difficult to get right.
-		anteCtx, msCache, accountCache = app.cacheTxContext(ctx, txBytes, mode)
+		anteCtx, msCache, accountCache = app.cacheTxContext(ctx, txHash, mode)
 
 		newCtx, result, abort := app.anteHandler(anteCtx.WithValue(TxHashKey, txHash), tx, mode)
 		if !newCtx.IsZero() {
@@ -1013,7 +1013,7 @@ func (app *BaseApp) ReRunTx(txBytes []byte, tx sdk.Tx) (result sdk.Result) {
 
 	// Create a new context based off of the existing context with a cache wrapped
 	// multi-store in case message processing fails.
-	runMsgCtx, msCache, accountCache := app.cacheTxContext(ctx, txBytes, mode)
+	runMsgCtx, msCache, accountCache := app.cacheTxContext(ctx, txHash, mode)
 
 	var msgs = tx.GetMsgs()
 	result = app.runMsgs(runMsgCtx, msgs, txHash, mode)
