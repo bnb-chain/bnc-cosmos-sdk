@@ -912,10 +912,6 @@ func (app *BaseApp) RunTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx, txHash 
 			// At this point, newCtx.MultiStore() is cache-wrapped, or something else
 			// replaced by the ante handler. We want the original multistore, not one
 			// which was cache-wrapped for the ante handler.
-			//
-			// Also, in the case of the tx aborting, we need to track gas consumed via
-			// the instantiated gas meter in the ante handler, so we update the context
-			// prior to returning.
 			ctx = newCtx.WithMultiStore(ms)
 		}
 
@@ -995,10 +991,6 @@ func (app *BaseApp) ReRunTx(txBytes []byte, tx sdk.Tx) (result sdk.Result) {
 			// At this point, newCtx.MultiStore() is cache-wrapped, or something else
 			// replaced by the ante handler. We want the original multistore, not one
 			// which was cache-wrapped for the ante handler.
-			//
-			// Also, in the case of the tx aborting, we need to track gas consumed via
-			// the instantiated gas meter in the ante handler, so we update the context
-			// prior to returning.
 			ctx = newCtx.WithMultiStore(ms)
 		}
 
