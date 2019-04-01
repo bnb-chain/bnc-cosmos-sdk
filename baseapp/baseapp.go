@@ -804,7 +804,11 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, txHash string, mode
 		// Construct usable logs in multi-message transactions.
 		logs = append(logs, fmt.Sprintf("Msg %d: %s", msgIdx, msgResult.Log))
 	}
-
+	// A tx must only contain one msg. If the msg execution is success, record it
+	if code == sdk.ABCICodeOK {
+		routerName := msgs[0].Route()
+		ctx.RouterCallRecord()[routerName] = true
+	}
 	result = sdk.Result{
 		Code: code,
 		Data: data,

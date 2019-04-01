@@ -2,6 +2,7 @@ package gov_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -47,14 +48,15 @@ func TestTallyNoOneVotes(t *testing.T) {
 	createValidators(t, stakeHandler, ctx, valAddrs, []int64{5, 5})
 	stake.EndBlocker(ctx, sk)
 
-	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText)
+	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 1000*time.Second)
 	proposalID := proposal.GetProposalID()
 	proposal.SetStatus(gov.StatusVotingPeriod)
 	keeper.SetProposal(ctx, proposal)
 
-	passes, tallyResults := gov.Tally(ctx, keeper, keeper.GetProposal(ctx, proposalID))
+	passes, _, tallyResults := gov.Tally(ctx, keeper, keeper.GetProposal(ctx, proposalID))
 
 	require.False(t, passes)
+	tallyResults.Total = sdk.ZeroDec()
 	require.True(t, tallyResults.Equals(gov.EmptyTallyResult()))
 }
 
@@ -72,7 +74,7 @@ func TestTallyOnlyValidatorsAllYes(t *testing.T) {
 	createValidators(t, stakeHandler, ctx, valAddrs, []int64{5, 5})
 	stake.EndBlocker(ctx, sk)
 
-	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText)
+	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 1000*time.Second)
 	proposalID := proposal.GetProposalID()
 	proposal.SetStatus(gov.StatusVotingPeriod)
 	keeper.SetProposal(ctx, proposal)
@@ -82,7 +84,7 @@ func TestTallyOnlyValidatorsAllYes(t *testing.T) {
 	err = keeper.AddVote(ctx, proposalID, addrs[1], gov.OptionYes)
 	require.Nil(t, err)
 
-	passes, tallyResults := gov.Tally(ctx, keeper, keeper.GetProposal(ctx, proposalID))
+	passes, _, tallyResults := gov.Tally(ctx, keeper, keeper.GetProposal(ctx, proposalID))
 
 	require.True(t, passes)
 	require.False(t, tallyResults.Equals(gov.EmptyTallyResult()))
@@ -102,7 +104,7 @@ func TestTallyOnlyValidators51No(t *testing.T) {
 	createValidators(t, stakeHandler, ctx, valAddrs, []int64{5, 6})
 	stake.EndBlocker(ctx, sk)
 
-	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText)
+	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 1000*time.Second)
 	proposalID := proposal.GetProposalID()
 	proposal.SetStatus(gov.StatusVotingPeriod)
 	keeper.SetProposal(ctx, proposal)
@@ -112,7 +114,7 @@ func TestTallyOnlyValidators51No(t *testing.T) {
 	err = keeper.AddVote(ctx, proposalID, addrs[1], gov.OptionNo)
 	require.Nil(t, err)
 
-	passes, _ := gov.Tally(ctx, keeper, keeper.GetProposal(ctx, proposalID))
+	passes, _, _ := gov.Tally(ctx, keeper, keeper.GetProposal(ctx, proposalID))
 
 	require.False(t, passes)
 }
@@ -131,7 +133,7 @@ func TestTallyOnlyValidators51Yes(t *testing.T) {
 	createValidators(t, stakeHandler, ctx, valAddrs, []int64{6, 6, 7})
 	stake.EndBlocker(ctx, sk)
 
-	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText)
+	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 1000*time.Second)
 	proposalID := proposal.GetProposalID()
 	proposal.SetStatus(gov.StatusVotingPeriod)
 	keeper.SetProposal(ctx, proposal)
@@ -143,7 +145,7 @@ func TestTallyOnlyValidators51Yes(t *testing.T) {
 	err = keeper.AddVote(ctx, proposalID, addrs[2], gov.OptionNo)
 	require.Nil(t, err)
 
-	passes, tallyResults := gov.Tally(ctx, keeper, keeper.GetProposal(ctx, proposalID))
+	passes, _, tallyResults := gov.Tally(ctx, keeper, keeper.GetProposal(ctx, proposalID))
 
 	require.True(t, passes)
 	require.False(t, tallyResults.Equals(gov.EmptyTallyResult()))
@@ -163,7 +165,7 @@ func TestTallyOnlyValidatorsVetoed(t *testing.T) {
 	createValidators(t, stakeHandler, ctx, valAddrs, []int64{6, 6, 7})
 	stake.EndBlocker(ctx, sk)
 
-	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText)
+	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 1000*time.Second)
 	proposalID := proposal.GetProposalID()
 	proposal.SetStatus(gov.StatusVotingPeriod)
 	keeper.SetProposal(ctx, proposal)
@@ -175,7 +177,7 @@ func TestTallyOnlyValidatorsVetoed(t *testing.T) {
 	err = keeper.AddVote(ctx, proposalID, addrs[2], gov.OptionNoWithVeto)
 	require.Nil(t, err)
 
-	passes, tallyResults := gov.Tally(ctx, keeper, keeper.GetProposal(ctx, proposalID))
+	passes, _, tallyResults := gov.Tally(ctx, keeper, keeper.GetProposal(ctx, proposalID))
 
 	require.False(t, passes)
 	require.False(t, tallyResults.Equals(gov.EmptyTallyResult()))
@@ -195,7 +197,7 @@ func TestTallyOnlyValidatorsAbstainPasses(t *testing.T) {
 	createValidators(t, stakeHandler, ctx, valAddrs, []int64{6, 6, 7})
 	stake.EndBlocker(ctx, sk)
 
-	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText)
+	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 1000*time.Second)
 	proposalID := proposal.GetProposalID()
 	proposal.SetStatus(gov.StatusVotingPeriod)
 	keeper.SetProposal(ctx, proposal)
@@ -207,7 +209,7 @@ func TestTallyOnlyValidatorsAbstainPasses(t *testing.T) {
 	err = keeper.AddVote(ctx, proposalID, addrs[2], gov.OptionYes)
 	require.Nil(t, err)
 
-	passes, tallyResults := gov.Tally(ctx, keeper, keeper.GetProposal(ctx, proposalID))
+	passes, _, tallyResults := gov.Tally(ctx, keeper, keeper.GetProposal(ctx, proposalID))
 
 	require.True(t, passes)
 	require.False(t, tallyResults.Equals(gov.EmptyTallyResult()))
@@ -227,7 +229,7 @@ func TestTallyOnlyValidatorsAbstainFails(t *testing.T) {
 	createValidators(t, stakeHandler, ctx, valAddrs, []int64{6, 6, 7})
 	stake.EndBlocker(ctx, sk)
 
-	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText)
+	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 1000*time.Second)
 	proposalID := proposal.GetProposalID()
 	proposal.SetStatus(gov.StatusVotingPeriod)
 	keeper.SetProposal(ctx, proposal)
@@ -239,8 +241,68 @@ func TestTallyOnlyValidatorsAbstainFails(t *testing.T) {
 	err = keeper.AddVote(ctx, proposalID, addrs[2], gov.OptionNo)
 	require.Nil(t, err)
 
-	passes, tallyResults := gov.Tally(ctx, keeper, keeper.GetProposal(ctx, proposalID))
+	passes, _, tallyResults := gov.Tally(ctx, keeper, keeper.GetProposal(ctx, proposalID))
 
+	require.False(t, passes)
+	require.False(t, tallyResults.Equals(gov.EmptyTallyResult()))
+}
+
+func TestTallyOnlyValidatorsUnreachedQuorum(t *testing.T) {
+	mapp, _, keeper, sk, addrs, _, _ := getMockApp(t, 10)
+	mapp.BeginBlock(abci.RequestBeginBlock{})
+	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
+	stakeHandler := stake.NewStakeHandler(sk)
+
+	valAddrs := make([]sdk.ValAddress, len(addrs[:3]))
+	for i, addr := range addrs[:3] {
+		valAddrs[i] = sdk.ValAddress(addr)
+	}
+
+	createValidators(t, stakeHandler, ctx, valAddrs, []int64{6, 6, 7})
+	stake.EndBlocker(ctx, sk)
+
+	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 1000*time.Second)
+	proposalID := proposal.GetProposalID()
+	proposal.SetStatus(gov.StatusVotingPeriod)
+	keeper.SetProposal(ctx, proposal)
+
+	err := keeper.AddVote(ctx, proposalID, addrs[1], gov.OptionYes)
+	require.Nil(t, err)
+
+	passes, refundDeposits, tallyResults := gov.Tally(ctx, keeper, keeper.GetProposal(ctx, proposalID))
+
+	require.True(t, refundDeposits)
+	require.False(t, passes)
+	require.False(t, tallyResults.Equals(gov.EmptyTallyResult()))
+}
+
+func TestTallyOnlyValidatorsAllAbstain(t *testing.T) {
+	mapp, _, keeper, sk, addrs, _, _ := getMockApp(t, 10)
+	mapp.BeginBlock(abci.RequestBeginBlock{})
+	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
+	stakeHandler := stake.NewStakeHandler(sk)
+
+	valAddrs := make([]sdk.ValAddress, len(addrs[:3]))
+	for i, addr := range addrs[:3] {
+		valAddrs[i] = sdk.ValAddress(addr)
+	}
+
+	createValidators(t, stakeHandler, ctx, valAddrs, []int64{6, 6, 7})
+	stake.EndBlocker(ctx, sk)
+
+	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 1000*time.Second)
+	proposalID := proposal.GetProposalID()
+	proposal.SetStatus(gov.StatusVotingPeriod)
+	keeper.SetProposal(ctx, proposal)
+
+	err := keeper.AddVote(ctx, proposalID, addrs[1], gov.OptionAbstain)
+	require.Nil(t, err)
+	err = keeper.AddVote(ctx, proposalID, addrs[2], gov.OptionAbstain)
+	require.Nil(t, err)
+
+	passes, refundDeposits, tallyResults := gov.Tally(ctx, keeper, keeper.GetProposal(ctx, proposalID))
+
+	require.True(t, refundDeposits)
 	require.False(t, passes)
 	require.False(t, tallyResults.Equals(gov.EmptyTallyResult()))
 }
@@ -259,7 +321,7 @@ func TestTallyOnlyValidatorsNonVoter(t *testing.T) {
 	createValidators(t, stakeHandler, ctx, valAddrs, []int64{6, 6, 7})
 	stake.EndBlocker(ctx, sk)
 
-	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText)
+	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 1000*time.Second)
 	proposalID := proposal.GetProposalID()
 	proposal.SetStatus(gov.StatusVotingPeriod)
 	keeper.SetProposal(ctx, proposal)
@@ -269,8 +331,9 @@ func TestTallyOnlyValidatorsNonVoter(t *testing.T) {
 	err = keeper.AddVote(ctx, proposalID, addrs[2], gov.OptionNo)
 	require.Nil(t, err)
 
-	passes, tallyResults := gov.Tally(ctx, keeper, keeper.GetProposal(ctx, proposalID))
+	passes, refundDeposits, tallyResults := gov.Tally(ctx, keeper, keeper.GetProposal(ctx, proposalID))
 
+	require.False(t, refundDeposits)
 	require.False(t, passes)
 	require.False(t, tallyResults.Equals(gov.EmptyTallyResult()))
 }
@@ -292,7 +355,7 @@ func TestTallyDelgatorOverride(t *testing.T) {
 	delegator1Msg := stake.NewMsgDelegate(addrs[3], sdk.ValAddress(addrs[2]), sdk.NewCoin(gov.DefaultDepositDenom, 30))
 	stakeHandler(ctx, delegator1Msg)
 
-	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText)
+	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 1000*time.Second)
 	proposalID := proposal.GetProposalID()
 	proposal.SetStatus(gov.StatusVotingPeriod)
 	keeper.SetProposal(ctx, proposal)
@@ -306,13 +369,13 @@ func TestTallyDelgatorOverride(t *testing.T) {
 	err = keeper.AddVote(ctx, proposalID, addrs[3], gov.OptionNo)
 	require.Nil(t, err)
 
-	passes, tallyResults := gov.Tally(ctx, keeper, keeper.GetProposal(ctx, proposalID))
+	passes, _, tallyResults := gov.Tally(ctx, keeper, keeper.GetProposal(ctx, proposalID))
 
 	require.False(t, passes)
 	require.False(t, tallyResults.Equals(gov.EmptyTallyResult()))
 }
 
-func TestTallyDelgatorInherit(t *testing.T) {
+func TestTallyDelegatorInherit(t *testing.T) {
 	mapp, _, keeper, sk, addrs, _, _ := getMockApp(t, 10)
 	mapp.BeginBlock(abci.RequestBeginBlock{})
 	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
@@ -329,7 +392,7 @@ func TestTallyDelgatorInherit(t *testing.T) {
 	delegator1Msg := stake.NewMsgDelegate(addrs[3], sdk.ValAddress(addrs[2]), sdk.NewCoin(gov.DefaultDepositDenom, 30))
 	stakeHandler(ctx, delegator1Msg)
 
-	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText)
+	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 1000*time.Second)
 	proposalID := proposal.GetProposalID()
 	proposal.SetStatus(gov.StatusVotingPeriod)
 	keeper.SetProposal(ctx, proposal)
@@ -341,13 +404,13 @@ func TestTallyDelgatorInherit(t *testing.T) {
 	err = keeper.AddVote(ctx, proposalID, addrs[2], gov.OptionYes)
 	require.Nil(t, err)
 
-	passes, tallyResults := gov.Tally(ctx, keeper, keeper.GetProposal(ctx, proposalID))
+	passes, _, tallyResults := gov.Tally(ctx, keeper, keeper.GetProposal(ctx, proposalID))
 
 	require.True(t, passes)
 	require.False(t, tallyResults.Equals(gov.EmptyTallyResult()))
 }
 
-func TestTallyDelgatorMultipleOverride(t *testing.T) {
+func TestTallyDelegatorMultipleOverride(t *testing.T) {
 	mapp, _, keeper, sk, addrs, _, _ := getMockApp(t, 10)
 	mapp.BeginBlock(abci.RequestBeginBlock{})
 	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
@@ -366,7 +429,7 @@ func TestTallyDelgatorMultipleOverride(t *testing.T) {
 	delegator1Msg2 := stake.NewMsgDelegate(addrs[3], sdk.ValAddress(addrs[1]), sdk.NewCoin(gov.DefaultDepositDenom, 10))
 	stakeHandler(ctx, delegator1Msg2)
 
-	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText)
+	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 1000*time.Second)
 	proposalID := proposal.GetProposalID()
 	proposal.SetStatus(gov.StatusVotingPeriod)
 	keeper.SetProposal(ctx, proposal)
@@ -380,13 +443,13 @@ func TestTallyDelgatorMultipleOverride(t *testing.T) {
 	err = keeper.AddVote(ctx, proposalID, addrs[3], gov.OptionNo)
 	require.Nil(t, err)
 
-	passes, tallyResults := gov.Tally(ctx, keeper, keeper.GetProposal(ctx, proposalID))
+	passes, _, tallyResults := gov.Tally(ctx, keeper, keeper.GetProposal(ctx, proposalID))
 
 	require.False(t, passes)
 	require.False(t, tallyResults.Equals(gov.EmptyTallyResult()))
 }
 
-func TestTallyDelgatorMultipleInherit(t *testing.T) {
+func TestTallyDelegatorMultipleInherit(t *testing.T) {
 	mapp, _, keeper, sk, addrs, _, _ := getMockApp(t, 10)
 	mapp.BeginBlock(abci.RequestBeginBlock{})
 	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
@@ -415,7 +478,7 @@ func TestTallyDelgatorMultipleInherit(t *testing.T) {
 
 	stake.EndBlocker(ctx, sk)
 
-	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText)
+	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 1000*time.Second)
 	proposalID := proposal.GetProposalID()
 	proposal.SetStatus(gov.StatusVotingPeriod)
 	keeper.SetProposal(ctx, proposal)
@@ -427,7 +490,7 @@ func TestTallyDelgatorMultipleInherit(t *testing.T) {
 	err = keeper.AddVote(ctx, proposalID, addrs[2], gov.OptionNo)
 	require.Nil(t, err)
 
-	passes, tallyResults := gov.Tally(ctx, keeper, keeper.GetProposal(ctx, proposalID))
+	passes, _, tallyResults := gov.Tally(ctx, keeper, keeper.GetProposal(ctx, proposalID))
 
 	require.False(t, passes)
 	require.False(t, tallyResults.Equals(gov.EmptyTallyResult()))
@@ -459,7 +522,7 @@ func TestTallyJailedValidator(t *testing.T) {
 
 	stake.EndBlocker(ctx, sk)
 
-	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText)
+	proposal := keeper.NewTextProposal(ctx, "Test", "description", gov.ProposalTypeText, 1000*time.Second)
 	proposalID := proposal.GetProposalID()
 	proposal.SetStatus(gov.StatusVotingPeriod)
 	keeper.SetProposal(ctx, proposal)
@@ -471,7 +534,7 @@ func TestTallyJailedValidator(t *testing.T) {
 	err = keeper.AddVote(ctx, proposalID, addrs[2], gov.OptionNo)
 	require.Nil(t, err)
 
-	passes, tallyResults := gov.Tally(ctx, keeper, keeper.GetProposal(ctx, proposalID))
+	passes, _, tallyResults := gov.Tally(ctx, keeper, keeper.GetProposal(ctx, proposalID))
 
 	require.True(t, passes)
 	require.False(t, tallyResults.Equals(gov.EmptyTallyResult()))

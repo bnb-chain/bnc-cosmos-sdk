@@ -2,6 +2,9 @@ package gov
 
 import (
 	"fmt"
+	"time"
+
+	"github.com/tendermint/tendermint/crypto"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -11,22 +14,22 @@ import (
 
 // Parameter store default namestore
 const (
-	DefaultParamspace = "gov"
+	DefaultParamSpace = "gov"
 )
 
 // Parameter store key
 var (
-	ParamStoreKeyDepositProcedure  = []byte("depositprocedure")
-	ParamStoreKeyVotingProcedure   = []byte("votingprocedure")
-	ParamStoreKeyTallyingProcedure = []byte("tallyingprocedure")
+	ParamStoreKeyDepositParams = []byte("depositparams")
+	ParamStoreKeyTallyParams   = []byte("tallyparams")
+
+	DepositedCoinsAccAddr = sdk.AccAddress(crypto.AddressHash([]byte("BinanceChainDepositedCoins")))
 )
 
 // Type declaration for parameters
 func ParamTypeTable() params.TypeTable {
 	return params.NewTypeTable(
-		ParamStoreKeyDepositProcedure, DepositProcedure{},
-		ParamStoreKeyVotingProcedure, VotingProcedure{},
-		ParamStoreKeyTallyingProcedure, TallyingProcedure{},
+		ParamStoreKeyDepositParams, DepositParams{},
+		ParamStoreKeyTallyParams, TallyParams{},
 	)
 }
 
@@ -98,7 +101,7 @@ func (keeper Keeper) AddHooks(proposalType ProposalKind, hooks GovHooks) Keeper 
 // Proposals
 
 // Creates a NewProposal
-func (keeper Keeper) NewTextProposal(ctx sdk.Context, title string, description string, proposalType ProposalKind) Proposal {
+func (keeper Keeper) NewTextProposal(ctx sdk.Context, title string, description string, proposalType ProposalKind, votingPeriod time.Duration) Proposal {
 	proposalID, err := keeper.getNewProposalID(ctx)
 	if err != nil {
 		return nil
@@ -108,6 +111,7 @@ func (keeper Keeper) NewTextProposal(ctx sdk.Context, title string, description 
 		Title:        title,
 		Description:  description,
 		ProposalType: proposalType,
+		VotingPeriod: votingPeriod,
 		Status:       StatusDepositPeriod,
 		TallyResult:  EmptyTallyResult(),
 		TotalDeposit: sdk.Coins{},
@@ -269,45 +273,32 @@ func (keeper Keeper) ActivateVotingPeriod(ctx sdk.Context, proposal Proposal) {
 }
 
 // =====================================================
-// Procedures
+// Params
 
-// Returns the current Deposit Procedure from the global param store
+// Returns the current Deposit Params from the global param store
 // nolint: errcheck
-func (keeper Keeper) GetDepositProcedure(ctx sdk.Context) DepositProcedure {
-	var depositProcedure DepositProcedure
-	keeper.paramSpace.Get(ctx, ParamStoreKeyDepositProcedure, &depositProcedure)
-	return depositProcedure
+func (keeper Keeper) GetDepositParams(ctx sdk.Context) DepositParams {
+	var depositParams DepositParams
+	keeper.paramSpace.Get(ctx, ParamStoreKeyDepositParams, &depositParams)
+	return depositParams
 }
 
-// Returns the current Voting Procedure from the global param store
+// Returns the current Tally Params from the global param store
 // nolint: errcheck
-func (keeper Keeper) GetVotingProcedure(ctx sdk.Context) VotingProcedure {
-	var votingProcedure VotingProcedure
-	keeper.paramSpace.Get(ctx, ParamStoreKeyVotingProcedure, &votingProcedure)
-	return votingProcedure
-}
-
-// Returns the current Tallying Procedure from the global param store
-// nolint: errcheck
-func (keeper Keeper) GetTallyingProcedure(ctx sdk.Context) TallyingProcedure {
-	var tallyingProcedure TallyingProcedure
-	keeper.paramSpace.Get(ctx, ParamStoreKeyTallyingProcedure, &tallyingProcedure)
-	return tallyingProcedure
+func (keeper Keeper) GetTallyParams(ctx sdk.Context) TallyParams {
+	var tallyParams TallyParams
+	keeper.paramSpace.Get(ctx, ParamStoreKeyTallyParams, &tallyParams)
+	return tallyParams
 }
 
 // nolint: errcheck
-func (keeper Keeper) setDepositProcedure(ctx sdk.Context, depositProcedure DepositProcedure) {
-	keeper.paramSpace.Set(ctx, ParamStoreKeyDepositProcedure, &depositProcedure)
+func (keeper Keeper) setDepositParams(ctx sdk.Context, depositParams DepositParams) {
+	keeper.paramSpace.Set(ctx, ParamStoreKeyDepositParams, &depositParams)
 }
 
 // nolint: errcheck
-func (keeper Keeper) setVotingProcedure(ctx sdk.Context, votingProcedure VotingProcedure) {
-	keeper.paramSpace.Set(ctx, ParamStoreKeyVotingProcedure, &votingProcedure)
-}
-
-// nolint: errcheck
-func (keeper Keeper) setTallyingProcedure(ctx sdk.Context, tallyingProcedure TallyingProcedure) {
-	keeper.paramSpace.Set(ctx, ParamStoreKeyTallyingProcedure, &tallyingProcedure)
+func (keeper Keeper) setTallyParams(ctx sdk.Context, tallyParams TallyParams) {
+	keeper.paramSpace.Set(ctx, ParamStoreKeyTallyParams, &tallyParams)
 }
 
 // =====================================================
@@ -401,13 +392,14 @@ func (keeper Keeper) AddDeposit(ctx sdk.Context, proposalID int64, depositerAddr
 		return ErrAlreadyFinishedProposal(keeper.codespace, proposalID), false
 	}
 
-	// Subtract coins from depositer's account
-	_, _, err := keeper.ck.SubtractCoins(ctx, depositerAddr, depositAmount)
+	// Send coins from depositor's account to DepositedCoinsAccAddr account
+	_, err := keeper.ck.SendCoins(ctx, depositerAddr, DepositedCoinsAccAddr, depositAmount)
 	if err != nil {
 		return err, false
 	}
+
 	if ctx.IsDeliverTx() {
-		keeper.pool.AddAddrs([]sdk.AccAddress{depositerAddr})
+		keeper.pool.AddAddrs([]sdk.AccAddress{depositerAddr, DepositedCoinsAccAddr})
 	}
 
 	// Update Proposal
@@ -417,7 +409,7 @@ func (keeper Keeper) AddDeposit(ctx sdk.Context, proposalID int64, depositerAddr
 	// Check if deposit tipped proposal into voting period
 	// Active voting period if so
 	activatedVotingPeriod := false
-	if proposal.GetStatus() == StatusDepositPeriod && proposal.GetTotalDeposit().IsGTE(keeper.GetDepositProcedure(ctx).MinDeposit) {
+	if proposal.GetStatus() == StatusDepositPeriod && proposal.GetTotalDeposit().IsGTE(keeper.GetDepositParams(ctx).MinDeposit) {
 		keeper.ActivateVotingPeriod(ctx, proposal)
 		activatedVotingPeriod = true
 	}
@@ -450,22 +442,12 @@ func (keeper Keeper) RefundDeposits(ctx sdk.Context, proposalID int64) {
 		deposit := &Deposit{}
 		keeper.cdc.MustUnmarshalBinaryLengthPrefixed(depositsIterator.Value(), deposit)
 
-		_, _, err := keeper.ck.AddCoins(ctx, deposit.Depositer, deposit.Amount)
+		_, err := keeper.ck.SendCoins(ctx, DepositedCoinsAccAddr, deposit.Depositer, deposit.Amount)
 		if err != nil {
 			panic(fmt.Sprintf("refund error(%s) should not happen", err.Error()))
 		}
 
-		keeper.pool.AddAddrs([]sdk.AccAddress{deposit.Depositer})
-		store.Delete(depositsIterator.Key())
-	}
-}
-
-// Deletes all the deposits on a specific proposal without refunding them
-func (keeper Keeper) DeleteDeposits(ctx sdk.Context, proposalID int64) {
-	store := ctx.KVStore(keeper.storeKey)
-	depositsIterator := keeper.GetDeposits(ctx, proposalID)
-	defer depositsIterator.Close()
-	for ; depositsIterator.Valid(); depositsIterator.Next() {
+		keeper.pool.AddAddrs([]sdk.AccAddress{deposit.Depositer, DepositedCoinsAccAddr})
 		store.Delete(depositsIterator.Key())
 	}
 }
@@ -493,11 +475,11 @@ func (keeper Keeper) DistributeDeposits(ctx sdk.Context, proposalID int64) {
 		ctx.Logger().Info("distribute empty deposits")
 	}
 
-	_, _, err := keeper.ck.AddCoins(ctx, sdk.AccAddress(proposerAccAddr), depositCoins)
+	_, err := keeper.ck.SendCoins(ctx, DepositedCoinsAccAddr, sdk.AccAddress(proposerAccAddr), depositCoins)
 	if err != nil {
 		panic(fmt.Sprintf("distribute deposits error(%s) should not happen", err.Error()))
 	}
-	keeper.pool.AddAddrs([]sdk.AccAddress{sdk.AccAddress(proposerAccAddr)})
+	keeper.pool.AddAddrs([]sdk.AccAddress{sdk.AccAddress(proposerAccAddr), DepositedCoinsAccAddr})
 }
 
 // =====================================================
@@ -542,9 +524,34 @@ func (keeper Keeper) ActiveProposalQueuePop(ctx sdk.Context) Proposal {
 	return keeper.GetProposal(ctx, frontElement)
 }
 
-// Add a proposalID to the back of the ProposalQueue
+// Add a proposalID to the ProposalQueue sorted by expire time
 func (keeper Keeper) ActiveProposalQueuePush(ctx sdk.Context, proposal Proposal) {
-	proposalQueue := append(keeper.getActiveProposalQueue(ctx), proposal.GetProposalID())
+	proposalQueue := keeper.getActiveProposalQueue(ctx)
+	if len(proposalQueue) == 0 {
+		proposalQueue = append(proposalQueue, proposal.GetProposalID())
+	} else {
+		votingExpireTime := proposal.GetVotingStartTime().Add(proposal.GetVotingPeriod())
+
+		// sort proposal queue by expire time
+		newProposalQueue := make(ProposalQueue, 0, len(proposalQueue)+1)
+		for idx, proposalId := range proposalQueue {
+			tmpProposal := keeper.GetProposal(ctx, proposalId)
+			tmpVotingExpireTime := tmpProposal.GetVotingStartTime().Add(tmpProposal.GetVotingPeriod())
+			if tmpVotingExpireTime.After(votingExpireTime) {
+				newProposalQueue = append(newProposalQueue, proposal.GetProposalID())
+				newProposalQueue = append(newProposalQueue, proposalQueue[idx:]...)
+				break
+			} else {
+				newProposalQueue = append(newProposalQueue, proposalId)
+			}
+		}
+		// insert proposal if there is no proposal in proposal queue which voting expire time after proposal
+		if len(newProposalQueue) == len(proposalQueue) {
+			newProposalQueue = append(newProposalQueue, proposal.GetProposalID())
+		}
+
+		proposalQueue = newProposalQueue
+	}
 	keeper.setActiveProposalQueue(ctx, proposalQueue)
 }
 

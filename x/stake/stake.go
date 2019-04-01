@@ -19,6 +19,7 @@ type (
 	Params                     = types.Params
 	Pool                       = types.Pool
 	MsgCreateValidator         = types.MsgCreateValidator
+	MsgRemoveValidator         = types.MsgRemoveValidator
 	MsgCreateValidatorProposal = types.MsgCreateValidatorProposal
 	MsgEditValidator           = types.MsgEditValidator
 	MsgDelegate                = types.MsgDelegate
@@ -28,6 +29,7 @@ type (
 	QueryDelegatorParams       = querier.QueryDelegatorParams
 	QueryValidatorParams       = querier.QueryValidatorParams
 	QueryBondsParams           = querier.QueryBondsParams
+	CreateValidatorJsonMsg     = types.CreateValidatorJsonMsg
 )
 
 var (
@@ -64,18 +66,20 @@ var (
 	KeyMaxValidators  = types.KeyMaxValidators
 	KeyBondDenom      = types.KeyBondDenom
 
-	DefaultParams         = types.DefaultParams
-	InitialPool           = types.InitialPool
-	NewValidator          = types.NewValidator
-	NewDescription        = types.NewDescription
-	NewCommission         = types.NewCommission
-	NewCommissionMsg      = types.NewCommissionMsg
-	NewCommissionWithTime = types.NewCommissionWithTime
-	NewGenesisState       = types.NewGenesisState
-	DefaultGenesisState   = types.DefaultGenesisState
-	RegisterCodec         = types.RegisterCodec
+	DefaultParams           = types.DefaultParams
+	InitialPool             = types.InitialPool
+	NewValidator            = types.NewValidator
+	NewValidatorWithFeeAddr = types.NewValidatorWithFeeAddr
+	NewDescription          = types.NewDescription
+	NewCommission           = types.NewCommission
+	NewCommissionMsg        = types.NewCommissionMsg
+	NewCommissionWithTime   = types.NewCommissionWithTime
+	NewGenesisState         = types.NewGenesisState
+	DefaultGenesisState     = types.DefaultGenesisState
+	RegisterCodec           = types.RegisterCodec
 
 	NewMsgCreateValidator           = types.NewMsgCreateValidator
+	NewMsgRemoveValidator           = types.NewMsgRemoveValidator
 	NewMsgCreateValidatorOnBehalfOf = types.NewMsgCreateValidatorOnBehalfOf
 	NewMsgEditValidator             = types.NewMsgEditValidator
 	NewMsgDelegate                  = types.NewMsgDelegate

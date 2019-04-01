@@ -26,7 +26,7 @@ func NewHandler(keeper Keeper) sdk.Handler {
 
 func handleMsgSubmitProposal(ctx sdk.Context, keeper Keeper, msg MsgSubmitProposal) sdk.Result {
 
-	proposal := keeper.NewTextProposal(ctx, msg.Title, msg.Description, msg.ProposalType)
+	proposal := keeper.NewTextProposal(ctx, msg.Title, msg.Description, msg.ProposalType, msg.VotingPeriod)
 
 	hooksErr := keeper.OnProposalSubmitted(ctx, proposal)
 	if hooksErr != nil {
@@ -83,17 +83,14 @@ func handleMsgDeposit(ctx sdk.Context, keeper Keeper, msg MsgDeposit) sdk.Result
 }
 
 func handleMsgVote(ctx sdk.Context, keeper Keeper, msg MsgVote) sdk.Result {
-	isValidator := false
-	keeper.vs.IterateValidatorsBonded(ctx, func(index int64, validator sdk.Validator) (stop bool) {
-		if sdk.ValAddress(msg.Voter).Equals(validator.GetOperator()) {
-			isValidator = true
-			return true
-		}
-		return false
-	})
+	validator := keeper.vs.Validator(ctx, sdk.ValAddress(msg.Voter))
 
-	if !isValidator {
-		return sdk.ErrUnauthorized("Non validator").Result()
+	if validator == nil {
+		return sdk.ErrUnauthorized("Vote is not from a validator operator").Result()
+	}
+
+	if validator.GetPower().IsZero() {
+		return sdk.ErrUnauthorized("Validator is not bonded").Result()
 	}
 
 	err := keeper.AddVote(ctx, msg.ProposalID, msg.Voter, msg.Option)
@@ -114,13 +111,13 @@ func handleMsgVote(ctx sdk.Context, keeper Keeper, msg MsgVote) sdk.Result {
 }
 
 // Called every block, process inflation, update validator set
-func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags, passedProposals, failedProposals []int64) {
+func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags, refundProposals, notRefundProposals []int64) {
 
 	logger := ctx.Logger().With("module", "x/gov")
 
 	resTags = sdk.NewTags()
-	passedProposals = make([]int64, 0)
-	failedProposals = make([]int64, 0)
+	refundProposals = make([]int64, 0)
+	notRefundProposals = make([]int64, 0)
 
 	// Delete proposals that haven't met minDeposit
 	for ShouldPopInactiveProposalQueue(ctx, keeper) {
@@ -135,6 +132,9 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags, passedProposa
 		keeper.DistributeDeposits(ctx, inactiveProposal.GetProposalID())
 
 		keeper.DeleteProposal(ctx, inactiveProposal)
+
+		notRefundProposals = append(notRefundProposals, inactiveProposal.GetProposalID())
+
 		resTags.AppendTag(tags.Action, tags.ActionProposalDropped)
 		resTags.AppendTag(tags.ProposalID, proposalIDBytes)
 
@@ -142,7 +142,7 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags, passedProposa
 			fmt.Sprintf("proposal %d (%s) didn't meet minimum deposit of %v (had only %v); distribute to validator",
 				inactiveProposal.GetProposalID(),
 				inactiveProposal.GetTitle(),
-				keeper.GetDepositProcedure(ctx).MinDeposit,
+				keeper.GetDepositParams(ctx).MinDeposit,
 				inactiveProposal.GetTotalDeposit(),
 			),
 		)
@@ -153,12 +153,12 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags, passedProposa
 		activeProposal := keeper.ActiveProposalQueuePop(ctx)
 
 		proposalStartTime := activeProposal.GetVotingStartTime()
-		votingPeriod := keeper.GetVotingProcedure(ctx).VotingPeriod
+		votingPeriod := activeProposal.GetVotingPeriod()
 		if ctx.BlockHeader().Time.Before(proposalStartTime.Add(votingPeriod)) {
 			continue
 		}
 
-		passes, tallyResults := Tally(ctx, keeper, activeProposal)
+		passes, refundDeposits, tallyResults := Tally(ctx, keeper, activeProposal)
 		proposalIDBytes := keeper.cdc.MustMarshalBinaryBare(activeProposal.GetProposalID())
 		var action []byte
 		if passes {
@@ -167,14 +167,19 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags, passedProposa
 
 			// refund deposits
 			keeper.RefundDeposits(ctx, activeProposal.GetProposalID())
-			passedProposals = append(passedProposals, activeProposal.GetProposalID())
+			refundProposals = append(refundProposals, activeProposal.GetProposalID())
 		} else {
 			activeProposal.SetStatus(StatusRejected)
 			action = tags.ActionProposalRejected
 
-			// distribute deposits to proposer
-			keeper.DistributeDeposits(ctx, activeProposal.GetProposalID())
-			failedProposals = append(failedProposals, activeProposal.GetProposalID())
+			// if votes reached quorum and not all votes are abstain, distribute deposits to validator, else refund deposits
+			if refundDeposits {
+				keeper.RefundDeposits(ctx, activeProposal.GetProposalID())
+				refundProposals = append(refundProposals, activeProposal.GetProposalID())
+			} else {
+				keeper.DistributeDeposits(ctx, activeProposal.GetProposalID())
+				notRefundProposals = append(notRefundProposals, activeProposal.GetProposalID())
+			}
 		}
 
 		activeProposal.SetTallyResult(tallyResults)
@@ -189,27 +194,27 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags, passedProposa
 
 	return
 }
+
 func ShouldPopInactiveProposalQueue(ctx sdk.Context, keeper Keeper) bool {
-	depositProcedure := keeper.GetDepositProcedure(ctx)
+	depositParams := keeper.GetDepositParams(ctx)
 	peekProposal := keeper.InactiveProposalQueuePeek(ctx)
 
 	if peekProposal == nil {
 		return false
 	} else if peekProposal.GetStatus() != StatusDepositPeriod {
 		return true
-	} else if !ctx.BlockHeader().Time.Before(peekProposal.GetSubmitTime().Add(depositProcedure.MaxDepositPeriod)) {
+	} else if !ctx.BlockHeader().Time.Before(peekProposal.GetSubmitTime().Add(depositParams.MaxDepositPeriod)) {
 		return true
 	}
 	return false
 }
 
 func ShouldPopActiveProposalQueue(ctx sdk.Context, keeper Keeper) bool {
-	votingProcedure := keeper.GetVotingProcedure(ctx)
 	peekProposal := keeper.ActiveProposalQueuePeek(ctx)
 
 	if peekProposal == nil {
 		return false
-	} else if !ctx.BlockHeader().Time.Before(peekProposal.GetVotingStartTime().Add(votingProcedure.VotingPeriod)) {
+	} else if !ctx.BlockHeader().Time.Before(peekProposal.GetVotingStartTime().Add(peekProposal.GetVotingPeriod())) {
 		return true
 	}
 	return false

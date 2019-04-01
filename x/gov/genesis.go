@@ -12,18 +12,16 @@ const (
 
 // GenesisState - all staking state that must be provided at genesis
 type GenesisState struct {
-	StartingProposalID int64             `json:"starting_proposalID"`
-	DepositProcedure   DepositProcedure  `json:"deposit_period"`
-	VotingProcedure    VotingProcedure   `json:"voting_period"`
-	TallyingProcedure  TallyingProcedure `json:"tallying_procedure"`
+	StartingProposalID int64         `json:"starting_proposalID"`
+	DepositParams      DepositParams `json:"deposit_params"`
+	TallyParams        TallyParams   `json:"tally_params"`
 }
 
-func NewGenesisState(startingProposalID int64, dp DepositProcedure, vp VotingProcedure, tp TallyingProcedure) GenesisState {
+func NewGenesisState(startingProposalID int64, dp DepositParams, tp TallyParams) GenesisState {
 	return GenesisState{
 		StartingProposalID: startingProposalID,
-		DepositProcedure:   dp,
-		VotingProcedure:    vp,
-		TallyingProcedure:  tp,
+		DepositParams:      dp,
+		TallyParams:        tp,
 	}
 }
 
@@ -31,17 +29,14 @@ func NewGenesisState(startingProposalID int64, dp DepositProcedure, vp VotingPro
 func DefaultGenesisState() GenesisState {
 	return GenesisState{
 		StartingProposalID: 1,
-		DepositProcedure: DepositProcedure{
+		DepositParams: DepositParams{
 			MinDeposit:       sdk.Coins{sdk.NewCoin(DefaultDepositDenom, 2000e8)},
-			MaxDepositPeriod: time.Duration(2*7*24) * time.Hour, // 2 weeks
+			MaxDepositPeriod: time.Duration(2*24) * time.Hour, // 2 days
 		},
-		VotingProcedure: VotingProcedure{
-			VotingPeriod: time.Duration(2*7*24) * time.Hour, // 2 weeks
-		},
-		TallyingProcedure: TallyingProcedure{
-			Threshold:         sdk.NewDecWithPrec(5, 1),
-			Veto:              sdk.NewDecWithPrec(334, 3),
-			GovernancePenalty: sdk.NewDecWithPrec(1, 2),
+		TallyParams: TallyParams{
+			Quorum:    sdk.NewDecWithPrec(5, 1),
+			Threshold: sdk.NewDecWithPrec(5, 1),
+			Veto:      sdk.NewDecWithPrec(334, 3),
 		},
 	}
 }
@@ -53,22 +48,19 @@ func InitGenesis(ctx sdk.Context, k Keeper, data GenesisState) {
 		// TODO: Handle this with #870
 		panic(err)
 	}
-	k.setDepositProcedure(ctx, data.DepositProcedure)
-	k.setVotingProcedure(ctx, data.VotingProcedure)
-	k.setTallyingProcedure(ctx, data.TallyingProcedure)
+	k.setDepositParams(ctx, data.DepositParams)
+	k.setTallyParams(ctx, data.TallyParams)
 }
 
 // WriteGenesis - output genesis parameters
 func WriteGenesis(ctx sdk.Context, k Keeper) GenesisState {
 	startingProposalID, _ := k.getNewProposalID(ctx)
-	depositProcedure := k.GetDepositProcedure(ctx)
-	votingProcedure := k.GetVotingProcedure(ctx)
-	tallyingProcedure := k.GetTallyingProcedure(ctx)
+	depositParams := k.GetDepositParams(ctx)
+	tallyingParams := k.GetTallyParams(ctx)
 
 	return GenesisState{
 		StartingProposalID: startingProposalID,
-		DepositProcedure:   depositProcedure,
-		VotingProcedure:    votingProcedure,
-		TallyingProcedure:  tallyingProcedure,
+		DepositParams:      depositParams,
+		TallyParams:        tallyingParams,
 	}
 }

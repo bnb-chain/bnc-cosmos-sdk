@@ -1,7 +1,7 @@
 package stake
 
 import (
-	"fmt"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -1023,35 +1023,120 @@ func TestBondUnbondRedelegateSlashTwice(t *testing.T) {
 func TestCreateValidatorAfterProposal(t *testing.T) {
 	ctx, _, keeper, govKeeper, _ := keep.CreateTestInputWithGov(t, false, 1000)
 
-	err := govKeeper.SetInitialProposalID(ctx, 0)
+	err := govKeeper.SetInitialProposalID(ctx, 1)
 	require.Nil(t, err)
 	valA := sdk.ValAddress(keep.Addrs[0])
 	valB := sdk.ValAddress(keep.Addrs[1])
 
 	ctx = ctx.WithBlockHeight(1)
-	proposalDescA := fmt.Sprintf("{\"type\": \"test/stake/CreateValidator\",\"value\": {\"Description\": {\"moniker\": \"\",\"identity\": \"\",\"website\": \"\",\"details\": \"\"},\"Commission\": {\"rate\": \"0\",\"max_rate\": \"0\",\"max_change_rate\": \"0\"},\"delegator_address\": \"%s\",\"validator_address\": \"%s\",\"pubkey\": {\"type\": \"tendermint/PubKeyEd25519\",\"value\": \"C0hc/A7sxhlEBEhDb4/J30BWbyNp5yQAKBRUy1Uq8QA=\"},\"delegation\": {\"denom\": \"steak\",\"amount\": \"10000000000\"}}}", keep.Addrs[0].String(), valA.String())
-	proposalA := govKeeper.NewTextProposal(ctx, "CreateValidatorProposal", proposalDescA, gov.ProposalTypeCreateValidator)
+	msgCreateValidator := NewTestMsgCreateValidator(valA, keep.PKs[0], 10)
+	proposalDesc, _ := json.Marshal(msgCreateValidator)
+	proposalA := govKeeper.NewTextProposal(ctx, "CreateValidatorProposal", string(proposalDesc), gov.ProposalTypeCreateValidator, 1000*time.Second)
 	proposalA.SetStatus(gov.StatusPassed)
 	govKeeper.SetProposal(ctx, proposalA)
 
 	msgCreateValidatorA := MsgCreateValidatorProposal{
-		MsgCreateValidator: NewTestMsgCreateValidator(valA, keep.PKs[0], 100),
-		ProposalId:         0,
+		MsgCreateValidator: NewTestMsgCreateValidator(valA, keep.PKs[0], 10),
+		ProposalId:         1,
 	}
 	result := handleMsgCreateValidatorAfterProposal(ctx, msgCreateValidatorA, keeper, govKeeper)
 	require.True(t, result.IsOK())
 
 	ctx = ctx.WithBlockHeight(2)
-	proposalDescB := fmt.Sprintf("{\"type\": \"test/stake/CreateValidator\",\"value\": {\"Description\": {\"moniker\": \"\",\"identity\": \"\",\"website\": \"\",\"details\": \"\"},\"Commission\": {\"rate\": \"0\",\"max_rate\": \"0\",\"max_change_rate\": \"0\"},\"delegator_address\": \"%s\",\"validator_address\": \"%s\",\"pubkey\": {\"type\": \"tendermint/PubKeyEd25519\",\"value\": \"C0hc/A7sxhlEBEhDb4/J30BWbyNp5yQAKBRUy1Uq8QE=\"},\"delegation\": {\"denom\": \"steak\",\"amount\": \"10000000000\"}}}", keep.Addrs[1].String(), valB.String())
-	proposalB := govKeeper.NewTextProposal(ctx, "CreateValidatorProposal", proposalDescB, gov.ProposalTypeCreateValidator)
+	msgCreateValidator = NewTestMsgCreateValidator(valB, keep.PKs[1], 10)
+	proposalDesc, _ = json.Marshal(msgCreateValidator)
+	proposalB := govKeeper.NewTextProposal(ctx, "CreateValidatorProposal", string(proposalDesc), gov.ProposalTypeCreateValidator, 1000*time.Second)
 	proposalB.SetStatus(gov.StatusPassed)
 	govKeeper.SetProposal(ctx, proposalB)
 
 	msgCreateValidatorB := MsgCreateValidatorProposal{
-		MsgCreateValidator: NewTestMsgCreateValidator(valB, keep.PKs[1], 1000), // I deliberately changed amount value to 1000, amount should be 100
-		ProposalId:         1,
+		MsgCreateValidator: NewTestMsgCreateValidator(valB, keep.PKs[1], 100), // I deliberately changed amount value to 100, amount should be 10
+		ProposalId:         2,
 	}
 	result = handleMsgCreateValidatorAfterProposal(ctx, msgCreateValidatorB, keeper, govKeeper)
 	require.False(t, result.IsOK())
 
+}
+
+func TestRemoveValidatorAfterProposal(t *testing.T) {
+	ctx, _, keeper, govKeeper, _ := keep.CreateTestInputWithGov(t, false, 1000)
+
+	err := govKeeper.SetInitialProposalID(ctx, 0)
+	require.Nil(t, err)
+	valA := sdk.ValAddress(keep.Addrs[0])
+	valB := sdk.ValAddress(keep.Addrs[1])
+	valC := sdk.ValAddress(keep.Addrs[2])
+	valD := sdk.ValAddress(keep.Addrs[3])
+	valE := sdk.ValAddress(keep.Addrs[4])
+	valF := sdk.ValAddress(keep.Addrs[5])
+
+	msgCreateValidator := NewTestMsgCreateValidator(valA, keep.PKs[0], 10)
+	got := handleMsgCreateValidator(ctx, msgCreateValidator, keeper)
+	require.True(t, got.IsOK(), "expected no error on runMsgCreateValidator")
+
+	msgCreateValidator = NewTestMsgCreateValidator(valB, keep.PKs[1], 10)
+	got = handleMsgCreateValidator(ctx, msgCreateValidator, keeper)
+	require.True(t, got.IsOK(), "expected no error on runMsgCreateValidator")
+
+	msgCreateValidator = NewTestMsgCreateValidator(valC, keep.PKs[2], 10)
+	got = handleMsgCreateValidator(ctx, msgCreateValidator, keeper)
+	require.True(t, got.IsOK(), "expected no error on runMsgCreateValidator")
+
+	updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	require.Equal(t, 3, len(updates))
+
+	msgCreateValidator = NewTestMsgCreateValidator(valD, keep.PKs[3], 10)
+	got = handleMsgCreateValidator(ctx, msgCreateValidator, keeper)
+	require.True(t, got.IsOK(), "expected no error on runMsgCreateValidator")
+
+	msgCreateValidator = NewTestMsgCreateValidator(valF, keep.PKs[5], 10)
+	got = handleMsgCreateValidator(ctx, msgCreateValidator, keeper)
+	require.True(t, got.IsOK(), "expected no error on runMsgCreateValidator")
+
+	ctx = ctx.WithBlockHeight(1)
+	removeValidatorMsg := NewMsgRemoveValidator(nil, valA, sdk.ConsAddress(keep.PKs[0].Address()), 0)
+	proposalDesc, _ := json.Marshal(removeValidatorMsg)
+
+	proposal := govKeeper.NewTextProposal(ctx, "RemoveValidatorProposal", string(proposalDesc), gov.ProposalTypeRemoveValidator, 1000*time.Second)
+	proposal.SetStatus(gov.StatusPassed)
+	govKeeper.SetProposal(ctx, proposal)
+
+	// Launcher isn't a bonded validator
+	msgRemoveValidator := NewMsgRemoveValidator(sdk.AccAddress(valD), valA, sdk.ConsAddress(keep.PKs[0].Address()), 0)
+	result := handleMsgRemoveValidatorAfterProposal(ctx, msgRemoveValidator, keeper, govKeeper)
+	require.False(t, result.IsOK())
+
+	// Launcher isn't a validator
+	msgRemoveValidator = NewMsgRemoveValidator(sdk.AccAddress(valE), valA, sdk.ConsAddress(keep.PKs[0].Address()), 0)
+	result = handleMsgRemoveValidatorAfterProposal(ctx, msgRemoveValidator, keeper, govKeeper)
+	require.False(t, result.IsOK())
+
+	// Launcher is a bonded validator
+	msgRemoveValidator = NewMsgRemoveValidator(sdk.AccAddress(valC), valA, sdk.ConsAddress(keep.PKs[0].Address()), 0)
+	result = handleMsgRemoveValidatorAfterProposal(ctx, msgRemoveValidator, keeper, govKeeper)
+	require.True(t, result.IsOK())
+
+	ctx = ctx.WithBlockHeight(2)
+	removeValidatorMsg = NewMsgRemoveValidator(nil, valD, sdk.ConsAddress(keep.PKs[3].Address()), 0)
+	proposalDesc, _ = json.Marshal(removeValidatorMsg)
+	proposal = govKeeper.NewTextProposal(ctx, "RemoveValidatorProposal", string(proposalDesc), gov.ProposalTypeRemoveValidator, 1000*time.Second)
+	proposal.SetStatus(gov.StatusPassed)
+	govKeeper.SetProposal(ctx, proposal)
+
+	// Launcher is the operator of target validator
+	msgRemoveValidator = NewMsgRemoveValidator(sdk.AccAddress(valD), valD, sdk.ConsAddress(keep.PKs[3].Address()), 1)
+	result = handleMsgRemoveValidatorAfterProposal(ctx, msgRemoveValidator, keeper, govKeeper)
+	require.True(t, result.IsOK())
+
+	ctx = ctx.WithBlockHeight(2)
+	removeValidatorMsg = NewMsgRemoveValidator(nil, valF, sdk.ConsAddress(keep.PKs[5].Address()), 0)
+	proposalDesc, _ = json.Marshal(removeValidatorMsg)
+	proposal = govKeeper.NewTextProposal(ctx, "RemoveValidatorProposal", string(proposalDesc), gov.ProposalTypeRemoveValidator, 1000*time.Second)
+	proposal.SetStatus(gov.StatusPassed)
+	govKeeper.SetProposal(ctx, proposal)
+
+	// Try to remove a different validator
+	msgRemoveValidator = NewMsgRemoveValidator(sdk.AccAddress(valF), valB, sdk.ConsAddress(keep.PKs[1].Address()), 2)
+	result = handleMsgRemoveValidatorAfterProposal(ctx, msgRemoveValidator, keeper, govKeeper)
+	require.False(t, result.IsOK())
 }

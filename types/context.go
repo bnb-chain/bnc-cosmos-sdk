@@ -45,6 +45,7 @@ func NewContext(ms MultiStore, header abci.Header, runTxMode RunTxMode, logger l
 	c = c.WithTxBytes(nil)
 	c = c.WithLogger(logger)
 	c = c.WithVoteInfos(nil)
+	c = c.WithRouterCallRecord(make(map[string]bool))
 	return c
 }
 
@@ -137,6 +138,7 @@ const (
 	contextKeyLogger
 	contextKeyVoteInfos
 	contextKeyAccountCache
+	contextKeyRouterCallRecord
 )
 
 // NOTE: Do not expose MultiStore.
@@ -181,6 +183,10 @@ func (c Context) IsDeliverTx() bool {
 
 func (c Context) AccountCache() AccountCache {
 	return c.Value(contextKeyAccountCache).(AccountCache)
+}
+
+func (c Context) RouterCallRecord() map[string]bool {
+	return c.Value(contextKeyRouterCallRecord).(map[string]bool)
 }
 
 func (c Context) WithMultiStore(ms MultiStore) Context { return c.withValue(contextKeyMultiStore, ms) }
@@ -231,6 +237,10 @@ func (c Context) WithRunTxMode(runTxMode RunTxMode) Context {
 
 func (c Context) WithAccountCache(cache AccountCache) Context {
 	return c.withValue(contextKeyAccountCache, cache)
+}
+
+func (c Context) WithRouterCallRecord(record map[string]bool) Context {
+	return c.withValue(contextKeyRouterCallRecord, record)
 }
 
 // Cache the multistore and return a new cached context. The cached context is
