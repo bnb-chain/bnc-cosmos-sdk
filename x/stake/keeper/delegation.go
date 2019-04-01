@@ -503,7 +503,7 @@ func (k Keeper) BeginUnbonding(ctx sdk.Context,
 		if err != nil {
 			return types.UnbondingDelegation{}, err
 		}
-		if k.addrPool != nil {
+		if ctx.IsDeliverTx() && k.addrPool != nil {
 			k.addrPool.AddAddrs([]sdk.AccAddress{delAddr})
 		}
 		return types.UnbondingDelegation{MinTime: minTime}, nil
