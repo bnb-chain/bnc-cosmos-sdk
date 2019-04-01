@@ -163,7 +163,9 @@ func handleMsgCreateValidator(ctx sdk.Context, msg MsgCreateValidator, k keeper.
 		return ErrBadDenom(k.Codespace()).Result()
 	}
 
-	validator := NewValidator(msg.ValidatorAddr, msg.PubKey, msg.Description)
+	// self-delegate address will be used to collect fees.
+	feeAddr := msg.DelegatorAddr
+	validator := NewValidatorWithFeeAddr(feeAddr, msg.ValidatorAddr, msg.PubKey, msg.Description)
 	commission := NewCommissionWithTime(
 		msg.Commission.Rate, msg.Commission.MaxRate,
 		msg.Commission.MaxChangeRate, ctx.BlockHeader().Time,

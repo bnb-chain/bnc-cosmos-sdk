@@ -158,6 +158,7 @@ func TestDeposits(t *testing.T) {
 	require.Equal(t, addrs[0], deposit.Depositer)
 	require.Equal(t, fiveHundredSteak, keeper.GetProposal(ctx, proposalID).GetTotalDeposit())
 	require.Equal(t, addr0Initial.Minus(fiveHundredSteak), ck.GetCoins(ctx, addrs[0]))
+	require.Equal(t, fiveHundredSteak, ck.GetCoins(ctx, gov.DepositedCoinsAccAddr))
 
 	// Check a second deposit from same address
 	err, votingStarted = keeper.AddDeposit(ctx, proposalID, addrs[0], oneThousandSteak)
@@ -169,6 +170,7 @@ func TestDeposits(t *testing.T) {
 	require.Equal(t, addrs[0], deposit.Depositer)
 	require.Equal(t, fiveHundredSteak.Plus(oneThousandSteak), keeper.GetProposal(ctx, proposalID).GetTotalDeposit())
 	require.Equal(t, addr0Initial.Minus(fiveHundredSteak).Minus(oneThousandSteak), ck.GetCoins(ctx, addrs[0]))
+	require.Equal(t, fiveHundredSteak.Plus(oneThousandSteak), ck.GetCoins(ctx, gov.DepositedCoinsAccAddr))
 
 	// Check third deposit from a new address
 	err, votingStarted = keeper.AddDeposit(ctx, proposalID, addrs[1], fiveHundredSteak)
@@ -180,6 +182,7 @@ func TestDeposits(t *testing.T) {
 	require.Equal(t, fiveHundredSteak, deposit.Amount)
 	require.Equal(t, fiveHundredSteak.Plus(oneThousandSteak).Plus(fiveHundredSteak), keeper.GetProposal(ctx, proposalID).GetTotalDeposit())
 	require.Equal(t, addr1Initial.Minus(fiveHundredSteak), ck.GetCoins(ctx, addrs[1]))
+	require.Equal(t, sdk.Coins{sdk.NewCoin(gov.DefaultDepositDenom, 2000e8)}, ck.GetCoins(ctx, gov.DepositedCoinsAccAddr))
 
 	// Check that proposal moved to voting period
 	require.True(t, keeper.GetProposal(ctx, proposalID).GetVotingStartTime().Equal(ctx.BlockHeader().Time))
@@ -209,6 +212,7 @@ func TestDeposits(t *testing.T) {
 	require.False(t, found)
 	require.Equal(t, addr0Initial, ck.GetCoins(ctx, addrs[0]))
 	require.Equal(t, addr1Initial, ck.GetCoins(ctx, addrs[1]))
+	require.Equal(t, sdk.Coins(nil), ck.GetCoins(ctx, gov.DepositedCoinsAccAddr))
 }
 
 func TestVotes(t *testing.T) {

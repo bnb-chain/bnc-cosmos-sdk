@@ -137,7 +137,7 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initCoins int64) (sdk.Context
 }
 
 // hodgepodge of all sorts of input required for testing
-func CreateTestInputWithGov(t *testing.T, isCheckTx bool, initCoins int64) (sdk.Context, auth.AccountKeeper, Keeper, gov.Keeper, *codec.Codec ) {
+func CreateTestInputWithGov(t *testing.T, isCheckTx bool, initCoins int64) (sdk.Context, auth.AccountKeeper, Keeper, gov.Keeper, *codec.Codec) {
 
 	keyStake := sdk.NewKVStoreKey("stake")
 	tkeyStake := sdk.NewTransientStoreKey("transient_stake")
@@ -179,7 +179,7 @@ func CreateTestInputWithGov(t *testing.T, isCheckTx bool, initCoins int64) (sdk.
 	pk := params.NewKeeper(cdc, keyParams, tkeyParams)
 	keeper := NewKeeper(cdc, keyStake, tkeyStake, ck, nil, pk.Subspace(DefaultParamspace), types.DefaultCodespace)
 
-	govKeeper := gov.NewKeeper(cdc, govKey, pk, pk.Subspace(gov.DefaultParamspace), ck, keeper, gov.DefaultCodespace, &sdk.Pool{})
+	govKeeper := gov.NewKeeper(cdc, govKey, pk, pk.Subspace(gov.DefaultParamSpace), ck, keeper, gov.DefaultCodespace, &sdk.Pool{})
 
 	keeper.SetPool(ctx, types.InitialPool())
 	keeper.SetParams(ctx, types.DefaultParams())

@@ -37,6 +37,7 @@ func TestTickExpiredDepositPeriod(t *testing.T) {
 	gov.EndBlocker(ctx, keeper)
 	require.NotNil(t, keeper.InactiveProposalQueuePeek(ctx))
 	require.False(t, gov.ShouldPopInactiveProposalQueue(ctx, keeper))
+	require.Equal(t, sdk.Coins{sdk.NewCoin(gov.DefaultDepositDenom, 1000e8)}, ck.GetCoins(ctx, gov.DepositedCoinsAccAddr))
 
 	newHeader := ctx.BlockHeader()
 	newHeader.Time = ctx.BlockHeader().Time.Add(time.Duration(1) * time.Second)
@@ -47,7 +48,7 @@ func TestTickExpiredDepositPeriod(t *testing.T) {
 	require.False(t, gov.ShouldPopInactiveProposalQueue(ctx, keeper))
 
 	newHeader = ctx.BlockHeader()
-	newHeader.Time = ctx.BlockHeader().Time.Add(keeper.GetDepositProcedure(ctx).MaxDepositPeriod)
+	newHeader.Time = ctx.BlockHeader().Time.Add(keeper.GetDepositParams(ctx).MaxDepositPeriod)
 	ctx = ctx.WithBlockHeader(newHeader)
 
 	require.NotNil(t, keeper.InactiveProposalQueuePeek(ctx))
@@ -57,13 +58,14 @@ func TestTickExpiredDepositPeriod(t *testing.T) {
 	validatorCoins := ck.GetCoins(ctx, addrs[0])
 	// check distribute deposits to proposer
 	require.Equal(t, validatorCoins, sdk.Coins{sdk.NewCoin(gov.DefaultDepositDenom, 6000e8)})
+	require.Equal(t, sdk.Coins(nil), ck.GetCoins(ctx, gov.DepositedCoinsAccAddr))
 
 	require.Nil(t, keeper.InactiveProposalQueuePeek(ctx))
 	require.False(t, gov.ShouldPopInactiveProposalQueue(ctx, keeper))
 }
 
 func TestTickMultipleExpiredDepositPeriod(t *testing.T) {
-	mapp, _, keeper, stakeKeeper, addrs, pubKeys, _ := getMockApp(t, 10)
+	mapp, ck, keeper, stakeKeeper, addrs, pubKeys, _ := getMockApp(t, 10)
 
 	validator := stake.NewValidator(sdk.ValAddress(addrs[0]), pubKeys[0], stake.Description{})
 	mapp.BeginBlock(abci.RequestBeginBlock{})
@@ -86,6 +88,7 @@ func TestTickMultipleExpiredDepositPeriod(t *testing.T) {
 	gov.EndBlocker(ctx, keeper)
 	require.NotNil(t, keeper.InactiveProposalQueuePeek(ctx))
 	require.False(t, gov.ShouldPopInactiveProposalQueue(ctx, keeper))
+	require.Equal(t, sdk.Coins{sdk.NewCoin(gov.DefaultDepositDenom, 1000e8)}, ck.GetCoins(ctx, gov.DepositedCoinsAccAddr))
 
 	newHeader := ctx.BlockHeader()
 	newHeader.Time = ctx.BlockHeader().Time.Add(time.Duration(2) * time.Second)
@@ -100,7 +103,7 @@ func TestTickMultipleExpiredDepositPeriod(t *testing.T) {
 	require.True(t, res.IsOK())
 
 	newHeader = ctx.BlockHeader()
-	newHeader.Time = ctx.BlockHeader().Time.Add(keeper.GetDepositProcedure(ctx).MaxDepositPeriod).Add(time.Duration(-1) * time.Second)
+	newHeader.Time = ctx.BlockHeader().Time.Add(keeper.GetDepositParams(ctx).MaxDepositPeriod).Add(time.Duration(-1) * time.Second)
 	ctx = ctx.WithBlockHeader(newHeader)
 
 	require.NotNil(t, keeper.InactiveProposalQueuePeek(ctx))
@@ -108,6 +111,7 @@ func TestTickMultipleExpiredDepositPeriod(t *testing.T) {
 	gov.EndBlocker(ctx, keeper)
 	require.NotNil(t, keeper.InactiveProposalQueuePeek(ctx))
 	require.False(t, gov.ShouldPopInactiveProposalQueue(ctx, keeper))
+	require.Equal(t, sdk.Coins{sdk.NewCoin(gov.DefaultDepositDenom, 5)}, ck.GetCoins(ctx, gov.DepositedCoinsAccAddr))
 
 	newHeader = ctx.BlockHeader()
 	newHeader.Time = ctx.BlockHeader().Time.Add(time.Duration(5) * time.Second)
@@ -118,10 +122,11 @@ func TestTickMultipleExpiredDepositPeriod(t *testing.T) {
 	gov.EndBlocker(ctx, keeper)
 	require.Nil(t, keeper.InactiveProposalQueuePeek(ctx))
 	require.False(t, gov.ShouldPopInactiveProposalQueue(ctx, keeper))
+	require.Equal(t, sdk.Coins(nil), ck.GetCoins(ctx, gov.DepositedCoinsAccAddr))
 }
 
 func TestTickPassedDepositPeriod(t *testing.T) {
-	mapp, _, keeper, _, addrs, _, _ := getMockApp(t, 10)
+	mapp, ck, keeper, _, addrs, _, _ := getMockApp(t, 10)
 	mapp.BeginBlock(abci.RequestBeginBlock{})
 	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{})
 	govHandler := gov.NewHandler(keeper)
@@ -141,6 +146,7 @@ func TestTickPassedDepositPeriod(t *testing.T) {
 	gov.EndBlocker(ctx, keeper)
 	require.NotNil(t, keeper.InactiveProposalQueuePeek(ctx))
 	require.False(t, gov.ShouldPopInactiveProposalQueue(ctx, keeper))
+	require.Equal(t, sdk.Coins{sdk.NewCoin(gov.DefaultDepositDenom, 1000e8)}, ck.GetCoins(ctx, gov.DepositedCoinsAccAddr))
 
 	newHeader := ctx.BlockHeader()
 	newHeader.Time = ctx.BlockHeader().Time.Add(time.Duration(1) * time.Second)
@@ -157,6 +163,7 @@ func TestTickPassedDepositPeriod(t *testing.T) {
 	require.NotNil(t, keeper.InactiveProposalQueuePeek(ctx))
 	require.True(t, gov.ShouldPopInactiveProposalQueue(ctx, keeper))
 	require.NotNil(t, keeper.ActiveProposalQueuePeek(ctx))
+	require.Equal(t, sdk.Coins{sdk.NewCoin(gov.DefaultDepositDenom, 2000e8)}, ck.GetCoins(ctx, gov.DepositedCoinsAccAddr))
 
 	gov.EndBlocker(ctx, keeper)
 
@@ -164,7 +171,6 @@ func TestTickPassedDepositPeriod(t *testing.T) {
 	require.False(t, gov.ShouldPopInactiveProposalQueue(ctx, keeper))
 	require.NotNil(t, keeper.ActiveProposalQueuePeek(ctx))
 	require.False(t, gov.ShouldPopActiveProposalQueue(ctx, keeper))
-
 }
 
 func TestTickPassedVotingPeriodRejected(t *testing.T) {
@@ -210,6 +216,8 @@ func TestTickPassedVotingPeriodRejected(t *testing.T) {
 	newVoteMsg := gov.NewMsgVote(addrs[0], int64(proposalID), gov.OptionNo)
 	res = govHandler(ctx, newVoteMsg)
 	require.True(t, res.IsOK())
+	require.Equal(t, sdk.Coins{sdk.NewCoin(gov.DefaultDepositDenom, 2000e8)}, ck.GetCoins(ctx, gov.DepositedCoinsAccAddr))
+
 	gov.EndBlocker(ctx, keeper)
 
 	// pass voting period
@@ -234,6 +242,7 @@ func TestTickPassedVotingPeriodRejected(t *testing.T) {
 	// check distribute deposits to proposer
 	validatorCoins := ck.GetCoins(ctx, addrs[0])
 	require.Equal(t, validatorCoins, sdk.Coins{sdk.NewCoin(gov.DefaultDepositDenom, 6000e8)})
+	require.Equal(t, sdk.Coins(nil), ck.GetCoins(ctx, gov.DepositedCoinsAccAddr))
 }
 
 func TestTickPassedVotingPeriodPassed(t *testing.T) {
@@ -273,6 +282,7 @@ func TestTickPassedVotingPeriodPassed(t *testing.T) {
 	newDepositMsg := gov.NewMsgDeposit(addrs[1], int64(proposalID), sdk.Coins{sdk.NewCoin(gov.DefaultDepositDenom, 1000e8)})
 	res = govHandler(ctx, newDepositMsg)
 	require.True(t, res.IsOK())
+	require.Equal(t, sdk.Coins{sdk.NewCoin(gov.DefaultDepositDenom, 2000e8)}, ck.GetCoins(ctx, gov.DepositedCoinsAccAddr))
 	gov.EndBlocker(ctx, keeper)
 
 	newHeader = ctx.BlockHeader()
@@ -305,6 +315,7 @@ func TestTickPassedVotingPeriodPassed(t *testing.T) {
 	// check refund deposits
 	validatorCoins := ck.GetCoins(ctx, addrs[0])
 	require.Equal(t, validatorCoins, sdk.Coins{sdk.NewCoin(gov.DefaultDepositDenom, 5000e8)})
+	require.Equal(t, sdk.Coins(nil), ck.GetCoins(ctx, gov.DepositedCoinsAccAddr))
 }
 
 func TestTickPassedVotingPeriodUnreachedQuorum(t *testing.T) {
@@ -357,6 +368,8 @@ func TestTickPassedVotingPeriodUnreachedQuorum(t *testing.T) {
 	newVoteMsg := gov.NewMsgVote(addrs[0], int64(proposalID), gov.OptionYes)
 	res = govHandler(ctx, newVoteMsg)
 	require.True(t, res.IsOK())
+	require.Equal(t, sdk.Coins{sdk.NewCoin(gov.DefaultDepositDenom, 2000e8)}, ck.GetCoins(ctx, gov.DepositedCoinsAccAddr))
+
 	gov.EndBlocker(ctx, keeper)
 
 	// pass voting period
@@ -381,6 +394,7 @@ func TestTickPassedVotingPeriodUnreachedQuorum(t *testing.T) {
 	// check refund deposits
 	validatorCoins := ck.GetCoins(ctx, addrs[0])
 	require.Equal(t, validatorCoins, sdk.Coins{sdk.NewCoin(gov.DefaultDepositDenom, 5000e8)})
+	require.Equal(t, sdk.Coins(nil), ck.GetCoins(ctx, gov.DepositedCoinsAccAddr))
 }
 
 func TestTickPassedVotingPeriodAllAbstain(t *testing.T) {
