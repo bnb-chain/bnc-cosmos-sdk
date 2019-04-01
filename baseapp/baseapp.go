@@ -853,6 +853,22 @@ func (app *BaseApp) initializeContext(ctx sdk.Context, mode sdk.RunTxMode) sdk.C
 	return ctx
 }
 
+// cacheTxContext returns a new context based off of the provided context with
+// a cache wrapped multi-store.
+func (app *BaseApp) cacheTxContext(ctx sdk.Context, txBytes []byte, mode sdk.RunTxMode) (
+	sdk.Context, sdk.CacheMultiStore, sdk.AccountCache) {
+	ms := ctx.MultiStore()
+	msCache := ms.CacheMultiStore()
+	if msCache.TracingEnabled() {
+		msCache = msCache.WithTracingContext(sdk.TraceContext(
+			map[string]interface{}{"txHash": fmt.Sprintf("%X", tmhash.Sum(txBytes))},
+		)).(sdk.CacheMultiStore)
+	}
+	accountCache := getAccountCache(app, mode).Cache()
+
+	return ctx.WithMultiStore(msCache).WithAccountCache(accountCache), msCache, accountCache
+}
+
 // RunTx processes a transaction. The transactions is proccessed via an
 // anteHandler. txBytes may be nil in some cases, eg. in tests. Also, in the
 // future we may support "internal" transactions.
@@ -861,6 +877,7 @@ func (app *BaseApp) RunTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx, txHash 
 	var msCache sdk.CacheMultiStore
 	ctx := app.getContextForAnte(mode, txBytes)
 	ctx = app.initializeContext(ctx, mode)
+	ms := ctx.MultiStore()
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -877,13 +894,37 @@ func (app *BaseApp) RunTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx, txHash 
 
 	// run the ante handler
 	if app.anteHandler != nil {
-		newCtx, result, abort := app.anteHandler(ctx.WithValue(TxHashKey, txHash), tx, mode)
+		var anteCtx sdk.Context
+		var msCache sdk.CacheMultiStore
+		var accountCache sdk.AccountCache
+
+		// Cache wrap context before anteHandler call in case it aborts.
+		// This is required for both CheckTx and DeliverTx.
+		// Ref: https://github.com/cosmos/cosmos-sdk/issues/2772
+		//
+		// NOTE: Alternatively, we could require that anteHandler ensures that
+		// writes do not happen if aborted/failed.  This may have some
+		// performance benefits, but it'll be more difficult to get right.
+		anteCtx, msCache, accountCache = app.cacheTxContext(ctx, txBytes, mode)
+
+		newCtx, result, abort := app.anteHandler(anteCtx.WithValue(TxHashKey, txHash), tx, mode)
+		if !newCtx.IsZero() {
+			// At this point, newCtx.MultiStore() is cache-wrapped, or something else
+			// replaced by the ante handler. We want the original multistore, not one
+			// which was cache-wrapped for the ante handler.
+			//
+			// Also, in the case of the tx aborting, we need to track gas consumed via
+			// the instantiated gas meter in the ante handler, so we update the context
+			// prior to returning.
+			ctx = newCtx.WithMultiStore(ms)
+		}
+
 		if abort {
 			return result
 		}
-		if !newCtx.IsZero() {
-			ctx = newCtx
-		}
+
+		accountCache.Write()
+		msCache.Write()
 	}
 
 	if mode == sdk.RunTxModeSimulate {
@@ -891,20 +932,11 @@ func (app *BaseApp) RunTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx, txHash 
 		return
 	}
 
-	// Keep the state in a transient CacheWrap in case processing the messages
-	// fails.
-	msCache = getState(app, mode).CacheMultiStore()
-	if msCache.TracingEnabled() {
-		msCache = msCache.WithTracingContext(sdk.TraceContext(
-			map[string]interface{}{"txHash": txHash},
-		)).(sdk.CacheMultiStore)
-	}
+	// Create a new context based off of the existing context with a cache wrapped
+	// multi-store in case message processing fails.
+	runMsgCtx, msCache, accountCache := app.cacheTxContext(ctx, txBytes, mode)
 
-	accountCache := getAccountCache(app, mode).Cache()
-
-	ctx = ctx.WithMultiStore(msCache)
-	ctx = ctx.WithAccountCache(accountCache)
-	result = app.runMsgs(ctx, msgs, txHash, mode)
+	result = app.runMsgs(runMsgCtx, msgs, txHash, mode)
 
 	// only update state if all messages pass
 	if result.IsOK() {
@@ -932,6 +964,7 @@ func (app *BaseApp) ReRunTx(txBytes []byte, tx sdk.Tx) (result sdk.Result) {
 	var msCache sdk.CacheMultiStore
 	mode := sdk.RunTxModeReCheck
 	ctx := app.getContextForAnte(mode, txBytes)
+	ms := ctx.MultiStore()
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -945,30 +978,45 @@ func (app *BaseApp) ReRunTx(txBytes []byte, tx sdk.Tx) (result sdk.Result) {
 
 	// run the ante handler
 	if app.anteHandler != nil {
-		newCtx, result, abort := app.anteHandler(ctx.WithValue(TxHashKey, txHash), tx, mode)
+		var anteCtx sdk.Context
+		var msCache sdk.CacheMultiStore
+		var accountCache sdk.AccountCache
+
+		// Cache wrap context before anteHandler call in case it aborts.
+		// This is required for both CheckTx and DeliverTx.
+		// Ref: https://github.com/cosmos/cosmos-sdk/issues/2772
+		//
+		// NOTE: Alternatively, we could require that anteHandler ensures that
+		// writes do not happen if aborted/failed.  This may have some
+		// performance benefits, but it'll be more difficult to get right.
+		anteCtx, msCache, accountCache = app.cacheTxContext(ctx, txBytes, mode)
+
+		newCtx, result, abort := app.anteHandler(anteCtx.WithValue(TxHashKey, txHash), tx, mode)
+		if !newCtx.IsZero() {
+			// At this point, newCtx.MultiStore() is cache-wrapped, or something else
+			// replaced by the ante handler. We want the original multistore, not one
+			// which was cache-wrapped for the ante handler.
+			//
+			// Also, in the case of the tx aborting, we need to track gas consumed via
+			// the instantiated gas meter in the ante handler, so we update the context
+			// prior to returning.
+			ctx = newCtx.WithMultiStore(ms)
+		}
+
 		if abort {
 			return result
 		}
-		if !newCtx.IsZero() {
-			ctx = newCtx
-		}
+
+		accountCache.Write()
+		msCache.Write()
 	}
 
-	// Keep the state in a transient CacheWrap in case processing the messages
-	// fails.
-	msCache = getState(app, mode).CacheMultiStore()
-	if msCache.TracingEnabled() {
-		msCache = msCache.WithTracingContext(sdk.TraceContext(
-			map[string]interface{}{"txHash": txHash},
-		)).(sdk.CacheMultiStore)
-	}
+	// Create a new context based off of the existing context with a cache wrapped
+	// multi-store in case message processing fails.
+	runMsgCtx, msCache, accountCache := app.cacheTxContext(ctx, txBytes, mode)
 
-	accountCache := getAccountCache(app, mode).Cache()
-
-	ctx = ctx.WithMultiStore(msCache)
-	ctx = ctx.WithAccountCache(accountCache)
 	var msgs = tx.GetMsgs()
-	result = app.runMsgs(ctx, msgs, txHash, mode)
+	result = app.runMsgs(runMsgCtx, msgs, txHash, mode)
 
 	// only update state if all messages pass
 	if result.IsOK() {
