@@ -3,9 +3,8 @@ package utils
 import (
 	"bytes"
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/codec"
 	"os"
-
-	"github.com/tendermint/go-amino"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/keys"
@@ -150,7 +149,7 @@ func SignStdTx(txBldr authtxb.TxBuilder, cliCtx context.CLIContext, name string,
 	return txBldr.SignStdTx(name, passphrase, stdTx, appendSig)
 }
 
-func parseQueryResponse(cdc *amino.Codec, rawRes []byte) (sdk.Result, error) {
+func parseQueryResponse(cdc *codec.Codec, rawRes []byte) (sdk.Result, error) {
 	var simulationResult sdk.Result
 	if err := cdc.UnmarshalBinaryLengthPrefixed(rawRes, &simulationResult); err != nil {
 		return sdk.Result{}, err

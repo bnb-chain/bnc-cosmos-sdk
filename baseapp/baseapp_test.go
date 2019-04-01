@@ -683,11 +683,11 @@ func TestSimulateTx(t *testing.T) {
 		tx := newTxCounter(count, count)
 
 		// simulate a message
-		result := app.Simulate(tx)
+		result := app.Simulate(nil, tx)
 		require.True(t, result.IsOK(), result.Log)
 
 		// simulate again, same result
-		result = app.Simulate(tx)
+		result = app.Simulate(nil, tx)
 		require.True(t, result.IsOK(), result.Log)
 
 		// simulate by calling Query with encoded tx
