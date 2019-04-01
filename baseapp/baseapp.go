@@ -865,6 +865,10 @@ func (app *BaseApp) cacheTxContext(ctx sdk.Context, txHash string, mode sdk.RunT
 		)).(sdk.CacheMultiStore)
 	}
 	accountCache := getAccountCache(app, mode).Cache()
+	// For simulation mode, we have already assign a cached accountCache to the context
+	if mode == sdk.RunTxModeSimulate {
+		accountCache = ctx.AccountCache().Cache()
+	}
 
 	return ctx.WithMultiStore(msCache).WithAccountCache(accountCache), msCache, accountCache
 }
