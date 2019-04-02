@@ -3,10 +3,12 @@ package types
 var UpgradeMgr = NewUpgradeManager(UpgradeConfig{})
 
 const UpgradeLimitAddressLength = "UpgradeLimitAddressLength" // limit address length to 20 bytes
+const UpgradeRunTx = "UpgradeRunTx" // Add cache for ante execution
 
 var MainNetConfig = UpgradeConfig{
 	map[string]int64{
 		UpgradeLimitAddressLength: 554000,
+		UpgradeRunTx: 100,
 	},
 }
 
