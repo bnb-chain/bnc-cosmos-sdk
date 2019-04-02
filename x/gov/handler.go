@@ -134,7 +134,9 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags, refundProposa
 
 		keeper.DeleteProposal(ctx, inactiveProposal)
 
-		notRefundProposals = append(notRefundProposals, inactiveProposal.GetProposalID())
+		if sdk.IsGovStrategyUpgrade() {
+			notRefundProposals = append(notRefundProposals, inactiveProposal.GetProposalID())
+		}
 
 		resTags.AppendTag(tags.Action, tags.ActionProposalDropped)
 		resTags.AppendTag(tags.ProposalID, proposalIDBytes)
@@ -167,7 +169,7 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags, refundProposa
 			continue
 		}
 
-		passes, refundDeposits, tallyResults, _ := Tally(ctx, keeper, activeProposal)
+		passes, refundDeposits, tallyResults, newTallyResults := Tally(ctx, keeper, activeProposal)
 		proposalIDBytes := keeper.cdc.MustMarshalBinaryBare(activeProposal.GetProposalID())
 		var action []byte
 		if passes {
@@ -192,10 +194,16 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags, refundProposa
 				}
 			} else {
 				keeper.DistributeDeposits(ctx, activeProposal.GetProposalID())
+				notRefundProposals = append(notRefundProposals, activeProposal.GetProposalID())
 			}
 		}
 
-		activeProposal.SetTallyResult(tallyResults)
+		if sdk.IsGovStrategyUpgrade() {
+			activeProposal.SetNewTallyResult(newTallyResults)
+		} else {
+			activeProposal.SetTallyResult(tallyResults)
+		}
+
 		keeper.SetProposal(ctx, activeProposal)
 
 		logger.Info(fmt.Sprintf("proposal %d (%s) tallied; passed: %v",
