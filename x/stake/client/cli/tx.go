@@ -144,7 +144,7 @@ func GetCmdCreateValidator(cdc *codec.Codec) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().Int64(FlagProposalID, 0, "id of the CreateValidator proposal")
+	cmd.Flags().Int64(FlagProposalID, -1, "id of the CreateValidator proposal")
 	cmd.Flags().Int64(FlagVotingPeriod, 7*24*60*60, "voting period in seconds")
 	cmd.Flags().AddFlagSet(fsPk)
 	cmd.Flags().AddFlagSet(fsAmount)
