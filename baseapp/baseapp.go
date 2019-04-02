@@ -845,14 +845,6 @@ func getAccountCache(app *BaseApp, mode sdk.RunTxMode) sdk.AccountCache {
 	return app.DeliverState.AccountCache
 }
 
-func (app *BaseApp) initializeContext(ctx sdk.Context, mode sdk.RunTxMode) sdk.Context {
-	if mode == sdk.RunTxModeSimulate {
-		ctx = ctx.WithMultiStore(getState(app, mode).CacheMultiStore()).
-			WithAccountCache(getAccountCache(app, mode).Cache())
-	}
-	return ctx
-}
-
 // cacheTxContext returns a new context based off of the provided context with
 // a cache wrapped multi-store.
 func (app *BaseApp) cacheTxContext(ctx sdk.Context, txHash string, mode sdk.RunTxMode) (
@@ -865,10 +857,6 @@ func (app *BaseApp) cacheTxContext(ctx sdk.Context, txHash string, mode sdk.RunT
 		)).(sdk.CacheMultiStore)
 	}
 	accountCache := getAccountCache(app, mode).Cache()
-	// For simulation mode, we have already assign a cached accountCache to the context
-	if mode == sdk.RunTxModeSimulate {
-		accountCache = ctx.AccountCache().Cache()
-	}
 
 	return ctx.WithMultiStore(msCache).WithAccountCache(accountCache), msCache, accountCache
 }
@@ -880,8 +868,7 @@ func (app *BaseApp) RunTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx, txHash 
 	// meter so we initialize upfront.
 	var msCache sdk.CacheMultiStore
 	ctx := app.getContextForAnte(mode, txBytes)
-	ctx = app.initializeContext(ctx, mode)
-	ms := ctx.MultiStore()
+	ctx, msCache, accountCache := app.cacheTxContext(ctx, txHash, mode)
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -898,40 +885,17 @@ func (app *BaseApp) RunTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx, txHash 
 
 	// run the ante handler
 	if app.anteHandler != nil {
-		var anteCtx sdk.Context
-		var msCache sdk.CacheMultiStore
-		var accountCache sdk.AccountCache
-
-		// Cache wrap context before anteHandler call in case it aborts.
-		// This is required for both CheckTx and DeliverTx.
-		// Ref: https://github.com/cosmos/cosmos-sdk/issues/2772
-		//
-		// NOTE: Alternatively, we could require that anteHandler ensures that
-		// writes do not happen if aborted/failed.  This may have some
-		// performance benefits, but it'll be more difficult to get right.
-		anteCtx, msCache, accountCache = app.cacheTxContext(ctx, txHash, mode)
-
-		newCtx, result, abort := app.anteHandler(anteCtx.WithValue(TxHashKey, txHash), tx, mode)
+		newCtx, result, abort := app.anteHandler(ctx.WithValue(TxHashKey, txHash), tx, mode)
 		if !newCtx.IsZero() {
-			// At this point, newCtx.MultiStore() is cache-wrapped, or something else
-			// replaced by the ante handler. We want the original multistore, not one
-			// which was cache-wrapped for the ante handler.
-			ctx = newCtx.WithMultiStore(ms)
+			ctx = newCtx
 		}
 
 		if abort {
 			return result
 		}
-
-		accountCache.Write()
-		msCache.Write()
 	}
 
-	// Create a new context based off of the existing context with a cache wrapped
-	// multi-store in case message processing fails.
-	runMsgCtx, msCache, accountCache := app.cacheTxContext(ctx, txHash, mode)
-
-	result = app.runMsgs(runMsgCtx, msgs, txHash, mode)
+	result = app.runMsgs(ctx, msgs, txHash, mode)
 
 	if mode == sdk.RunTxModeSimulate {
 		return
@@ -963,7 +927,9 @@ func (app *BaseApp) ReRunTx(txBytes []byte, tx sdk.Tx) (result sdk.Result) {
 	var msCache sdk.CacheMultiStore
 	mode := sdk.RunTxModeReCheck
 	ctx := app.getContextForAnte(mode, txBytes)
-	ms := ctx.MultiStore()
+
+	txHash := cmn.HexBytes(tmhash.Sum(txBytes)).String()
+	ctx, msCache, accountCache := app.cacheTxContext(ctx, txHash, mode)
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -973,45 +939,20 @@ func (app *BaseApp) ReRunTx(txBytes []byte, tx sdk.Tx) (result sdk.Result) {
 
 	}()
 
-	txHash := cmn.HexBytes(tmhash.Sum(txBytes)).String()
-
 	// run the ante handler
 	if app.anteHandler != nil {
-		var anteCtx sdk.Context
-		var msCache sdk.CacheMultiStore
-		var accountCache sdk.AccountCache
-
-		// Cache wrap context before anteHandler call in case it aborts.
-		// This is required for both CheckTx and DeliverTx.
-		// Ref: https://github.com/cosmos/cosmos-sdk/issues/2772
-		//
-		// NOTE: Alternatively, we could require that anteHandler ensures that
-		// writes do not happen if aborted/failed.  This may have some
-		// performance benefits, but it'll be more difficult to get right.
-		anteCtx, msCache, accountCache = app.cacheTxContext(ctx, txHash, mode)
-
-		newCtx, result, abort := app.anteHandler(anteCtx.WithValue(TxHashKey, txHash), tx, mode)
+		newCtx, result, abort := app.anteHandler(ctx.WithValue(TxHashKey, txHash), tx, mode)
 		if !newCtx.IsZero() {
-			// At this point, newCtx.MultiStore() is cache-wrapped, or something else
-			// replaced by the ante handler. We want the original multistore, not one
-			// which was cache-wrapped for the ante handler.
-			ctx = newCtx.WithMultiStore(ms)
+			ctx = newCtx
 		}
 
 		if abort {
 			return result
 		}
-
-		accountCache.Write()
-		msCache.Write()
 	}
 
-	// Create a new context based off of the existing context with a cache wrapped
-	// multi-store in case message processing fails.
-	runMsgCtx, msCache, accountCache := app.cacheTxContext(ctx, txHash, mode)
-
 	var msgs = tx.GetMsgs()
-	result = app.runMsgs(runMsgCtx, msgs, txHash, mode)
+	result = app.runMsgs(ctx, msgs, txHash, mode)
 
 	// only update state if all messages pass
 	if result.IsOK() {
