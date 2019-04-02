@@ -11,19 +11,19 @@ import (
 // nolint - Mostly for testing
 func (app *BaseApp) Check(tx sdk.Tx) (result sdk.Result) {
 	txHash := cmn.HexBytes(tmhash.Sum(nil)).String()
-	return app.RunTx(sdk.RunTxModeCheck, nil, tx, txHash)
+	return app.RunTxWithAnteCache(sdk.RunTxModeCheck, nil, tx, txHash)
 }
 
 // nolint - full tx execution
 func (app *BaseApp) Simulate(txBytes []byte, tx sdk.Tx) (result sdk.Result) {
 	txHash := cmn.HexBytes(tmhash.Sum(txBytes)).String()
-	return app.RunTx(sdk.RunTxModeSimulate, nil, tx, txHash)
+	return app.RunTxWithAnteCache(sdk.RunTxModeSimulate, nil, tx, txHash)
 }
 
 // nolint
 func (app *BaseApp) Deliver(tx sdk.Tx) (result sdk.Result) {
 	txHash := cmn.HexBytes(tmhash.Sum(nil)).String()
-	return app.RunTx(sdk.RunTxModeDeliver, nil, tx, txHash)
+	return app.RunTxWithAnteCache(sdk.RunTxModeDeliver, nil, tx, txHash)
 }
 
 // RunForever - BasecoinApp execution and cleanup
