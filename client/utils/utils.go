@@ -32,13 +32,13 @@ func CompleteAndBroadcastTxCli(txBldr authtxb.TxBuilder, cliCtx context.CLIConte
 		return err
 	}
 
-	if cliCtx.DryRun {
-		return simulateMsgs(txBldr, cliCtx, name, msgs)
-	}
-
 	passphrase, err := keys.GetPassphrase(name)
 	if err != nil {
 		return err
+	}
+
+	if cliCtx.DryRun {
+		return simulateMsgs(txBldr, cliCtx, name, passphrase, msgs)
 	}
 
 	// build and sign the transaction
@@ -53,8 +53,8 @@ func CompleteAndBroadcastTxCli(txBldr authtxb.TxBuilder, cliCtx context.CLIConte
 
 // nolint
 // SimulateMsgs simulates the transaction and print the transaction running result if no error
-func simulateMsgs(txBldr authtxb.TxBuilder, cliCtx context.CLIContext, name string, msgs []sdk.Msg) error {
-	txBytes, err := txBldr.BuildWithPubKey(name, msgs)
+func simulateMsgs(txBldr authtxb.TxBuilder, cliCtx context.CLIContext, name, passphrase string, msgs []sdk.Msg) error {
+	txBytes, err := txBldr.BuildAndSign(name, passphrase, msgs)
 	if err != nil {
 		return  err
 	}
