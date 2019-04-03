@@ -110,17 +110,6 @@ func (keeper Keeper) NewTextProposal(ctx sdk.Context, title string, description 
 
 	var proposal Proposal
 	if sdk.IsGovStrategyUpgrade() {
-		proposal = &TextProposal{
-			ProposalID:   proposalID,
-			Title:        title,
-			Description:  description,
-			ProposalType: proposalType,
-			Status:       StatusDepositPeriod,
-			TallyResult:  EmptyTallyResult(),
-			TotalDeposit: sdk.Coins{},
-			SubmitTime:   ctx.BlockHeader().Time,
-		}
-	} else {
 		proposal = &NewTextProposal{
 			TextProposal{
 				ProposalID:   proposalID,
@@ -134,6 +123,17 @@ func (keeper Keeper) NewTextProposal(ctx sdk.Context, title string, description 
 			},
 			votingPeriod,
 			EmptyNewTallyResult(),
+		}
+	} else {
+		proposal = &TextProposal{
+			ProposalID:   proposalID,
+			Title:        title,
+			Description:  description,
+			ProposalType: proposalType,
+			Status:       StatusDepositPeriod,
+			TallyResult:  EmptyTallyResult(),
+			TotalDeposit: sdk.Coins{},
+			SubmitTime:   ctx.BlockHeader().Time,
 		}
 	}
 	keeper.SetProposal(ctx, proposal)
@@ -225,6 +225,39 @@ func (keeper Keeper) Iterate(ctx sdk.Context, voterAddr sdk.AccAddress, deposite
 	}
 	return
 
+}
+
+func (keeper Keeper) Rebuild(ctx sdk.Context) error {
+	maxProposalID, err := keeper.peekCurrentProposalID(ctx)
+
+	if err != nil {
+		return err
+	}
+
+	// rebuild all proposals
+	var i int64
+	for i = 1; i < maxProposalID; i++ {
+		proposal := keeper.GetProposal(ctx, i)
+		newProposal := &NewTextProposal{}
+		newProposal.SetTallyResult(proposal.GetTallyResult())
+		newProposal.SetDescription(proposal.GetDescription())
+		newProposal.SetProposalID(proposal.GetProposalID())
+		newProposal.SetProposalType(proposal.GetProposalType())
+		newProposal.SetStatus(proposal.GetStatus())
+		newProposal.SetSubmitTime(proposal.GetSubmitTime())
+		newProposal.SetTitle(proposal.GetTitle())
+		newProposal.SetTotalDeposit(proposal.GetTotalDeposit())
+		newProposal.SetVotingPeriod(0)
+		newProposal.SetVotingStartTime(proposal.GetVotingStartTime())
+		keeper.SetProposal(ctx, newProposal)
+	}
+
+	// update param and add quorum
+	tallyParams := keeper.GetTallyParams(ctx)
+	tallyParams.Quorum = sdk.NewDecWithPrec(5, 1)
+	keeper.setTallyParams(ctx, tallyParams)
+
+	return nil
 }
 
 // Get Proposal from store by ProposalID

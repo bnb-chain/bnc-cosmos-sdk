@@ -67,11 +67,10 @@ func ProposalEqual(proposalA Proposal, proposalB Proposal) bool {
 //-----------------------------------------------------------
 // Text Proposals
 type TextProposal struct {
-	ProposalID   int64         `json:"proposal_id"`   //  ID of the proposal
-	Title        string        `json:"title"`         //  Title of the proposal
-	Description  string        `json:"description"`   //  Description of the proposal
-	ProposalType ProposalKind  `json:"proposal_type"` //  Type of proposal. Initial set {PlainTextProposal, SoftwareUpgradeProposal}
-	VotingPeriod time.Duration `json:"voting_period"` //  Length of the voting period
+	ProposalID   int64        `json:"proposal_id"`   //  ID of the proposal
+	Title        string       `json:"title"`         //  Title of the proposal
+	Description  string       `json:"description"`   //  Description of the proposal
+	ProposalType ProposalKind `json:"proposal_type"` //  Type of proposal. Initial set {PlainTextProposal, SoftwareUpgradeProposal}
 
 	Status      ProposalStatus `json:"proposal_status"` //  Status of the Proposal {Pending, Active, Passed, Rejected}
 	TallyResult TallyResult    `json:"tally_result"`    //  Result of Tallys
