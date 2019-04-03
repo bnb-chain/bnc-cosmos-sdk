@@ -19,8 +19,8 @@ const (
 
 // Parameter store key
 var (
-	ParamStoreKeyDepositParams   = []byte("depositparams")
-	ParamStoreKeyTallyParams     = []byte("tallyparams")
+	ParamStoreKeyDepositParams   = []byte("depositprocedure")
+	ParamStoreKeyTallyParams     = []byte("tallyingprocedure")
 	ParamStoreKeyVotingProcedure = []byte("votingprocedure")
 
 	DepositedCoinsAccAddr = sdk.AccAddress(crypto.AddressHash([]byte("BinanceChainDepositedCoins")))
