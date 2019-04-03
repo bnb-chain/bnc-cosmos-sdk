@@ -3,10 +3,12 @@ package types
 var UpgradeMgr = NewUpgradeManager(UpgradeConfig{})
 
 const UpgradeLimitAddressLength = "UpgradeLimitAddressLength" // limit address length to 20 bytes
+const UpgradeGovStrategy = "UpgradeGovStrategy"               // upgrade gov strategy
 
 var MainNetConfig = UpgradeConfig{
 	map[string]int64{
 		UpgradeLimitAddressLength: 554000,
+		UpgradeGovStrategy:        554000,
 	},
 }
 
@@ -74,4 +76,8 @@ func IsUpgrade(name string) bool {
 
 func IsLimitAddressLengthUpgrade() bool {
 	return IsUpgrade(UpgradeLimitAddressLength)
+}
+
+func IsGovStrategyUpgrade() bool {
+	return IsUpgrade(UpgradeGovStrategy)
 }

@@ -13,7 +13,7 @@ type validatorGovInfo struct {
 	Vote                VoteOption     // Vote of the validator
 }
 
-func Tally(ctx sdk.Context, keeper Keeper, proposal Proposal) (passes bool, refundDeposits bool, tallyResults TallyResult) {
+func Tally(ctx sdk.Context, keeper Keeper, proposal Proposal) (passes bool, refundDeposits bool, tallyResults TallyResult, newTallyResults NewTallyResult) {
 	results := make(map[VoteOption]sdk.Dec)
 	results[OptionYes] = sdk.ZeroDec()
 	results[OptionAbstain] = sdk.ZeroDec()
@@ -86,7 +86,15 @@ func Tally(ctx sdk.Context, keeper Keeper, proposal Proposal) (passes bool, refu
 
 	tallyingParams := keeper.GetTallyParams(ctx)
 	totalPower := keeper.vs.TotalPower(ctx)
+
 	tallyResults = TallyResult{
+		Yes:        results[OptionYes],
+		Abstain:    results[OptionAbstain],
+		No:         results[OptionNo],
+		NoWithVeto: results[OptionNoWithVeto],
+	}
+
+	newTallyResults = NewTallyResult{
 		Yes:        results[OptionYes],
 		Abstain:    results[OptionAbstain],
 		No:         results[OptionNo],
@@ -94,28 +102,31 @@ func Tally(ctx sdk.Context, keeper Keeper, proposal Proposal) (passes bool, refu
 		Total:      totalPower,
 	}
 
-	// If there is no staked coins, the proposal fails
-	if keeper.vs.TotalPower(ctx).IsZero() {
-		return false, true, tallyResults
+	if sdk.IsGovStrategyUpgrade() {
+		// If there is no staked coins, the proposal fails
+		if keeper.vs.TotalPower(ctx).IsZero() {
+			return false, true, tallyResults, newTallyResults
+		}
+		// If there is not enough quorum of votes, the proposal fails
+		percentVoting := totalVotingPower.Quo(totalPower)
+		if percentVoting.LT(tallyingParams.Quorum) {
+			return false, true, tallyResults, newTallyResults
+		}
 	}
-	// If there is not enough quorum of votes, the proposal fails
-	percentVoting := totalVotingPower.Quo(totalPower)
-	if percentVoting.LT(tallyingParams.Quorum) {
-		return false, true, tallyResults
-	}
+
 	// If no one votes, proposal fails
 	if totalVotingPower.Sub(results[OptionAbstain]).Equal(sdk.ZeroDec()) {
-		return false, true, tallyResults
+		return false, true, tallyResults, newTallyResults
 	}
 	// If more than 1/3 of voters veto, proposal fails
 	if results[OptionNoWithVeto].Quo(totalVotingPower).GT(tallyingParams.Veto) {
-		return false, false, tallyResults
+		return false, false, tallyResults, newTallyResults
 	}
 	// If more than 1/2 of non-abstaining voters vote Yes, proposal passes
 	if results[OptionYes].Quo(totalVotingPower.Sub(results[OptionAbstain])).GT(tallyingParams.Threshold) {
-		return true, true, tallyResults
+		return true, true, tallyResults, newTallyResults
 	}
 	// If more than 1/2 of non-abstaining voters vote No, proposal fails
 
-	return false, false, tallyResults
+	return false, false, tallyResults, newTallyResults
 }
