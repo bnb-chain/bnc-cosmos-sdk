@@ -243,6 +243,9 @@ func (keeper Keeper) Rebuild(ctx sdk.Context) error {
 	var i int64
 	for i = 1; i < maxProposalID; i++ {
 		proposal := keeper.GetProposal(ctx, i)
+		if proposal == nil {
+			continue
+		}
 		newProposal := &NewTextProposal{}
 		newProposal.SetTallyResult(proposal.GetTallyResult())
 		newProposal.SetDescription(proposal.GetDescription())
@@ -260,10 +263,10 @@ func (keeper Keeper) Rebuild(ctx sdk.Context) error {
 	// update param and add quorum
 	tallyParams := keeper.GetTallyParams(ctx)
 	tallyParams.Quorum = sdk.NewDecWithPrec(5, 1)
-	keeper.paramSpace.Set(ctx, ParamStoreKeyTallyingProcedure, &tallyParams)
+	keeper.paramSpace.Set(ctx, ParamStoreKeyTallyParams, &tallyParams)
 
 	depositParams := keeper.GetDepositParams(ctx)
-	keeper.paramSpace.Set(ctx, ParamStoreKeyDepositProcedure, &depositParams)
+	keeper.paramSpace.Set(ctx, ParamStoreKeyDepositParams, &depositParams)
 
 	return nil
 }
