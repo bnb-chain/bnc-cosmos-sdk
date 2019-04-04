@@ -36,7 +36,10 @@ func GetCmdQueryValidator(storeName string, cdc *codec.Codec) *cobra.Command {
 				return fmt.Errorf("No validator found with address %s", args[0])
 			}
 
-			validator := types.MustUnmarshalValidator(cdc, addr, res)
+			validator, err := types.UnmarshalValidator(cdc, res)
+			if err != nil {
+				return err
+			}
 
 			switch viper.Get(cli.OutputFlag) {
 			case "text":
@@ -81,8 +84,10 @@ func GetCmdQueryValidators(storeName string, cdc *codec.Codec) *cobra.Command {
 			// parse out the validators
 			var validators []stake.Validator
 			for _, kv := range resKVs {
-				addr := kv.Key[1:]
-				validator := types.MustUnmarshalValidator(cdc, addr, kv.Value)
+				validator, err := types.UnmarshalValidator(cdc, kv.Value)
+				if err != nil {
+					return err
+				}
 				validators = append(validators, validator)
 			}
 
