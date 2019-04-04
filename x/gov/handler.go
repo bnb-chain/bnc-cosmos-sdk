@@ -165,8 +165,6 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags, refundProposa
 			votingPeriod = keeper.GetVotingProcedure(ctx).VotingPeriod
 		}
 
-		println("popproposal ", activeProposal.GetProposalID(), votingPeriod.String())
-
 		if ctx.BlockHeader().Time.Before(proposalStartTime.Add(votingPeriod)) {
 			continue
 		}
