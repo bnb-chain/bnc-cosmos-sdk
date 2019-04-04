@@ -372,7 +372,7 @@ func (keeper Keeper) setDepositParams(ctx sdk.Context, depositParams DepositPara
 	if sdk.IsGovStrategyUpgrade() {
 		keeper.paramSpace.Set(ctx, ParamStoreKeyDepositParams, &depositParams)
 	} else {
-		keeper.paramSpace.Set(ctx, ParamStoreKeyTallyingProcedure, &depositParams)
+		keeper.paramSpace.Set(ctx, ParamStoreKeyDepositProcedure, &depositParams)
 	}
 }
 
