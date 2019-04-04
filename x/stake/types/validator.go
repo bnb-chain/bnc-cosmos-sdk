@@ -64,7 +64,6 @@ func NewValidatorWithFeeAddr(feeAddr sdk.AccAddress, operator sdk.ValAddress, pu
 
 // what's kept in the store value
 type validatorValue struct {
-	FeeAddr            sdk.AccAddress
 	ConsPubKey         crypto.PubKey
 	Jailed             bool
 	Status             sdk.BondStatus
@@ -80,34 +79,47 @@ type validatorValue struct {
 
 // return the redelegation without fields contained within the key for the store
 func MustMarshalValidator(cdc *codec.Codec, validator Validator) []byte {
-	val := validatorValue{
-		FeeAddr:            validator.FeeAddr,
-		ConsPubKey:         validator.ConsPubKey,
-		Jailed:             validator.Jailed,
-		Status:             validator.Status,
-		Tokens:             validator.Tokens,
-		DelegatorShares:    validator.DelegatorShares,
-		Description:        validator.Description,
-		BondHeight:         validator.BondHeight,
-		BondIntraTxCounter: validator.BondIntraTxCounter,
-		UnbondingHeight:    validator.UnbondingHeight,
-		UnbondingMinTime:   validator.UnbondingMinTime,
-		Commission:         validator.Commission,
-	}
-	return cdc.MustMarshalBinaryLengthPrefixed(val)
+	var res []byte
+	sdk.UpgradeSeparateValAddresses(func() {
+		val := validatorValue{
+			ConsPubKey:         validator.ConsPubKey,
+			Jailed:             validator.Jailed,
+			Status:             validator.Status,
+			Tokens:             validator.Tokens,
+			DelegatorShares:    validator.DelegatorShares,
+			Description:        validator.Description,
+			BondHeight:         validator.BondHeight,
+			BondIntraTxCounter: validator.BondIntraTxCounter,
+			UnbondingHeight:    validator.UnbondingHeight,
+			UnbondingMinTime:   validator.UnbondingMinTime,
+			Commission:         validator.Commission,
+		}
+		res = cdc.MustMarshalBinaryLengthPrefixed(val)
+	}, func() {
+		res = cdc.MustMarshalBinaryLengthPrefixed(validator)
+	})
+
+	return res
 }
 
 // unmarshal a redelegation from a store key and value
 func MustUnmarshalValidator(cdc *codec.Codec, operatorAddr, value []byte) Validator {
-	validator, err := UnmarshalValidator(cdc, operatorAddr, value)
+	var validator Validator
+	var err error
+	sdk.UpgradeSeparateValAddresses(func() {
+		validator, err = UnmarshalValidatorDeprecated(cdc, operatorAddr, value)
+	}, func() {
+		validator, err = UnmarshalValidator(cdc, value)
+	})
+
 	if err != nil {
 		panic(err)
 	}
 	return validator
 }
 
-// unmarshal a redelegation from a store key and value
-func UnmarshalValidator(cdc *codec.Codec, operatorAddr, value []byte) (validator Validator, err error) {
+// !!!DEPRECATED, would be called only before the UpgradeHeight
+func UnmarshalValidatorDeprecated(cdc *codec.Codec, operatorAddr, value []byte) (validator Validator, err error) {
 	if len(operatorAddr) != sdk.AddrLen {
 		err = fmt.Errorf("%v", ErrBadValidatorAddr(DefaultCodespace).Data())
 		return
@@ -119,7 +131,7 @@ func UnmarshalValidator(cdc *codec.Codec, operatorAddr, value []byte) (validator
 	}
 
 	return Validator{
-		FeeAddr:            storeValue.FeeAddr,
+		FeeAddr: 			sdk.AccAddress(operatorAddr),
 		OperatorAddr:       operatorAddr,
 		ConsPubKey:         storeValue.ConsPubKey,
 		Jailed:             storeValue.Jailed,
@@ -133,6 +145,11 @@ func UnmarshalValidator(cdc *codec.Codec, operatorAddr, value []byte) (validator
 		UnbondingMinTime:   storeValue.UnbondingMinTime,
 		Commission:         storeValue.Commission,
 	}, nil
+}
+
+func UnmarshalValidator(cdc *codec.Codec, value []byte) (validator Validator, err error) {
+	err = cdc.UnmarshalBinaryLengthPrefixed(value, &validator)
+	return validator, err
 }
 
 // HumanReadableString returns a human readable string representation of a
