@@ -2,6 +2,7 @@ package gov
 
 import (
 	"fmt"
+	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/gov/tags"
@@ -133,7 +134,9 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags, refundProposa
 
 		keeper.DeleteProposal(ctx, inactiveProposal)
 
-		notRefundProposals = append(notRefundProposals, inactiveProposal.GetProposalID())
+		if sdk.IsGovStrategyUpgrade() {
+			notRefundProposals = append(notRefundProposals, inactiveProposal.GetProposalID())
+		}
 
 		resTags.AppendTag(tags.Action, tags.ActionProposalDropped)
 		resTags.AppendTag(tags.ProposalID, proposalIDBytes)
@@ -153,12 +156,20 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags, refundProposa
 		activeProposal := keeper.ActiveProposalQueuePop(ctx)
 
 		proposalStartTime := activeProposal.GetVotingStartTime()
-		votingPeriod := activeProposal.GetVotingPeriod()
+		var votingPeriod time.Duration
+
+		// if voting period is not null, use the voting period in proposal;
+		if activeProposal.GetVotingPeriod() != 0 {
+			votingPeriod = activeProposal.GetVotingPeriod()
+		} else {
+			votingPeriod = keeper.GetVotingProcedure(ctx).VotingPeriod
+		}
+
 		if ctx.BlockHeader().Time.Before(proposalStartTime.Add(votingPeriod)) {
 			continue
 		}
 
-		passes, refundDeposits, tallyResults := Tally(ctx, keeper, activeProposal)
+		passes, refundDeposits, tallyResults, newTallyResults := Tally(ctx, keeper, activeProposal)
 		proposalIDBytes := keeper.cdc.MustMarshalBinaryBare(activeProposal.GetProposalID())
 		var action []byte
 		if passes {
@@ -172,17 +183,27 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags, refundProposa
 			activeProposal.SetStatus(StatusRejected)
 			action = tags.ActionProposalRejected
 
-			// if votes reached quorum and not all votes are abstain, distribute deposits to validator, else refund deposits
-			if refundDeposits {
-				keeper.RefundDeposits(ctx, activeProposal.GetProposalID())
-				refundProposals = append(refundProposals, activeProposal.GetProposalID())
+			if sdk.IsGovStrategyUpgrade() {
+				// if votes reached quorum and not all votes are abstain, distribute deposits to validator, else refund deposits
+				if refundDeposits {
+					keeper.RefundDeposits(ctx, activeProposal.GetProposalID())
+					refundProposals = append(refundProposals, activeProposal.GetProposalID())
+				} else {
+					keeper.DistributeDeposits(ctx, activeProposal.GetProposalID())
+					notRefundProposals = append(notRefundProposals, activeProposal.GetProposalID())
+				}
 			} else {
 				keeper.DistributeDeposits(ctx, activeProposal.GetProposalID())
 				notRefundProposals = append(notRefundProposals, activeProposal.GetProposalID())
 			}
 		}
 
-		activeProposal.SetTallyResult(tallyResults)
+		if sdk.IsGovStrategyUpgrade() {
+			activeProposal.SetNewTallyResult(newTallyResults)
+		} else {
+			activeProposal.SetTallyResult(tallyResults)
+		}
+
 		keeper.SetProposal(ctx, activeProposal)
 
 		logger.Info(fmt.Sprintf("proposal %d (%s) tallied; passed: %v",
@@ -214,7 +235,14 @@ func ShouldPopActiveProposalQueue(ctx sdk.Context, keeper Keeper) bool {
 
 	if peekProposal == nil {
 		return false
-	} else if !ctx.BlockHeader().Time.Before(peekProposal.GetVotingStartTime().Add(peekProposal.GetVotingPeriod())) {
+	}
+
+	votingPeriod := peekProposal.GetVotingPeriod()
+	if votingPeriod == 0 {
+		votingPeriod = keeper.GetVotingProcedure(ctx).VotingPeriod
+	}
+
+	if !ctx.BlockHeader().Time.Before(peekProposal.GetVotingStartTime().Add(votingPeriod)) {
 		return true
 	}
 	return false

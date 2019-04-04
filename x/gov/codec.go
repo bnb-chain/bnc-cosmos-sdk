@@ -13,6 +13,7 @@ func RegisterCodec(cdc *codec.Codec) {
 
 	cdc.RegisterInterface((*Proposal)(nil), nil)
 	cdc.RegisterConcrete(&TextProposal{}, "gov/TextProposal", nil)
+	cdc.RegisterConcrete(&NewTextProposal{}, "gov/NewTextProposal", nil)
 }
 
 var msgCdc = codec.New()
