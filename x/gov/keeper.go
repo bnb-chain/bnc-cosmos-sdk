@@ -19,9 +19,12 @@ const (
 
 // Parameter store key
 var (
-	ParamStoreKeyDepositParams   = []byte("depositprocedure")
-	ParamStoreKeyTallyParams     = []byte("tallyingprocedure")
+	ParamStoreKeyDepositParams   = []byte("depositparams")
+	ParamStoreKeyTallyParams     = []byte("tallyparams")
 	ParamStoreKeyVotingProcedure = []byte("votingprocedure")
+
+	ParamStoreKeyDepositProcedure  = []byte("depositprocedure")
+	ParamStoreKeyTallyingProcedure = []byte("tallyingprocedure")
 
 	DepositedCoinsAccAddr = sdk.AccAddress(crypto.AddressHash([]byte("BinanceChainDepositedCoins")))
 )
@@ -31,6 +34,8 @@ func ParamTypeTable() params.TypeTable {
 	return params.NewTypeTable(
 		ParamStoreKeyDepositParams, DepositParams{},
 		ParamStoreKeyTallyParams, TallyParams{},
+		ParamStoreKeyDepositProcedure, DepositParams{},
+		ParamStoreKeyTallyingProcedure, TallyParams{},
 	)
 }
 
@@ -255,7 +260,10 @@ func (keeper Keeper) Rebuild(ctx sdk.Context) error {
 	// update param and add quorum
 	tallyParams := keeper.GetTallyParams(ctx)
 	tallyParams.Quorum = sdk.NewDecWithPrec(5, 1)
-	keeper.setTallyParams(ctx, tallyParams)
+	keeper.paramSpace.Set(ctx, ParamStoreKeyTallyingProcedure, &tallyParams)
+
+	depositParams := keeper.GetDepositParams(ctx)
+	keeper.paramSpace.Set(ctx, ParamStoreKeyDepositProcedure, &depositParams)
 
 	return nil
 }
@@ -339,7 +347,11 @@ func (keeper Keeper) GetVotingProcedure(ctx sdk.Context) VotingProcedure {
 // nolint: errcheck
 func (keeper Keeper) GetDepositParams(ctx sdk.Context) DepositParams {
 	var depositParams DepositParams
-	keeper.paramSpace.Get(ctx, ParamStoreKeyDepositParams, &depositParams)
+	if sdk.IsGovStrategyUpgrade() {
+		keeper.paramSpace.Get(ctx, ParamStoreKeyDepositParams, &depositParams)
+	} else {
+		keeper.paramSpace.Get(ctx, ParamStoreKeyDepositProcedure, &depositParams)
+	}
 	return depositParams
 }
 
@@ -347,18 +359,30 @@ func (keeper Keeper) GetDepositParams(ctx sdk.Context) DepositParams {
 // nolint: errcheck
 func (keeper Keeper) GetTallyParams(ctx sdk.Context) TallyParams {
 	var tallyParams TallyParams
-	keeper.paramSpace.Get(ctx, ParamStoreKeyTallyParams, &tallyParams)
+	if sdk.IsGovStrategyUpgrade() {
+		keeper.paramSpace.Get(ctx, ParamStoreKeyTallyParams, &tallyParams)
+	} else {
+		keeper.paramSpace.Get(ctx, ParamStoreKeyTallyingProcedure, &tallyParams)
+	}
 	return tallyParams
 }
 
 // nolint: errcheck
 func (keeper Keeper) setDepositParams(ctx sdk.Context, depositParams DepositParams) {
-	keeper.paramSpace.Set(ctx, ParamStoreKeyDepositParams, &depositParams)
+	if sdk.IsGovStrategyUpgrade() {
+		keeper.paramSpace.Set(ctx, ParamStoreKeyDepositParams, &depositParams)
+	} else {
+		keeper.paramSpace.Set(ctx, ParamStoreKeyTallyingProcedure, &depositParams)
+	}
 }
 
 // nolint: errcheck
 func (keeper Keeper) setTallyParams(ctx sdk.Context, tallyParams TallyParams) {
-	keeper.paramSpace.Set(ctx, ParamStoreKeyTallyParams, &tallyParams)
+	if sdk.IsGovStrategyUpgrade() {
+		keeper.paramSpace.Set(ctx, ParamStoreKeyTallyParams, &tallyParams)
+	} else {
+		keeper.paramSpace.Set(ctx, ParamStoreKeyTallyingProcedure, &tallyParams)
+	}
 }
 
 // =====================================================
