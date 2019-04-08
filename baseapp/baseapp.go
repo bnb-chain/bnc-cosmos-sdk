@@ -657,7 +657,7 @@ func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
 		} else {
 			txHash := cmn.HexBytes(tmhash.Sum(txBytes)).String()
 			app.Logger.Debug("Handle DeliverTx", "Tx", txHash)
-			result = app.RunTxWithAnteCache(sdk.RunTxModeDeliverAfterPre, txBytes, tx, txHash)
+			result = app.RunTxWithAnteCache(sdk.RunTxModeDeliver, txBytes, tx, txHash)
 		}
 	}
 
