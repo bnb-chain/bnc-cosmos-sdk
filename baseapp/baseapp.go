@@ -649,11 +649,7 @@ func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
 		// no need to verify signature
 		txHash := cmn.HexBytes(tmhash.Sum(txBytes)).String()
 		app.Logger.Debug("Handle DeliverTx", "Tx", txHash)
-		if sdk.IsUpgrade(sdk.UpgradeRunTx) {
-			result = app.RunTxWithAnteCache(sdk.RunTxModeDeliverAfterPre, txBytes, tx, txHash)
-		} else {
-			result = app.RunTx(sdk.RunTxModeDeliverAfterPre, txBytes, tx, txHash)
-		}
+		result = app.RunTxWithAnteCache(sdk.RunTxModeDeliverAfterPre, txBytes, tx, txHash)
 	} else {
 		var tx, err = app.TxDecoder(txBytes)
 		if err != nil {
@@ -661,11 +657,7 @@ func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
 		} else {
 			txHash := cmn.HexBytes(tmhash.Sum(txBytes)).String()
 			app.Logger.Debug("Handle DeliverTx", "Tx", txHash)
-			if sdk.IsUpgrade(sdk.UpgradeRunTx) {
-				result = app.RunTxWithAnteCache(sdk.RunTxModeDeliverAfterPre, txBytes, tx, txHash)
-			} else {
-				result = app.RunTx(sdk.RunTxModeDeliverAfterPre, txBytes, tx, txHash)
-			}
+			result = app.RunTxWithAnteCache(sdk.RunTxModeDeliverAfterPre, txBytes, tx, txHash)
 		}
 	}
 
