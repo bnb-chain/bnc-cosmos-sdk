@@ -23,6 +23,7 @@ func TestDelegation(t *testing.T) {
 	for i, amt := range amts {
 		validators[i] = types.NewValidator(addrVals[i], PKs[i], types.Description{})
 		validators[i], pool, _ = validators[i].AddTokensFromDel(pool, sdk.NewDecWithoutFra(amt).RawInt())
+		_,_,_=keeper.bankKeeper.AddCoins(ctx, DelegationAccAddr, sdk.Coins{sdk.NewCoin(keeper.BondDenom(ctx), sdk.NewDecWithoutFra(amt).RawInt())})
 	}
 
 	keeper.SetPool(ctx, pool)
@@ -349,6 +350,7 @@ func TestUndelegateFromUnbondedValidator(t *testing.T) {
 	validator := types.NewValidator(addrVals[0], PKs[0], types.Description{})
 
 	validator, pool, issuedShares := validator.AddTokensFromDel(pool, sdk.NewDecWithoutFra(10).RawInt())
+	_,_,_=keeper.bankKeeper.AddCoins(ctx, DelegationAccAddr, sdk.Coins{sdk.NewCoin(keeper.BondDenom(ctx), sdk.NewDecWithoutFra(10).RawInt())})
 	require.Equal(t, sdk.NewDecWithoutFra(10), issuedShares)
 	keeper.SetPool(ctx, pool)
 	validator = TestingUpdateValidator(keeper, ctx, validator)
@@ -364,6 +366,7 @@ func TestUndelegateFromUnbondedValidator(t *testing.T) {
 	// create a second delegation to this validator
 	keeper.DeleteValidatorByPowerIndex(ctx, validator, pool)
 	validator, pool, issuedShares = validator.AddTokensFromDel(pool, sdk.NewDecWithoutFra(10).RawInt())
+	_,_,_=keeper.bankKeeper.AddCoins(ctx, DelegationAccAddr, sdk.Coins{sdk.NewCoin(keeper.BondDenom(ctx), sdk.NewDecWithoutFra(10).RawInt())})
 	require.Equal(t, sdk.NewDecWithoutFra(10), issuedShares)
 	keeper.SetPool(ctx, pool)
 	validator = TestingUpdateValidator(keeper, ctx, validator)
