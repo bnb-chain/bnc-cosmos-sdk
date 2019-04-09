@@ -114,31 +114,32 @@ func (keeper Keeper) NewTextProposal(ctx sdk.Context, title string, description 
 	}
 
 	var proposal Proposal
-	if sdk.IsGovStrategyUpgrade() {
-		proposal = &NewTextProposal{
-			TextProposal{
-				ProposalID:   proposalID,
-				Title:        title,
-				Description:  description,
-				ProposalType: proposalType,
-				Status:       StatusDepositPeriod,
-				TallyResult:  EmptyTallyResult(),
-				TotalDeposit: sdk.Coins{},
-				SubmitTime:   ctx.BlockHeader().Time,
-			},
-			votingPeriod,
-			EmptyNewTallyResult(),
-		}
-	} else {
+	if sdk.IsRestoreGovStorageUpgrade() {
 		proposal = &TextProposal{
 			ProposalID:   proposalID,
 			Title:        title,
 			Description:  description,
 			ProposalType: proposalType,
+			VotingPeriod: votingPeriod,
 			Status:       StatusDepositPeriod,
 			TallyResult:  EmptyTallyResult(),
 			TotalDeposit: sdk.Coins{},
 			SubmitTime:   ctx.BlockHeader().Time,
+		}
+	} else {
+		proposal = &NewTextProposal{
+			OldTextProposal{
+				ProposalID:   proposalID,
+				Title:        title,
+				Description:  description,
+				ProposalType: proposalType,
+				Status:       StatusDepositPeriod,
+				TallyResult:  EmptyOldTallyResult(),
+				TotalDeposit: sdk.Coins{},
+				SubmitTime:   ctx.BlockHeader().Time,
+			},
+			votingPeriod,
+			EmptyNewTallyResult(),
 		}
 	}
 	keeper.SetProposal(ctx, proposal)
@@ -246,8 +247,29 @@ func (keeper Keeper) Rebuild(ctx sdk.Context) error {
 		if proposal == nil {
 			continue
 		}
-		newProposal := &NewTextProposal{}
-		newProposal.SetTallyResult(proposal.GetTallyResult())
+
+		newProposal := &TextProposal{}
+		tallyResult := NewTallyResult{}
+
+		tallyResult.Yes = proposal.GetTallyResult().Yes
+		tallyResult.Abstain = proposal.GetTallyResult().Abstain
+		tallyResult.No = proposal.GetTallyResult().No
+		tallyResult.NoWithVeto = proposal.GetTallyResult().NoWithVeto
+
+		if !proposal.GetNewTallyResult().Yes.IsZero() {
+			tallyResult.Yes = proposal.GetNewTallyResult().Yes
+		}
+		if !proposal.GetNewTallyResult().Abstain.IsZero() {
+			tallyResult.Abstain = proposal.GetNewTallyResult().Abstain
+		}
+		if !proposal.GetNewTallyResult().No.IsZero() {
+			tallyResult.No = proposal.GetNewTallyResult().No
+		}
+		if !proposal.GetNewTallyResult().Total.IsZero() {
+			tallyResult.Total = proposal.GetNewTallyResult().Total
+		}
+
+		newProposal.SetNewTallyResult(tallyResult)
 		newProposal.SetDescription(proposal.GetDescription())
 		newProposal.SetProposalID(proposal.GetProposalID())
 		newProposal.SetProposalType(proposal.GetProposalType())
@@ -255,18 +277,10 @@ func (keeper Keeper) Rebuild(ctx sdk.Context) error {
 		newProposal.SetSubmitTime(proposal.GetSubmitTime())
 		newProposal.SetTitle(proposal.GetTitle())
 		newProposal.SetTotalDeposit(proposal.GetTotalDeposit())
-		newProposal.SetVotingPeriod(0)
+		newProposal.SetVotingPeriod(proposal.GetVotingPeriod())
 		newProposal.SetVotingStartTime(proposal.GetVotingStartTime())
 		keeper.SetProposal(ctx, newProposal)
 	}
-
-	// update param and add quorum
-	tallyParams := keeper.GetTallyParams(ctx)
-	tallyParams.Quorum = sdk.NewDecWithPrec(5, 1)
-	keeper.paramSpace.Set(ctx, ParamStoreKeyTallyParams, &tallyParams)
-
-	depositParams := keeper.GetDepositParams(ctx)
-	keeper.paramSpace.Set(ctx, ParamStoreKeyDepositParams, &depositParams)
 
 	return nil
 }
@@ -350,11 +364,7 @@ func (keeper Keeper) GetVotingProcedure(ctx sdk.Context) VotingProcedure {
 // nolint: errcheck
 func (keeper Keeper) GetDepositParams(ctx sdk.Context) DepositParams {
 	var depositParams DepositParams
-	if sdk.IsGovStrategyUpgrade() {
-		keeper.paramSpace.Get(ctx, ParamStoreKeyDepositParams, &depositParams)
-	} else {
-		keeper.paramSpace.Get(ctx, ParamStoreKeyDepositProcedure, &depositParams)
-	}
+	keeper.paramSpace.Get(ctx, ParamStoreKeyDepositParams, &depositParams)
 	return depositParams
 }
 
@@ -362,30 +372,18 @@ func (keeper Keeper) GetDepositParams(ctx sdk.Context) DepositParams {
 // nolint: errcheck
 func (keeper Keeper) GetTallyParams(ctx sdk.Context) TallyParams {
 	var tallyParams TallyParams
-	if sdk.IsGovStrategyUpgrade() {
-		keeper.paramSpace.Get(ctx, ParamStoreKeyTallyParams, &tallyParams)
-	} else {
-		keeper.paramSpace.Get(ctx, ParamStoreKeyTallyingProcedure, &tallyParams)
-	}
+	keeper.paramSpace.Get(ctx, ParamStoreKeyTallyParams, &tallyParams)
 	return tallyParams
 }
 
 // nolint: errcheck
 func (keeper Keeper) setDepositParams(ctx sdk.Context, depositParams DepositParams) {
-	if sdk.IsGovStrategyUpgrade() {
-		keeper.paramSpace.Set(ctx, ParamStoreKeyDepositParams, &depositParams)
-	} else {
-		keeper.paramSpace.Set(ctx, ParamStoreKeyDepositProcedure, &depositParams)
-	}
+	keeper.paramSpace.Set(ctx, ParamStoreKeyDepositParams, &depositParams)
 }
 
 // nolint: errcheck
 func (keeper Keeper) setTallyParams(ctx sdk.Context, tallyParams TallyParams) {
-	if sdk.IsGovStrategyUpgrade() {
-		keeper.paramSpace.Set(ctx, ParamStoreKeyTallyParams, &tallyParams)
-	} else {
-		keeper.paramSpace.Set(ctx, ParamStoreKeyTallyingProcedure, &tallyParams)
-	}
+	keeper.paramSpace.Set(ctx, ParamStoreKeyTallyParams, &tallyParams)
 }
 
 // =====================================================
@@ -643,38 +641,33 @@ func (keeper Keeper) ActiveProposalQueuePop(ctx sdk.Context) Proposal {
 
 // Add a proposalID to the ProposalQueue sorted by expire time
 func (keeper Keeper) ActiveProposalQueuePush(ctx sdk.Context, proposal Proposal) {
-	if sdk.IsGovStrategyUpgrade() {
-		proposalQueue := keeper.getActiveProposalQueue(ctx)
-		if len(proposalQueue) == 0 {
-			proposalQueue = append(proposalQueue, proposal.GetProposalID())
-		} else {
-			votingExpireTime := proposal.GetVotingStartTime().Add(proposal.GetVotingPeriod())
-
-			// sort proposal queue by expire time
-			newProposalQueue := make(ProposalQueue, 0, len(proposalQueue)+1)
-			for idx, proposalId := range proposalQueue {
-				tmpProposal := keeper.GetProposal(ctx, proposalId)
-				tmpVotingExpireTime := tmpProposal.GetVotingStartTime().Add(tmpProposal.GetVotingPeriod())
-				if tmpVotingExpireTime.After(votingExpireTime) {
-					newProposalQueue = append(newProposalQueue, proposal.GetProposalID())
-					newProposalQueue = append(newProposalQueue, proposalQueue[idx:]...)
-					break
-				} else {
-					newProposalQueue = append(newProposalQueue, proposalId)
-				}
-			}
-			// insert proposal if there is no proposal in proposal queue which voting expire time after proposal
-			if len(newProposalQueue) == len(proposalQueue) {
-				newProposalQueue = append(newProposalQueue, proposal.GetProposalID())
-			}
-
-			proposalQueue = newProposalQueue
-		}
-		keeper.setActiveProposalQueue(ctx, proposalQueue)
+	proposalQueue := keeper.getActiveProposalQueue(ctx)
+	if len(proposalQueue) == 0 {
+		proposalQueue = append(proposalQueue, proposal.GetProposalID())
 	} else {
-		proposalQueue := append(keeper.getActiveProposalQueue(ctx), proposal.GetProposalID())
-		keeper.setActiveProposalQueue(ctx, proposalQueue)
+		votingExpireTime := proposal.GetVotingStartTime().Add(proposal.GetVotingPeriod())
+
+		// sort proposal queue by expire time
+		newProposalQueue := make(ProposalQueue, 0, len(proposalQueue)+1)
+		for idx, proposalId := range proposalQueue {
+			tmpProposal := keeper.GetProposal(ctx, proposalId)
+			tmpVotingExpireTime := tmpProposal.GetVotingStartTime().Add(tmpProposal.GetVotingPeriod())
+			if tmpVotingExpireTime.After(votingExpireTime) {
+				newProposalQueue = append(newProposalQueue, proposal.GetProposalID())
+				newProposalQueue = append(newProposalQueue, proposalQueue[idx:]...)
+				break
+			} else {
+				newProposalQueue = append(newProposalQueue, proposalId)
+			}
+		}
+		// insert proposal if there is no proposal in proposal queue which voting expire time after proposal
+		if len(newProposalQueue) == len(proposalQueue) {
+			newProposalQueue = append(newProposalQueue, proposal.GetProposalID())
+		}
+
+		proposalQueue = newProposalQueue
 	}
+	keeper.setActiveProposalQueue(ctx, proposalQueue)
 }
 
 func (keeper Keeper) getInactiveProposalQueue(ctx sdk.Context) ProposalQueue {

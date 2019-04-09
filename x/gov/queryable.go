@@ -214,10 +214,10 @@ func queryTally(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Ke
 		return nil, ErrUnknownProposal(DefaultCodespace, proposalID)
 	}
 
-	var tallyResult TallyResult
+	var tallyResult OldTallyResult
 
 	if proposal.GetStatus() == StatusDepositPeriod {
-		tallyResult = EmptyTallyResult()
+		tallyResult = EmptyOldTallyResult()
 	} else if proposal.GetStatus() == StatusPassed || proposal.GetStatus() == StatusRejected {
 		tallyResult = proposal.GetTallyResult()
 	} else {

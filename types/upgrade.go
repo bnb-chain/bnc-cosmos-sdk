@@ -6,13 +6,15 @@ var UpgradeMgr = NewUpgradeManager(UpgradeConfig{})
 
 const UpgradeLimitAddressLength = "UpgradeLimitAddressLength" // limit address length to 20 bytes
 const UpgradeSeparateValAddrName = "UpgradeSeparateValAddr"
-const UpgradeGovStrategy = "UpgradeGovStrategy" // upgrade gov strategy
+const UpgradeGovStrategy = "UpgradeGovStrategy"             // upgrade gov strategy
+const UpgradeRestoreGovStorage = "UpgradeRestoreGovStorage" // upgrade gov strategy
 
 var MainNetConfig = UpgradeConfig{
 	HeightMap: map[string]int64{
 		UpgradeLimitAddressLength:  554000,
 		UpgradeSeparateValAddrName: 1000000,
 		UpgradeGovStrategy:         554000,
+		UpgradeRestoreGovStorage:   555000,
 	},
 }
 
@@ -137,4 +139,8 @@ func IsLimitAddressLengthUpgrade() bool {
 
 func IsGovStrategyUpgrade() bool {
 	return IsUpgrade(UpgradeGovStrategy)
+}
+
+func IsRestoreGovStorageUpgrade() bool {
+	return IsUpgrade(UpgradeRestoreGovStorage)
 }

@@ -134,9 +134,7 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags, refundProposa
 
 		keeper.DeleteProposal(ctx, inactiveProposal)
 
-		if sdk.IsGovStrategyUpgrade() {
-			notRefundProposals = append(notRefundProposals, inactiveProposal.GetProposalID())
-		}
+		notRefundProposals = append(notRefundProposals, inactiveProposal.GetProposalID())
 
 		resTags.AppendTag(tags.Action, tags.ActionProposalDropped)
 		resTags.AppendTag(tags.ProposalID, proposalIDBytes)
@@ -169,7 +167,7 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags, refundProposa
 			continue
 		}
 
-		passes, refundDeposits, tallyResults, newTallyResults := Tally(ctx, keeper, activeProposal)
+		passes, refundDeposits, _, newTallyResults := Tally(ctx, keeper, activeProposal)
 		proposalIDBytes := keeper.cdc.MustMarshalBinaryBare(activeProposal.GetProposalID())
 		var action []byte
 		if passes {
@@ -183,26 +181,17 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags, refundProposa
 			activeProposal.SetStatus(StatusRejected)
 			action = tags.ActionProposalRejected
 
-			if sdk.IsGovStrategyUpgrade() {
-				// if votes reached quorum and not all votes are abstain, distribute deposits to validator, else refund deposits
-				if refundDeposits {
-					keeper.RefundDeposits(ctx, activeProposal.GetProposalID())
-					refundProposals = append(refundProposals, activeProposal.GetProposalID())
-				} else {
-					keeper.DistributeDeposits(ctx, activeProposal.GetProposalID())
-					notRefundProposals = append(notRefundProposals, activeProposal.GetProposalID())
-				}
+			// if votes reached quorum and not all votes are abstain, distribute deposits to validator, else refund deposits
+			if refundDeposits {
+				keeper.RefundDeposits(ctx, activeProposal.GetProposalID())
+				refundProposals = append(refundProposals, activeProposal.GetProposalID())
 			} else {
 				keeper.DistributeDeposits(ctx, activeProposal.GetProposalID())
 				notRefundProposals = append(notRefundProposals, activeProposal.GetProposalID())
 			}
 		}
 
-		if sdk.IsGovStrategyUpgrade() {
-			activeProposal.SetNewTallyResult(newTallyResults)
-		} else {
-			activeProposal.SetTallyResult(tallyResults)
-		}
+		activeProposal.SetNewTallyResult(newTallyResults)
 
 		keeper.SetProposal(ctx, activeProposal)
 

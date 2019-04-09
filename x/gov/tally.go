@@ -13,7 +13,7 @@ type validatorGovInfo struct {
 	Vote                VoteOption     // Vote of the validator
 }
 
-func Tally(ctx sdk.Context, keeper Keeper, proposal Proposal) (passes bool, refundDeposits bool, tallyResults TallyResult, newTallyResults NewTallyResult) {
+func Tally(ctx sdk.Context, keeper Keeper, proposal Proposal) (passes bool, refundDeposits bool, tallyResults OldTallyResult, newTallyResults NewTallyResult) {
 	results := make(map[VoteOption]sdk.Dec)
 	results[OptionYes] = sdk.ZeroDec()
 	results[OptionAbstain] = sdk.ZeroDec()
@@ -87,7 +87,7 @@ func Tally(ctx sdk.Context, keeper Keeper, proposal Proposal) (passes bool, refu
 	tallyingParams := keeper.GetTallyParams(ctx)
 	totalPower := keeper.vs.TotalPower(ctx)
 
-	tallyResults = TallyResult{
+	tallyResults = OldTallyResult{
 		Yes:        results[OptionYes],
 		Abstain:    results[OptionAbstain],
 		No:         results[OptionNo],
@@ -102,16 +102,14 @@ func Tally(ctx sdk.Context, keeper Keeper, proposal Proposal) (passes bool, refu
 		Total:      totalPower,
 	}
 
-	if sdk.IsGovStrategyUpgrade() {
-		// If there is no staked coins, the proposal fails
-		if keeper.vs.TotalPower(ctx).IsZero() {
-			return false, true, tallyResults, newTallyResults
-		}
-		// If there is not enough quorum of votes, the proposal fails
-		percentVoting := totalVotingPower.Quo(totalPower)
-		if percentVoting.LT(tallyingParams.Quorum) {
-			return false, true, tallyResults, newTallyResults
-		}
+	// If there is no staked coins, the proposal fails
+	if keeper.vs.TotalPower(ctx).IsZero() {
+		return false, true, tallyResults, newTallyResults
+	}
+	// If there is not enough quorum of votes, the proposal fails
+	percentVoting := totalVotingPower.Quo(totalPower)
+	if percentVoting.LT(tallyingParams.Quorum) {
+		return false, true, tallyResults, newTallyResults
 	}
 
 	// If no one votes, proposal fails

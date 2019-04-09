@@ -28,8 +28,8 @@ type Proposal interface {
 	GetStatus() ProposalStatus
 	SetStatus(ProposalStatus)
 
-	GetTallyResult() TallyResult
-	SetTallyResult(TallyResult)
+	GetTallyResult() OldTallyResult
+	SetTallyResult(OldTallyResult)
 
 	GetNewTallyResult() NewTallyResult
 	SetNewTallyResult(NewTallyResult)
@@ -67,10 +67,11 @@ func ProposalEqual(proposalA Proposal, proposalB Proposal) bool {
 //-----------------------------------------------------------
 // Text Proposals
 type TextProposal struct {
-	ProposalID   int64        `json:"proposal_id"`   //  ID of the proposal
-	Title        string       `json:"title"`         //  Title of the proposal
-	Description  string       `json:"description"`   //  Description of the proposal
-	ProposalType ProposalKind `json:"proposal_type"` //  Type of proposal. Initial set {PlainTextProposal, SoftwareUpgradeProposal}
+	ProposalID   int64         `json:"proposal_id"`   //  ID of the proposal
+	Title        string        `json:"title"`         //  Title of the proposal
+	Description  string        `json:"description"`   //  Description of the proposal
+	ProposalType ProposalKind  `json:"proposal_type"` //  Type of proposal. Initial set {PlainTextProposal, SoftwareUpgradeProposal}
+	VotingPeriod time.Duration `json:"voting_period"` //  Length of the voting period
 
 	Status      ProposalStatus `json:"proposal_status"` //  Status of the Proposal {Pending, Active, Passed, Rejected}
 	TallyResult TallyResult    `json:"tally_result"`    //  Result of Tallys
@@ -81,16 +82,32 @@ type TextProposal struct {
 	VotingStartTime time.Time `json:"voting_start_time"` //  Height of the block where MinDeposit was reached. -1 if MinDeposit is not reached
 }
 
+type OldTextProposal struct {
+	ProposalID   int64        `json:"proposal_id"`   //  ID of the proposal
+	Title        string       `json:"title"`         //  Title of the proposal
+	Description  string       `json:"description"`   //  Description of the proposal
+	ProposalType ProposalKind `json:"proposal_type"` //  Type of proposal. Initial set {PlainTextProposal, SoftwareUpgradeProposal}
+
+	Status      ProposalStatus `json:"proposal_status"` //  Status of the Proposal {Pending, Active, Passed, Rejected}
+	TallyResult OldTallyResult `json:"tally_result"`    //  Result of Tallys
+
+	SubmitTime   time.Time `json:"submit_time"`   //  Height of the block where TxGovSubmitProposal was included
+	TotalDeposit sdk.Coins `json:"total_deposit"` //  Current deposit on this proposal. Initial value is set at InitialDeposit
+
+	VotingStartTime time.Time `json:"voting_start_time"` //  Height of the block where MinDeposit was reached. -1 if MinDeposit is not reached
+}
+
 type NewTextProposal struct {
-	TextProposal
+	OldTextProposal
 
 	VotingPeriod time.Duration  `json:"voting_period"`    //  Length of the voting period
 	TallyResult  NewTallyResult `json:"new_tally_result"` //  Length of the voting period
 }
 
 // Implements Proposal Interface
-var _ Proposal = (*TextProposal)(nil)
+var _ Proposal = (*OldTextProposal)(nil)
 var _ Proposal = (*NewTextProposal)(nil)
+var _ Proposal = (*TextProposal)(nil)
 
 // nolint
 func (tp TextProposal) GetProposalID() int64               { return tp.ProposalID }
@@ -103,10 +120,27 @@ func (tp TextProposal) GetProposalType() ProposalKind      { return tp.ProposalT
 func (tp *TextProposal) SetProposalType(proposalType ProposalKind) {
 	tp.ProposalType = proposalType
 }
-func (tp TextProposal) GetStatus() ProposalStatus               { return tp.Status }
-func (tp *TextProposal) SetStatus(status ProposalStatus)        { tp.Status = status }
-func (tp TextProposal) GetTallyResult() TallyResult             { return tp.TallyResult }
-func (tp *TextProposal) SetTallyResult(tallyResult TallyResult) { tp.TallyResult = tallyResult }
+
+func (tp TextProposal) GetStatus() ProposalStatus        { return tp.Status }
+func (tp *TextProposal) SetStatus(status ProposalStatus) { tp.Status = status }
+func (tp TextProposal) GetTallyResult() OldTallyResult {
+	return OldTallyResult{
+		tp.TallyResult.Yes,
+		tp.TallyResult.Abstain,
+		tp.TallyResult.No,
+		tp.TallyResult.NoWithVeto,
+	}
+}
+func (tp *TextProposal) SetTallyResult(tallyResult OldTallyResult) {
+	tp.TallyResult = TallyResult{
+		tallyResult.Yes,
+		tallyResult.Abstain,
+		tallyResult.No,
+		tallyResult.NoWithVeto,
+		sdk.ZeroDec(),
+	}
+}
+
 func (tp TextProposal) GetSubmitTime() time.Time                { return tp.SubmitTime }
 func (tp *TextProposal) SetSubmitTime(submitTime time.Time)     { tp.SubmitTime = submitTime }
 func (tp TextProposal) GetTotalDeposit() sdk.Coins              { return tp.TotalDeposit }
@@ -115,17 +149,68 @@ func (tp TextProposal) GetVotingStartTime() time.Time           { return tp.Voti
 func (tp *TextProposal) SetVotingStartTime(votingStartTime time.Time) {
 	tp.VotingStartTime = votingStartTime
 }
-func (tp TextProposal) GetNewTallyResult() NewTallyResult             { return NewTallyResult{} }
-func (tp *TextProposal) SetNewTallyResult(tallyResult NewTallyResult) {}
+func (tp TextProposal) GetNewTallyResult() NewTallyResult {
+	return NewTallyResult{
+		tp.TallyResult.Yes,
+		tp.TallyResult.Abstain,
+		tp.TallyResult.No,
+		tp.TallyResult.NoWithVeto,
+		tp.TallyResult.Total,
+	}
+}
+func (tp *TextProposal) SetNewTallyResult(tallyResult NewTallyResult) {
+	tp.TallyResult = TallyResult{
+		tallyResult.Yes,
+		tallyResult.Abstain,
+		tallyResult.No,
+		tallyResult.NoWithVeto,
+		tallyResult.Total,
+	}
+}
 
-func (tp TextProposal) GetVotingPeriod() time.Duration              { return 0 }
-func (tp *TextProposal) SetVotingPeriod(votingPeriod time.Duration) {}
+func (tp TextProposal) GetVotingPeriod() time.Duration {
+	return tp.VotingPeriod
+}
+func (tp *TextProposal) SetVotingPeriod(votingPeriod time.Duration) {
+	tp.VotingPeriod = votingPeriod
+}
+
+func (tp OldTextProposal) GetProposalID() int64               { return tp.ProposalID }
+func (tp *OldTextProposal) SetProposalID(proposalID int64)    { tp.ProposalID = proposalID }
+func (tp OldTextProposal) GetTitle() string                   { return tp.Title }
+func (tp *OldTextProposal) SetTitle(title string)             { tp.Title = title }
+func (tp OldTextProposal) GetDescription() string             { return tp.Description }
+func (tp *OldTextProposal) SetDescription(description string) { tp.Description = description }
+func (tp OldTextProposal) GetProposalType() ProposalKind      { return tp.ProposalType }
+func (tp *OldTextProposal) SetProposalType(proposalType ProposalKind) {
+	tp.ProposalType = proposalType
+}
+func (tp OldTextProposal) GetStatus() ProposalStatus                  { return tp.Status }
+func (tp *OldTextProposal) SetStatus(status ProposalStatus)           { tp.Status = status }
+func (tp OldTextProposal) GetTallyResult() OldTallyResult             { return tp.TallyResult }
+func (tp *OldTextProposal) SetTallyResult(tallyResult OldTallyResult) { tp.TallyResult = tallyResult }
+func (tp OldTextProposal) GetSubmitTime() time.Time                   { return tp.SubmitTime }
+func (tp *OldTextProposal) SetSubmitTime(submitTime time.Time)        { tp.SubmitTime = submitTime }
+func (tp OldTextProposal) GetTotalDeposit() sdk.Coins                 { return tp.TotalDeposit }
+func (tp *OldTextProposal) SetTotalDeposit(totalDeposit sdk.Coins)    { tp.TotalDeposit = totalDeposit }
+func (tp OldTextProposal) GetVotingStartTime() time.Time              { return tp.VotingStartTime }
+func (tp *OldTextProposal) SetVotingStartTime(votingStartTime time.Time) {
+	tp.VotingStartTime = votingStartTime
+}
+func (tp OldTextProposal) GetNewTallyResult() NewTallyResult             { return NewTallyResult{} }
+func (tp *OldTextProposal) SetNewTallyResult(tallyResult NewTallyResult) {}
+
+func (tp OldTextProposal) GetVotingPeriod() time.Duration {
+	return 0
+}
+func (tp *OldTextProposal) SetVotingPeriod(votingPeriod time.Duration) {
+}
 
 func (tp NewTextProposal) GetVotingPeriod() time.Duration              { return tp.VotingPeriod }
 func (tp *NewTextProposal) SetVotingPeriod(votingPeriod time.Duration) { tp.VotingPeriod = votingPeriod }
-func (tp NewTextProposal) GetTallyResult() TallyResult                 { return tp.TextProposal.TallyResult }
-func (tp *NewTextProposal) SetTallyResult(tallyResult TallyResult) {
-	tp.TextProposal.TallyResult = tallyResult
+func (tp NewTextProposal) GetTallyResult() OldTallyResult              { return tp.OldTextProposal.TallyResult }
+func (tp *NewTextProposal) SetTallyResult(tallyResult OldTallyResult) {
+	tp.OldTextProposal.TallyResult = tallyResult
 }
 func (tp NewTextProposal) GetNewTallyResult() NewTallyResult { return tp.TallyResult }
 func (tp *NewTextProposal) SetNewTallyResult(tallyResult NewTallyResult) {
@@ -368,6 +453,7 @@ type TallyResult struct {
 	Abstain    sdk.Dec `json:"abstain"`
 	No         sdk.Dec `json:"no"`
 	NoWithVeto sdk.Dec `json:"no_with_veto"`
+	Total      sdk.Dec `json:"total"`
 }
 
 // checks if two proposals are equal
@@ -377,11 +463,38 @@ func EmptyTallyResult() TallyResult {
 		Abstain:    sdk.ZeroDec(),
 		No:         sdk.ZeroDec(),
 		NoWithVeto: sdk.ZeroDec(),
+		Total:      sdk.ZeroDec(),
 	}
 }
 
 // checks if two proposals are equal
 func (resultA TallyResult) Equals(resultB TallyResult) bool {
+	return resultA.Yes.Equal(resultB.Yes) &&
+		resultA.Abstain.Equal(resultB.Abstain) &&
+		resultA.No.Equal(resultB.No) &&
+		resultA.NoWithVeto.Equal(resultB.NoWithVeto) &&
+		resultA.Total.Equal(resultB.Total)
+}
+
+type OldTallyResult struct {
+	Yes        sdk.Dec `json:"yes"`
+	Abstain    sdk.Dec `json:"abstain"`
+	No         sdk.Dec `json:"no"`
+	NoWithVeto sdk.Dec `json:"no_with_veto"`
+}
+
+// checks if two proposals are equal
+func EmptyOldTallyResult() OldTallyResult {
+	return OldTallyResult{
+		Yes:        sdk.ZeroDec(),
+		Abstain:    sdk.ZeroDec(),
+		No:         sdk.ZeroDec(),
+		NoWithVeto: sdk.ZeroDec(),
+	}
+}
+
+// checks if two proposals are equal
+func (resultA OldTallyResult) Equals(resultB OldTallyResult) bool {
 	return resultA.Yes.Equal(resultB.Yes) &&
 		resultA.Abstain.Equal(resultB.Abstain) &&
 		resultA.No.Equal(resultB.No) &&
