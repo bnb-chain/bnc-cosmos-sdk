@@ -22,66 +22,6 @@ type cachedValidator struct {
 var validatorCache = make(map[string]cachedValidator, 500)
 var validatorCacheList = list.New()
 
-func (k Keeper) FixValidatorFeeAddr(ctx sdk.Context) {
-	store := ctx.KVStore(k.storeKey)
-	iterator := sdk.KVStorePrefixIterator(store, ValidatorsKey)
-	defer iterator.Close()
-
-	allValidators := make([]types.Validator, 0, 11)
-	for ; iterator.Valid(); iterator.Next() {
-		addr := iterator.Key()[1:]
-		// use the old logic to unmarshal it
-		if validator, err := types.UnmarshalValidatorDeprecated(k.cdc, addr, iterator.Value()); err != nil {
-			panic(err)
-		} else {
-			allValidators = append(allValidators, validator)
-		}
-	}
-
-	// "tbnb13nj6strryvnqud5tqchkltwaatqr9awrxdlk8q",
-	// "tbnb1lyjatx8jed40afe75t744hkvj0559xrvv4rle3",
-	// "tbnb1snyg4ttdyckluwzphm4eh43uv5sw5ys5x9gxuj",
-	// "tbnb1kem52fk9w43hemgqgjft8q76xesv0uypzcncjx",
-	// "tbnb1hvcnlrflp2sgzvyrzqgtpsvqxrahhtrlsa4r4p",
-	// "tbnb10da4lqdtp8yeahr2n2s88unmc2qn4czgnlr9u7",
-	// "tbnb1xmdk54cuytnfgv6krzj2fnr9t55l94hnxdwe72",
-	// "tbnb1f02de8sxjcznu5qejuzll0cmuxxzwq4yd4lghw",
-	// "tbnb18arl8klkum0fpke8hyuucxu44wrhwdyg23nlsc",
-	// "tbnb1zwuz8qklekm4vfwtkswu6nhhs2ghevn2dzqq85",
-	// "tbnb1q7cc8e2nn39frppdzkqnzdy2f0pf664deg4zkq",
-	feeAddressesHex := []string{
-		"8CE5A82C6323260E368B062F6FADDDEAC032F5C3",
-		"F925D598F2CB6AFEA73EA2FD5ADECC93E942986C",
-		"84C88AAD6D262DFE3841BEEB9BD63C6520EA1214",
-		"B6774526C575637CED004492B383DA3660C7F081",
-		"BB313F8D3F0AA08130831010B0C18030FB7BAC7F",
-		"7B7B5F81AB09C99EDC6A9AA073F27BC2813AE048",
-		"36DB6A571C22E694335618A4A4CC655D29F2D6F3",
-		"4BD4DC9E0696053E50199705FFBF1BE18C2702A4",
-		"3F47F3DBF6E6DE90DB27B939CC1B95AB87773488",
-		"13B82382DFCDB75625CBB41DCD4EF782917CB26A",
-		"07B183E5539C4A91842D158131348A4BC29D6AAD",
-	}
-
-	for i, val := range allValidators {
-		if i < 11 {
-			aa, err := sdk.AccAddressFromHex(feeAddressesHex[i])
-			if err != nil {
-				panic(err)
-			}
-			// create the fee account
-			if sdkErr := k.bankKeeper.SetCoins(ctx, aa, nil); sdkErr != nil {
-				panic(sdkErr)
-			}
-			val.FeeAddr = aa
-		} else {
-			val.FeeAddr = sdk.AccAddress(val.OperatorAddr)
-		}
-		// use the new logic to Marshal and store it.
-		k.SetValidator(ctx, val)
-	}
-}
-
 // get a single validator
 func (k Keeper) GetValidator(ctx sdk.Context, addr sdk.ValAddress) (validator types.Validator, found bool) {
 	store := ctx.KVStore(k.storeKey)
@@ -100,7 +40,7 @@ func (k Keeper) GetValidator(ctx sdk.Context, addr sdk.ValAddress) (validator ty
 	}
 
 	// amino bytes weren't found in cache, so amino unmarshal and add it to the cache
-	validator = types.MustUnmarshalValidator(k.cdc, addr, value)
+	validator = types.MustUnmarshalValidator(k.cdc, value)
 	cachedVal := cachedValidator{validator, strValue}
 	validatorCache[strValue] = cachedValidator{validator, strValue}
 	validatorCacheList.PushBack(cachedVal)
@@ -111,7 +51,7 @@ func (k Keeper) GetValidator(ctx sdk.Context, addr sdk.ValAddress) (validator ty
 		delete(validatorCache, valToRemove.marshalled)
 	}
 
-	validator = types.MustUnmarshalValidator(k.cdc, addr, value)
+	validator = types.MustUnmarshalValidator(k.cdc, value)
 	return validator, true
 }
 
@@ -269,8 +209,7 @@ func (k Keeper) GetAllValidators(ctx sdk.Context) (validators []types.Validator)
 	defer iterator.Close()
 
 	for ; iterator.Valid(); iterator.Next() {
-		addr := iterator.Key()[1:]
-		validator := types.MustUnmarshalValidator(k.cdc, addr, iterator.Value())
+		validator := types.MustUnmarshalValidator(k.cdc, iterator.Value())
 		validators = append(validators, validator)
 	}
 	return validators
@@ -286,8 +225,7 @@ func (k Keeper) GetValidators(ctx sdk.Context, maxRetrieve uint16) (validators [
 
 	i := 0
 	for ; iterator.Valid() && i < int(maxRetrieve); iterator.Next() {
-		addr := iterator.Key()[1:]
-		validator := types.MustUnmarshalValidator(k.cdc, addr, iterator.Value())
+		validator := types.MustUnmarshalValidator(k.cdc, iterator.Value())
 		validators[i] = validator
 		i++
 	}

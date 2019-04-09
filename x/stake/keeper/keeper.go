@@ -32,7 +32,6 @@ func NewKeeper(cdc *codec.Codec, key, tkey sdk.StoreKey, ck bank.Keeper, paramst
 		codespace:  codespace,
 	}
 
-	sdk.UpgradeMgr.RegisterBeginBlocker(sdk.UpgradeSeparateValAddrName, keeper.FixValidatorFeeAddr)
 	return keeper
 }
 
