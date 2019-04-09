@@ -6,13 +6,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestIsLimitAddressLengthFork(t *testing.T) {
-	config := UpgradeConfig{
-		map[string]int64{
-			UpgradeLimitAddressLength: 545000,
-		},
-	}
-	UpgradeMgr = NewUpgradeManager(config)
+const UpgradeTest = "upgradeTest"
+
+func TestUpgrade(t *testing.T) {
+	UpgradeMgr = NewUpgradeManager(UpgradeConfig{})
 
 	type testCase struct {
 		config        UpgradeConfig
@@ -24,7 +21,7 @@ func TestIsLimitAddressLengthFork(t *testing.T) {
 	testCases := []testCase{
 		{
 			config: UpgradeConfig{
-				map[string]int64{},
+				HeightMap: map[string]int64{},
 			},
 			height:        10000,
 			upgradeResult: false,
@@ -32,8 +29,8 @@ func TestIsLimitAddressLengthFork(t *testing.T) {
 		},
 		{
 			config: UpgradeConfig{
-				map[string]int64{
-					UpgradeLimitAddressLength: 545000,
+				HeightMap: map[string]int64{
+					UpgradeTest: 545000,
 				},
 			},
 			height:        10000,
@@ -41,8 +38,8 @@ func TestIsLimitAddressLengthFork(t *testing.T) {
 			heightResult:  false,
 		}, {
 			config: UpgradeConfig{
-				map[string]int64{
-					UpgradeLimitAddressLength: 545000,
+				HeightMap: map[string]int64{
+					UpgradeTest: 545000,
 				},
 			},
 			height:        545000,
@@ -50,8 +47,8 @@ func TestIsLimitAddressLengthFork(t *testing.T) {
 			heightResult:  true,
 		}, {
 			config: UpgradeConfig{
-				map[string]int64{
-					UpgradeLimitAddressLength: 545000,
+				HeightMap: map[string]int64{
+					UpgradeTest: 545000,
 				},
 			},
 			height:        545001,
@@ -61,9 +58,9 @@ func TestIsLimitAddressLengthFork(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		UpgradeMgr.AddConfig(tc.config)
 		UpgradeMgr.SetHeight(tc.height)
-		require.Equal(t, tc.upgradeResult, IsLimitAddressLengthUpgrade())
-		require.Equal(t, tc.upgradeResult, IsUpgrade(UpgradeLimitAddressLength))
-		require.Equal(t, tc.heightResult, IsUpgradeHeight(UpgradeLimitAddressLength))
+		require.Equal(t, tc.upgradeResult, IsUpgrade(UpgradeTest))
+		require.Equal(t, tc.heightResult, IsUpgradeHeight(UpgradeTest))
 	}
 }

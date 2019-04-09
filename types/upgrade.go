@@ -4,13 +4,9 @@ import "fmt"
 
 var UpgradeMgr = NewUpgradeManager(UpgradeConfig{})
 
-const UpgradeLimitAddressLength = "UpgradeLimitAddressLength" // limit address length to 20 bytes
-const UpgradeSeparateValAddrName = "UpgradeSeparateValAddr"
-
 var MainNetConfig = UpgradeConfig{
 	HeightMap: map[string]int64{
-		UpgradeLimitAddressLength:  554000,
-		UpgradeSeparateValAddrName: 1000000,
+
 	},
 }
 
@@ -46,9 +42,9 @@ func (mgr *UpgradeManager) GetHeight() int64 {
 
 // run in every ABCI BeginBlock.
 func (mgr *UpgradeManager) BeginBlocker(ctx Context) {
-	if endBlockers, ok := mgr.Config.BeginBlockers[mgr.GetHeight()]; ok {
-		for _, endBlocker := range endBlockers {
-			endBlocker(ctx)
+	if beginBlockers, ok := mgr.Config.BeginBlockers[mgr.GetHeight()]; ok {
+		for _, beginBlocker := range beginBlockers {
+			beginBlocker(ctx)
 		}
 	}
 }
@@ -123,12 +119,4 @@ func Upgrade(name string, before func(), in func(), after func()) {
 			before()
 		}
 	}
-}
-
-func UpgradeSeparateValAddresses(before func(), after func()) {
-	Upgrade(UpgradeSeparateValAddrName, before, nil, after)
-}
-
-func IsLimitAddressLengthUpgrade() bool {
-	return IsUpgrade(UpgradeLimitAddressLength)
 }
