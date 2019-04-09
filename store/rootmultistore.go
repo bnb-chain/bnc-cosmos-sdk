@@ -89,6 +89,16 @@ func (rs *rootMultiStore) GetCommitKVStore(key StoreKey) CommitKVStore {
 	return rs.stores[key].(CommitKVStore)
 }
 
+func (rs *rootMultiStore) GetCommitKVStores() map[StoreKey]CommitKVStore {
+	res := make(map[StoreKey]CommitKVStore)
+	for key, store := range rs.stores {
+		if s, ok := store.(CommitKVStore); ok {
+			res[key] = s
+		}
+	}
+	return res
+}
+
 // Implements CommitMultiStore.
 func (rs *rootMultiStore) LoadLatestVersion() error {
 	ver := getLatestVersion(rs.db)
