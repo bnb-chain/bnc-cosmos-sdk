@@ -142,6 +142,10 @@ func (msg MsgCreateValidator) ValidateBasic() sdk.Error {
 	if _, err := msg.Description.EnsureLength(); err != nil {
 		return err
 	}
+	commission := NewCommission(msg.Commission.Rate, msg.Commission.MaxRate, msg.Commission.MaxChangeRate)
+	if err := commission.Validate(); err != nil {
+		return err
+	}
 
 	return nil
 }
