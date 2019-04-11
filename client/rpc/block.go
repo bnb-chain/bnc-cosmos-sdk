@@ -41,7 +41,7 @@ func getBlock(cliCtx context.CLIContext, height *int64) ([]byte, error) {
 	// header -> BlockchainInfo
 	// header, tx -> Block
 	// results -> BlockResults
-	res, err := node.Block(height)
+	res, err := node.Block(height,nil)
 	if err != nil {
 		return nil, err
 	}
