@@ -648,7 +648,11 @@ func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
 		// no need to verify signature
 		txHash := cmn.HexBytes(tmhash.Sum(txBytes)).String()
 		app.Logger.Debug("Handle DeliverTx", "Tx", txHash)
-		result = app.RunTx(sdk.RunTxModeDeliverAfterPre, txBytes, tx, txHash)
+		sdk.FixAddAnteCache(func() {
+			result = app.RunTxDeprecated(sdk.RunTxModeDeliverAfterPre, txBytes, tx, txHash)
+		}, func() {
+			result = app.RunTx(sdk.RunTxModeDeliverAfterPre, txBytes, tx, txHash)
+		})
 	} else {
 		var tx, err = app.TxDecoder(txBytes)
 		if err != nil {
@@ -656,7 +660,11 @@ func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
 		} else {
 			txHash := cmn.HexBytes(tmhash.Sum(txBytes)).String()
 			app.Logger.Debug("Handle DeliverTx", "Tx", txHash)
-			result = app.RunTx(sdk.RunTxModeDeliver, txBytes, tx, txHash)
+			sdk.FixAddAnteCache(func() {
+				result = app.RunTxDeprecated(sdk.RunTxModeDeliverAfterPre, txBytes, tx, txHash)
+			}, func() {
+				result = app.RunTx(sdk.RunTxModeDeliverAfterPre, txBytes, tx, txHash)
+			})
 		}
 	}
 
@@ -796,6 +804,94 @@ func getAccountCache(app *BaseApp, mode sdk.RunTxMode) sdk.AccountCache {
 	}
 
 	return app.DeliverState.AccountCache
+}
+
+// retrieve the context for the ante handler and store the tx bytes;
+func (app *BaseApp) getContextForAnteDeprecated(mode sdk.RunTxMode, txBytes []byte) (ctx sdk.Context) {
+	// Get the context
+	ctx = getState(app, mode).Ctx.WithTxBytes(txBytes)
+	// Simulate a DeliverTx
+	if mode == sdk.RunTxModeSimulate {
+		ctx = ctx.WithRunTxMode(mode)
+	}
+
+	return
+}
+
+func (app *BaseApp) initializeContextDeprecated(ctx sdk.Context, mode sdk.RunTxMode) sdk.Context {
+	if mode == sdk.RunTxModeSimulate {
+		ctx = ctx.WithMultiStore(getState(app, mode).CacheMultiStore()).
+			WithAccountCache(getAccountCache(app, mode).Cache())
+	}
+	return ctx
+}
+
+func (app *BaseApp) RunTxDeprecated(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx, txHash string) (result sdk.Result) {
+	// meter so we initialize upfront.
+	var msCache sdk.CacheMultiStore
+	ctx := app.getContextForAnteDeprecated(mode, txBytes)
+	ctx = app.initializeContextDeprecated(ctx, mode)
+
+	defer func() {
+		if r := recover(); r != nil {
+			log := fmt.Sprintf("recovered: %v\nstack:\n%v", r, string(debug.Stack()))
+			result = sdk.ErrInternal(log).Result()
+		}
+
+	}()
+
+	var msgs = tx.GetMsgs()
+	if err := validateBasicTxMsgs(msgs); err != nil {
+		return err.Result()
+	}
+
+	// run the ante handler
+	if app.anteHandler != nil {
+		newCtx, result, abort := app.anteHandler(ctx.WithValue(TxHashKey, txHash), tx, mode)
+		if abort {
+			return result
+		}
+		if !newCtx.IsZero() {
+			ctx = newCtx
+		}
+	}
+
+	if mode == sdk.RunTxModeSimulate {
+		result = app.runMsgs(ctx, msgs, txHash, mode)
+		return
+	}
+
+	// Keep the state in a transient CacheWrap in case processing the messages
+	// fails.
+	msCache = getState(app, mode).CacheMultiStore()
+	if msCache.TracingEnabled() {
+		msCache = msCache.WithTracingContext(sdk.TraceContext(
+			map[string]interface{}{"txHash": txHash},
+		)).(sdk.CacheMultiStore)
+	}
+
+	accountCache := getAccountCache(app, mode).Cache()
+
+	ctx = ctx.WithMultiStore(msCache)
+	ctx = ctx.WithAccountCache(accountCache)
+	result = app.runMsgs(ctx, msgs, txHash, mode)
+
+	// only update state if all messages pass
+	if result.IsOK() {
+		if mode == sdk.RunTxModeDeliver || mode == sdk.RunTxModeDeliverAfterPre {
+			if app.collect.CollectAccountBalance {
+				app.Pool.AddAddrs(msgs[0].GetInvolvedAddresses())
+			}
+			if app.collect.CollectTxs {
+				// Should we add all msg here with no distinction ？
+				app.Pool.AddTx(tx, txHash)
+			}
+		}
+		accountCache.Write()
+		msCache.Write()
+	}
+
+	return
 }
 
 // RunTx processes a transaction. The transactions is proccessed via an

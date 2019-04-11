@@ -34,6 +34,27 @@ func NewKeeper(cdc *codec.Codec, key, tkey sdk.StoreKey, ck bank.Keeper, addrPoo
 		codespace:  codespace,
 	}
 
+	sdk.UpgradeMgr.RegisterBeginBlocker(sdk.AddDelegationAccountAddr, func(ctx sdk.Context) {
+		keeper.IterateValidators(ctx, func(index int64, validator sdk.Validator) (stop bool) {
+			if !validator.GetTokens().IsZero(){
+				_, _, err := keeper.bankKeeper.AddCoins(ctx, DelegationAccAddr, sdk.Coins{sdk.NewCoin(keeper.BondDenom(ctx), validator.GetTokens().RawInt())})
+				if err != nil {
+					return true
+				}
+			}
+			return false
+		})
+		keeper.IterateUnbondingDelegations(ctx, func(index int64, ubd types.UnbondingDelegation) (stop bool) {
+			if !ubd.Balance.IsZero() {
+				_, _, err := keeper.bankKeeper.AddCoins(ctx, DelegationAccAddr, sdk.Coins{ubd.Balance})
+				if err != nil {
+					return true
+				}
+			}
+			return false
+		})
+	})
+
 	return keeper
 }
 

@@ -2,7 +2,17 @@ package types
 
 import "fmt"
 
-var UpgradeMgr = NewUpgradeManager(UpgradeConfig{})
+const (
+	AddDelegationAccountAddr = "DelegationAccountAddr"
+	AddAnteCache             = "AnteCache"
+)
+
+var UpgradeMgr = NewUpgradeManager(UpgradeConfig{
+	HeightMap: map[string]int64{
+		AddDelegationAccountAddr: 100,
+		AddAnteCache:             100,
+	},
+})
 
 var MainNetConfig = UpgradeConfig{
 	HeightMap: map[string]int64{
@@ -119,4 +129,12 @@ func Upgrade(name string, before func(), in func(), after func()) {
 			before()
 		}
 	}
+}
+
+func FixAddDelegationAccountAddr(before func(), after func()) {
+	Upgrade(AddDelegationAccountAddr, before, nil, after)
+}
+
+func FixAddAnteCache(before func(), after func()) {
+	Upgrade(AddAnteCache, before, nil, after)
 }
