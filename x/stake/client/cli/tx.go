@@ -99,12 +99,8 @@ func GetCmdCreateValidator(cdc *codec.Codec) *cobra.Command {
 				}
 			}
 
-			if viper.GetBool(FlagGenesisFormat) || cliCtx.GenerateOnly {
-				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg}, true)
-			}
-
 			proposalId := viper.GetInt64(FlagProposalID)
-			if proposalId == 0 {
+			if proposalId == -1 {
 				depositStr := viper.GetString(FlagDeposit)
 				if depositStr == "" {
 					return fmt.Errorf("must specify deposit amount when proposalId is zero using --deposit")
@@ -138,12 +134,17 @@ func GetCmdCreateValidator(cdc *codec.Codec) *cobra.Command {
 					ProposalId:         proposalId,
 				}
 			}
+
+			if viper.GetBool(FlagGenesisFormat) || cliCtx.GenerateOnly {
+				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg}, true)
+			}
+
 			// build and sign the transaction, then broadcast to Tendermint
 			return utils.CompleteAndBroadcastTxCli(txBldr, cliCtx, []sdk.Msg{msg})
 		},
 	}
 
-	cmd.Flags().Int64(FlagProposalID, 0, "id of the CreateValidator proposal")
+	cmd.Flags().Int64(FlagProposalID, -1, "id of the CreateValidator proposal")
 	cmd.Flags().Int64(FlagVotingPeriod, 7*24*60*60, "voting period in seconds")
 	cmd.Flags().AddFlagSet(fsPk)
 	cmd.Flags().AddFlagSet(fsAmount)
