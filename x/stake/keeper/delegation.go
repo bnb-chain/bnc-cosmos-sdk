@@ -372,7 +372,7 @@ func (k Keeper) Delegate(ctx sdk.Context, delAddr sdk.AccAddress, bondAmt sdk.Co
 		if err != nil {
 			return
 		}
-		if ctx.IsDeliverTx() && k.addrPool != nil {
+		if ctx.IsDeliverTx() && ctx.BlockHeight() > 0 && k.addrPool != nil {
 			k.addrPool.AddAddrs([]sdk.AccAddress{DelegationAccAddr})
 		}
 	}
@@ -506,7 +506,7 @@ func (k Keeper) BeginUnbonding(ctx sdk.Context,
 		if err != nil {
 			return types.UnbondingDelegation{}, err
 		}
-		if ctx.IsDeliverTx() && k.addrPool != nil {
+		if ctx.IsDeliverTx() && ctx.BlockHeight() > 0 && k.addrPool != nil {
 			k.addrPool.AddAddrs([]sdk.AccAddress{delAddr, DelegationAccAddr})
 		}
 		return types.UnbondingDelegation{MinTime: minTime}, nil
