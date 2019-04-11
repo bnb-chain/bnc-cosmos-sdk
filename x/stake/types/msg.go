@@ -136,14 +136,23 @@ func (msg MsgCreateValidator) ValidateBasic() sdk.Error {
 	if msg.Description == (Description{}) {
 		return sdk.NewError(DefaultCodespace, CodeInvalidInput, "description must be included")
 	}
-	if _, err := msg.Description.EnsureLength(); err != nil {
-		return err
-	}
-	commission := NewCommission(msg.Commission.Rate, msg.Commission.MaxRate, msg.Commission.MaxChangeRate)
-	if err := commission.Validate(); err != nil {
-		return err
-	}
+	var executionErr sdk.Error
+	sdk.FixAddCreateValidatorMsgValidate(func() {
 
+	}, func() {
+		if _, err := msg.Description.EnsureLength(); err != nil {
+			executionErr = err
+			return
+		}
+		commission := NewCommission(msg.Commission.Rate, msg.Commission.MaxRate, msg.Commission.MaxChangeRate)
+		if err := commission.Validate(); err != nil {
+			executionErr = err
+			return
+		}
+	})
+	if executionErr != nil {
+		return executionErr
+	}
 	return nil
 }
 
