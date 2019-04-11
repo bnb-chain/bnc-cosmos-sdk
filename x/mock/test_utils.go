@@ -75,7 +75,7 @@ func SignCheckDeliver(
 ) sdk.Result {
 	tx := GenTx(msgs, accNums, seq, priv...)
 	// Must simulate now as CheckTx doesn't run Msgs anymore
-	res := app.Simulate(tx)
+	res := app.Simulate(nil, tx)
 
 	if expSimPass {
 		require.Equal(t, sdk.ABCICodeOK, res.Code, res.Log)
