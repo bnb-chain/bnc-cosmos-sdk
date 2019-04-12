@@ -39,7 +39,7 @@ func NewKeeper(cdc *codec.Codec, key, tkey sdk.StoreKey, ck bank.Keeper, addrPoo
 			if !validator.GetTokens().IsZero(){
 				_, _, err := keeper.bankKeeper.AddCoins(ctx, DelegationAccAddr, sdk.Coins{sdk.NewCoin(keeper.BondDenom(ctx), validator.GetTokens().RawInt())})
 				if err != nil {
-					return true
+					panic(err)
 				}
 			}
 			return false
@@ -48,11 +48,14 @@ func NewKeeper(cdc *codec.Codec, key, tkey sdk.StoreKey, ck bank.Keeper, addrPoo
 			if !ubd.Balance.IsZero() {
 				_, _, err := keeper.bankKeeper.AddCoins(ctx, DelegationAccAddr, sdk.Coins{ubd.Balance})
 				if err != nil {
-					return true
+					panic(err)
 				}
 			}
 			return false
 		})
+		if keeper.addrPool != nil {
+			keeper.addrPool.AddAddrs([]sdk.AccAddress{DelegationAccAddr})
+		}
 	})
 
 	return keeper
