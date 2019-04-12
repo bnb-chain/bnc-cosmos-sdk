@@ -71,12 +71,12 @@ func (c Context) Value(key interface{}) interface{} {
 
 // KVStore fetches a KVStore from the MultiStore.
 func (c Context) KVStore(key StoreKey) KVStore {
-	return c.multiStore().GetKVStore(key)
+	return c.MultiStore().GetKVStore(key)
 }
 
 // TransientStore fetches a TransientStore from the MultiStore.
 func (c Context) TransientStore(key StoreKey) KVStore {
-	return c.multiStore().GetKVStore(key)
+	return c.MultiStore().GetKVStore(key)
 }
 
 //----------------------------------------
@@ -141,10 +141,7 @@ const (
 	contextKeyRouterCallRecord
 )
 
-// NOTE: Do not expose MultiStore.
-// MultiStore exposes all the keys.
-// Instead, pass the context and the store key.
-func (c Context) multiStore() MultiStore {
+func (c Context) MultiStore() MultiStore {
 	return c.Value(contextKeyMultiStore).(MultiStore)
 }
 
@@ -246,7 +243,7 @@ func (c Context) WithRouterCallRecord(record map[string]bool) Context {
 // Cache the multistore and return a new cached context. The cached context is
 // written to the context when writeCache is called.
 func (c Context) CacheContext() (cc Context, writeCache func()) {
-	cms := c.multiStore().CacheMultiStore()
+	cms := c.MultiStore().CacheMultiStore()
 	cc = c.WithMultiStore(cms)
 	return cc, cms.Write
 }

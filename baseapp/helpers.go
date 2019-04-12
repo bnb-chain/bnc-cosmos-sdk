@@ -15,8 +15,8 @@ func (app *BaseApp) Check(tx sdk.Tx) (result sdk.Result) {
 }
 
 // nolint - full tx execution
-func (app *BaseApp) Simulate(tx sdk.Tx) (result sdk.Result) {
-	txHash := cmn.HexBytes(tmhash.Sum(nil)).String()
+func (app *BaseApp) Simulate(txBytes []byte, tx sdk.Tx) (result sdk.Result) {
+	txHash := cmn.HexBytes(tmhash.Sum(txBytes)).String()
 	return app.RunTx(sdk.RunTxModeSimulate, nil, tx, txHash)
 }
 

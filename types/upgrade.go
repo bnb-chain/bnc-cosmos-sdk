@@ -1,17 +1,18 @@
 package types
 
+import "fmt"
+
 var UpgradeMgr = NewUpgradeManager(UpgradeConfig{})
 
-const UpgradeLimitAddressLength = "UpgradeLimitAddressLength" // limit address length to 20 bytes
-
 var MainNetConfig = UpgradeConfig{
-	map[string]int64{
-		UpgradeLimitAddressLength: 554000,
+	HeightMap: map[string]int64{
+
 	},
 }
 
 type UpgradeConfig struct {
-	HeightMap map[string]int64
+	HeightMap     map[string]int64
+	BeginBlockers map[int64][]func(ctx Context)
 }
 
 type UpgradeManager struct {
@@ -37,6 +38,33 @@ func (mgr *UpgradeManager) SetHeight(height int64) {
 
 func (mgr *UpgradeManager) GetHeight() int64 {
 	return mgr.Height
+}
+
+// run in every ABCI BeginBlock.
+func (mgr *UpgradeManager) BeginBlocker(ctx Context) {
+	if beginBlockers, ok := mgr.Config.BeginBlockers[mgr.GetHeight()]; ok {
+		for _, beginBlocker := range beginBlockers {
+			beginBlocker(ctx)
+		}
+	}
+}
+
+func (mgr *UpgradeManager) RegisterBeginBlocker(name string, beginBlocker func(Context)) {
+	height := mgr.GetUpgradeHeight(name)
+	if height == 0 {
+		panic(fmt.Errorf("no UpgradeHeight found for %s", name))
+	}
+
+	if mgr.Config.BeginBlockers == nil {
+		mgr.Config.BeginBlockers = make(map[int64][]func(ctx Context))
+	}
+
+	if beginBlockers, ok := mgr.Config.BeginBlockers[height]; ok {
+		beginBlockers = append(beginBlockers, beginBlocker)
+		mgr.Config.BeginBlockers[height] = beginBlockers
+	} else {
+		mgr.Config.BeginBlockers[height] = []func(Context){beginBlocker}
+	}
 }
 
 func (mgr *UpgradeManager) AddUpgradeHeight(name string, height int64) {
@@ -72,6 +100,23 @@ func IsUpgrade(name string) bool {
 	return UpgradeMgr.GetHeight() >= upgradeHeight
 }
 
-func IsLimitAddressLengthUpgrade() bool {
-	return IsUpgrade(UpgradeLimitAddressLength)
+func Upgrade(name string, before func(), in func(), after func()) {
+	// if no special logic for the UpgradeHeight, than apply the `after` logic
+	if in == nil {
+		in = after
+	}
+
+	if IsUpgradeHeight(name) {
+		if in != nil {
+			in()
+		}
+	} else if IsUpgrade(name) {
+		if after != nil {
+			after()
+		}
+	} else {
+		if before != nil {
+			before()
+		}
+	}
 }

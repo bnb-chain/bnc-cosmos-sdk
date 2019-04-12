@@ -11,8 +11,8 @@ import (
 func TestParseQueryResponse(t *testing.T) {
 	cdc := app.MakeCodec()
 	sdkResBytes := cdc.MustMarshalBinaryLengthPrefixed(sdk.Result{})
-	err := parseQueryResponse(cdc, sdkResBytes)
+	_, err := parseQueryResponse(cdc, sdkResBytes)
 	assert.Nil(t, err)
-	err = parseQueryResponse(cdc, []byte("fuzzy"))
+	_, err = parseQueryResponse(cdc, []byte("fuzzy"))
 	assert.NotNil(t, err)
 }

@@ -23,7 +23,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/bank"
 )
 
 // Key to store the header in the DB itself.
@@ -414,7 +413,7 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) (res abc
 			if err != nil {
 				result = err.Result()
 			} else {
-				result = app.Simulate(tx)
+				result = app.Simulate(txBytes, tx)
 			}
 		case "version":
 			return abci.ResponseQuery{
@@ -686,7 +685,7 @@ func (app *BaseApp) PreDeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
 }
 
 // Basic validator for msgs
-func validateBasicTxMsgs(height int64, msgs []sdk.Msg) sdk.Error {
+func validateBasicTxMsgs(msgs []sdk.Msg) sdk.Error {
 	if msgs == nil || len(msgs) != 1 {
 		// TODO: probably shouldn't be ErrInternal. Maybe new ErrInvalidMessage, or ?
 		return sdk.ErrInternal("Tx.GetMsgs() must return exactly one message")
@@ -694,13 +693,7 @@ func validateBasicTxMsgs(height int64, msgs []sdk.Msg) sdk.Error {
 
 	for _, msg := range msgs {
 		// Validate the Msg.
-		var err sdk.Error
-		switch msg := msg.(type) {
-		case bank.MsgSend:
-			err = validateMsgSend(height, msg)
-		default:
-			err = msg.ValidateBasic()
-		}
+		err := msg.ValidateBasic()
 		if err != nil {
 			err = err.WithDefaultCodespace(sdk.CodespaceRoot)
 			return err
@@ -710,66 +703,26 @@ func validateBasicTxMsgs(height int64, msgs []sdk.Msg) sdk.Error {
 	return nil
 }
 
-func validateMsgSend(height int64, msg bank.MsgSend) sdk.Error {
-	if len(msg.Inputs) == 0 {
-		return bank.ErrNoInputs(bank.DefaultCodespace).TraceSDK("")
-	}
-	if len(msg.Outputs) == 0 {
-		return bank.ErrNoOutputs(bank.DefaultCodespace).TraceSDK("")
-	}
-	// make sure all inputs and outputs are individually valid
-	var totalIn, totalOut sdk.Coins
-	for _, in := range msg.Inputs {
-		if err := in.ValidateBasic(); err != nil {
-			return err.TraceSDK("")
-		}
-		totalIn = totalIn.Plus(in.Coins)
-	}
-
-	for _, out := range msg.Outputs {
-		if err := validateOutput(height, out); err != nil {
-			return err.TraceSDK("")
-		}
-		totalOut = totalOut.Plus(out.Coins)
-	}
-	// make sure inputs and outputs match
-	if !totalIn.IsEqual(totalOut) {
-		return sdk.ErrInvalidCoins(totalIn.String()).TraceSDK("inputs and outputs don't match")
-	}
-	return nil
-}
-
-func validateOutput(height int64, out bank.Output) sdk.Error {
-	if sdk.IsLimitAddressLengthUpgrade() {
-		if len(out.Address) != sdk.AddrLen {
-			return sdk.ErrInvalidAddress(out.Address.String())
-		}
-	} else {
-		// old logic
-		if len(out.Address) == 0 {
-			return sdk.ErrInvalidAddress(out.Address.String())
-		}
-	}
-
-	if !out.Coins.IsValid() {
-		return sdk.ErrInvalidCoins(out.Coins.String())
-	}
-	if !out.Coins.IsPositive() {
-		return sdk.ErrInvalidCoins(out.Coins.String())
-	}
-	return nil
-}
-
-// retrieve the context for the ante handler and store the tx bytes;
-func (app *BaseApp) getContextForAnte(mode sdk.RunTxMode, txBytes []byte) (ctx sdk.Context) {
+// retrieve the context with cache and store the tx bytes and tx hash
+func (app *BaseApp) getContextWithCache(mode sdk.RunTxMode, txBytes []byte, txHash string) (sdk.Context,
+	sdk.CacheMultiStore, sdk.AccountCache) {
 	// Get the context
-	ctx = getState(app, mode).Ctx.WithTxBytes(txBytes)
+	ctx := getState(app, mode).Ctx.WithTxBytes(txBytes)
 	// Simulate a DeliverTx
 	if mode == sdk.RunTxModeSimulate {
 		ctx = ctx.WithRunTxMode(mode)
 	}
 
-	return
+	ms := ctx.MultiStore()
+	msCache := ms.CacheMultiStore()
+	if msCache.TracingEnabled() {
+		msCache = msCache.WithTracingContext(sdk.TraceContext(
+			map[string]interface{}{"txHash": txHash},
+		)).(sdk.CacheMultiStore)
+	}
+	accountCache := getAccountCache(app, mode).Cache()
+
+	return ctx.WithMultiStore(msCache).WithAccountCache(accountCache), msCache, accountCache
 }
 
 // Iterates through msgs and executes them
@@ -845,22 +798,12 @@ func getAccountCache(app *BaseApp, mode sdk.RunTxMode) sdk.AccountCache {
 	return app.DeliverState.AccountCache
 }
 
-func (app *BaseApp) initializeContext(ctx sdk.Context, mode sdk.RunTxMode) sdk.Context {
-	if mode == sdk.RunTxModeSimulate {
-		ctx = ctx.WithMultiStore(getState(app, mode).CacheMultiStore()).
-			WithAccountCache(getAccountCache(app, mode).Cache())
-	}
-	return ctx
-}
-
 // RunTx processes a transaction. The transactions is proccessed via an
 // anteHandler. txBytes may be nil in some cases, eg. in tests. Also, in the
 // future we may support "internal" transactions.
 func (app *BaseApp) RunTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx, txHash string) (result sdk.Result) {
 	// meter so we initialize upfront.
-	var msCache sdk.CacheMultiStore
-	ctx := app.getContextForAnte(mode, txBytes)
-	ctx = app.initializeContext(ctx, mode)
+	ctx, msCache, accountCache := app.getContextWithCache(mode, txBytes, txHash)
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -871,40 +814,27 @@ func (app *BaseApp) RunTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx, txHash 
 	}()
 
 	var msgs = tx.GetMsgs()
-	if err := validateBasicTxMsgs(ctx.BlockHeight(), msgs); err != nil {
+	if err := validateBasicTxMsgs(msgs); err != nil {
 		return err.Result()
 	}
 
 	// run the ante handler
 	if app.anteHandler != nil {
 		newCtx, result, abort := app.anteHandler(ctx.WithValue(TxHashKey, txHash), tx, mode)
-		if abort {
-			return result
-		}
 		if !newCtx.IsZero() {
 			ctx = newCtx
 		}
+
+		if abort {
+			return result
+		}
 	}
+
+	result = app.runMsgs(ctx, msgs, txHash, mode)
 
 	if mode == sdk.RunTxModeSimulate {
-		result = app.runMsgs(ctx, msgs, txHash, mode)
 		return
 	}
-
-	// Keep the state in a transient CacheWrap in case processing the messages
-	// fails.
-	msCache = getState(app, mode).CacheMultiStore()
-	if msCache.TracingEnabled() {
-		msCache = msCache.WithTracingContext(sdk.TraceContext(
-			map[string]interface{}{"txHash": txHash},
-		)).(sdk.CacheMultiStore)
-	}
-
-	accountCache := getAccountCache(app, mode).Cache()
-
-	ctx = ctx.WithMultiStore(msCache)
-	ctx = ctx.WithAccountCache(accountCache)
-	result = app.runMsgs(ctx, msgs, txHash, mode)
 
 	// only update state if all messages pass
 	if result.IsOK() {
@@ -929,9 +859,9 @@ func (app *BaseApp) RunTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx, txHash 
 // future we may support "internal" transactions.
 func (app *BaseApp) ReRunTx(txBytes []byte, tx sdk.Tx) (result sdk.Result) {
 	// meter so we initialize upfront.
-	var msCache sdk.CacheMultiStore
 	mode := sdk.RunTxModeReCheck
-	ctx := app.getContextForAnte(mode, txBytes)
+	txHash := cmn.HexBytes(tmhash.Sum(txBytes)).String()
+	ctx, msCache, accountCache := app.getContextWithCache(mode, txBytes, txHash)
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -941,32 +871,18 @@ func (app *BaseApp) ReRunTx(txBytes []byte, tx sdk.Tx) (result sdk.Result) {
 
 	}()
 
-	txHash := cmn.HexBytes(tmhash.Sum(txBytes)).String()
-
 	// run the ante handler
 	if app.anteHandler != nil {
 		newCtx, result, abort := app.anteHandler(ctx.WithValue(TxHashKey, txHash), tx, mode)
-		if abort {
-			return result
-		}
 		if !newCtx.IsZero() {
 			ctx = newCtx
 		}
+
+		if abort {
+			return result
+		}
 	}
 
-	// Keep the state in a transient CacheWrap in case processing the messages
-	// fails.
-	msCache = getState(app, mode).CacheMultiStore()
-	if msCache.TracingEnabled() {
-		msCache = msCache.WithTracingContext(sdk.TraceContext(
-			map[string]interface{}{"txHash": txHash},
-		)).(sdk.CacheMultiStore)
-	}
-
-	accountCache := getAccountCache(app, mode).Cache()
-
-	ctx = ctx.WithMultiStore(msCache)
-	ctx = ctx.WithAccountCache(accountCache)
 	var msgs = tx.GetMsgs()
 	result = app.runMsgs(ctx, msgs, txHash, mode)
 
