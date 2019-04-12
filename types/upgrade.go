@@ -2,12 +2,22 @@ package types
 
 import "fmt"
 
-var UpgradeMgr = NewUpgradeManager(UpgradeConfig{})
+const (
+	AddDelegationAccountAddr      = "DelegationAccountAddr"
+	AddAnteCache                  = "AnteCache"
+	AddCreateValidatorMsgValidate = "CreateValidatorMsgValidate"
+)
+
+var UpgradeMgr = NewUpgradeManager(UpgradeConfig{
+	HeightMap: map[string]int64{
+		AddDelegationAccountAddr:      100,
+		AddAnteCache:                  100,
+		AddCreateValidatorMsgValidate: 100,
+	},
+})
 
 var MainNetConfig = UpgradeConfig{
-	HeightMap: map[string]int64{
-
-	},
+	HeightMap: map[string]int64{},
 }
 
 type UpgradeConfig struct {
@@ -119,4 +129,16 @@ func Upgrade(name string, before func(), in func(), after func()) {
 			before()
 		}
 	}
+}
+
+func FixAddDelegationAccountAddr(before func(), after func()) {
+	Upgrade(AddDelegationAccountAddr, before, nil, after)
+}
+
+func FixAddAnteCache(before func(), after func()) {
+	Upgrade(AddAnteCache, before, nil, after)
+}
+
+func FixAddCreateValidatorMsgValidate(before func(), after func()) {
+	Upgrade(AddCreateValidatorMsgValidate, before, nil, after)
 }
