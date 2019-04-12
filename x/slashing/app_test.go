@@ -34,7 +34,7 @@ func getMockApp(t *testing.T) (*mock.App, stake.Keeper, Keeper) {
 	bankKeeper := bank.NewBaseKeeper(mapp.AccountKeeper)
 
 	paramsKeeper := params.NewKeeper(mapp.Cdc, keyParams, tkeyParams)
-	stakeKeeper := stake.NewKeeper(mapp.Cdc, keyStake, tkeyStake, bankKeeper, paramsKeeper.Subspace(stake.DefaultParamspace), mapp.RegisterCodespace(stake.DefaultCodespace))
+	stakeKeeper := stake.NewKeeper(mapp.Cdc, keyStake, tkeyStake, bankKeeper, nil, paramsKeeper.Subspace(stake.DefaultParamspace), mapp.RegisterCodespace(stake.DefaultCodespace))
 	keeper := NewKeeper(mapp.Cdc, keySlashing, stakeKeeper, paramsKeeper.Subspace(DefaultParamspace), mapp.RegisterCodespace(DefaultCodespace))
 	mapp.Router().AddRoute("stake", stake.NewStakeHandler(stakeKeeper))
 	mapp.Router().AddRoute("slashing", NewHandler(keeper))
@@ -50,7 +50,7 @@ func getMockApp(t *testing.T) (*mock.App, stake.Keeper, Keeper) {
 // stake endblocker
 func getEndBlocker(keeper stake.Keeper) sdk.EndBlocker {
 	return func(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
-		validatorUpdates := stake.EndBlocker(ctx, keeper)
+		validatorUpdates, _ := stake.EndBlocker(ctx, keeper)
 		return abci.ResponseEndBlock{
 			ValidatorUpdates: validatorUpdates,
 		}

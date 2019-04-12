@@ -124,17 +124,24 @@ func (msg MsgCreateValidator) GetInvolvedAddresses() []sdk.AccAddress {
 
 // quick validity check
 func (msg MsgCreateValidator) ValidateBasic() sdk.Error {
-	if msg.DelegatorAddr == nil {
-		return ErrNilDelegatorAddr(DefaultCodespace)
+	if len(msg.DelegatorAddr) != sdk.AddrLen {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected delegator address length is %d, actual length is %d", sdk.AddrLen, len(msg.DelegatorAddr)))
 	}
-	if msg.ValidatorAddr == nil {
-		return ErrNilValidatorAddr(DefaultCodespace)
+	if len(msg.ValidatorAddr) != sdk.AddrLen {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected validator address length is %d, actual length is %d", sdk.AddrLen, len(msg.ValidatorAddr)))
 	}
 	if !(msg.Delegation.Amount > 0) {
 		return ErrBadDelegationAmount(DefaultCodespace)
 	}
 	if msg.Description == (Description{}) {
 		return sdk.NewError(DefaultCodespace, CodeInvalidInput, "description must be included")
+	}
+	if _, err := msg.Description.EnsureLength(); err != nil {
+		return err
+	}
+	commission := NewCommission(msg.Commission.Rate, msg.Commission.MaxRate, msg.Commission.MaxChangeRate)
+	if err := commission.Validate(); err != nil {
+		return err
 	}
 
 	return nil
@@ -437,14 +444,14 @@ func (msg MsgRemoveValidator) GetSignBytes() []byte {
 
 // quick validity check
 func (msg MsgRemoveValidator) ValidateBasic() sdk.Error {
-	if msg.LauncherAddr.Empty() {
-		return ErrNilLauncherAddr(DefaultCodespace)
+	if len(msg.LauncherAddr) != sdk.AddrLen {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected launcher address length is %d, actual length is %d", sdk.AddrLen, len(msg.LauncherAddr)))
 	}
-	if msg.ValAddr.Empty() {
-		return ErrNilValidatorAddr(DefaultCodespace)
+	if len(msg.ValAddr) != sdk.AddrLen {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected validator address length is %d, actual length is %d", sdk.AddrLen, len(msg.ValAddr)))
 	}
-	if msg.ValConsAddr.Empty() {
-		return ErrNilValidatorConsAddr(DefaultCodespace)
+	if len(msg.ValConsAddr) != sdk.AddrLen {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected validator consensus address length is %d, actual length is %d", sdk.AddrLen, len(msg.ValConsAddr)))
 	}
 	if msg.ProposalId <= 0 {
 		return ErrInvalidProposal(DefaultCodespace, fmt.Sprintf("Proposal id is expected to be positive, actual value is %d", msg.ProposalId))

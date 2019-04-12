@@ -6,11 +6,16 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/params"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
+	"github.com/tendermint/tendermint/crypto"
 )
 
 // Default parameter namespace
 const (
 	DefaultParamspace = "stake"
+)
+
+var (
+	DelegationAccAddr = sdk.AccAddress(crypto.AddressHash([]byte("BinanceChainStakeDelegation")))
 )
 
 // ParamTable for stake module

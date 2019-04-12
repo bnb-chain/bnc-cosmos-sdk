@@ -368,9 +368,12 @@ func (k Keeper) Delegate(ctx sdk.Context, delAddr sdk.AccAddress, bondAmt sdk.Co
 
 	if subtractAccount {
 		// Account new shares, save
-		_, _, err = k.bankKeeper.SubtractCoins(ctx, delegation.DelegatorAddr, sdk.Coins{bondAmt})
+		_, err = k.bankKeeper.SendCoins(ctx, delegation.DelegatorAddr, DelegationAccAddr, sdk.Coins{bondAmt})
 		if err != nil {
 			return
+		}
+		if ctx.IsDeliverTx() && ctx.BlockHeight() > 0 && k.addrPool != nil {
+			k.addrPool.AddAddrs([]sdk.AccAddress{DelegationAccAddr})
 		}
 	}
 
@@ -499,9 +502,12 @@ func (k Keeper) BeginUnbonding(ctx sdk.Context,
 
 	// no need to create the ubd object just complete now
 	if completeNow {
-		_, _, err := k.bankKeeper.AddCoins(ctx, delAddr, sdk.Coins{balance})
+		_, err := k.bankKeeper.SendCoins(ctx, DelegationAccAddr, delAddr, sdk.Coins{balance})
 		if err != nil {
 			return types.UnbondingDelegation{}, err
+		}
+		if ctx.IsDeliverTx() && ctx.BlockHeight() > 0 && k.addrPool != nil {
+			k.addrPool.AddAddrs([]sdk.AccAddress{delAddr, DelegationAccAddr})
 		}
 		return types.UnbondingDelegation{MinTime: minTime}, nil
 	}
@@ -529,9 +535,12 @@ func (k Keeper) CompleteUnbonding(ctx sdk.Context, delAddr sdk.AccAddress, valAd
 		return types.ErrNoUnbondingDelegation(k.Codespace())
 	}
 
-	_, _, err := k.bankKeeper.AddCoins(ctx, ubd.DelegatorAddr, sdk.Coins{ubd.Balance})
+	_, err := k.bankKeeper.SendCoins(ctx, DelegationAccAddr, ubd.DelegatorAddr, sdk.Coins{ubd.Balance})
 	if err != nil {
 		return err
+	}
+	if k.addrPool != nil {
+		k.addrPool.AddAddrs([]sdk.AccAddress{ubd.DelegatorAddr, DelegationAccAddr})
 	}
 	k.RemoveUnbondingDelegation(ctx, ubd)
 	return nil

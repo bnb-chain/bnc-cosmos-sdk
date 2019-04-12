@@ -3,7 +3,6 @@ package keeper
 import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/params"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
@@ -15,6 +14,7 @@ type Keeper struct {
 	storeTKey  sdk.StoreKey
 	cdc        *codec.Codec
 	bankKeeper bank.Keeper
+	addrPool   *sdk.Pool
 	hooks      sdk.StakingHooks
 	paramstore params.Subspace
 
@@ -22,16 +22,18 @@ type Keeper struct {
 	codespace sdk.CodespaceType
 }
 
-func NewKeeper(cdc *codec.Codec, key, tkey sdk.StoreKey, ck bank.Keeper, paramstore params.Subspace, codespace sdk.CodespaceType) Keeper {
+func NewKeeper(cdc *codec.Codec, key, tkey sdk.StoreKey, ck bank.Keeper, addrPool *sdk.Pool, paramstore params.Subspace, codespace sdk.CodespaceType) Keeper {
 	keeper := Keeper{
 		storeKey:   key,
 		storeTKey:  tkey,
 		cdc:        cdc,
 		bankKeeper: ck,
+		addrPool:   addrPool,
 		paramstore: paramstore.WithTypeTable(ParamTypeTable()),
 		hooks:      nil,
 		codespace:  codespace,
 	}
+
 	return keeper
 }
 
