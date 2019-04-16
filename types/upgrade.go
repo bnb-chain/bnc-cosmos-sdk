@@ -6,6 +6,7 @@ const (
 	AddDelegationAccountAddr      = "DelegationAccountAddr"
 	AddAnteCache                  = "AnteCache"
 	AddCreateValidatorMsgValidate = "CreateValidatorMsgValidate"
+	ChangeGovFeeAddress           = "ChangeGovFeeAddress"
 )
 
 var UpgradeMgr = NewUpgradeManager(UpgradeConfig{
@@ -13,6 +14,7 @@ var UpgradeMgr = NewUpgradeManager(UpgradeConfig{
 		AddDelegationAccountAddr:      100,
 		AddAnteCache:                  100,
 		AddCreateValidatorMsgValidate: 100,
+		ChangeGovFeeAddress:           100,
 	},
 })
 

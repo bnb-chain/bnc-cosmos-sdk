@@ -456,7 +456,13 @@ func (keeper Keeper) RefundDeposits(ctx sdk.Context, proposalID int64) {
 func (keeper Keeper) DistributeDeposits(ctx sdk.Context, proposalID int64) {
 	proposerValAddr := ctx.BlockHeader().ProposerAddress
 	proposerValidator := keeper.vs.ValidatorByConsAddr(ctx, proposerValAddr)
-	proposerAccAddr := proposerValidator.GetOperator()
+
+	var proposerAccAddr sdk.AccAddress
+	if sdk.IsUpgrade(sdk.ChangeGovFeeAddress) {
+		proposerAccAddr = proposerValidator.GetFeeAddr()
+	} else {
+		proposerAccAddr = sdk.AccAddress(proposerValidator.GetOperator())
+	}
 
 	store := ctx.KVStore(keeper.storeKey)
 	depositsIterator := keeper.GetDeposits(ctx, proposalID)
@@ -475,11 +481,11 @@ func (keeper Keeper) DistributeDeposits(ctx sdk.Context, proposalID int64) {
 		ctx.Logger().Info("distribute empty deposits")
 	}
 
-	_, err := keeper.ck.SendCoins(ctx, DepositedCoinsAccAddr, sdk.AccAddress(proposerAccAddr), depositCoins)
+	_, err := keeper.ck.SendCoins(ctx, DepositedCoinsAccAddr, proposerAccAddr, depositCoins)
 	if err != nil {
 		panic(fmt.Sprintf("distribute deposits error(%s) should not happen", err.Error()))
 	}
-	keeper.pool.AddAddrs([]sdk.AccAddress{sdk.AccAddress(proposerAccAddr), DepositedCoinsAccAddr})
+	keeper.pool.AddAddrs([]sdk.AccAddress{proposerAccAddr, DepositedCoinsAccAddr})
 }
 
 // =====================================================
