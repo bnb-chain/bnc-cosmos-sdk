@@ -8,6 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 
+	"github.com/cosmos/cosmos-sdk/x/mock"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/stake"
@@ -16,7 +18,9 @@ import (
 func TestTickExpiredDepositPeriod(t *testing.T) {
 	mapp, ck, keeper, stakeKeeper, addrs, pubKeys, _ := getMockApp(t, 10)
 
-	validator := stake.NewValidator(sdk.ValAddress(addrs[0]), pubKeys[0], stake.Description{})
+	_, feeAccount := mock.GeneratePrivKeyAddressPairs(1)
+	validator := stake.NewValidatorWithFeeAddr(feeAccount[0], sdk.ValAddress(addrs[0]), pubKeys[0], stake.Description{})
+
 	mapp.BeginBlock(abci.RequestBeginBlock{})
 	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{ProposerAddress: pubKeys[0].Address()})
 
@@ -55,9 +59,9 @@ func TestTickExpiredDepositPeriod(t *testing.T) {
 	require.True(t, gov.ShouldPopInactiveProposalQueue(ctx, keeper))
 	gov.EndBlocker(ctx, keeper)
 
-	validatorCoins := ck.GetCoins(ctx, addrs[0])
+	validatorCoins := ck.GetCoins(ctx, feeAccount[0])
 	// check distribute deposits to proposer
-	require.Equal(t, validatorCoins, sdk.Coins{sdk.NewCoin(gov.DefaultDepositDenom, 6000e8)})
+	require.Equal(t, validatorCoins, sdk.Coins{sdk.NewCoin(gov.DefaultDepositDenom, 1000e8)})
 	require.Equal(t, sdk.Coins(nil), ck.GetCoins(ctx, gov.DepositedCoinsAccAddr))
 
 	require.Nil(t, keeper.InactiveProposalQueuePeek(ctx))
@@ -67,7 +71,9 @@ func TestTickExpiredDepositPeriod(t *testing.T) {
 func TestTickMultipleExpiredDepositPeriod(t *testing.T) {
 	mapp, ck, keeper, stakeKeeper, addrs, pubKeys, _ := getMockApp(t, 10)
 
-	validator := stake.NewValidator(sdk.ValAddress(addrs[0]), pubKeys[0], stake.Description{})
+	_, feeAccount := mock.GeneratePrivKeyAddressPairs(1)
+	validator := stake.NewValidatorWithFeeAddr(feeAccount[0], sdk.ValAddress(addrs[0]), pubKeys[0], stake.Description{})
+
 	mapp.BeginBlock(abci.RequestBeginBlock{})
 	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{ProposerAddress: pubKeys[0].Address()})
 
@@ -176,7 +182,9 @@ func TestTickPassedDepositPeriod(t *testing.T) {
 func TestTickPassedVotingPeriodRejected(t *testing.T) {
 	mapp, ck, keeper, stakeKeeper, addrs, pubKeys, _ := getMockApp(t, 10)
 
-	validator := stake.NewValidator(sdk.ValAddress(addrs[0]), pubKeys[0], stake.Description{})
+	_, feeAccount := mock.GeneratePrivKeyAddressPairs(1)
+	validator := stake.NewValidatorWithFeeAddr(feeAccount[0], sdk.ValAddress(addrs[0]), pubKeys[0], stake.Description{})
+
 	mapp.BeginBlock(abci.RequestBeginBlock{})
 	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{ProposerAddress: pubKeys[0].Address()})
 
@@ -240,15 +248,17 @@ func TestTickPassedVotingPeriodRejected(t *testing.T) {
 	require.Equal(t, gov.StatusRejected, keeper.GetProposal(ctx, int64(proposalID)).GetStatus())
 
 	// check distribute deposits to proposer
-	validatorCoins := ck.GetCoins(ctx, addrs[0])
-	require.Equal(t, validatorCoins, sdk.Coins{sdk.NewCoin(gov.DefaultDepositDenom, 6000e8)})
+	validatorCoins := ck.GetCoins(ctx, feeAccount[0])
+	require.Equal(t, validatorCoins, sdk.Coins{sdk.NewCoin(gov.DefaultDepositDenom, 2000e8)})
 	require.Equal(t, sdk.Coins(nil), ck.GetCoins(ctx, gov.DepositedCoinsAccAddr))
 }
 
 func TestTickPassedVotingPeriodPassed(t *testing.T) {
 	mapp, ck, keeper, stakeKeeper, addrs, pubKeys, _ := getMockApp(t, 3)
 
-	validator0 := stake.NewValidator(sdk.ValAddress(addrs[0]), pubKeys[0], stake.Description{})
+	_, feeAccount := mock.GeneratePrivKeyAddressPairs(1)
+	validator0 := stake.NewValidatorWithFeeAddr(feeAccount[0], sdk.ValAddress(addrs[0]), pubKeys[0], stake.Description{})
+
 	mapp.BeginBlock(abci.RequestBeginBlock{})
 	ctx := mapp.BaseApp.NewContext(sdk.RunTxModeDeliver, abci.Header{ProposerAddress: pubKeys[0].Address()})
 
