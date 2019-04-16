@@ -39,6 +39,7 @@ type Validator interface {
 	GetJailed() bool              // whether the validator is jailed
 	GetMoniker() string           // moniker of the validator
 	GetStatus() BondStatus        // status of the validator
+	GetFeeAddr() AccAddress       // fee address of validator
 	GetOperator() ValAddress      // operator address to receive/return validators coins
 	GetConsPubKey() crypto.PubKey // validation consensus pubkey
 	GetConsAddr() ConsAddress     // validation consensus address
