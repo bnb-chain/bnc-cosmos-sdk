@@ -59,7 +59,7 @@ func NewStakeHandler(k Keeper) sdk.Handler {
 // Called every block, update validator set
 func EndBlocker(ctx sdk.Context, k keeper.Keeper) (ValidatorUpdates []abci.ValidatorUpdate, completedUnbondingDelegations []types.UnbondingDelegation) {
 	endBlockerTags := sdk.EmptyTags()
-	logger := ctx.Logger()
+	logger := ctx.Logger().With("module", "stake")
 
 	k.UnbondAllMatureValidatorQueue(ctx)
 
