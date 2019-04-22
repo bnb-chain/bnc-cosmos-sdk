@@ -6,10 +6,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/pkg/errors"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"github.com/btcsuite/btcd/btcec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	ledgergo "github.com/zondax/ledger-cosmos-go"
+
+	"github.com/pkg/errors"
 	tmbtcec "github.com/tendermint/btcd/btcec"
 	tmcrypto "github.com/tendermint/tendermint/crypto"
 	tmsecp256k1 "github.com/tendermint/tendermint/crypto/secp256k1"
@@ -36,6 +37,7 @@ type (
 		GetPublicKeySECP256K1([]uint32) ([]byte, error)
 		ShowAddressSECP256K1([]uint32, string) error
 		SignSECP256K1([]uint32, []byte) ([]byte, error)
+		GetVersion() (*ledgergo.VersionInfo, error)
 	}
 
 	// PrivKeyLedgerSecp256k1 implements PrivKey, calling the ledger nano we
@@ -123,19 +125,25 @@ func (pkl PrivKeyLedgerSecp256k1) Equals(other tmcrypto.PrivKey) bool {
 // an error, so this should only trigger if the private key is held in memory
 // for a while before use.
 func (pkl PrivKeyLedgerSecp256k1) Sign(msg []byte) ([]byte, error) {
-	fmt.Print(fmt.Sprintf("Please confirm if address displayed on ledger is identical to %s (yes/no)?", sdk.AccAddress(pkl.CachedPubKey.Address()).String()))
-	err := pkl.ledger.ShowAddressSECP256K1(pkl.Path, sdk.GetConfig().GetBech32AccountAddrPrefix())
+	ledgerAppVersion, err := pkl.ledger.GetVersion()
 	if err != nil {
 		return nil, err
 	}
+	if ledgerAppVersion.Major >= 1 && ledgerAppVersion.Minor >= 1 {
+		fmt.Print(fmt.Sprintf("Please confirm if address displayed on ledger is identical to %s (yes/no)?", sdk.AccAddress(pkl.CachedPubKey.Address()).String()))
+		err = pkl.ledger.ShowAddressSECP256K1(pkl.Path, sdk.GetConfig().GetBech32AccountAddrPrefix())
+		if err != nil {
+			return nil, err
+		}
 
-	buf, err := bufio.NewReader(os.Stdin).ReadString('\n')
-	if err != nil {
-		return nil, err
-	}
-	confirm := strings.ToLower(strings.TrimSpace(buf))
-	if confirm != "y" && confirm != "yes" {
-		return nil, fmt.Errorf("ledger account doesn't match")
+		buf, err := bufio.NewReader(os.Stdin).ReadString('\n')
+		if err != nil {
+			return nil, err
+		}
+		confirm := strings.ToLower(strings.TrimSpace(buf))
+		if confirm != "y" && confirm != "yes" {
+			return nil, fmt.Errorf("ledger account doesn't match")
+		}
 	}
 	fmt.Println("Please verify the transaction data on ledger")
 
