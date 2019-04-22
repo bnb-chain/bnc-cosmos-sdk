@@ -59,6 +59,7 @@ func NewStakeHandler(k Keeper) sdk.Handler {
 // Called every block, update validator set
 func EndBlocker(ctx sdk.Context, k keeper.Keeper) (ValidatorUpdates []abci.ValidatorUpdate, completedUnbondingDelegations []types.UnbondingDelegation) {
 	endBlockerTags := sdk.EmptyTags()
+	logger := ctx.Logger().With("module", "stake")
 
 	k.UnbondAllMatureValidatorQueue(ctx)
 
@@ -66,10 +67,12 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) (ValidatorUpdates []abci.Valid
 	for _, dvPair := range matureUnbonds {
 		ubd, found := k.GetUnbondingDelegation(ctx, dvPair.DelegatorAddr, dvPair.ValidatorAddr)
 		if !found {
+			logger.Error("Failed to get unbonding delegation", "delegator_address",dvPair.DelegatorAddr.String(), "validator_address", dvPair.ValidatorAddr.String())
 			continue
 		}
 		err := k.CompleteUnbonding(ctx, dvPair.DelegatorAddr, dvPair.ValidatorAddr)
 		if err != nil {
+			logger.Error(fmt.Sprintf("Failed to complete unbonding delegation: %s", err.Error()), "delegator_address",dvPair.DelegatorAddr.String(), "validator_address", dvPair.ValidatorAddr.String())
 			continue
 		}
 		completedUnbondingDelegations = append(completedUnbondingDelegations, ubd)
@@ -84,6 +87,7 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) (ValidatorUpdates []abci.Valid
 	for _, dvvTriplet := range matureRedelegations {
 		err := k.CompleteRedelegation(ctx, dvvTriplet.DelegatorAddr, dvvTriplet.ValidatorSrcAddr, dvvTriplet.ValidatorDstAddr)
 		if err != nil {
+			logger.Error(fmt.Sprintf("Failed to complete redelegation: %s", err.Error()), "delegator_address",dvvTriplet.DelegatorAddr.String(), "source_validator_address", dvvTriplet.ValidatorSrcAddr.String(), "source_validator_address", dvvTriplet.ValidatorDstAddr.String())
 			continue
 		}
 		endBlockerTags.AppendTags(sdk.NewTags(
