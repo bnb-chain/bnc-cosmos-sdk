@@ -78,8 +78,8 @@
 
 [[constraint]]
   name = "github.com/zondax/ledger-cosmos-go"
-  source = "https://github.com/HaoyangLiu/ledger-cosmos-go"
-  branch = "ledger-cli"
+  source = "https://github.com/binance-chain/ledger-cosmos-go"
+  version = "v0.9.9-binance.1"
 
 ## transitive deps, with releases:
 
