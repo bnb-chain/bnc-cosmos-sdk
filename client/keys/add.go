@@ -91,7 +91,7 @@ func runAddCmd(cmd *cobra.Command, args []string) error {
 	if viper.GetBool(client.FlagUseLedger) {
 		account := uint32(viper.GetInt(flagAccount))
 		index := uint32(viper.GetInt(flagIndex))
-		path := ccrypto.DerivationPath{44, 118, account, 0, index}
+		path := ccrypto.DerivationPath{44, 714, account, 0, index}
 		algo := keys.SigningAlgo(viper.GetString(flagType))
 		info, err := kb.CreateLedger(name, path, algo)
 		if err != nil {

@@ -1,11 +1,17 @@
 package crypto
 
 import (
+	"bufio"
 	"fmt"
+	"os"
+	"strings"
+
+	"github.com/btcsuite/btcd/btcec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	ledgergo "github.com/zondax/ledger-cosmos-go"
 
 	"github.com/pkg/errors"
-
-	secp256k1 "github.com/btcsuite/btcd/btcec"
+	tmbtcec "github.com/tendermint/btcd/btcec"
 	tmcrypto "github.com/tendermint/tendermint/crypto"
 	tmsecp256k1 "github.com/tendermint/tendermint/crypto/secp256k1"
 )
@@ -29,7 +35,9 @@ type (
 	// the SECP256K1 scheme.
 	LedgerSECP256K1 interface {
 		GetPublicKeySECP256K1([]uint32) ([]byte, error)
+		ShowAddressSECP256K1([]uint32, string) error
 		SignSECP256K1([]uint32, []byte) ([]byte, error)
+		GetVersion() (*ledgergo.VersionInfo, error)
 	}
 
 	// PrivKeyLedgerSecp256k1 implements PrivKey, calling the ledger nano we
@@ -117,12 +125,43 @@ func (pkl PrivKeyLedgerSecp256k1) Equals(other tmcrypto.PrivKey) bool {
 // an error, so this should only trigger if the private key is held in memory
 // for a while before use.
 func (pkl PrivKeyLedgerSecp256k1) Sign(msg []byte) ([]byte, error) {
+	ledgerAppVersion, err := pkl.ledger.GetVersion()
+	if err != nil {
+		return nil, err
+	}
+	if ledgerAppVersion.Major > 1 ||  ledgerAppVersion.Major == 1 && ledgerAppVersion.Minor >= 1 {
+		fmt.Print(fmt.Sprintf("Please confirm if address displayed on ledger is identical to %s (yes/no)?", sdk.AccAddress(pkl.CachedPubKey.Address()).String()))
+		err = pkl.ledger.ShowAddressSECP256K1(pkl.Path, sdk.GetConfig().GetBech32AccountAddrPrefix())
+		if err != nil {
+			return nil, err
+		}
+
+		buf, err := bufio.NewReader(os.Stdin).ReadString('\n')
+		if err != nil {
+			return nil, err
+		}
+		confirm := strings.ToLower(strings.TrimSpace(buf))
+		if confirm != "y" && confirm != "yes" {
+			return nil, fmt.Errorf("ledger account doesn't match")
+		}
+	}
+	fmt.Println("Please verify the transaction data on ledger")
+
 	sig, err := pkl.signLedgerSecp256k1(msg)
 	if err != nil {
 		return nil, err
 	}
 
-	return sig, nil
+	return convertDERtoBER(sig)
+}
+
+func convertDERtoBER(signatureDER []byte) ([]byte, error) {
+	sigDER, err := btcec.ParseDERSignature(signatureDER[:], btcec.S256())
+	if err != nil {
+		return nil, err
+	}
+	sigBER := tmbtcec.Signature{R: sigDER.R, S: sigDER.S}
+	return sigBER.Serialize(), nil
 }
 
 // getPubKey reads the pubkey the ledger itself
@@ -150,7 +189,7 @@ func (pkl PrivKeyLedgerSecp256k1) pubkeyLedgerSecp256k1() (pub tmcrypto.PubKey, 
 	var pk tmsecp256k1.PubKeySecp256k1
 
 	// re-serialize in the 33-byte compressed format
-	cmp, err := secp256k1.ParsePubKey(key[:], secp256k1.S256())
+	cmp, err := btcec.ParsePubKey(key[:], btcec.S256())
 	if err != nil {
 		return nil, fmt.Errorf("error parsing public key: %v", err)
 	}
