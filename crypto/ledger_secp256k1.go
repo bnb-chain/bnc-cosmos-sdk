@@ -11,7 +11,6 @@ import (
 	ledgergo "github.com/zondax/ledger-cosmos-go"
 
 	"github.com/pkg/errors"
-	tmbtcec "github.com/tendermint/btcd/btcec"
 	tmcrypto "github.com/tendermint/tendermint/crypto"
 	tmsecp256k1 "github.com/tendermint/tendermint/crypto/secp256k1"
 )
@@ -160,7 +159,7 @@ func convertDERtoBER(signatureDER []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	sigBER := tmbtcec.Signature{R: sigDER.R, S: sigDER.S}
+	sigBER := btcec.Signature{R: sigDER.R, S: sigDER.S}
 	return sigBER.Serialize(), nil
 }
 
