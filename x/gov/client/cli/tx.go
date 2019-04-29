@@ -25,6 +25,7 @@ const (
 	flagProposalID        = "proposal-id"
 	flagTitle             = "title"
 	flagDescription       = "description"
+	flagJustification     = "justification"
 	flagProposalType      = "type"
 	flagVotingPeriod      = "voting-period"
 	flagDeposit           = "deposit"
@@ -664,6 +665,95 @@ func GetCmdSubmitListProposal(cdc *codec.Codec) *cobra.Command {
 	cmd.Flags().String(flagQuoteAsset, "", "quote asset symbol")
 	cmd.Flags().Int64(flagInitPrice, 0, "init price")
 	cmd.Flags().Int64(flagExpireTime, 0, "expire time")
+
+	return cmd
+}
+
+// GetCmdSubmitDelistProposal implements submitting a delist proposal transaction command.
+func GetCmdSubmitDelistProposal(cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "submit-delist-proposal",
+		Short: "Submit a delist proposal along with an initial deposit",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			txBldr := authtxb.NewTxBuilderFromCLI().WithCodec(cdc)
+			cliCtx := context.NewCLIContext().
+				WithCodec(cdc).
+				WithAccountDecoder(authcmd.GetAccountDecoder(cdc))
+
+			title := viper.GetString(flagTitle)
+			justification := viper.GetString(flagJustification)
+			initialDeposit := viper.GetString(flagDeposit)
+			baseAsset := viper.GetString(flagBaseAsset)
+			quoteAsset := viper.GetString(flagQuoteAsset)
+			votingPeriodInSeconds := viper.GetInt64(flagVotingPeriod)
+
+			if title == "" {
+				return errors.New("Title should not be empty")
+			}
+
+			if len(title) > gov.MaxTitleLength {
+				return errors.New(fmt.Sprintf("Proposal title is longer than max length of %d", gov.MaxTitleLength))
+			}
+
+			if baseAsset == "" {
+				return errors.New("base asset should not be empty")
+			}
+
+			if quoteAsset == "" {
+				return errors.New("quote asset should not be empty")
+			}
+
+			if justification == "" {
+				return errors.New("justification should not be empty")
+			}
+
+			if votingPeriodInSeconds <= 0 {
+				return errors.New("voting period should be positive")
+			}
+
+			votingPeriod := time.Duration(votingPeriodInSeconds) * time.Second
+			if votingPeriod > gov.MaxVotingPeriod {
+				return errors.New(fmt.Sprintf("voting period should be less than %d seconds", gov.MaxVotingPeriod/time.Second))
+			}
+
+			fromAddr, err := cliCtx.GetFromAddress()
+			if err != nil {
+				return err
+			}
+
+			amount, err := sdk.ParseCoins(initialDeposit)
+			if err != nil {
+				return err
+			}
+
+			delistParams := gov.DelistTradingPairParams{
+				BaseAssetSymbol:  baseAsset,
+				QuoteAssetSymbol: quoteAsset,
+				Justification:    justification,
+			}
+
+			delistParamsBz, err := json.Marshal(delistParams)
+			if err != nil {
+				return err
+			}
+			msg := gov.NewMsgSubmitProposal(title, string(delistParamsBz), gov.ProposalTypeDelistTradingPair, fromAddr, amount, votingPeriod)
+
+			err = msg.ValidateBasic()
+			if err != nil {
+				return err
+			}
+
+			cliCtx.PrintResponse = true
+			return utils.CompleteAndBroadcastTxCli(txBldr, cliCtx, []sdk.Msg{msg})
+		},
+	}
+
+	cmd.Flags().String(flagTitle, "", "title of proposal")
+	cmd.Flags().String(flagJustification, "", "justification of delist trading pair")
+	cmd.Flags().Int64(flagVotingPeriod, 7*24*60*60, "voting period in seconds")
+	cmd.Flags().String(flagDeposit, "", "deposit of proposal")
+	cmd.Flags().String(flagBaseAsset, "", "base asset symbol")
+	cmd.Flags().String(flagQuoteAsset, "", "quote asset symbol")
 
 	return cmd
 }
