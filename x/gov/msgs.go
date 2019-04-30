@@ -14,6 +14,8 @@ const (
 	MaxTitleLength           = 128
 	MaxDescriptionLength int = 2048
 	MaxVotingPeriod          = 2 * 7 * 24 * 60 * 60 * time.Second // 2 weeks
+
+	MaxDelayedDays = 30
 )
 
 var _, _, _ sdk.Msg = MsgSubmitProposal{}, MsgDeposit{}, MsgVote{}
@@ -32,6 +34,7 @@ type DelistTradingPairParams struct {
 	BaseAssetSymbol  string `json:"base_asset_symbol"`  // base asset symbol
 	QuoteAssetSymbol string `json:"quote_asset_symbol"` // quote asset symbol
 	Justification    string `json:"justification"`      // justification
+	DelayedDays      int    `json:"delayed_days"`       // days after which trading pair will be delisted
 }
 
 //-----------------------------------------------------------

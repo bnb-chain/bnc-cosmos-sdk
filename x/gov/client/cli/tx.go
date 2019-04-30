@@ -28,6 +28,7 @@ const (
 	flagJustification     = "justification"
 	flagProposalType      = "type"
 	flagVotingPeriod      = "voting-period"
+	flagDelayedDays       = "delayed-days"
 	flagDeposit           = "deposit"
 	flagVoter             = "voter"
 	flagOption            = "option"
@@ -686,6 +687,7 @@ func GetCmdSubmitDelistProposal(cdc *codec.Codec) *cobra.Command {
 			baseAsset := viper.GetString(flagBaseAsset)
 			quoteAsset := viper.GetString(flagQuoteAsset)
 			votingPeriodInSeconds := viper.GetInt64(flagVotingPeriod)
+			delayedDays := viper.GetInt(flagDelayedDays)
 
 			if title == "" {
 				return errors.New("Title should not be empty")
@@ -707,13 +709,17 @@ func GetCmdSubmitDelistProposal(cdc *codec.Codec) *cobra.Command {
 				return errors.New("justification should not be empty")
 			}
 
+			if delayedDays > gov.MaxDelayedDays || delayedDays <= 0 {
+				return fmt.Errorf("delayed days should be positive and less than %d", gov.MaxDelayedDays)
+			}
+
 			if votingPeriodInSeconds <= 0 {
 				return errors.New("voting period should be positive")
 			}
 
 			votingPeriod := time.Duration(votingPeriodInSeconds) * time.Second
 			if votingPeriod > gov.MaxVotingPeriod {
-				return errors.New(fmt.Sprintf("voting period should be less than %d seconds", gov.MaxVotingPeriod/time.Second))
+				return fmt.Errorf("voting period should be less than %d seconds", gov.MaxVotingPeriod/time.Second)
 			}
 
 			fromAddr, err := cliCtx.GetFromAddress()
@@ -730,6 +736,7 @@ func GetCmdSubmitDelistProposal(cdc *codec.Codec) *cobra.Command {
 				BaseAssetSymbol:  baseAsset,
 				QuoteAssetSymbol: quoteAsset,
 				Justification:    justification,
+				DelayedDays:      delayedDays,
 			}
 
 			delistParamsBz, err := json.Marshal(delistParams)
@@ -751,6 +758,7 @@ func GetCmdSubmitDelistProposal(cdc *codec.Codec) *cobra.Command {
 	cmd.Flags().String(flagTitle, "", "title of proposal")
 	cmd.Flags().String(flagJustification, "", "justification of delist trading pair")
 	cmd.Flags().Int64(flagVotingPeriod, 7*24*60*60, "voting period in seconds")
+	cmd.Flags().Int64(flagDelayedDays, 7, "days after which trading pair will be delisted when proposal passed")
 	cmd.Flags().String(flagDeposit, "", "deposit of proposal")
 	cmd.Flags().String(flagBaseAsset, "", "base asset symbol")
 	cmd.Flags().String(flagQuoteAsset, "", "quote asset symbol")
