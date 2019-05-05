@@ -47,7 +47,7 @@ func newTree(t *testing.T, db dbm.DB) (*iavl.MutableTree, CommitID) {
 func TestIAVLStoreGetSetHasDelete(t *testing.T) {
 	db := dbm.NewMemDB()
 	tree, _ := newTree(t, db)
-	iavlStore := newIAVLStore(tree, sdk.PruneSyncable{numRecent, storeEvery})
+	iavlStore := newIAVLStore(tree, numRecent, storeEvery)
 
 	key := "hello"
 
@@ -72,7 +72,7 @@ func TestIAVLStoreGetSetHasDelete(t *testing.T) {
 func TestIAVLIterator(t *testing.T) {
 	db := dbm.NewMemDB()
 	tree, _ := newTree(t, db)
-	iavlStore := newIAVLStore(tree, sdk.PruneSyncable{numRecent, storeEvery})
+	iavlStore := newIAVLStore(tree, numRecent, storeEvery)
 	iter := iavlStore.Iterator([]byte("aloha"), []byte("hellz"))
 	expected := []string{"aloha", "hello"}
 	var i int
@@ -145,7 +145,7 @@ func TestIAVLIterator(t *testing.T) {
 func TestIAVLSubspaceIterator(t *testing.T) {
 	db := dbm.NewMemDB()
 	tree, _ := newTree(t, db)
-	iavlStore := newIAVLStore(tree, sdk.PruneSyncable{numRecent, storeEvery})
+	iavlStore := newIAVLStore(tree, numRecent, storeEvery)
 
 	iavlStore.Set([]byte("test1"), []byte("test1"))
 	iavlStore.Set([]byte("test2"), []byte("test2"))
@@ -207,7 +207,7 @@ func TestIAVLSubspaceIterator(t *testing.T) {
 func TestIAVLReverseSubspaceIterator(t *testing.T) {
 	db := dbm.NewMemDB()
 	tree, _ := newTree(t, db)
-	iavlStore := newIAVLStore(tree, sdk.PruneSyncable{numRecent, storeEvery})
+	iavlStore := newIAVLStore(tree, numRecent, storeEvery)
 
 	iavlStore.Set([]byte("test1"), []byte("test1"))
 	iavlStore.Set([]byte("test2"), []byte("test2"))
@@ -270,55 +270,53 @@ func nextVersion(iavl *IavlStore) {
 	iavl.Commit()
 }
 
-// Comment out as binance hard coded numRecent to 10000 in func (st *IavlStore) Commit() CommitID {
-//func TestIAVLDefaultPruning(t *testing.T) {
-//	//Expected stored / deleted version numbers for:
-//	//numRecent = 5, storeEvery = 3
-//	var states = []pruneState{
-//		{[]int64{}, []int64{}},
-//		{[]int64{1}, []int64{}},
-//		{[]int64{1, 2}, []int64{}},
-//		{[]int64{1, 2, 3}, []int64{}},
-//		{[]int64{1, 2, 3, 4}, []int64{}},
-//		{[]int64{1, 2, 3, 4, 5}, []int64{}},
-//		{[]int64{1, 2, 3, 4, 5, 6}, []int64{}},
-//		{[]int64{2, 3, 4, 5, 6, 7}, []int64{1}},
-//		{[]int64{3, 4, 5, 6, 7, 8}, []int64{1, 2}},
-//		{[]int64{3, 4, 5, 6, 7, 8, 9}, []int64{1, 2}},
-//		{[]int64{3, 5, 6, 7, 8, 9, 10}, []int64{1, 2, 4}},
-//		{[]int64{3, 6, 7, 8, 9, 10, 11}, []int64{1, 2, 4, 5}},
-//		{[]int64{3, 6, 7, 8, 9, 10, 11, 12}, []int64{1, 2, 4, 5}},
-//		{[]int64{3, 6, 8, 9, 10, 11, 12, 13}, []int64{1, 2, 4, 5, 7}},
-//		{[]int64{3, 6, 9, 10, 11, 12, 13, 14}, []int64{1, 2, 4, 5, 7, 8}},
-//		{[]int64{3, 6, 9, 10, 11, 12, 13, 14, 15}, []int64{1, 2, 4, 5, 7, 8}},
-//	}
-//	testPruning(t, int64(5), int64(3), states)
-//}
+func TestIAVLDefaultPruning(t *testing.T) {
+	//Expected stored / deleted version numbers for:
+	//numRecent = 5, storeEvery = 3
+	var states = []pruneState{
+		{[]int64{}, []int64{}},
+		{[]int64{1}, []int64{}},
+		{[]int64{1, 2}, []int64{}},
+		{[]int64{1, 2, 3}, []int64{}},
+		{[]int64{1, 2, 3, 4}, []int64{}},
+		{[]int64{1, 2, 3, 4, 5}, []int64{}},
+		{[]int64{1, 2, 3, 4, 5, 6}, []int64{}},
+		{[]int64{2, 3, 4, 5, 6, 7}, []int64{1}},
+		{[]int64{3, 4, 5, 6, 7, 8}, []int64{1, 2}},
+		{[]int64{3, 4, 5, 6, 7, 8, 9}, []int64{1, 2}},
+		{[]int64{3, 5, 6, 7, 8, 9, 10}, []int64{1, 2, 4}},
+		{[]int64{3, 6, 7, 8, 9, 10, 11}, []int64{1, 2, 4, 5}},
+		{[]int64{3, 6, 7, 8, 9, 10, 11, 12}, []int64{1, 2, 4, 5}},
+		{[]int64{3, 6, 8, 9, 10, 11, 12, 13}, []int64{1, 2, 4, 5, 7}},
+		{[]int64{3, 6, 9, 10, 11, 12, 13, 14}, []int64{1, 2, 4, 5, 7, 8}},
+		{[]int64{3, 6, 9, 10, 11, 12, 13, 14, 15}, []int64{1, 2, 4, 5, 7, 8}},
+	}
+	testPruning(t, int64(5), int64(3), states)
+}
 
-// Comment out as binance hard coded numRecent to 10000 in func (st *IavlStore) Commit() CommitID {
-//func TestIAVLAlternativePruning(t *testing.T) {
-//	//Expected stored / deleted version numbers for:
-//	//numRecent = 3, storeEvery = 5
-//	var states = []pruneState{
-//		{[]int64{}, []int64{}},
-//		{[]int64{1}, []int64{}},
-//		{[]int64{1, 2}, []int64{}},
-//		{[]int64{1, 2, 3}, []int64{}},
-//		{[]int64{1, 2, 3, 4}, []int64{}},
-//		{[]int64{2, 3, 4, 5}, []int64{1}},
-//		{[]int64{3, 4, 5, 6}, []int64{1, 2}},
-//		{[]int64{4, 5, 6, 7}, []int64{1, 2, 3}},
-//		{[]int64{5, 6, 7, 8}, []int64{1, 2, 3, 4}},
-//		{[]int64{5, 6, 7, 8, 9}, []int64{1, 2, 3, 4}},
-//		{[]int64{5, 7, 8, 9, 10}, []int64{1, 2, 3, 4, 6}},
-//		{[]int64{5, 8, 9, 10, 11}, []int64{1, 2, 3, 4, 6, 7}},
-//		{[]int64{5, 9, 10, 11, 12}, []int64{1, 2, 3, 4, 6, 7, 8}},
-//		{[]int64{5, 10, 11, 12, 13}, []int64{1, 2, 3, 4, 6, 7, 8, 9}},
-//		{[]int64{5, 10, 11, 12, 13, 14}, []int64{1, 2, 3, 4, 6, 7, 8, 9}},
-//		{[]int64{5, 10, 12, 13, 14, 15}, []int64{1, 2, 3, 4, 6, 7, 8, 9, 11}},
-//	}
-//	testPruning(t, int64(3), int64(5), states)
-//}
+func TestIAVLAlternativePruning(t *testing.T) {
+	//Expected stored / deleted version numbers for:
+	//numRecent = 3, storeEvery = 5
+	var states = []pruneState{
+		{[]int64{}, []int64{}},
+		{[]int64{1}, []int64{}},
+		{[]int64{1, 2}, []int64{}},
+		{[]int64{1, 2, 3}, []int64{}},
+		{[]int64{1, 2, 3, 4}, []int64{}},
+		{[]int64{2, 3, 4, 5}, []int64{1}},
+		{[]int64{3, 4, 5, 6}, []int64{1, 2}},
+		{[]int64{4, 5, 6, 7}, []int64{1, 2, 3}},
+		{[]int64{5, 6, 7, 8}, []int64{1, 2, 3, 4}},
+		{[]int64{5, 6, 7, 8, 9}, []int64{1, 2, 3, 4}},
+		{[]int64{5, 7, 8, 9, 10}, []int64{1, 2, 3, 4, 6}},
+		{[]int64{5, 8, 9, 10, 11}, []int64{1, 2, 3, 4, 6, 7}},
+		{[]int64{5, 9, 10, 11, 12}, []int64{1, 2, 3, 4, 6, 7, 8}},
+		{[]int64{5, 10, 11, 12, 13}, []int64{1, 2, 3, 4, 6, 7, 8, 9}},
+		{[]int64{5, 10, 11, 12, 13, 14}, []int64{1, 2, 3, 4, 6, 7, 8, 9}},
+		{[]int64{5, 10, 12, 13, 14, 15}, []int64{1, 2, 3, 4, 6, 7, 8, 9, 11}},
+	}
+	testPruning(t, int64(3), int64(5), states)
+}
 
 type pruneState struct {
 	stored  []int64
@@ -328,7 +326,7 @@ type pruneState struct {
 func testPruning(t *testing.T, numRecent int64, storeEvery int64, states []pruneState) {
 	db := dbm.NewMemDB()
 	tree := iavl.NewMutableTree(db, cacheSize)
-	iavlStore := newIAVLStore(tree, sdk.PruneSyncable{numRecent, storeEvery})
+	iavlStore := newIAVLStore(tree, numRecent, storeEvery)
 	for step, state := range states {
 		for _, ver := range state.stored {
 			require.True(t, iavlStore.VersionExists(ver),
@@ -347,7 +345,7 @@ func testPruning(t *testing.T, numRecent int64, storeEvery int64, states []prune
 func TestIAVLNoPrune(t *testing.T) {
 	db := dbm.NewMemDB()
 	tree := iavl.NewMutableTree(db, cacheSize)
-	iavlStore := newIAVLStore(tree, sdk.PruneSyncable{numRecent, 1})
+	iavlStore := newIAVLStore(tree, numRecent, int64(1))
 	nextVersion(iavlStore)
 	for i := 1; i < 100; i++ {
 		for j := 1; j <= i; j++ {
@@ -359,29 +357,28 @@ func TestIAVLNoPrune(t *testing.T) {
 	}
 }
 
-// Comment out as binance hard coded numRecent to 10000 in func (st *IavlStore) Commit() CommitID {
-//func TestIAVLPruneEverything(t *testing.T) {
-//	db := dbm.NewMemDB()
-//	tree := iavl.NewMutableTree(db, cacheSize)
-//	iavlStore := newIAVLStore(tree, sdk.PruneEverything{})
-//	nextVersion(iavlStore)
-//	for i := 1; i < 100; i++ {
-//		for j := 1; j < i; j++ {
-//			require.False(t, iavlStore.VersionExists(int64(j)),
-//				"Unpruned version %d with latest version %d. Should prune all old versions",
-//				j, i)
-//		}
-//		require.True(t, iavlStore.VersionExists(int64(i)),
-//			"Missing current version on step %d, should not prune current state tree",
-//			i)
-//		nextVersion(iavlStore)
-//	}
-//}
+func TestIAVLPruneEverything(t *testing.T) {
+	db := dbm.NewMemDB()
+	tree := iavl.NewMutableTree(db, cacheSize)
+	iavlStore := newIAVLStore(tree, int64(0), int64(0))
+	nextVersion(iavlStore)
+	for i := 1; i < 100; i++ {
+		for j := 1; j < i; j++ {
+			require.False(t, iavlStore.VersionExists(int64(j)),
+				"Unpruned version %d with latest version %d. Should prune all old versions",
+				j, i)
+		}
+		require.True(t, iavlStore.VersionExists(int64(i)),
+			"Missing current version on step %d, should not prune current state tree",
+			i)
+		nextVersion(iavlStore)
+	}
+}
 
 func TestIAVLStoreQuery(t *testing.T) {
 	db := dbm.NewMemDB()
 	tree := iavl.NewMutableTree(db, cacheSize)
-	iavlStore := newIAVLStore(tree, sdk.PruneSyncable{numRecent, storeEvery})
+	iavlStore := newIAVLStore(tree, numRecent, storeEvery)
 
 	k1, v1 := []byte("key1"), []byte("val1")
 	k2, v2 := []byte("key2"), []byte("val2")
@@ -477,7 +474,7 @@ func BenchmarkIAVLIteratorNext(b *testing.B) {
 		value := cmn.RandBytes(50)
 		tree.Set(key, value)
 	}
-	iavlStore := newIAVLStore(tree, sdk.PruneSyncable{numRecent, storeEvery})
+	iavlStore := newIAVLStore(tree, numRecent, storeEvery)
 	iterators := make([]Iterator, b.N/treeSize)
 	for i := 0; i < len(iterators); i++ {
 		iterators[i] = iavlStore.Iterator([]byte{0}, []byte{255, 255, 255, 255, 255})
