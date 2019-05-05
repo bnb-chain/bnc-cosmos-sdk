@@ -73,7 +73,9 @@ type BaseApp struct {
 	AccountStoreCache sdk.AccountStoreCache
 	txMsgCache        *lru.Cache
 	Pool              *sdk.Pool
-	StateSyncHelper   *stateSyncHelper // manage state sync related status
+
+	// Snapshot for state sync related fields
+	StateSyncHelper *store.StateSyncHelper // manage state sync related status
 
 	// flag for sealing
 	sealed bool
@@ -945,11 +947,11 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 }
 
 func (app *BaseApp) StartRecovery(manifest *abci.Manifest) error {
-	return app.StateSyncHelper.startRecovery(manifest)
+	return app.StateSyncHelper.StartRecovery(manifest)
 }
 
 func (app *BaseApp) WriteRecoveryChunk(hash abci.SHA256Sum, chunk *abci.AppStateChunk, isComplete bool) error {
-	return app.StateSyncHelper.writeRecoveryChunk(hash, chunk, isComplete)
+	return app.StateSyncHelper.WriteRecoveryChunk(hash, chunk, isComplete)
 }
 
 func (app *BaseApp) GetDB() dbm.DB {

@@ -1,4 +1,4 @@
-package baseapp
+package store
 
 import (
 	"bytes"
@@ -15,8 +15,13 @@ import (
 	"github.com/tendermint/tendermint/snapshot"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-	storePkg "github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+)
+
+const (
+	snapshotWorkingQueueSize  = 5
+	snapshotToRemoveQueueSize = 5
+	snapshotRetry             = 5
 )
 
 type incompleteChunkItem struct {
@@ -48,14 +53,17 @@ type PrefixNodeDB struct {
 	*iavl.NodeDB
 }
 
-type stateSyncHelper struct {
+type StateSyncHelper struct {
+	SnapshotHeights chan int64
+	HeightsToDelete chan int64
+
 	logger   log.Logger
 	commitMS sdk.CommitMultiStore
 	db       dbm.DB
 	cdc      *codec.Codec
 
 	manifest            *abci.Manifest
-	stateSyncStoreInfos []storePkg.StoreInfo
+	stateSyncStoreInfos []StoreInfo
 
 	hashesToIdx      map[abci.SHA256Sum]int          // chunkhash -> idx in manifest
 	incompleteChunks map[int64][]incompleteChunkItem // node idx -> incomplete chunk items, for caching incomplete nodes temporally
@@ -72,8 +80,8 @@ func NewStateSyncHelper(
 	logger log.Logger,
 	db dbm.DB,
 	cms sdk.CommitMultiStore,
-	cdc *codec.Codec) *stateSyncHelper {
-	var helper stateSyncHelper
+	cdc *codec.Codec) *StateSyncHelper {
+	var helper StateSyncHelper
 	helper.logger = logger
 	helper.db = db
 	helper.commitMS = cms
@@ -84,7 +92,7 @@ func NewStateSyncHelper(
 	nameToKey := make(map[string]sdk.StoreKey, len(kvStores))
 	for key, store := range cms.GetCommitKVStores() {
 		switch store.(type) {
-		case *storePkg.IavlStore:
+		case *IavlStore:
 			nameToKey[key.Name()] = key
 			names = append(names, key.Name())
 		default:
@@ -96,18 +104,32 @@ func NewStateSyncHelper(
 		helper.storeKeys = append(helper.storeKeys, nameToKey[name])
 	}
 
+	helper.SnapshotHeights = make(chan int64, snapshotWorkingQueueSize)
+	helper.HeightsToDelete = make(chan int64, snapshotToRemoveQueueSize)
+
 	return &helper
 }
 
-func (helper *stateSyncHelper) Init(lastBreatheBlockHeight int64) {
-	go helper.ReloadSnapshotRoutine(lastBreatheBlockHeight, false)
+// Split Init method and NewStateSyncHelper for snapshot command
+func (helper *StateSyncHelper) Init(lastBreatheBlockHeight int64) {
+	go helper.ReloadSnapshotRoutine(lastBreatheBlockHeight, 0)
+	go func() {
+		for height := range helper.SnapshotHeights {
+			helper.ReloadSnapshotRoutine(height, snapshotRetry)
+		}
+	}()
+	go func() {
+		for height := range helper.HeightsToDelete {
+			helper.DeleteSnapshot(height)
+		}
+	}()
 }
 
-func (helper *stateSyncHelper) startRecovery(manifest *abci.Manifest) error {
+func (helper *StateSyncHelper) StartRecovery(manifest *abci.Manifest) error {
 	helper.logger.Info("start recovery")
 
 	helper.manifest = manifest
-	helper.stateSyncStoreInfos = make([]storePkg.StoreInfo, 0, len(helper.storeKeys))
+	helper.stateSyncStoreInfos = make([]StoreInfo, 0, len(helper.storeKeys))
 	helper.hashesToIdx = make(map[abci.SHA256Sum]int, len(manifest.AppStateHashes))
 	helper.incompleteChunks = make(map[int64][]incompleteChunkItem, 0)
 	helper.prefixNodeDBs = make([]PrefixNodeDB, 0, len(helper.storeKeys))
@@ -138,7 +160,7 @@ func (helper *stateSyncHelper) startRecovery(manifest *abci.Manifest) error {
 	return nil
 }
 
-func (helper *stateSyncHelper) writeRecoveryChunk(hash abci.SHA256Sum, chunk *abci.AppStateChunk, isComplete bool) (err error) {
+func (helper *StateSyncHelper) WriteRecoveryChunk(hash abci.SHA256Sum, chunk *abci.AppStateChunk, isComplete bool) (err error) {
 	helper.reloadingMtx.Lock()
 	defer helper.reloadingMtx.Unlock()
 
@@ -196,7 +218,13 @@ func (helper *stateSyncHelper) writeRecoveryChunk(hash abci.SHA256Sum, chunk *ab
 	return err
 }
 
-func (helper *stateSyncHelper) finishCompleteChunkWrite() error {
+func (helper *StateSyncHelper) DeleteSnapshot(height int64) error {
+	err := snapshot.ManagerAt(height).Delete()
+	helper.logger.Info("deleted snapshot", "height", height, "err", err)
+	return err
+}
+
+func (helper *StateSyncHelper) finishCompleteChunkWrite() error {
 	helper.prepareEmptyStores()
 	if err := helper.saveIncompleteChunks(); err != nil {
 		return err
@@ -208,14 +236,14 @@ func (helper *stateSyncHelper) finishCompleteChunkWrite() error {
 	return nil
 }
 
-func (helper *stateSyncHelper) prepareEmptyStores() {
+func (helper *StateSyncHelper) prepareEmptyStores() {
 	for _, nodeDB := range helper.prefixNodeDBs {
 		if nodeDB.endIdxExclusive == nodeDB.startIdxInclusive {
 			nodeDB.NodeDB.SaveEmptyRoot(helper.manifest.Height, true)
-			helper.stateSyncStoreInfos = append(helper.stateSyncStoreInfos, storePkg.StoreInfo{
+			helper.stateSyncStoreInfos = append(helper.stateSyncStoreInfos, StoreInfo{
 				Name: nodeDB.storeName,
-				Core: storePkg.StoreCore{
-					CommitID: storePkg.CommitID{
+				Core: StoreCore{
+					CommitID: CommitID{
 						Version: helper.manifest.Height,
 						Hash:    nil,
 					},
@@ -225,7 +253,7 @@ func (helper *stateSyncHelper) prepareEmptyStores() {
 	}
 }
 
-func (helper *stateSyncHelper) saveIncompleteChunks() error {
+func (helper *StateSyncHelper) saveIncompleteChunks() error {
 	for nodeIdx, chunkItems := range helper.incompleteChunks {
 		helper.logger.Debug("processing incomplete node", "nodeIdx", nodeIdx)
 		// sort and check chunkItems are valid
@@ -264,7 +292,7 @@ func (helper *stateSyncHelper) saveIncompleteChunks() error {
 	return nil
 }
 
-func (helper *stateSyncHelper) commitDB() error {
+func (helper *StateSyncHelper) commitDB() error {
 	height := helper.manifest.Height
 
 	// TODO: revisit would it be problem commit too late? would there be memory or performance issue?
@@ -278,7 +306,7 @@ func (helper *stateSyncHelper) commitDB() error {
 	latestBytes, _ := helper.cdc.MarshalBinaryLengthPrefixed(height) // Does not error
 	batch.Set([]byte("s/latest"), latestBytes)
 
-	ci := storePkg.CommitInfo{
+	ci := CommitInfo{
 		Version:    height,
 		StoreInfos: helper.stateSyncStoreInfos,
 	}
@@ -292,16 +320,16 @@ func (helper *stateSyncHelper) commitDB() error {
 	}
 }
 
-func (helper *stateSyncHelper) saveNode(nodeIdx int64, node *iavl.Node) {
+func (helper *StateSyncHelper) saveNode(nodeIdx int64, node *iavl.Node) {
 	for _, nodeDB := range helper.prefixNodeDBs {
 		if nodeIdx < nodeDB.endIdxExclusive {
 			if nodeIdx == nodeDB.startIdxInclusive {
 				nodeDB.NodeDB.SaveRoot(node, helper.manifest.Height, true)
 				rootHash := iavl.Hash(node)
-				helper.stateSyncStoreInfos = append(helper.stateSyncStoreInfos, storePkg.StoreInfo{
+				helper.stateSyncStoreInfos = append(helper.stateSyncStoreInfos, StoreInfo{
 					Name: nodeDB.storeName,
-					Core: storePkg.StoreCore{
-						CommitID: storePkg.CommitID{
+					Core: StoreCore{
+						CommitID: CommitID{
 							Version: helper.manifest.Height,
 							Hash:    rootHash,
 						},
@@ -319,14 +347,14 @@ func (helper *stateSyncHelper) saveNode(nodeIdx int64, node *iavl.Node) {
 
 // the method might take quite a while, BETTER to be called concurrently
 // so we only do it once a day after breathe block
-func (helper stateSyncHelper) ReloadSnapshotRoutine(height int64, retry bool) {
+func (helper StateSyncHelper) ReloadSnapshotRoutine(height int64, retry int) {
 	helper.reloadingMtx.Lock()
 	defer helper.reloadingMtx.Unlock()
 
 	helper.takeSnapshotImpl(height, retry)
 }
 
-func (helper *stateSyncHelper) takeSnapshotImpl(height int64, retry bool) {
+func (helper *StateSyncHelper) takeSnapshotImpl(height int64, retry int) {
 	defer func() {
 		if r := recover(); r != nil {
 			log := fmt.Sprintf("recovered: %v\nstack:\n%v", r, string(debug.Stack()))
@@ -362,7 +390,7 @@ func (helper *stateSyncHelper) takeSnapshotImpl(height int64, retry bool) {
 			store := helper.commitMS.GetKVStore(key)
 			// TODO: use Iterator method of store interface, no longer rely on implementation of KVStore
 			// as we only append storeKeys for IavlStore at constructor, so this type assertion should never fail
-			mutableTree := store.(*storePkg.IavlStore).Tree
+			mutableTree := store.(*IavlStore).Tree
 			if tree, err := mutableTree.GetImmutable(height); err == nil {
 				tree.IterateFirst(func(nodeBytes []byte) {
 					nodeBytesLength := len(nodeBytes)
@@ -371,28 +399,28 @@ func (helper *stateSyncHelper) takeSnapshotImpl(height int64, retry bool) {
 						currChunkNodes = append(currChunkNodes, nodeBytes)
 						currChunkTotalBytes += nodeBytesLength
 					} else {
-						helper.finalizeAppStateChunk(currStartIdx, 0, currChunkNodes)
+						helper.finalizeAppStateChunk(currStartIdx, abci.Complete, currChunkNodes)
 						currStartIdx += int64(len(currChunkNodes))
-						currChunkNodes = make([][]byte, 0, 40000)
+						currChunkNodes = currChunkNodes[:0]
 						currChunkTotalBytes = 0
 
 						// One chunk should have AT MOST one incomplete node
 						// For a large node, we at most waste one chunk (the last finalized one)
 						if nodeBytesLength > abci.ChunkPayloadMaxBytes {
-							firstPart := nodeBytes[:abci.ChunkPayloadMaxBytes-currChunkTotalBytes]
+							firstPart := nodeBytes[:abci.ChunkPayloadMaxBytes]
 							currChunkNodes = append(currChunkNodes, firstPart)
-							helper.finalizeAppStateChunk(currStartIdx, 1, currChunkNodes)
+							helper.finalizeAppStateChunk(currStartIdx, abci.InComplete_First, currChunkNodes)
 
 							startCutIdx := len(firstPart)
 							for ; startCutIdx+abci.ChunkPayloadMaxBytes < nodeBytesLength; startCutIdx += abci.ChunkPayloadMaxBytes {
-								helper.finalizeAppStateChunk(totalKeys+currStoreKeys, 2, [][]byte{nodeBytes[startCutIdx : startCutIdx+abci.ChunkPayloadMaxBytes]})
+								helper.finalizeAppStateChunk(totalKeys+currStoreKeys, abci.InComplete_Mid, [][]byte{nodeBytes[startCutIdx : startCutIdx+abci.ChunkPayloadMaxBytes]})
 							}
 
 							lastPart := nodeBytes[startCutIdx:]
-							helper.finalizeAppStateChunk(totalKeys+currStoreKeys, 3, [][]byte{lastPart})
+							helper.finalizeAppStateChunk(totalKeys+currStoreKeys, abci.InComplete_Last, [][]byte{lastPart})
 
 							currStartIdx = totalKeys + currStoreKeys + 1
-							currChunkNodes = make([][]byte, 0, 40000)
+							currChunkNodes = currChunkNodes[:0]
 							currChunkTotalBytes = 0
 						} else {
 							currChunkNodes = append(currChunkNodes, nodeBytes)
@@ -408,7 +436,8 @@ func (helper *stateSyncHelper) takeSnapshotImpl(height int64, retry bool) {
 				failed = true
 				time.Sleep(1 * time.Second) // Endblocker has notified this reload snapshot,
 				// wait for 1 sec after commit finish
-				if retry {
+				if retry > 0 {
+					retry--
 					break
 				} else {
 					return
@@ -420,7 +449,7 @@ func (helper *stateSyncHelper) takeSnapshotImpl(height int64, retry bool) {
 
 		if !failed {
 			if len(currChunkNodes) > 0 {
-				helper.finalizeAppStateChunk(currStartIdx, 0, currChunkNodes)
+				helper.finalizeAppStateChunk(currStartIdx, abci.Complete, currChunkNodes)
 			}
 			helper.snapshotManager.SelfFinalize(numKeys)
 			helper.logger.Info("finish read snapshot chunk", "height", height, "keys", totalKeys)
@@ -428,6 +457,6 @@ func (helper *stateSyncHelper) takeSnapshotImpl(height int64, retry bool) {
 	}
 }
 
-func (helper *stateSyncHelper) finalizeAppStateChunk(startIdx int64, isComplete uint8, nodes [][]byte) error {
-	return helper.snapshotManager.WriteAppStateChunk(&abci.AppStateChunk{startIdx, isComplete, nodes})
+func (helper *StateSyncHelper) finalizeAppStateChunk(startIdx int64, completeness uint8, nodes [][]byte) error {
+	return helper.snapshotManager.WriteAppStateChunk(&abci.AppStateChunk{startIdx, completeness, nodes})
 }

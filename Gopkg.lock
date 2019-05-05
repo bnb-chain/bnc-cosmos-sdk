@@ -450,7 +450,7 @@
   name = "github.com/tendermint/iavl"
   packages = ["."]
   pruneopts = "UT"
-  revision = "2a47eae108ec570328d2a9e735339e46e121d412"
+  revision = "e602bf1c9f6ea6acc6e5d93ddb5bbc27d025e2d1"
   source = "github.com/binance-chain/bnc-tendermint-iavl"
 
 [[projects]]
@@ -527,7 +527,7 @@
     "version",
   ]
   pruneopts = "UT"
-  revision = "c7cfd01ad0195e35a05d3f7c40803349370a864f"
+  revision = "ab289c3ab442d9ffa01b9a286baf750a070b79e9"
   source = "github.com/binance-chain/bnc-tendermint"
 
 [[projects]]
