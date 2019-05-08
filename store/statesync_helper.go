@@ -13,6 +13,7 @@ import (
 	dbm "github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/snapshot"
+	sm "github.com/tendermint/tendermint/state"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -380,6 +381,19 @@ func (helper *StateSyncHelper) takeSnapshotImpl(height int64, retry int) {
 	failed := true
 	for failed {
 		failed = false
+		if state := sm.LoadStateForHeight(helper.snapshotManager.GetStateDB(), height); state == nil {
+			helper.logger.Info("expected state has not committed yet", "height", height)
+			failed = true
+			time.Sleep(1 * time.Second) // Endblocker has notified this reload snapshot,
+			// wait for 1 sec after commit finish
+			if retry > 0 {
+				retry--
+				continue
+			} else {
+				return
+			}
+		}
+
 		totalKeys := int64(0)
 		numKeys := make([]int64, 0, len(helper.storeKeys))
 		currChunkNodes := make([][]byte, 0, 40000) // one account leaf node is around 100 bytes according to testnet experiment, non-leaf node should be less, 40000 should be a bit less than 4M
@@ -432,16 +446,8 @@ func (helper *StateSyncHelper) takeSnapshotImpl(height int64, retry int) {
 				})
 				helper.logger.Info("snapshoted a substore", "storeName", key, "numOfKeys", currStoreKeys)
 			} else {
-				helper.logger.Info("failed to load immutable tree", "err", err)
-				failed = true
-				time.Sleep(1 * time.Second) // Endblocker has notified this reload snapshot,
-				// wait for 1 sec after commit finish
-				if retry > 0 {
-					retry--
-					break
-				} else {
-					return
-				}
+				helper.logger.Error("failed to load immutable tree", "err", err, "store", key)
+				return
 			}
 			totalKeys += currStoreKeys
 			numKeys = append(numKeys, currStoreKeys)
@@ -451,8 +457,11 @@ func (helper *StateSyncHelper) takeSnapshotImpl(height int64, retry int) {
 			if len(currChunkNodes) > 0 {
 				helper.finalizeAppStateChunk(currStartIdx, abci.Complete, currChunkNodes)
 			}
-			helper.snapshotManager.SelfFinalize(numKeys)
-			helper.logger.Info("finish read snapshot chunk", "height", height, "keys", totalKeys)
+			if err := helper.snapshotManager.SelfFinalize(numKeys); err == nil {
+				helper.logger.Info("finish read snapshot chunk", "height", height, "keys", totalKeys)
+			} else {
+				helper.logger.Error("failed read snapshot chunk", "height", height, "keys", totalKeys, "err", err)
+			}
 		}
 	}
 }

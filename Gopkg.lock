@@ -527,7 +527,7 @@
     "version",
   ]
   pruneopts = "UT"
-  revision = "ab289c3ab442d9ffa01b9a286baf750a070b79e9"
+  revision = "2033864390f4958cc0d13ca9cf61a4ba3de1cd6a"
   source = "github.com/binance-chain/bnc-tendermint"
 
 [[projects]]
