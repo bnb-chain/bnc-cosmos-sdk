@@ -55,14 +55,6 @@
   version = "v1.1.0"
 
 [[projects]]
-  digest = "1:fed20bf7f0da387c96d4cfc140a95572e5aba4bb984beb7de910e090ae39849b"
-  name = "github.com/ethereum/go-ethereum"
-  packages = ["crypto/secp256k1"]
-  pruneopts = "UT"
-  revision = "c942700427557e3ff6de3aaf6b916e2f056c1ec2"
-  version = "v1.8.23"
-
-[[projects]]
   digest = "1:abeb38ade3f32a92943e5be54f55ed6d6e3b6602761d74b4aab4c9dd45c18abd"
   name = "github.com/fsnotify/fsnotify"
   packages = ["."]
@@ -103,7 +95,7 @@
   version = "v1.8.0"
 
 [[projects]]
-  digest = "1:35621fe20f140f05a0c4ef662c26c0ab4ee50bca78aa30fe87d33120bd28165e"
+  digest = "1:95e1006e41c641abd2f365dfa0f1213c04da294e7cd5f0bf983af234b775db64"
   name = "github.com/gogo/protobuf"
   packages = [
     "gogoproto",
@@ -114,8 +106,8 @@
     "types",
   ]
   pruneopts = "UT"
-  revision = "636bf0302bc95575d69441b25a2603156ffdddf1"
-  version = "v1.1.1"
+  revision = "ba06b47c162d49f2af050fb4c75bcbc86a159d5c"
+  version = "v1.2.1"
 
 [[projects]]
   digest = "1:17fe264ee908afc795734e8c4e63db2accabaf57326dbf21763a7d6b86096260"
@@ -201,12 +193,12 @@
   version = "v1.0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:39b27d1381a30421f9813967a5866fba35dc1d4df43a6eefe3b7a5444cb07214"
+  digest = "1:a74b5a8e34ee5843cd6e65f698f3e75614f812ff170c2243425d75bc091e9af2"
   name = "github.com/jmhodges/levigo"
   packages = ["."]
   pruneopts = "UT"
-  revision = "c42d9e0ca023e2198120196f842701bb4c55d7b9"
+  revision = "853d788c5c416eaaee5b044570784a96c7a26975"
+  version = "v1.0.0"
 
 [[projects]]
   branch = "master"
@@ -448,7 +440,8 @@
   version = "v0.12.0-binance.0"
 
 [[projects]]
-  digest = "1:09921dbdc56888c7a8d926a35ddd829a7891d6dd3b6eb91a0eb4849f4c0348ce"
+  branch = "develop"
+  digest = "1:2b400bdb8f3290f0e660edfbd316e007839a9f23a59e10f6a31d0de28995e105"
   name = "github.com/tendermint/tendermint"
   packages = [
     "abci/client",
@@ -470,6 +463,7 @@
     "crypto/multisig",
     "crypto/multisig/bitarray",
     "crypto/secp256k1",
+    "crypto/secp256k1/internal/secp256k1",
     "crypto/tmhash",
     "crypto/xsalsa20symmetric",
     "evidence",
@@ -483,6 +477,7 @@
     "libs/events",
     "libs/fail",
     "libs/flowrate",
+    "libs/gopool",
     "libs/log",
     "libs/pubsub",
     "libs/pubsub/query",
@@ -506,6 +501,9 @@
     "rpc/lib/server",
     "rpc/lib/types",
     "state",
+    "state/blockindex",
+    "state/blockindex/kv",
+    "state/blockindex/null",
     "state/txindex",
     "state/txindex/kv",
     "state/txindex/null",
@@ -514,9 +512,8 @@
     "version",
   ]
   pruneopts = "UT"
-  revision = "3abb98b2e97b6ef6286e6f7d4b164012fe36ec80"
+  revision = "500b85f7fa5b745c9c98879314d8ee046815e082"
   source = "github.com/binance-chain/bnc-tendermint"
-  version = "v0.30.1-binance.0"
 
 [[projects]]
   digest = "1:6f6dc6060c4e9ba73cf28aa88f12a69a030d3d19d518ef8e931879eaa099628d"
