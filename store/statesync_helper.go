@@ -26,9 +26,9 @@ const (
 )
 
 type incompleteChunkItem struct {
-	chunkIdx int
-	chunk    *abci.AppStateChunk
-	nodePart []byte
+	chunkIdx     int
+	completeness uint8
+	nodePart     []byte
 }
 
 type chunkItemSorter struct {
@@ -172,13 +172,13 @@ func (helper *StateSyncHelper) WriteRecoveryChunk(hash abci.SHA256Sum, chunk *ab
 		helper.logger.Info("start write recovery chunk", "isComplete", isComplete, "hash", fmt.Sprintf("%x", hash), "startIdx", chunk.StartIdx, "numOfNodes", numOfNodes, "chunkCompletion", chunk.Completeness)
 
 		switch chunk.Completeness {
-		case 0: // chunk is independent and complete
+		case abci.Complete: // chunk is independent and complete
 			for idx := 0; idx < numOfNodes; idx++ {
 				node, _ := iavl.MakeNode(chunk.Nodes[idx])
 				iavl.Hash(node)
 				nodes = append(nodes, node)
 			}
-		case 1:
+		case abci.InComplete_First:
 			for idx := 0; idx < numOfNodes-1; idx++ {
 				if node, err := iavl.MakeNode(chunk.Nodes[idx]); err == nil {
 					iavl.Hash(node)
@@ -191,14 +191,14 @@ func (helper *StateSyncHelper) WriteRecoveryChunk(hash abci.SHA256Sum, chunk *ab
 			helper.incompleteChunks[nodeIdx] = append(helper.incompleteChunks[nodeIdx],
 				incompleteChunkItem{
 					helper.hashesToIdx[hash],
-					chunk,
+					chunk.Completeness,
 					chunk.Nodes[numOfNodes-1]})
-		case 2, 3:
+		case abci.InComplete_Mid, abci.InComplete_Last:
 			if numOfNodes != 1 {
 				helper.logger.Error("incomplete chunk should has only one node", "hash", hash, "startIdx", chunk.StartIdx, "completeness", chunk.Completeness, "numOfNodes", numOfNodes)
 			}
 
-			helper.incompleteChunks[chunk.StartIdx] = append(helper.incompleteChunks[chunk.StartIdx], incompleteChunkItem{helper.hashesToIdx[hash], chunk, chunk.Nodes[0]})
+			helper.incompleteChunks[chunk.StartIdx] = append(helper.incompleteChunks[chunk.StartIdx], incompleteChunkItem{helper.hashesToIdx[hash], chunk.Completeness, chunk.Nodes[0]})
 		default:
 			helper.logger.Error("unknown completeness status", "hash", hash, "startIdx", chunk.StartIdx, "completeness", chunk.Completeness, "numOfNodes", numOfNodes)
 		}
@@ -268,16 +268,16 @@ func (helper *StateSyncHelper) saveIncompleteChunks() error {
 		var completeNode bytes.Buffer
 		for idx, chunkItem := range chunkItems {
 			if idx == 0 {
-				if chunkItem.chunk.Completeness != 1 {
-					return fmt.Errorf("first node part containing chunk's completeness %d is wrong, should be 1, nodeIdx: %d", chunkItem.chunk.Completeness, nodeIdx)
+				if chunkItem.completeness != abci.InComplete_First {
+					return fmt.Errorf("first node part containing chunk's completeness %d is wrong, should be %d, nodeIdx: %d", chunkItem.completeness, abci.InComplete_First, nodeIdx)
 				}
 			} else if idx == len(chunkItems)-1 {
-				if chunkItem.chunk.Completeness != 3 {
-					return fmt.Errorf("last node part containing chunk's completeness %d is wrong, should be 3, nodeIdx: %d", chunkItem.chunk.Completeness, nodeIdx)
+				if chunkItem.completeness != abci.InComplete_Last {
+					return fmt.Errorf("last node part containing chunk's completeness %d is wrong, should be %d, nodeIdx: %d", chunkItem.completeness, abci.InComplete_Last, nodeIdx)
 				}
 			} else {
-				if chunkItem.chunk.Completeness != 2 {
-					return fmt.Errorf("middle node part containing chunk's completeness %d is wrong, should be 2, nodeIdx: %d", chunkItem.chunk.Completeness, nodeIdx)
+				if chunkItem.completeness != abci.InComplete_Mid {
+					return fmt.Errorf("middle node part containing chunk's completeness %d is wrong, should be %d, nodeIdx: %d", chunkItem.completeness, abci.InComplete_Mid, nodeIdx)
 				}
 			}
 			completeNode.Write(chunkItem.nodePart)
