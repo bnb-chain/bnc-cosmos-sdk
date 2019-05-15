@@ -16,6 +16,7 @@ import (
 	cmn "github.com/tendermint/tendermint/libs/common"
 	dbm "github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/libs/log"
+	"github.com/tendermint/tendermint/snapshot"
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -951,7 +952,25 @@ func (app *BaseApp) StartRecovery(manifest *abci.Manifest) error {
 }
 
 func (app *BaseApp) WriteRecoveryChunk(hash abci.SHA256Sum, chunk *abci.AppStateChunk, isComplete bool) error {
-	return app.StateSyncHelper.WriteRecoveryChunk(hash, chunk, isComplete)
+	if err := app.StateSyncHelper.WriteRecoveryChunk(hash, chunk, isComplete); err != nil {
+		return err
+	}
+
+	if isComplete {
+		// load into memory from db
+		if err := app.LoadCMSLatestVersion(); err != nil {
+			return err
+		}
+		stores := app.GetCommitMultiStore()
+		commitId := stores.LastCommitID()
+		hashHex := fmt.Sprintf("%X", commitId.Hash)
+		app.Logger.Info("commit by state reactor", "version", commitId.Version, "hash", hashHex)
+
+		// simulate we just "Commit()" :P
+		app.SetCheckState(abci.Header{Height: snapshot.Manager().RestorationManifest.Height})
+		app.DeliverState = nil
+	}
+	return nil
 }
 
 func (app *BaseApp) GetDB() dbm.DB {
