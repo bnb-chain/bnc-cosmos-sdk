@@ -334,12 +334,12 @@ func startTM(
 //
 // NOTE: This causes the thread to block.
 func startLCD(logger log.Logger, listenAddr string, cdc *codec.Codec) (net.Listener, error) {
-	listener, err := tmrpc.Listen(listenAddr, tmrpc.Config{})
+	listener, err := tmrpc.Listen(listenAddr, &tmrpc.Config{})
 	if err != nil {
 		return nil, err
 	}
 
-	go tmrpc.StartHTTPServer(listener, createHandler(cdc), logger)
+	go tmrpc.StartHTTPServer(listener, createHandler(cdc), logger, &tmrpc.Config{})
 	return listener, nil
 }
 
