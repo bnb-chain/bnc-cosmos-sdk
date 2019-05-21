@@ -27,6 +27,7 @@ const (
 	FlagCommissionMaxChangeRate = "commission-max-change-rate"
 
 	FlagGenesisFormat = "genesis-format"
+	FlagOffline       = "offline"
 	FlagNodeID        = "node-id"
 	FlagIP            = "ip"
 
