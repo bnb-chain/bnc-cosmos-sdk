@@ -4,7 +4,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/store"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/pkg/errors"
+	"github.com/spf13/viper"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/merkle"
 	cmn "github.com/tendermint/tendermint/libs/common"
@@ -12,10 +17,6 @@ import (
 	tmliteProxy "github.com/tendermint/tendermint/lite/proxy"
 	rpcclient "github.com/tendermint/tendermint/rpc/client"
 	tmtypes "github.com/tendermint/tendermint/types"
-
-	"github.com/cosmos/cosmos-sdk/store"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
 )
 
 // GetNode returns an RPC client. If the context's client is not defined, an
@@ -113,6 +114,9 @@ func (ctx CLIContext) GetAccountSequence(address []byte) (int64, error) {
 // EnsureAccountExists ensures that an account exists for a given context. An
 // error is returned if it does not.
 func (ctx CLIContext) EnsureAccountExists() error {
+	if viper.GetBool(client.FlagOffline) {
+		return nil
+	}
 	addr, err := ctx.GetFromAddress()
 	if err != nil {
 		return err

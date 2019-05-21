@@ -15,8 +15,9 @@ import (
 )
 
 const (
-	flagTo     = "to"
-	flagAmount = "amount"
+	flagTo      = "to"
+	flagAmount  = "amount"
+	flagOffline = "offline"
 )
 
 // SendTxCmd will create a send tx and sign it with the given key.
@@ -53,20 +54,22 @@ func SendTxCmd(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			account, err := cliCtx.GetAccount(from)
-			if err != nil {
-				return err
-			}
+			if !viper.GetBool(flagOffline) {
+				account, err := cliCtx.GetAccount(from)
+				if err != nil {
+					return err
+				}
 
-			// ensure account has enough coins
-			if !account.GetCoins().IsGTE(coins) {
-				return errors.Errorf("Address %s doesn't have enough coins to pay for this transaction.", from)
+				// ensure account has enough coins
+				if !account.GetCoins().IsGTE(coins) {
+					return errors.Errorf("Address %s doesn't have enough coins to pay for this transaction.", from)
+				}
 			}
 
 			// build and sign the transaction, then broadcast to Tendermint
 			msg := client.CreateMsg(from, to, coins)
 			if cliCtx.GenerateOnly {
-				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg}, false)
+				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg})
 			}
 
 			return utils.CompleteAndBroadcastTxCli(txBldr, cliCtx, []sdk.Msg{msg})
