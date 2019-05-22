@@ -730,6 +730,7 @@ func GetCmdSubmitDelistProposal(cdc *codec.Codec) *cobra.Command {
 				BaseAssetSymbol:  baseAsset,
 				QuoteAssetSymbol: quoteAsset,
 				Justification:    justification,
+				IsDelisted:       false,
 			}
 
 			delistParamsBz, err := json.Marshal(delistParams)

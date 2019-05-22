@@ -32,6 +32,7 @@ type DelistTradingPairParams struct {
 	BaseAssetSymbol  string `json:"base_asset_symbol"`  // base asset symbol
 	QuoteAssetSymbol string `json:"quote_asset_symbol"` // quote asset symbol
 	Justification    string `json:"justification"`      // justification
+	IsDelisted       bool   `json:"is_delisted"`        // is trading pair delisted
 }
 
 //-----------------------------------------------------------
