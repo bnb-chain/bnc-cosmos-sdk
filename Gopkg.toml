@@ -80,6 +80,9 @@
   name = "github.com/zondax/ledger-cosmos-go"
   source = "https://github.com/binance-chain/ledger-cosmos-go"
   version = "v0.9.9-binance.1"
+  [[prune.project]]
+      name = "github.com/zondax/hid"
+      unused-packages = false
 
 ## transitive deps, with releases:
 
@@ -117,8 +120,5 @@
 [prune]
   go-tests = true
   unused-packages = true
-  [[prune.project]]
-    name = "github.com/zondax/hid"
-    unused-packages = false
 
 
