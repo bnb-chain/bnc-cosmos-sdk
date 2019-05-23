@@ -109,7 +109,7 @@
   version = "v1.2.1"
 
 [[projects]]
-  digest = "1:17fe264ee908afc795734e8c4e63db2accabaf57326dbf21763a7d6b86096260"
+  digest = "1:239c4c7fd2159585454003d9be7207167970194216193a8a210b8d29576f19c9"
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
@@ -119,8 +119,8 @@
     "ptypes/timestamp",
   ]
   pruneopts = "UT"
-  revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
-  version = "v1.1.0"
+  revision = "b5d812f8a3706043e23a9cd5babf2e5423744d30"
+  version = "v1.3.1"
 
 [[projects]]
   branch = "master"
@@ -206,6 +206,14 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "b84e30acd515aadc4b783ad4ff83aff3299bdfe0"
+
+[[projects]]
+  digest = "1:b18a269f11ff51135d6f82987dbb53288f4d66098a6639b429f4f494a910155b"
+  name = "github.com/libp2p/go-buffer-pool"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "c4a5988a1e475884367015e1a2d0bd5fa4c491f4"
+  version = "v0.0.2"
 
 [[projects]]
   digest = "1:c568d7727aa262c32bdf8a3f7db83614f7af0ed661474b24588de635c20024c7"
@@ -447,7 +455,7 @@
 
 [[projects]]
   branch = "develop"
-  digest = "1:2b400bdb8f3290f0e660edfbd316e007839a9f23a59e10f6a31d0de28995e105"
+  digest = "1:32214aa8210aac34a1a8a23af458c628f7931b17d500940af5ccb0b9afaf89f7"
   name = "github.com/tendermint/tendermint"
   packages = [
     "abci/client",
@@ -518,7 +526,7 @@
     "version",
   ]
   pruneopts = "UT"
-  revision = "500b85f7fa5b745c9c98879314d8ee046815e082"
+  revision = "ef181dd2019f342be39436c2265910e816e66172"
   source = "github.com/binance-chain/bnc-tendermint"
 
 [[projects]]
