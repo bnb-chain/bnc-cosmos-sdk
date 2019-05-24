@@ -652,6 +652,10 @@ func GetCmdSubmitListProposal(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
+			if cliCtx.GenerateOnly {
+				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg})
+			}
+
 			cliCtx.PrintResponse = true
 			return utils.CompleteAndBroadcastTxCli(txBldr, cliCtx, []sdk.Msg{msg})
 		},
@@ -742,6 +746,10 @@ func GetCmdSubmitDelistProposal(cdc *codec.Codec) *cobra.Command {
 			err = msg.ValidateBasic()
 			if err != nil {
 				return err
+			}
+
+			if cliCtx.GenerateOnly {
+				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg})
 			}
 
 			cliCtx.PrintResponse = true
