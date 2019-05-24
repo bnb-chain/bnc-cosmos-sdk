@@ -14,6 +14,12 @@ func NewHandler(keeper Keeper) sdk.Handler {
 		case MsgDeposit:
 			return handleMsgDeposit(ctx, keeper, msg)
 		case MsgSubmitProposal:
+			if msg.ProposalType == ProposalTypeDelistTradingPair {
+				if !sdk.IsUpgrade(sdk.BEP6) {
+					return sdk.ErrUnknownRequest(fmt.Sprintf("proposal type %s is not supported before height %d",
+						ProposalTypeDelistTradingPair, sdk.UpgradeMgr.GetUpgradeHeight(sdk.BEP6))).Result()
+				}
+			}
 			return handleMsgSubmitProposal(ctx, keeper, msg)
 		case MsgVote:
 			return handleMsgVote(ctx, keeper, msg)

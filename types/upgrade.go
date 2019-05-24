@@ -4,9 +4,11 @@ import "fmt"
 
 var UpgradeMgr = NewUpgradeManager(UpgradeConfig{})
 
+const BEP6 = "BEP6"
+
 var MainNetConfig = UpgradeConfig{
 	HeightMap: map[string]int64{
-
+		BEP6: 1, // TODO: UPDATE WHEN DEPLOY
 	},
 }
 
