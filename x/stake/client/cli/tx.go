@@ -100,7 +100,6 @@ func GetCmdCreateValidator(cdc *codec.Codec) *cobra.Command {
 			}
 
 			proposalId := viper.GetInt64(FlagProposalID)
-
 			if proposalId == -1 {
 				depositStr := viper.GetString(FlagDeposit)
 				if depositStr == "" {
