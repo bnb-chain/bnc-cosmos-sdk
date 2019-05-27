@@ -50,13 +50,13 @@
 [[override]]
   name = "github.com/tendermint/iavl"
   source = "github.com/binance-chain/bnc-tendermint-iavl"
-  branch = "state_sync_warp"
+  branch = "release/v0.12.0-binance.1"
 #  version = "=v0.12.0-binance.0"
 
 [[override]]
   name = "github.com/tendermint/tendermint"
   source = "github.com/binance-chain/bnc-tendermint"
-  branch = "state_sync_warp"
+  branch = "release/v0.31.5-binance.0"
 #  version = "=v0.30.1-binance.0"
 
 ## deps without releases:
