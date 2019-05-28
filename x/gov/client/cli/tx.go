@@ -135,7 +135,7 @@ $ CLI gov submit-proposal --title="Test Proposal" --description="My awesome prop
 			}
 
 			if cliCtx.GenerateOnly {
-				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg}, false)
+				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg})
 			}
 
 			// Build and sign the transaction, then broadcast to Tendermint
@@ -217,7 +217,7 @@ func GetCmdDeposit(cdc *codec.Codec) *cobra.Command {
 			}
 
 			if cliCtx.GenerateOnly {
-				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg}, false)
+				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg})
 			}
 
 			// Build and sign the transaction, then broadcast to a Tendermint
@@ -263,7 +263,7 @@ func GetCmdVote(cdc *codec.Codec) *cobra.Command {
 			}
 
 			if cliCtx.GenerateOnly {
-				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg}, false)
+				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg})
 			}
 
 			fmt.Printf("Vote[Voter:%s,ProposalID:%d,Option:%s]",
@@ -652,6 +652,10 @@ func GetCmdSubmitListProposal(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
+			if cliCtx.GenerateOnly {
+				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg})
+			}
+
 			cliCtx.PrintResponse = true
 			return utils.CompleteAndBroadcastTxCli(txBldr, cliCtx, []sdk.Msg{msg})
 		},
@@ -742,6 +746,10 @@ func GetCmdSubmitDelistProposal(cdc *codec.Codec) *cobra.Command {
 			err = msg.ValidateBasic()
 			if err != nil {
 				return err
+			}
+
+			if cliCtx.GenerateOnly {
+				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg})
 			}
 
 			cliCtx.PrintResponse = true

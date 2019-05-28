@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/spf13/viper"
+
+	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -56,7 +59,7 @@ func CompleteAndBroadcastTxCli(txBldr authtxb.TxBuilder, cliCtx context.CLIConte
 func simulateMsgs(txBldr authtxb.TxBuilder, cliCtx context.CLIContext, name, passphrase string, msgs []sdk.Msg) error {
 	txBytes, err := txBldr.BuildAndSign(name, passphrase, msgs)
 	if err != nil {
-		return  err
+		return err
 	}
 
 	// run a simulation (via /app/simulate query)
@@ -88,8 +91,9 @@ func printTxResult(result sdk.Result) {
 
 // PrintUnsignedStdTx builds an unsigned StdTx and prints it to os.Stdout.
 // Don't perform online validation or lookups if offline is true.
-func PrintUnsignedStdTx(txBldr authtxb.TxBuilder, cliCtx context.CLIContext, msgs []sdk.Msg, offline bool) (err error) {
+func PrintUnsignedStdTx(txBldr authtxb.TxBuilder, cliCtx context.CLIContext, msgs []sdk.Msg) (err error) {
 	var stdTx auth.StdTx
+	offline := viper.GetBool(client.FlagOffline)
 	if offline {
 		stdTx, err = buildUnsignedStdTxOffline(txBldr, msgs)
 	} else {
@@ -169,7 +173,7 @@ func prepareTxBuilder(txBldr authtxb.TxBuilder, cliCtx context.CLIContext) (auth
 
 	// TODO: (ref #1903) Allow for user supplied account number without
 	// automatically doing a manual lookup.
-	if txBldr.AccountNumber == 0 {
+	if txBldr.AccountNumber == 0 && !viper.GetBool(client.FlagOffline) {
 		accNum, err := cliCtx.GetAccountNumber(from)
 		if err != nil {
 			return txBldr, err
@@ -179,7 +183,7 @@ func prepareTxBuilder(txBldr authtxb.TxBuilder, cliCtx context.CLIContext) (auth
 
 	// TODO: (ref #1903) Allow for user supplied account sequence without
 	// automatically doing a manual lookup.
-	if txBldr.Sequence == 0 {
+	if txBldr.Sequence == 0 && !viper.GetBool(client.FlagOffline) {
 		accSeq, err := cliCtx.GetAccountSequence(from)
 		if err != nil {
 			return txBldr, err
