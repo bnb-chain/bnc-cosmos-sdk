@@ -34,6 +34,8 @@ var dbHeaderKey = []byte("header")
 const (
 	// we pass txHash of current handling message via context so that we can publish it as metadata of Msg
 	TxHashKey = "txHash"
+	// we pass txSrc of current handling message via context so that we can publish it as metadata of Msg
+	TxSourceKey = "txSrc"
 	//this number should be around the size of the transactions in a block, TODO: configurable
 	TxMsgCacheSize = 4000
 )
@@ -726,7 +728,7 @@ func (app *BaseApp) getContextWithCache(mode sdk.RunTxMode, txBytes []byte, txHa
 }
 
 // Iterates through msgs and executes them
-func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, txHash string, mode sdk.RunTxMode) (result sdk.Result) {
+func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode sdk.RunTxMode) (result sdk.Result) {
 	// accumulate results
 	logs := make([]string, 0, len(msgs))
 	var data []byte   // NOTE: we just append them all (?!)
@@ -740,7 +742,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, txHash string, mode
 			return sdk.ErrUnknownRequest("Unrecognized Msg type: " + msgRoute).Result()
 		}
 
-		msgResult := handler(ctx.WithValue(TxHashKey, txHash).WithRunTxMode(mode), msg)
+		msgResult := handler(ctx.WithRunTxMode(mode), msg)
 		msgResult.Tags = append(msgResult.Tags, sdk.MakeTag("action", []byte(msg.Type())))
 
 		// Append Data and Tags
@@ -830,7 +832,14 @@ func (app *BaseApp) RunTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx, txHash 
 		}
 	}
 
-	result = app.runMsgs(ctx, msgs, txHash, mode)
+	var txSrc int64
+	if stdTx, ok := tx.(auth.StdTx); ok {
+		txSrc = stdTx.GetSource()
+	}
+	result = app.runMsgs(
+		ctx.WithValue(TxHashKey, txHash).WithValue(TxSourceKey, txSrc),
+		msgs,
+		mode)
 
 	if mode == sdk.RunTxModeSimulate {
 		return
@@ -884,7 +893,11 @@ func (app *BaseApp) ReRunTx(txBytes []byte, tx sdk.Tx) (result sdk.Result) {
 	}
 
 	var msgs = tx.GetMsgs()
-	result = app.runMsgs(ctx, msgs, txHash, mode)
+	var txSrc int64
+	if stdTx, ok := tx.(auth.StdTx); ok {
+		txSrc = stdTx.GetSource()
+	}
+	result = app.runMsgs(ctx.WithValue(TxHashKey, txHash).WithValue(TxSourceKey, txSrc), msgs, mode)
 
 	// only update state if all messages pass
 	if result.IsOK() {
