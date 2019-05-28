@@ -40,7 +40,6 @@ var _ Queryable = (*rootMultiStore)(nil)
 func NewCommitMultiStore(db dbm.DB) *rootMultiStore {
 	return &rootMultiStore{
 		db:           db,
-		pruning:      sdk.PruneNothing{},
 		storesParams: make(map[StoreKey]storeParams),
 		stores:       make(map[StoreKey]CommitStore),
 		keysByName:   make(map[string]StoreKey),
@@ -87,6 +86,16 @@ func (rs *rootMultiStore) GetCommitStore(key StoreKey) CommitStore {
 // Implements CommitMultiStore.
 func (rs *rootMultiStore) GetCommitKVStore(key StoreKey) CommitKVStore {
 	return rs.stores[key].(CommitKVStore)
+}
+
+func (rs *rootMultiStore) GetCommitKVStores() map[StoreKey]CommitKVStore {
+	res := make(map[StoreKey]CommitKVStore)
+	for key, store := range rs.stores {
+		if s, ok := store.(CommitKVStore); ok {
+			res[key] = s
+		}
+	}
+	return res
 }
 
 // Implements CommitMultiStore.

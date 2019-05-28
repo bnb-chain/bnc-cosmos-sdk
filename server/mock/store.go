@@ -58,6 +58,10 @@ func (ms multiStore) GetCommitKVStore(key sdk.StoreKey) sdk.CommitKVStore {
 	panic("not implemented")
 }
 
+func (ms multiStore) GetCommitKVStores() map[sdk.StoreKey]sdk.CommitKVStore {
+	panic("not implemented")
+}
+
 func (ms multiStore) GetCommitStore(key sdk.StoreKey) sdk.CommitStore {
 	panic("not implemented")
 }

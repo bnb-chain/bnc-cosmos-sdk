@@ -14,20 +14,19 @@ import (
 
 // SetPruning sets a pruning option on the multistore associated with the app
 func SetPruning(pruning string) func(*BaseApp) {
-	var pruningStrategy sdk.PruningStrategy
+	var pruningEnum sdk.PruningStrategy
 	switch pruning {
 	case "nothing":
-		pruningStrategy = sdk.PruneNothing{}
+		pruningEnum = sdk.PruneNothing
 	case "everything":
-		pruningStrategy = sdk.PruneEverything{}
+		pruningEnum = sdk.PruneEverything
 	case "syncable":
-		// TODO: make these parameters configurable
-		pruningStrategy = sdk.PruneSyncable{NumRecent: 100, StoreEvery: 10000}
+		pruningEnum = sdk.PruneSyncable
 	default:
 		panic(fmt.Sprintf("invalid pruning strategy: %s", pruning))
 	}
 	return func(bap *BaseApp) {
-		bap.SetPruning(pruningStrategy)
+		bap.cms.SetPruning(pruningEnum)
 	}
 }
 

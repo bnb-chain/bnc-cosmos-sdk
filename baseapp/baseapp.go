@@ -16,6 +16,7 @@ import (
 	cmn "github.com/tendermint/tendermint/libs/common"
 	dbm "github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/libs/log"
+	"github.com/tendermint/tendermint/snapshot"
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -75,6 +76,9 @@ type BaseApp struct {
 	AccountStoreCache sdk.AccountStoreCache
 	txMsgCache        *lru.Cache
 	Pool              *sdk.Pool
+
+	// Snapshot for state sync related fields
+	StateSyncHelper *store.StateSyncHelper // manage state sync related status
 
 	// flag for sealing
 	sealed bool
@@ -956,23 +960,29 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	}
 }
 
-func (app *BaseApp) LatestSnapshot() (height int64, numKeys []int64, err error) {
-	return 0, make([]int64, 0), nil
+func (app *BaseApp) StartRecovery(manifest *abci.Manifest) error {
+	return app.StateSyncHelper.StartRecovery(manifest)
 }
 
-func (app *BaseApp) ReadSnapshotChunk(height int64, startIndex, endIndex int64) (chunk [][]byte, err error) {
-	return make([][]byte, 0), nil
-}
+func (app *BaseApp) WriteRecoveryChunk(hash abci.SHA256Sum, chunk *abci.AppStateChunk, isComplete bool) error {
+	if err := app.StateSyncHelper.WriteRecoveryChunk(hash, chunk, isComplete); err != nil {
+		return err
+	}
 
-func (app *BaseApp) StartRecovery(height int64, numKeys []int64) error {
-	return nil
-}
+	if isComplete {
+		// load into memory from db
+		if err := app.LoadCMSLatestVersion(); err != nil {
+			return err
+		}
+		stores := app.GetCommitMultiStore()
+		commitId := stores.LastCommitID()
+		hashHex := fmt.Sprintf("%X", commitId.Hash)
+		app.Logger.Info("commit by state reactor", "version", commitId.Version, "hash", hashHex)
 
-func (app *BaseApp) WriteRecoveryChunk(chunk [][]byte) error {
-	return nil
-}
-
-func (app *BaseApp) EndRecovery(height int64) error {
+		// simulate we just "Commit()" :P
+		app.SetCheckState(abci.Header{Height: snapshot.Manager().RestorationManifest.Height})
+		app.DeliverState = nil
+	}
 	return nil
 }
 

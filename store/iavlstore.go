@@ -25,7 +25,7 @@ func LoadIAVLStore(db dbm.DB, id CommitID, pruning sdk.PruningStrategy) (CommitS
 	if err != nil {
 		return nil, err
 	}
-	iavl := newIAVLStore(tree, sdk.PruneNothing{})
+	iavl := newIAVLStore(tree, int64(0), int64(0))
 	iavl.SetPruning(pruning)
 	return iavl, nil
 }
@@ -42,16 +42,26 @@ type IavlStore struct {
 	// The underlying tree.
 	Tree *iavl.MutableTree
 
-	// The strategy to prune historical versions
-	pruningStrategy sdk.PruningStrategy
+	// How many old versions we hold onto.
+	// A value of 0 means keep no recent states.
+	numRecent int64
+
+	// This is the distance between state-sync waypoint states to be stored.
+	// See https://github.com/tendermint/tendermint/issues/828
+	// A value of 1 means store every state.
+	// A value of 0 means store no waypoints. (node cannot assist in state-sync)
+	// By default this value should be set the same across all nodes,
+	// so that nodes can know the waypoints their peers store.
+	storeEvery int64
 }
 
 // CONTRACT: tree should be fully loaded.
 // nolint: unparam
-func newIAVLStore(tree *iavl.MutableTree, ps sdk.PruningStrategy) *IavlStore {
+func newIAVLStore(tree *iavl.MutableTree, numRecent int64, storeEvery int64) *IavlStore {
 	st := &IavlStore{
-		Tree:            tree,
-		pruningStrategy: ps,
+		Tree:       tree,
+		numRecent:  numRecent,
+		storeEvery: storeEvery,
 	}
 	return st
 }
@@ -70,16 +80,15 @@ func (st *IavlStore) Commit() CommitID {
 	}
 
 	// Release an old version of history, if not a sync waypoint.
-	//for v, _ := range st.Tree.GetVersions() {
-	//	if st.pruningStrategy.ShouldPrune(v, version) {
-	//		st.Tree.DeleteVersion(v)
-	//	}
-	//}
-
-	// this is a special optimization for binance chain, 10001 should keep consistent with
-	// `numRecent` field of KeepRecentAndBreatheBlock
-	if version > 10001 && st.pruningStrategy.ShouldPrune(version-10001, version) {
-		st.Tree.DeleteVersion(version - 10001)
+	previous := version - 1
+	if st.numRecent < previous {
+		toRelease := previous - st.numRecent
+		if st.storeEvery == 0 || toRelease%st.storeEvery != 0 {
+			err := st.Tree.DeleteVersion(toRelease)
+			if err != nil && err.(cmn.Error).Data() != iavl.ErrVersionDoesNotExist {
+				panic(err)
+			}
+		}
 	}
 
 	return CommitID{
@@ -98,7 +107,16 @@ func (st *IavlStore) LastCommitID() CommitID {
 
 // Implements Committer.
 func (st *IavlStore) SetPruning(pruning sdk.PruningStrategy) {
-	st.pruningStrategy = pruning
+	switch pruning {
+	case sdk.PruneEverything:
+		st.numRecent = 0
+		st.storeEvery = 0
+	case sdk.PruneNothing:
+		st.storeEvery = 1
+	case sdk.PruneSyncable:
+		st.numRecent = 10000 // fork github.com/cosmos/cosmos-sdk/blob/9a16e2675f392b083dd1074ff92ff1f9fbda750d/store/types/pruning.go#L34
+		st.storeEvery = 10000
+	}
 }
 
 // VersionExists returns whether or not a given version is stored.
