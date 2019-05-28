@@ -144,7 +144,10 @@ godocs:
 ########################################
 ### Testing
 
-test: test_unit
+test:
+	make test_unit
+	make test_race
+	make test_sim_modules
 
 test_cli:
 	@go test -count 1 -p 1 `go list github.com/cosmos/cosmos-sdk/cmd/gaia/cli_test` -tags=cli_test
