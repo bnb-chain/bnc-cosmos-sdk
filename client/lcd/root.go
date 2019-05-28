@@ -12,6 +12,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/rpc"
 	"github.com/cosmos/cosmos-sdk/client/tx"
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/server"
 	auth "github.com/cosmos/cosmos-sdk/x/auth/client/rest"
 	bank "github.com/cosmos/cosmos-sdk/x/bank/client/rest"
 	gov "github.com/cosmos/cosmos-sdk/x/gov/client/rest"
@@ -21,7 +22,6 @@ import (
 	"github.com/rakyll/statik/fs"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	cmn "github.com/tendermint/tendermint/libs/common"
 	"github.com/tendermint/tendermint/libs/log"
 	tmserver "github.com/tendermint/tendermint/rpc/lib/server"
 )
@@ -58,12 +58,13 @@ func ServeCommand(cdc *codec.Codec) *cobra.Command {
 			var listener net.Listener
 			var fingerprint string
 			if viper.GetBool(flagInsecure) {
-				listener, err := tmserver.Listen(listenAddr, tmserver.Config{MaxOpenConnections: maxOpen})
+				cfg := &tmserver.Config{MaxOpenConnections: maxOpen}
+				listener, err := tmserver.Listen(listenAddr, cfg)
 				if err != nil {
 					return err
 				}
 				go func() {
-					if err = tmserver.StartHTTPServer(listener, handler, logger); err != nil {
+					if err = tmserver.StartHTTPServer(listener, handler, logger, cfg); err != nil {
 						panic(err)
 					}
 				}()
@@ -91,12 +92,13 @@ func ServeCommand(cdc *codec.Codec) *cobra.Command {
 					}
 					defer cleanupFunc()
 				}
-				listener, err := tmserver.Listen(listenAddr, tmserver.Config{MaxOpenConnections: maxOpen})
+				cfg := &tmserver.Config{MaxOpenConnections: maxOpen}
+				listener, err := tmserver.Listen(listenAddr, cfg)
 				if err != nil {
 					return err
 				}
 				go func() {
-					if err = tmserver.StartHTTPServer(listener, handler, logger); err != nil {
+					if err = tmserver.StartHTTPAndTLSServer(listener, handler, certFile, keyFile, logger, cfg); err != nil {
 						panic(err)
 					}
 				}()
@@ -105,7 +107,7 @@ func ServeCommand(cdc *codec.Codec) *cobra.Command {
 			logger.Info("REST server started")
 
 			// wait forever and cleanup
-			cmn.TrapSignal(func() {
+			server.TrapSignal(func() {
 				defer cleanupFunc()
 				err := listener.Close()
 				logger.Error("error closing listener", "err", err)

@@ -28,6 +28,14 @@ type ListTradingPairParams struct {
 }
 
 //-----------------------------------------------------------
+type DelistTradingPairParams struct {
+	BaseAssetSymbol  string `json:"base_asset_symbol"`  // base asset symbol
+	QuoteAssetSymbol string `json:"quote_asset_symbol"` // quote asset symbol
+	Justification    string `json:"justification"`      // justification
+	IsExecuted       bool   `json:"is_executed"`        // is this proposal executed
+}
+
+//-----------------------------------------------------------
 // MsgSubmitProposal
 type MsgSubmitProposal struct {
 	Title          string         `json:"title"`           //  Title of the proposal

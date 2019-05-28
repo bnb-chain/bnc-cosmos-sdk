@@ -264,8 +264,7 @@ func InitializeTestLCD(
 	// XXX: Need to set this so LCD knows the tendermint node address!
 	viper.Set(client.FlagNode, config.RPC.ListenAddress)
 	viper.Set(client.FlagChainID, genDoc.ChainID)
-	// TODO Set to false once the upstream Tendermint proof verification issue is fixed.
-	viper.Set(client.FlagTrustNode, true)
+	viper.Set(client.FlagTrustNode, false)
 	dir, err := ioutil.TempDir("", "lcd_test")
 	require.NoError(t, err)
 	viper.Set(cli.HomeFlag, dir)
@@ -334,12 +333,12 @@ func startTM(
 //
 // NOTE: This causes the thread to block.
 func startLCD(logger log.Logger, listenAddr string, cdc *codec.Codec) (net.Listener, error) {
-	listener, err := tmrpc.Listen(listenAddr, tmrpc.Config{})
+	listener, err := tmrpc.Listen(listenAddr, &tmrpc.Config{})
 	if err != nil {
 		return nil, err
 	}
 
-	go tmrpc.StartHTTPServer(listener, createHandler(cdc), logger)
+	go tmrpc.StartHTTPServer(listener, createHandler(cdc), logger, &tmrpc.Config{})
 	return listener, nil
 }
 
