@@ -5,13 +5,12 @@ import "fmt"
 var UpgradeMgr = NewUpgradeManager(UpgradeConfig{})
 
 var MainNetConfig = UpgradeConfig{
-	HeightMap: map[string]int64{
-
-	},
+	HeightMap: map[string]int64{},
 }
 
 type UpgradeConfig struct {
 	HeightMap     map[string]int64
+	StoreKeyMap   map[string]int64
 	BeginBlockers map[int64][]func(ctx Context)
 }
 
@@ -82,6 +81,27 @@ func (mgr *UpgradeManager) GetUpgradeHeight(name string) int64 {
 	return mgr.Config.HeightMap[name]
 }
 
+func (mgr *UpgradeManager) RegisterStoreKey(upgradeName string, storeKeyName string) {
+	height := mgr.GetUpgradeHeight(upgradeName)
+	if height == 0 {
+		panic(fmt.Errorf("no UpgradeHeight found for %s", upgradeName))
+	}
+
+	if mgr.Config.StoreKeyMap == nil {
+		mgr.Config.StoreKeyMap = map[string]int64{}
+	}
+
+	mgr.Config.StoreKeyMap[storeKeyName] = height
+}
+
+func (mgr *UpgradeManager) GetStoreKeyHeight(storeKeyName string) int64 {
+	if mgr.Config.StoreKeyMap == nil {
+		return 0
+	}
+
+	return mgr.Config.StoreKeyMap[storeKeyName]
+}
+
 func IsUpgradeHeight(name string) bool {
 	upgradeHeight := UpgradeMgr.GetUpgradeHeight(name)
 	if upgradeHeight == 0 {
@@ -98,6 +118,15 @@ func IsUpgrade(name string) bool {
 	}
 
 	return UpgradeMgr.GetHeight() >= upgradeHeight
+}
+
+func ShouldCommitStore(storeKeyName string) bool {
+	storeKeyHeight := UpgradeMgr.GetStoreKeyHeight(storeKeyName)
+	if storeKeyHeight == 0 {
+		return true
+	}
+
+	return UpgradeMgr.GetHeight() >= storeKeyHeight
 }
 
 func Upgrade(name string, before func(), in func(), after func()) {
