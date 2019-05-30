@@ -114,7 +114,7 @@ func TestStoreKey(t *testing.T) {
 	for _, tc := range testCases {
 		UpgradeMgr.AddConfig(tc.config)
 		if UpgradeMgr.GetUpgradeHeight(UpgradeTest) != 0 {
-			UpgradeMgr.RegisterStoreKey(UpgradeTest, StoreKeyNameTest)
+			UpgradeMgr.RegisterStoreKeys(UpgradeTest, StoreKeyNameTest)
 		}
 		UpgradeMgr.SetHeight(tc.height)
 		require.Equal(t, tc.shouldCommit, ShouldCommitStore(StoreKeyNameTest))
@@ -168,7 +168,7 @@ func TestMsgType(t *testing.T) {
 	for _, tc := range testCases {
 		UpgradeMgr.AddConfig(tc.config)
 		if UpgradeMgr.GetUpgradeHeight(UpgradeTest) != 0 {
-			UpgradeMgr.RegisterMsgType(UpgradeTest, MsgTypeTest)
+			UpgradeMgr.RegisterMsgTypes(UpgradeTest, MsgTypeTest)
 		}
 		UpgradeMgr.SetHeight(tc.height)
 		require.Equal(t, tc.isSupported, IsMsgTypeSupported(MsgTypeTest))

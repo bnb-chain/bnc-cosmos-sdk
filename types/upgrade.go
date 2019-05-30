@@ -82,7 +82,7 @@ func (mgr *UpgradeManager) GetUpgradeHeight(name string) int64 {
 	return mgr.Config.HeightMap[name]
 }
 
-func (mgr *UpgradeManager) RegisterStoreKey(upgradeName string, storeKeyName string) {
+func (mgr *UpgradeManager) RegisterStoreKeys(upgradeName string, storeKeyNames ...string) {
 	height := mgr.GetUpgradeHeight(upgradeName)
 	if height == 0 {
 		panic(fmt.Errorf("no UpgradeHeight found for %s", upgradeName))
@@ -92,10 +92,12 @@ func (mgr *UpgradeManager) RegisterStoreKey(upgradeName string, storeKeyName str
 		mgr.Config.StoreKeyMap = map[string]int64{}
 	}
 
-	mgr.Config.StoreKeyMap[storeKeyName] = height
+	for _, storeKeyName := range storeKeyNames {
+		mgr.Config.StoreKeyMap[storeKeyName] = height
+	}
 }
 
-func (mgr *UpgradeManager) RegisterMsgType(upgradeName string, msgType string) {
+func (mgr *UpgradeManager) RegisterMsgTypes(upgradeName string, msgTypes ...string) {
 	height := mgr.GetUpgradeHeight(upgradeName)
 	if height == 0 {
 		panic(fmt.Errorf("no UpgradeHeight found for %s", upgradeName))
@@ -105,7 +107,9 @@ func (mgr *UpgradeManager) RegisterMsgType(upgradeName string, msgType string) {
 		mgr.Config.MsgTypeMap = map[string]int64{}
 	}
 
-	mgr.Config.MsgTypeMap[msgType] = height
+	for _, msgType := range msgTypes {
+		mgr.Config.MsgTypeMap[msgType] = height
+	}
 }
 
 func (mgr *UpgradeManager) GetStoreKeyHeight(storeKeyName string) int64 {
