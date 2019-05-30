@@ -11,6 +11,7 @@ var MainNetConfig = UpgradeConfig{
 type UpgradeConfig struct {
 	HeightMap     map[string]int64
 	StoreKeyMap   map[string]int64
+	MsgTypeMap    map[string]int64
 	BeginBlockers map[int64][]func(ctx Context)
 }
 
@@ -94,12 +95,33 @@ func (mgr *UpgradeManager) RegisterStoreKey(upgradeName string, storeKeyName str
 	mgr.Config.StoreKeyMap[storeKeyName] = height
 }
 
+func (mgr *UpgradeManager) RegisterMsgType(upgradeName string, msgType string) {
+	height := mgr.GetUpgradeHeight(upgradeName)
+	if height == 0 {
+		panic(fmt.Errorf("no UpgradeHeight found for %s", upgradeName))
+	}
+
+	if mgr.Config.MsgTypeMap == nil {
+		mgr.Config.MsgTypeMap = map[string]int64{}
+	}
+
+	mgr.Config.MsgTypeMap[msgType] = height
+}
+
 func (mgr *UpgradeManager) GetStoreKeyHeight(storeKeyName string) int64 {
 	if mgr.Config.StoreKeyMap == nil {
 		return 0
 	}
 
 	return mgr.Config.StoreKeyMap[storeKeyName]
+}
+
+func (mgr *UpgradeManager) GetMsgTypeHeight(msgType string) int64 {
+	if mgr.Config.MsgTypeMap == nil {
+		return 0
+	}
+
+	return mgr.Config.MsgTypeMap[msgType]
 }
 
 func IsUpgradeHeight(name string) bool {
@@ -127,6 +149,15 @@ func ShouldCommitStore(storeKeyName string) bool {
 	}
 
 	return UpgradeMgr.GetHeight() >= storeKeyHeight
+}
+
+func IsMsgSupported(msgType string) bool {
+	msgTypeHeight := UpgradeMgr.GetMsgTypeHeight(msgType)
+	if msgTypeHeight == 0 {
+		return true
+	}
+
+	return UpgradeMgr.GetHeight() >= msgTypeHeight
 }
 
 func Upgrade(name string, before func(), in func(), after func()) {

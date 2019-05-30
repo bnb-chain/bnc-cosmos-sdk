@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cosmos/cosmos-sdk/codec"
 	cmn "github.com/tendermint/tendermint/libs/common"
+
+	"github.com/cosmos/cosmos-sdk/codec"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 )
@@ -56,6 +57,7 @@ const (
 	CodeInvalidCoins      CodeType = 11
 	CodeMemoTooLarge      CodeType = 12
 	CodeInsufficientFee   CodeType = 13
+	CodeMsgNotSupported   CodeType = 14
 
 	// CodespaceRoot is a codespace for error codes in this file only.
 	// Notice that 0 is an "unset" codespace, which can be overridden with
@@ -100,6 +102,8 @@ func CodeToDefaultMsg(code CodeType) string {
 		return "memo too large"
 	case CodeInsufficientFee:
 		return "insufficient fee"
+	case CodeMsgNotSupported:
+		return "msg not supported"
 	default:
 		return unknownCodeMsg(code)
 	}
@@ -145,6 +149,9 @@ func ErrInvalidCoins(msg string) Error {
 }
 func ErrMemoTooLarge(msg string) Error {
 	return newErrorWithRootCodespace(CodeMemoTooLarge, msg)
+}
+func ErrMsgNotSupported(msg string) Error {
+	return newErrorWithRootCodespace(CodeMsgNotSupported, msg)
 }
 
 //----------------------------------------
