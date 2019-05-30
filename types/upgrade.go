@@ -151,7 +151,7 @@ func ShouldCommitStore(storeKeyName string) bool {
 	return UpgradeMgr.GetHeight() >= storeKeyHeight
 }
 
-func IsMsgSupported(msgType string) bool {
+func IsMsgTypeSupported(msgType string) bool {
 	msgTypeHeight := UpgradeMgr.GetMsgTypeHeight(msgType)
 	if msgTypeHeight == 0 {
 		return true

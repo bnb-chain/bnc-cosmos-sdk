@@ -698,7 +698,7 @@ func validateBasicTxMsgs(msgs []sdk.Msg) sdk.Error {
 	}
 
 	for _, msg := range msgs {
-		if !sdk.IsMsgSupported(msg.Type()) {
+		if !sdk.IsMsgTypeSupported(msg.Type()) {
 			return sdk.ErrMsgNotSupported(fmt.Sprintf("msg type(%s) is not supported befor height %d",
 				msg.Type(), sdk.UpgradeMgr.GetMsgTypeHeight(msg.Type())))
 		}
