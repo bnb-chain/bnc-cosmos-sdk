@@ -472,6 +472,10 @@ func commitStores(version int64, storeMap map[StoreKey]CommitStore) CommitInfo {
 	storeInfos := make([]StoreInfo, 0, len(storeMap))
 
 	for key, store := range storeMap {
+		if !sdk.ShouldCommitStore(key.Name()) {
+			continue
+		}
+
 		// Commit
 		commitID := store.Commit()
 
