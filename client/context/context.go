@@ -49,6 +49,7 @@ type CLIContext struct {
 	Verifier      tmlite.Verifier
 	VerifierHome  string
 	DryRun        bool
+	Dry           bool
 	GenerateOnly  bool
 	fromAddress   types.AccAddress
 	fromName      string
@@ -88,6 +89,7 @@ func NewCLIContext() CLIContext {
 		PrintResponse: viper.GetBool(client.FlagPrintResponse),
 		Verifier:      verifier,
 		DryRun:        viper.GetBool(client.FlagDryRun),
+		Dry:           viper.GetBool(client.FlagDry),
 		GenerateOnly:  viper.GetBool(client.FlagGenerateOnly),
 		fromAddress:   fromAddress,
 		fromName:      fromName,

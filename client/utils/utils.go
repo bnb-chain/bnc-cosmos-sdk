@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"os"
 
@@ -14,6 +15,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
+	cmn "github.com/tendermint/tendermint/libs/common"
+	"github.com/tendermint/tendermint/crypto/tmhash"
 )
 
 // CompleteAndBroadcastTxCli implements a utility function that
@@ -48,6 +51,14 @@ func CompleteAndBroadcastTxCli(txBldr authtxb.TxBuilder, cliCtx context.CLIConte
 	txBytes, err := txBldr.BuildAndSign(name, passphrase, msgs)
 	if err != nil {
 		return err
+	}
+
+	if cliCtx.Dry {
+		hexBytes := make([]byte, len(txBytes)*2)
+		hex.Encode(hexBytes, txBytes)
+		txHash := cmn.HexBytes(tmhash.Sum(txBytes)).String()
+		fmt.Printf("Transaction hash: %s, Transaction hex: %s\n", txHash, hexBytes)
+		return nil
 	}
 	// broadcast to a Tendermint node
 	_, err = cliCtx.BroadcastTx(txBytes)
