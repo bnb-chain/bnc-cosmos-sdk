@@ -479,7 +479,7 @@ func commitStores(version int64, storeMap map[StoreKey]CommitStore) CommitInfo {
 			continue
 		}
 
-		// set version for store to commit, just to keep the same with the other stores
+		// set version for store to commit, just to keep the same as the other stores
 		if sdk.ShouldSetStoreVersion(key.Name()) {
 			store.SetVersion(version - 1)
 		}
@@ -487,7 +487,6 @@ func commitStores(version int64, storeMap map[StoreKey]CommitStore) CommitInfo {
 		// Commit
 		commitID := store.Commit()
 
-		fmt.Printf("save %s %d\n", key.Name(), commitID.Version)
 		if store.GetStoreType() == sdk.StoreTypeTransient {
 			continue
 		}
