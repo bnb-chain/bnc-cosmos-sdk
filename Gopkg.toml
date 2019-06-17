@@ -50,7 +50,7 @@
 [[override]]
   name = "github.com/tendermint/iavl"
   source = "github.com/binance-chain/bnc-tendermint-iavl"
-  branch = "release/v0.12.0-binance.1"
+  branch = "add_set_version"
 #  version = "=v0.12.0-binance.0"
 
 [[override]]

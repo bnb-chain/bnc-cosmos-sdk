@@ -1,8 +1,9 @@
 package store
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	dbm "github.com/tendermint/tendermint/libs/db"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 var _ KVStore = (*transientStore)(nil)
@@ -32,6 +33,9 @@ func (ts *transientStore) SetPruning(pruning PruningStrategy) {
 func (ts *transientStore) LastCommitID() (id CommitID) {
 	return
 }
+
+// Implements CommitStore
+func (ts *transientStore) SetVersion(version int64) {}
 
 // Implements KVStore
 func (ts *transientStore) Prefix(prefix []byte) KVStore {
