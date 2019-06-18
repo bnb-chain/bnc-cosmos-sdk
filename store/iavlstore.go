@@ -70,6 +70,10 @@ func (st *IavlStore) GetImmutableTree() *iavl.ImmutableTree {
 	return st.Tree.ImmutableTree
 }
 
+func (st *IavlStore) SetVersion(version int64) {
+	st.Tree.SetVersion(version)
+}
+
 // Implements Committer.
 func (st *IavlStore) Commit() CommitID {
 	// Save a new version.

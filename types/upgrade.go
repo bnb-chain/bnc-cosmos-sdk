@@ -155,6 +155,15 @@ func ShouldCommitStore(storeKeyName string) bool {
 	return UpgradeMgr.GetHeight() >= storeKeyHeight
 }
 
+func ShouldSetStoreVersion(storeKeyName string) bool {
+	storeKeyHeight := UpgradeMgr.GetStoreKeyHeight(storeKeyName)
+	if storeKeyHeight == 0 {
+		return false
+	}
+
+	return UpgradeMgr.GetHeight() == storeKeyHeight
+}
+
 func IsMsgTypeSupported(msgType string) bool {
 	msgTypeHeight := UpgradeMgr.GetMsgTypeHeight(msgType)
 	if msgTypeHeight == 0 {
