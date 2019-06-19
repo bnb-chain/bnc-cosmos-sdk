@@ -445,16 +445,15 @@
   version = "v0.14.1"
 
 [[projects]]
-  digest = "1:1d88f1320e234cdf1627b9025a5b565bceb597795e76db163af5e298cc715cae"
+  digest = "1:1ac12d8dc0930588ad4082b0c186c4a602a17dee5e74869c0237b212ed4e5fee"
   name = "github.com/tendermint/iavl"
   packages = ["."]
   pruneopts = "UT"
-  revision = ""
-  version = "v0.12.0-binance.1"
+  revision = "b84252441ae02d158b54f62138a929365fd1d4ee"
   source = "github.com/binance-chain/bnc-tendermint-iavl"
+  version = "v0.12.0-binance.1"
 
 [[projects]]
-  branch = "release/v0.31.5-binance.0"
   digest = "1:dc2205db501620ad7c2be28dec030e1c953ecb05b0010c26271e4f832c171a2e"
   name = "github.com/tendermint/tendermint"
   packages = [
@@ -527,8 +526,9 @@
     "version",
   ]
   pruneopts = "UT"
-  revision = ""
+  revision = "9e594f505df07ce1d4067918dbe90d4df7bae8bc"
   source = "github.com/binance-chain/bnc-tendermint"
+  version = "v0.31.5-binance.0"
 
 [[projects]]
   digest = "1:b73f5e117bc7c6e8fc47128f20db48a873324ad5cfeeebfc505e85c58682b5e4"
@@ -548,12 +548,13 @@
   version = "v0.9.9-binance.1"
 
 [[projects]]
-  digest = "1:c450d0b3b9217e3926714751c2034a9171e2d769c254ef3c74e5795ad74e1b04"
+  digest = "1:11b3a00fab978e4edbad3322b9e024ea9031c7714f41dd9e92ac70f27d9adbe7"
   name = "github.com/zondax/ledger-go"
   packages = ["."]
   pruneopts = "UT"
-  revision = "94455688b6fac63ee05a4a61f44d5a4095317f74"
-  version = "v0.9.0"
+  revision = "6d4c92579518a79bb50589cc1c35995f610832f5"
+  source = "https://github.com/binance-chain/ledger-go"
+  version = "v0.9.1"
 
 [[projects]]
   digest = "1:6f6dc6060c4e9ba73cf28aa88f12a69a030d3d19d518ef8e931879eaa099628d"

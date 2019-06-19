@@ -55,8 +55,7 @@
 [[override]]
   name = "github.com/tendermint/tendermint"
   source = "github.com/binance-chain/bnc-tendermint"
-  branch = "release/v0.31.5-binance.0"
-#  version = "=v0.30.1-binance.0"
+  version = "=v0.31.5-binance.0"
 
 ## deps without releases:
 
@@ -73,7 +72,7 @@
   name = "github.com/cosmos/go-bip39"
   revision = "52158e4697b87de16ed390e1bdaf813e581008fa"
 
-[[constraint]]
+[[override]]
   name = "github.com/zondax/ledger-go"
   source = "https://github.com/binance-chain/ledger-go"
   version = "v0.9.1"
