@@ -98,7 +98,7 @@ func (helper *StateSyncHelper) getCommitedSortedStoreKeys() []sdk.StoreKey {
 	kvStores := helper.commitMS.GetCommitKVStores()
 	names := make([]string, 0, len(kvStores))
 	nameToKey := make(map[string]sdk.StoreKey, len(kvStores))
-	for key, store := range helper.commitMS.GetCommitKVStores() {
+	for key, store := range kvStores {
 		if !sdk.ShouldCommitStore(key.Name()) {
 			continue
 		}
