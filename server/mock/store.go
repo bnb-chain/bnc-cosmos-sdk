@@ -14,6 +14,10 @@ type multiStore struct {
 	kv map[sdk.StoreKey]kvStore
 }
 
+func (ms multiStore) SetVersion(version int64) {
+	panic("not implemented")
+}
+
 func (ms multiStore) CacheMultiStore() sdk.CacheMultiStore {
 	panic("not implemented")
 }
@@ -55,6 +59,10 @@ func (ms multiStore) SetPruning(s sdk.PruningStrategy) {
 }
 
 func (ms multiStore) GetCommitKVStore(key sdk.StoreKey) sdk.CommitKVStore {
+	panic("not implemented")
+}
+
+func (ms multiStore) GetCommitKVStores() map[sdk.StoreKey]sdk.CommitKVStore {
 	panic("not implemented")
 }
 

@@ -88,19 +88,10 @@ func (app *TimedApplication) PreDeliverTx(tx []byte) types.ResponseDeliverTx {
 	return types.ResponseDeliverTx{}
 }
 
-func (cli *TimedApplication) LatestSnapshot() (height int64, numKeys []int64, err error) {
-	return 0, make([]int64, 0), nil
-}
-func (cli *TimedApplication) ReadSnapshotChunk(height int64, startIndex, endIndex int64) (chunk [][]byte, err error) {
-	return make([][]byte, 0), nil
-}
-func (cli *TimedApplication) StartRecovery(height int64, numKeys []int64) error {
+func (cli *TimedApplication) StartRecovery(manifest *types.Manifest) error {
 	return nil
 }
-func (cli *TimedApplication) WriteRecoveryChunk(chunk [][]byte) error {
-	return nil
-}
-func (cli *TimedApplication) EndRecovery(height int64) error {
+func (cli *TimedApplication) WriteRecoveryChunk(hash types.SHA256Sum, chunk *types.AppStateChunk, isComplete bool) error {
 	return nil
 }
 

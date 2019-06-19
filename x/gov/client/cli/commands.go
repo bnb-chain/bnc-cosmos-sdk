@@ -22,6 +22,7 @@ func AddCommands(cmd *cobra.Command, cdc *codec.Codec) {
 			GetCmdDeposit(cdc),
 			GetCmdSubmitProposal(cdc),
 			GetCmdSubmitListProposal(cdc),
+			GetCmdSubmitDelistProposal(cdc),
 			GetCmdVote(cdc),
 		)...,
 	)

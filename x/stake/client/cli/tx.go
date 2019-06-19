@@ -100,7 +100,6 @@ func GetCmdCreateValidator(cdc *codec.Codec) *cobra.Command {
 			}
 
 			proposalId := viper.GetInt64(FlagProposalID)
-
 			if proposalId == -1 {
 				depositStr := viper.GetString(FlagDeposit)
 				if depositStr == "" {
@@ -137,7 +136,9 @@ func GetCmdCreateValidator(cdc *codec.Codec) *cobra.Command {
 			}
 
 			if viper.GetBool(FlagGenesisFormat) || cliCtx.GenerateOnly {
-				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg}, true)
+				//Enable offline mode
+				viper.Set(FlagOffline, true)
+				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg})
 			}
 
 			// build and sign the transaction, then broadcast to Tendermint
@@ -218,7 +219,7 @@ func GetCmdRemoveValidator(cdc *codec.Codec) *cobra.Command {
 			}
 
 			if cliCtx.GenerateOnly {
-				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg}, false)
+				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg})
 			}
 			// build and sign the transaction, then broadcast to Tendermint
 			return utils.CompleteAndBroadcastTxCli(txBldr, cliCtx, []sdk.Msg{msg})
@@ -272,7 +273,7 @@ func GetCmdEditValidator(cdc *codec.Codec) *cobra.Command {
 			msg := stake.NewMsgEditValidator(sdk.ValAddress(valAddr), description, newRate)
 
 			if cliCtx.GenerateOnly {
-				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg}, false)
+				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg})
 			}
 
 			// build and sign the transaction, then broadcast to Tendermint
@@ -315,7 +316,7 @@ func GetCmdDelegate(cdc *codec.Codec) *cobra.Command {
 			msg := stake.NewMsgDelegate(delAddr, valAddr, amount)
 
 			if cliCtx.GenerateOnly {
-				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg}, false)
+				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg})
 			}
 			// build and sign the transaction, then broadcast to Tendermint
 			return utils.CompleteAndBroadcastTxCli(txBldr, cliCtx, []sdk.Msg{msg})
@@ -385,7 +386,7 @@ func GetCmdBeginRedelegate(storeName string, cdc *codec.Codec) *cobra.Command {
 			msg := stake.NewMsgBeginRedelegate(delAddr, valSrcAddr, valDstAddr, sharesAmount)
 
 			if cliCtx.GenerateOnly {
-				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg}, false)
+				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg})
 			}
 			// build and sign the transaction, then broadcast to Tendermint
 			return utils.CompleteAndBroadcastTxCli(txBldr, cliCtx, []sdk.Msg{msg})
@@ -448,7 +449,7 @@ func GetCmdBeginUnbonding(storeName string, cdc *codec.Codec) *cobra.Command {
 			msg := stake.NewMsgBeginUnbonding(delAddr, valAddr, sharesAmount)
 
 			if cliCtx.GenerateOnly {
-				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg}, false)
+				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg})
 			}
 			// build and sign the transaction, then broadcast to Tendermint
 			return utils.CompleteAndBroadcastTxCli(txBldr, cliCtx, []sdk.Msg{msg})

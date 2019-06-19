@@ -39,7 +39,6 @@ recommended to set such parameters manually.`,
 	cmd.Flags().String(client.FlagName, "", "Name of private key with which to sign")
 	cmd.Flags().Bool(flagAppend, true, "Append the signature to the existing ones. If disabled, old signatures would be overwritten")
 	cmd.Flags().Bool(flagPrintSigs, false, "Print the addresses that must sign the transaction and those who have already signed it, then exit")
-	cmd.Flags().Bool(flagOffline, false, "Offline mode. Do not query local cache.")
 	return cmd
 }
 
@@ -58,6 +57,9 @@ func makeSignCmd(cdc *amino.Codec, decoder auth.AccountDecoder) func(cmd *cobra.
 		name := viper.GetString(client.FlagName)
 		cliCtx := context.NewCLIContext().WithCodec(cdc).WithAccountDecoder(decoder)
 		txBldr := authtxb.NewTxBuilderFromCLI()
+		if len(txBldr.ChainID) == 0 {
+			return fmt.Errorf("chain-id is missing")
+		}
 
 		newTx, err := utils.SignStdTx(txBldr, cliCtx, name, stdTx, viper.GetBool(flagAppend), viper.GetBool(flagOffline))
 		if err != nil {

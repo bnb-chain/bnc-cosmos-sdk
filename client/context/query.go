@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/spf13/viper"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/merkle"
 	cmn "github.com/tendermint/tendermint/libs/common"
@@ -13,6 +14,7 @@ import (
 	rpcclient "github.com/tendermint/tendermint/rpc/client"
 	tmtypes "github.com/tendermint/tendermint/types"
 
+	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -113,6 +115,9 @@ func (ctx CLIContext) GetAccountSequence(address []byte) (int64, error) {
 // EnsureAccountExists ensures that an account exists for a given context. An
 // error is returned if it does not.
 func (ctx CLIContext) EnsureAccountExists() error {
+	if viper.GetBool(client.FlagOffline) {
+		return nil
+	}
 	addr, err := ctx.GetFromAddress()
 	if err != nil {
 		return err
@@ -220,9 +225,17 @@ func (ctx CLIContext) verifyProof(queryPath string, resp abci.ResponseQuery) err
 	kp = kp.AppendKey([]byte(storeName), merkle.KeyEncodingURL)
 	kp = kp.AppendKey(resp.Key, merkle.KeyEncodingURL)
 
+	if resp.Value == nil {
+		err = prt.VerifyAbsence(resp.Proof, commit.Header.AppHash, kp.String())
+		if err != nil {
+			return errors.Wrap(err, "failed to prove merkle absence proof")
+		}
+		return nil
+	}
+
 	err = prt.VerifyValue(resp.Proof, commit.Header.AppHash, kp.String(), resp.Value)
 	if err != nil {
-		return errors.Wrap(err, "failed to prove merkle proof")
+		return errors.Wrap(err, "failed to prove merkle existence proof")
 	}
 
 	return nil
