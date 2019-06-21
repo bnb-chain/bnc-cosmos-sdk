@@ -45,8 +45,6 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 		validator := k.mustGetValidator(ctx, operator)
 
 		if validator.Jailed {
-			validatorOperatorString := validator.OperatorAddr.String()
-			_=validatorOperatorString
 			panic("should never retrieve a jailed validator from the power store")
 		}
 

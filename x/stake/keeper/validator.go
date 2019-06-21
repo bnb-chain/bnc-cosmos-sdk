@@ -103,20 +103,12 @@ func (k Keeper) SetValidatorByPowerIndex(ctx sdk.Context, validator types.Valida
 	if validator.Jailed {
 		return
 	}
-	if validator.OperatorAddr.String() == "cosmosvaloper15ky9du8a2wlstz6fpx3p4mqpjyrm5cgzyl2307" {
-		jailed := validator.Jailed
-		_=jailed
-	}
 	store := ctx.KVStore(k.storeKey)
 	store.Set(GetValidatorsByPowerIndexKey(validator), validator.OperatorAddr)
 }
 
 // validator index
 func (k Keeper) DeleteValidatorByPowerIndex(ctx sdk.Context, validator types.Validator, pool types.Pool) {
-	if validator.OperatorAddr.String() == "cosmosvaloper15ky9du8a2wlstz6fpx3p4mqpjyrm5cgzyl2307" {
-		jailed := validator.Jailed
-		_=jailed
-	}
 	store := ctx.KVStore(k.storeKey)
 	store.Delete(GetValidatorsByPowerIndexKey(validator))
 }
