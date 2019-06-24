@@ -484,7 +484,7 @@ func (k Keeper) BeginUnbonding(ctx sdk.Context,
 	}
 
 	// create the unbonding delegation
-	minTime, height, completeNow := k.getBeginInfo(ctx, valAddr)
+	minTime, height, _ := k.getBeginInfo(ctx, valAddr)
 
 	returnAmount, err := k.unbond(ctx, delAddr, valAddr, sharesAmount)
 	if err != nil {
@@ -499,18 +499,6 @@ func (k Keeper) BeginUnbonding(ctx sdk.Context,
 	pool := k.GetPool(ctx)
 	pool.LooseTokens = pool.LooseTokens.Sub(change)
 	k.SetPool(ctx, pool)
-
-	// no need to create the ubd object just complete now
-	if completeNow {
-		_, err := k.bankKeeper.SendCoins(ctx, DelegationAccAddr, delAddr, sdk.Coins{balance})
-		if err != nil {
-			return types.UnbondingDelegation{}, err
-		}
-		if ctx.IsDeliverTx() && ctx.BlockHeight() > 0 && k.addrPool != nil {
-			k.addrPool.AddAddrs([]sdk.AccAddress{delAddr, DelegationAccAddr})
-		}
-		return types.UnbondingDelegation{MinTime: minTime}, nil
-	}
 
 	ubd := types.UnbondingDelegation{
 		DelegatorAddr:  delAddr,
