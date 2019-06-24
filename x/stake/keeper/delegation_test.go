@@ -410,16 +410,16 @@ func TestUndelegateFromUnbondedValidator(t *testing.T) {
 
 	// no ubd should have been found, coins should have been returned direcly to account
 	ubd, found := keeper.GetUnbondingDelegation(ctx, addrDels[0], addrVals[0])
-	require.False(t, found, "%v", ubd)
+	require.True(t, found, "%v", ubd)
 
 	// unbond rest of the other delegation's shares
 	_, err = keeper.BeginUnbonding(ctx, addrDels[0], addrVals[0], sdk.NewDecWithoutFra(4))
-	require.NoError(t, err)
+	require.Error(t, err)
 
 	//  now validator should now be deleted from state
 	validator, found = keeper.GetValidator(ctx, addrVals[0])
 	fmt.Println(validator)
-	require.False(t, found)
+	require.True(t, found)
 }
 
 func TestUnbondingAllDelegationFromValidator(t *testing.T) {
