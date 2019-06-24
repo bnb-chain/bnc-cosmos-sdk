@@ -47,6 +47,33 @@ func TestGetValidatorPowerRank(t *testing.T) {
 	}
 }
 
+func TestGetValidatorPowerRankNew(t *testing.T) {
+	valAddr1 := sdk.ValAddress(addr1)
+	emptyDesc := types.Description{}
+	val1 := types.NewValidator(valAddr1, pk1, emptyDesc)
+	val1.Tokens = sdk.NewDec(0)
+	val2, val3, val4 := val1, val1, val1
+	val2.Tokens = sdk.NewDecWithoutFra(1)
+	val3.Tokens = sdk.NewDecWithoutFra(10)
+	x := new(big.Int).Exp(big.NewInt(2), big.NewInt(20), big.NewInt(0))
+	val4.Tokens = sdk.NewDecWithoutFra(x.Int64())
+
+	tests := []struct {
+		validator types.Validator
+		wantHex   string
+	}{
+		{val1, "2300000000000000009c288ede7df62742fc3b7d0962045a8cef0f79f6"},
+		{val2, "230000000005f5e1009c288ede7df62742fc3b7d0962045a8cef0f79f6"}, // "5f5e100" is	100000000 in base 10.
+		{val3, "23000000003b9aca009c288ede7df62742fc3b7d0962045a8cef0f79f6"}, // "3b9aca00" is 1000000000 in base 10
+		{val4, "2300005f5e100000009c288ede7df62742fc3b7d0962045a8cef0f79f6"}, // "5f5e10000000" is 2^20.e8 in base 10
+	}
+	for i, tt := range tests {
+		got := hex.EncodeToString(getValidatorPowerRankNew(tt.validator))
+
+		assert.Equal(t, tt.wantHex, got, "Keys did not match on test case %d", i)
+	}
+}
+
 func TestGetREDByValDstIndexKey(t *testing.T) {
 	tests := []struct {
 		delAddr    sdk.AccAddress

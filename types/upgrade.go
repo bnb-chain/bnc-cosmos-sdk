@@ -2,6 +2,10 @@ package types
 
 import "fmt"
 
+const (
+	UpgradeValidatorPowerKey = "UpgradeValidatorPowerKey"
+)
+
 var UpgradeMgr = NewUpgradeManager(UpgradeConfig{})
 
 var MainNetConfig = UpgradeConfig{

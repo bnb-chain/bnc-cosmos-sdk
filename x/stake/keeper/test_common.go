@@ -104,6 +104,10 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initCoins int64) (sdk.Context
 		mode = sdk.RunTxModeCheck
 	}
 
+	//Enable new validator power key builder
+	sdk.UpgradeMgr.AddUpgradeHeight(sdk.UpgradeValidatorPowerKey, 1)
+	sdk.UpgradeMgr.SetHeight(1)
+
 	ctx := sdk.NewContext(ms, abci.Header{ChainID: "foochainid"}, mode, log.NewNopLogger())
 	cdc := MakeTestCodec()
 	accountKeeper := auth.NewAccountKeeper(
@@ -276,12 +280,38 @@ func ValidatorByPowerIndexExists(ctx sdk.Context, keeper Keeper, power []byte) b
 }
 
 // update validator for testing
-func TestingUpdateValidator(keeper Keeper, ctx sdk.Context, validator types.Validator) types.Validator {
+func TestingUpdateValidator(keeper Keeper, ctx sdk.Context, validator types.Validator, apply bool) types.Validator {
 	pool := keeper.GetPool(ctx)
 	keeper.SetValidator(ctx, validator)
+
+	// Remove any existing power key for validator.
+	store := ctx.KVStore(keeper.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, ValidatorsByPowerIndexKey)
+	deleted := false
+	for ; iterator.Valid(); iterator.Next() {
+		valAddr := iterator.Value()
+		if bytes.Equal(valAddr, validator.OperatorAddr) {
+			if deleted {
+				panic("found duplicate power index key")
+			} else {
+				deleted = true
+			}
+			store.Delete(iterator.Key())
+		}
+	}
+
 	keeper.SetValidatorByPowerIndex(ctx, validator, pool)
-	keeper.ApplyAndReturnValidatorSetUpdates(ctx)
-	validator, found := keeper.GetValidator(ctx, validator.OperatorAddr)
+	if apply {
+		keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+		validator, found := keeper.GetValidator(ctx, validator.OperatorAddr)
+		if !found {
+			panic("validator expected but not found")
+		}
+		return validator
+	}
+	cachectx, _ := ctx.CacheContext()
+	keeper.ApplyAndReturnValidatorSetUpdates(cachectx)
+	validator, found := keeper.GetValidator(cachectx, validator.OperatorAddr)
 	if !found {
 		panic("validator expected but not found")
 	}

@@ -29,7 +29,7 @@ func setupHelper(t *testing.T, amt int64) (sdk.Context, Keeper, types.Params) {
 		validator.BondIntraTxCounter = int16(i)
 		pool.BondedTokens = pool.BondedTokens.Add(sdk.NewDecWithoutFra(amt))
 		keeper.SetPool(ctx, pool)
-		validator = TestingUpdateValidator(keeper, ctx, validator)
+		validator = TestingUpdateValidator(keeper, ctx, validator, true)
 		keeper.SetValidatorByConsAddr(ctx, validator)
 	}
 	pool = keeper.GetPool(ctx)

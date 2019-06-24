@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"encoding/binary"
+	"fmt"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -62,8 +63,14 @@ func AddressFromLastValidatorPowerKey(key []byte) []byte {
 // power ranking of the validator.
 // VALUE: validator operator address ([]byte)
 func GetValidatorsByPowerIndexKey(validator types.Validator, pool types.Pool) []byte {
+	var keyBytes []byte
 	// NOTE the address doesn't need to be stored because counter bytes must always be different
-	return getValidatorPowerRank(validator)
+	sdk.Upgrade(sdk.UpgradeValidatorPowerKey, func() {
+		keyBytes = getValidatorPowerRank(validator)
+	}, nil, func() {
+		keyBytes = getValidatorPowerRankNew(validator)
+	})
+	return keyBytes
 }
 
 // get the bonded validator index key for an operator address
@@ -98,6 +105,61 @@ func getValidatorPowerRank(validator types.Validator) []byte {
 	binary.BigEndian.PutUint16(key[powerBytesLen+9:powerBytesLen+11], ^uint16(validator.BondIntraTxCounter))
 
 	return key
+}
+
+// get the power ranking of a validator
+// Comparing with getValidatorPowerRank, getValidatorPowerRankNew won't include BondHeight and BondIntraTxCounter to build rank key
+// Instead, validator operator address will be included.
+// nolint: unparam
+func getValidatorPowerRankNew(validator types.Validator) []byte {
+
+	potentialPower := validator.Tokens
+
+	tendermintPower := potentialPower.RawInt()
+	tendermintPowerBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(tendermintPowerBytes[:], uint64(tendermintPower))
+
+	powerBytes := tendermintPowerBytes
+	powerBytesLen := len(powerBytes) // 8
+
+	// key is of format prefix || powerbytes || addrBytes
+	key := make([]byte, 1+powerBytesLen+sdk.AddrLen)
+
+	key[0] = ValidatorsByPowerIndexKey[0]
+	copy(key[1:powerBytesLen+1], powerBytes)
+
+	operAddrInvr := make([]byte, len(validator.OperatorAddr))
+	copy(operAddrInvr, validator.OperatorAddr)
+	for i, b := range operAddrInvr {
+		operAddrInvr[i] = ^b
+	}
+	copy(key[powerBytesLen+1:], operAddrInvr)
+
+	return key
+}
+
+// Remove all existing power rank key for validators, and build new power rank key
+func RebuildPowerRankKeyForUpgrade(ctx sdk.Context, keeper Keeper) error {
+	store := ctx.KVStore(keeper.storeKey)
+
+	iterator := sdk.KVStorePrefixIterator(store, ValidatorsByPowerIndexKey)
+	defer iterator.Close()
+
+	var validators []types.Validator
+	for ; iterator.Valid(); iterator.Next() {
+		valAddr := sdk.ValAddress(iterator.Value())
+		validator, found := keeper.GetValidator(ctx, valAddr)
+		if !found {
+			return fmt.Errorf("can't load valiator: %s", valAddr.String())
+		}
+		validators = append(validators, validator)
+		store.Delete(iterator.Key())
+	}
+	// Rebuild power rank key for validators
+	for _, val := range validators {
+		keeper.SetNewValidatorByPowerIndex(ctx, val)
+	}
+	return nil
 }
 
 // gets the prefix for all unbonding delegations from a delegator
