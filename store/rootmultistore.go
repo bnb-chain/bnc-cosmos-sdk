@@ -200,6 +200,9 @@ func (rs *rootMultiStore) LastCommitID() CommitID {
 }
 
 // Implements Committer/CommitStore.
+func (rs *rootMultiStore) SetVersion(version int64) {}
+
+// Implements Committer/CommitStore.
 func (rs *rootMultiStore) Commit() CommitID {
 	version := rs.lastCommitID.Version + 1
 	// Commit stores.
@@ -474,6 +477,11 @@ func commitStores(version int64, storeMap map[StoreKey]CommitStore) CommitInfo {
 	for key, store := range storeMap {
 		if !sdk.ShouldCommitStore(key.Name()) {
 			continue
+		}
+
+		// set version for store to commit, just to keep the same as the other stores
+		if sdk.ShouldSetStoreVersion(key.Name()) {
+			store.SetVersion(version - 1)
 		}
 
 		// Commit
