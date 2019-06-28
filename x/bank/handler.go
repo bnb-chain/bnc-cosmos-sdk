@@ -2,6 +2,7 @@ package bank
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 )
 
 // NewHandler returns a handler for "bank" type messages.
@@ -19,8 +20,15 @@ func NewHandler(k Keeper) sdk.Handler {
 
 // Handle MsgSend.
 func handleMsgSend(ctx sdk.Context, k Keeper, msg MsgSend) sdk.Result {
+	for _, script := range auth.GetRegisteredScripts(msg.Type()) {
+		if script == nil {
+			continue
+		}
+		if err := script(ctx, msg); err != nil {
+			return err.Result()
+		}
+	}
 	// NOTE: totalIn == totalOut should already have been checked
-
 	tags, err := k.InputOutputCoins(ctx, msg.Inputs, msg.Outputs)
 	if err != nil {
 		return err.Result()
