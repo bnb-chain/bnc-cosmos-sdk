@@ -315,6 +315,7 @@ func (helper *StateSyncHelper) commitDB() error {
 
 	// simulate setLatestversion key
 	batch := helper.db.NewBatch()
+	defer batch.Close()
 	latestBytes, _ := helper.cdc.MarshalBinaryLengthPrefixed(height) // Does not error
 	batch.Set([]byte("s/latest"), latestBytes)
 
