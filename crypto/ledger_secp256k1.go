@@ -7,8 +7,9 @@ import (
 	"strings"
 
 	"github.com/btcsuite/btcd/btcec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	ledgergo "github.com/zondax/ledger-cosmos-go"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/pkg/errors"
 	tmbtcec "github.com/tendermint/btcd/btcec"
@@ -129,7 +130,7 @@ func (pkl PrivKeyLedgerSecp256k1) Sign(msg []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if ledgerAppVersion.Major > 1 ||  ledgerAppVersion.Major == 1 && ledgerAppVersion.Minor >= 1 {
+	if ledgerAppVersion.Major > 1 || ledgerAppVersion.Major == 1 && ledgerAppVersion.Minor >= 1 {
 		fmt.Print(fmt.Sprintf("Please confirm if address displayed on ledger is identical to %s (yes/no)?", sdk.AccAddress(pkl.CachedPubKey.Address()).String()))
 		err = pkl.ledger.ShowAddressSECP256K1(pkl.Path, sdk.GetConfig().GetBech32AccountAddrPrefix())
 		if err != nil {

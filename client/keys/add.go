@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/gorilla/mux"
@@ -24,6 +25,7 @@ const (
 	flagDryRun   = "dry-run"
 	flagAccount  = "account"
 	flagIndex    = "index"
+	flagTssHome  = "tss-home"
 )
 
 func addKeyCommand() *cobra.Command {
@@ -37,11 +39,13 @@ phrase, otherwise, a new key will be generated.`,
 	}
 	cmd.Flags().StringP(flagType, "t", "secp256k1", "Type of private key (secp256k1|ed25519)")
 	cmd.Flags().Bool(client.FlagUseLedger, false, "Store a local reference to a private key on a Ledger device")
+	cmd.Flags().Bool(client.FlagUseTss, false, "Store a local reference to a private key on a Tss vault")
 	cmd.Flags().Bool(flagRecover, false, "Provide seed phrase to recover existing key instead of creating")
 	cmd.Flags().Bool(flagNoBackup, false, "Don't print out seed phrase (if others are watching the terminal)")
 	cmd.Flags().Bool(flagDryRun, false, "Perform action, but don't add key to local keystore")
 	cmd.Flags().Uint32(flagAccount, 0, "Account number for HD derivation")
 	cmd.Flags().Uint32(flagIndex, 0, "Index number for HD derivation")
+	cmd.Flags().String(flagTssHome, "", "Path to home of tss client")
 	return cmd
 }
 
@@ -78,7 +82,7 @@ func runAddCmd(cmd *cobra.Command, args []string) error {
 		}
 
 		// ask for a password when generating a local key
-		if !viper.GetBool(client.FlagUseLedger) {
+		if !(viper.GetBool(client.FlagUseLedger) || viper.GetBool(client.FlagUseTss)) {
 			pass, err = client.GetCheckPassword(
 				"Enter a passphrase for your key:",
 				"Repeat the passphrase:", buf)
@@ -94,6 +98,19 @@ func runAddCmd(cmd *cobra.Command, args []string) error {
 		path := ccrypto.DerivationPath{44, 714, account, 0, index}
 		algo := keys.SigningAlgo(viper.GetString(flagType))
 		info, err := kb.CreateLedger(name, path, algo)
+		if err != nil {
+			return err
+		}
+		printCreate(info, "")
+	} else if viper.GetBool(client.FlagUseTss) {
+		home := viper.GetString(flagTssHome)
+		if home == "" {
+			return fmt.Errorf("tss home is not set")
+		}
+		if _, err := os.Stat(home); os.IsNotExist(err) {
+			return fmt.Errorf("tss home: %s is not exist", home)
+		}
+		info, err := kb.CreateTss(name, home)
 		if err != nil {
 			return err
 		}
@@ -129,7 +146,7 @@ func printCreate(info keys.Info, seed string) {
 		printKeyInfo(info, Bech32KeyOutput)
 
 		// print seed unless requested not to.
-		if !viper.GetBool(client.FlagUseLedger) && !viper.GetBool(flagNoBackup) {
+		if !viper.GetBool(client.FlagUseLedger) && !viper.GetBool(client.FlagUseTss) && !viper.GetBool(flagNoBackup) {
 			fmt.Println("**Important** write this seed phrase in a safe place.")
 			fmt.Println("It is the only way to recover your account if you ever forget your password.")
 			fmt.Println()

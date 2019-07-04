@@ -169,6 +169,10 @@ func (kb dbKeybase) CreateLedger(name string, path crypto.DerivationPath, algo S
 	return kb.writeLedgerKey(pub, path, name), nil
 }
 
+func (kb dbKeybase) CreateTss(name string, path string) (info Info, err error) {
+	return kb.writeTssKey(name, path), nil
+}
+
 // CreateOffline creates a new reference to an offline keypair
 // It returns the created key info
 func (kb dbKeybase) CreateOffline(name string, pub tmcrypto.PubKey) (Info, error) {
@@ -257,6 +261,12 @@ func (kb dbKeybase) Sign(name, passphrase string, msg []byte) (sig []byte, pub t
 		if err != nil {
 			return
 		}
+	case tssInfo:
+		linfo := info.(tssInfo)
+		priv, err = crypto.NewPrivKeyTss(linfo.Path, passphrase)
+		if err != nil {
+			return
+		}
 	case offlineInfo:
 		linfo := info.(offlineInfo)
 		_, err := fmt.Fprintf(os.Stderr, "Bytes to sign:\n%s", msg)
@@ -302,6 +312,8 @@ func (kb dbKeybase) ExportPrivateKeyObject(name string, passphrase string) (tmcr
 			return nil, err
 		}
 	case ledgerInfo:
+		return nil, errors.New("Only works on local private keys")
+	case tssInfo:
 		return nil, errors.New("Only works on local private keys")
 	case offlineInfo:
 		return nil, errors.New("Only works on local private keys")
@@ -386,6 +398,7 @@ func (kb dbKeybase) Delete(name, passphrase string) error {
 		kb.db.DeleteSync(infoKey(name))
 		return nil
 	case ledgerInfo:
+	case tssInfo:
 	case offlineInfo:
 		if passphrase != "yes" {
 			return fmt.Errorf("enter 'yes' exactly to delete the key - this cannot be undone")
@@ -444,6 +457,12 @@ func (kb dbKeybase) writeLocalKey(priv tmcrypto.PrivKey, name, passphrase string
 
 func (kb dbKeybase) writeLedgerKey(pub tmcrypto.PubKey, path crypto.DerivationPath, name string) Info {
 	info := newLedgerInfo(name, pub, path)
+	kb.writeInfo(info, name)
+	return info
+}
+
+func (kb dbKeybase) writeTssKey(name, path string) Info {
+	info := newTssInfo(name, path)
 	kb.writeInfo(info, name)
 	return info
 }
