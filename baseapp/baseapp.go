@@ -715,10 +715,10 @@ func validateBasicTxMsgs(msgs []sdk.Msg) sdk.Error {
 }
 
 // retrieve the context with cache and store the tx bytes and tx hash
-func (app *BaseApp) getContextWithCache(mode sdk.RunTxMode, txBytes []byte, txHash string) (sdk.Context,
+func (app *BaseApp) getContextWithCache(mode sdk.RunTxMode, tx sdk.Tx, txBytes []byte, txHash string) (sdk.Context,
 	sdk.CacheMultiStore, sdk.AccountCache) {
 	// Get the context
-	ctx := getState(app, mode).Ctx.WithTxBytes(txBytes)
+	ctx := getState(app, mode).Ctx.WithTxBytes(txBytes).WithTx(tx)
 	// Simulate a DeliverTx
 	if mode == sdk.RunTxModeSimulate {
 		ctx = ctx.WithRunTxMode(mode)
@@ -814,7 +814,7 @@ func getAccountCache(app *BaseApp, mode sdk.RunTxMode) sdk.AccountCache {
 // future we may support "internal" transactions.
 func (app *BaseApp) RunTx(mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx, txHash string) (result sdk.Result) {
 	// meter so we initialize upfront.
-	ctx, msCache, accountCache := app.getContextWithCache(mode, txBytes, txHash)
+	ctx, msCache, accountCache := app.getContextWithCache(mode, tx, txBytes, txHash)
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -879,7 +879,7 @@ func (app *BaseApp) ReRunTx(txBytes []byte, tx sdk.Tx) (result sdk.Result) {
 	// meter so we initialize upfront.
 	mode := sdk.RunTxModeReCheck
 	txHash := cmn.HexBytes(tmhash.Sum(txBytes)).String()
-	ctx, msCache, accountCache := app.getContextWithCache(mode, txBytes, txHash)
+	ctx, msCache, accountCache := app.getContextWithCache(mode, tx, txBytes, txHash)
 
 	defer func() {
 		if r := recover(); r != nil {

@@ -1,10 +1,6 @@
-package auth
+package types
 
-import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-)
-
-type Script func(ctx sdk.Context, tx sdk.Msg) sdk.Error
+type Script func(ctx Context, tx Msg) Error
 
 var scriptsHub = map[string][]Script{}
 
