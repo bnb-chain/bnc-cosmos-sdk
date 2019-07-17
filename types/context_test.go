@@ -4,12 +4,15 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
 	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/crypto/ed25519"
 	dbm "github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/libs/log"
 
 	"github.com/cosmos/cosmos-sdk/store"
 	"github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 )
 
 type MockLogger struct {
@@ -148,14 +151,12 @@ func TestContextWithCustom(t *testing.T) {
 	require.Panics(t, func() { ctx.BlockHeader() })
 	require.Panics(t, func() { ctx.BlockHeight() })
 	require.Panics(t, func() { ctx.ChainID() })
-	require.Panics(t, func() { ctx.TxBytes() })
 	require.Panics(t, func() { ctx.Logger() })
 	require.Panics(t, func() { ctx.VoteInfos() })
 
 	header := abci.Header{}
 	height := int64(1)
 	chainid := "chainid"
-	txbytes := []byte("txbytes")
 	logger := NewMockLogger()
 	voteinfos := []abci.VoteInfo{{}}
 
@@ -165,12 +166,54 @@ func TestContextWithCustom(t *testing.T) {
 	ctx = ctx.
 		WithBlockHeight(height).
 		WithChainID(chainid).
-		WithTxBytes(txbytes).
 		WithVoteInfos(voteinfos)
 	require.Equal(t, height, ctx.BlockHeight())
 	require.Equal(t, chainid, ctx.ChainID())
 	require.Equal(t, true, ctx.IsCheckTx())
-	require.Equal(t, txbytes, ctx.TxBytes())
 	require.Equal(t, logger, ctx.Logger())
 	require.Equal(t, voteinfos, ctx.VoteInfos())
+}
+
+func BenchmarkContext(b *testing.B) {
+	ctx := types.NewContext(nil, abci.Header{}, types.RunTxModeDeliver, log.NewNopLogger())
+	height := int64(1)
+	chainid := "chainid"
+	voteinfos := []abci.VoteInfo{{}}
+	for n := 0; n < b.N; n++ {
+		ctx = ctx.WithBlockHeight(height).
+			WithChainID(chainid).
+			WithVoteInfos(voteinfos)
+	}
+	for n := 0; n < b.N; n++ {
+		_ = ctx.BlockHeight()
+		_ = ctx.ChainID()
+		_ = ctx.VoteInfos()
+	}
+}
+
+func BenchmarkContextWithTx(b *testing.B) {
+	ctx := types.NewContext(nil, abci.Header{}, types.RunTxModeDeliver, log.NewNopLogger())
+	var tx types.Tx
+
+	priv := ed25519.GenPrivKey()
+	addr := types.AccAddress(priv.PubKey().Address())
+	msgs := []types.Msg{types.NewTestMsg(addr)}
+	sigs := []auth.StdSignature{}
+	tx = auth.NewStdTx(msgs, sigs, "", 0, nil)
+
+	height := int64(1)
+	chainid := "chainid"
+	voteinfos := []abci.VoteInfo{{}}
+	for n := 0; n < b.N; n++ {
+		ctx = ctx.WithBlockHeight(height).
+			WithChainID(chainid).
+			WithVoteInfos(voteinfos).
+			WithTx(tx)
+	}
+	for n := 0; n < b.N; n++ {
+		_ = ctx.BlockHeight()
+		_ = ctx.ChainID()
+		_ = ctx.VoteInfos()
+		_ = ctx.Tx()
+	}
 }

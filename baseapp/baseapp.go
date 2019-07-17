@@ -718,7 +718,7 @@ func validateBasicTxMsgs(msgs []sdk.Msg) sdk.Error {
 func (app *BaseApp) getContextWithCache(mode sdk.RunTxMode, tx sdk.Tx, txBytes []byte, txHash string) (sdk.Context,
 	sdk.CacheMultiStore, sdk.AccountCache) {
 	// Get the context
-	ctx := getState(app, mode).Ctx.WithTxBytes(txBytes).WithTx(tx)
+	ctx := getState(app, mode).Ctx.WithTx(tx)
 	// Simulate a DeliverTx
 	if mode == sdk.RunTxModeSimulate {
 		ctx = ctx.WithRunTxMode(mode)
