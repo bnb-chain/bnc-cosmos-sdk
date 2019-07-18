@@ -72,15 +72,10 @@
   name = "github.com/cosmos/go-bip39"
   revision = "52158e4697b87de16ed390e1bdaf813e581008fa"
 
-[[override]]
-  name = "github.com/zondax/ledger-go"
-  source = "https://github.com/binance-chain/ledger-go"
-  version = "v0.9.1"
-
 [[constraint]]
   name = "github.com/zondax/ledger-cosmos-go"
   source = "https://github.com/binance-chain/ledger-cosmos-go"
-  version = "v0.9.9-binance.1"
+  version = "=v0.9.9-binance.2"
   [[prune.project]]
       name = "github.com/zondax/hid"
       unused-packages = false
