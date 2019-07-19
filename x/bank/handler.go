@@ -1,6 +1,7 @@
 package bank
 
 import (
+	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -19,8 +20,17 @@ func NewHandler(k Keeper) sdk.Handler {
 
 // Handle MsgSend.
 func handleMsgSend(ctx sdk.Context, k Keeper, msg MsgSend) sdk.Result {
+	logger := ctx.Logger()
+	for _, script := range sdk.GetRegisteredScripts(msg.Type()) {
+		if script == nil {
+			logger.Error(fmt.Sprintf("Empty script is specified for msg %s", msg.Type()))
+			continue
+		}
+		if err := script(ctx, msg); err != nil {
+			return err.Result()
+		}
+	}
 	// NOTE: totalIn == totalOut should already have been checked
-
 	tags, err := k.InputOutputCoins(ctx, msg.Inputs, msg.Outputs)
 	if err != nil {
 		return err.Result()
