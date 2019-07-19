@@ -23,6 +23,7 @@ const (
 	snapshotWorkingQueueSize  = 5
 	snapshotToRemoveQueueSize = 5
 	snapshotRetry             = 5
+	chunksToFlushBatch        = 10
 )
 
 type incompleteChunkItem struct {
@@ -69,6 +70,7 @@ type StateSyncHelper struct {
 	hashesToIdx      map[abci.SHA256Sum]int          // chunkhash -> idx in manifest
 	incompleteChunks map[int64][]incompleteChunkItem // node idx -> incomplete chunk items, for caching incomplete nodes temporally
 	prefixNodeDBs    []PrefixNodeDB
+	chunksSynced     int // no need to reset after recover, as statesync only happened once
 
 	reloadingMtx sync.RWMutex // guard below fields to make sure no concurrent load snapshot and response snapshot, and they should be updated atomically
 
@@ -220,6 +222,10 @@ func (helper *StateSyncHelper) WriteRecoveryChunk(hash abci.SHA256Sum, chunk *ab
 			helper.saveNode(nodeIdx, node)
 		}
 
+		helper.chunksSynced++
+		if helper.chunksSynced%chunksToFlushBatch == 0 {
+			helper.flushBatch()
+		}
 		helper.logger.Info("finished write recovery chunk", "isComplete", isComplete, "hash", fmt.Sprintf("%x", hash), "startIdx", chunk.StartIdx, "numOfNodes", numOfNodes, "chunkCompletion", chunk.Completeness)
 	}
 
@@ -307,14 +313,11 @@ func (helper *StateSyncHelper) saveIncompleteChunks() error {
 func (helper *StateSyncHelper) commitDB() error {
 	height := helper.manifest.Height
 
-	// TODO: revisit would it be problem commit too late? would there be memory or performance issue?
-	// probably we need commit as soon as store is complete
-	for _, db := range helper.prefixNodeDBs {
-		db.NodeDB.Commit()
-	}
+	helper.flushBatch()
 
 	// simulate setLatestversion key
 	batch := helper.db.NewBatch()
+	defer batch.Close()
 	latestBytes, _ := helper.cdc.MarshalBinaryLengthPrefixed(height) // Does not error
 	batch.Set([]byte("s/latest"), latestBytes)
 
@@ -329,6 +332,12 @@ func (helper *StateSyncHelper) commitDB() error {
 		batch.Set([]byte(cInfoKey), cInfoBytes)
 		batch.WriteSync()
 		return nil
+	}
+}
+
+func (helper *StateSyncHelper) flushBatch() {
+	for _, db := range helper.prefixNodeDBs {
+		db.NodeDB.Commit()
 	}
 }
 

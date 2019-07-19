@@ -22,6 +22,7 @@ const (
 	FlagJson           = "json"
 	FlagPrintResponse  = "print-response"
 	FlagDryRun         = "dry-run"
+	FlagDry            = "dry"
 	FlagOffline        = "offline"
 	FlagGenerateOnly   = "generate-only"
 	FlagIndentResponse = "indent"
@@ -67,6 +68,7 @@ func PostCommands(cmds ...*cobra.Command) []*cobra.Command {
 		c.Flags().Bool(FlagPrintResponse, true, "return tx response (only works with async = false)")
 		c.Flags().Bool(FlagTrustNode, true, "Trust connected full node (don't verify proofs for responses)")
 		c.Flags().Bool(FlagDryRun, false, "ignore the perform a simulation of a transaction, but don't broadcast it")
+		c.Flags().Bool(FlagDry, false, "Generate and return the tx bytes (do not broadcast)")
 		c.Flags().Bool(FlagOffline, false, "Offline mode. Do not query blockchain data")
 		c.Flags().Bool(FlagGenerateOnly, false, "build an unsigned transaction and write it to STDOUT")
 		viper.BindPFlag(FlagTrustNode, c.Flags().Lookup(FlagTrustNode))

@@ -42,21 +42,23 @@ const (
 	ABCICodeOK ABCICodeType = 0
 
 	// Base error codes
-	CodeOK                CodeType = 0
-	CodeInternal          CodeType = 1
-	CodeTxDecode          CodeType = 2
-	CodeInvalidSequence   CodeType = 3
-	CodeUnauthorized      CodeType = 4
-	CodeInsufficientFunds CodeType = 5
-	CodeUnknownRequest    CodeType = 6
-	CodeInvalidAddress    CodeType = 7
-	CodeInvalidPubKey     CodeType = 8
-	CodeUnknownAddress    CodeType = 9
-	CodeInsufficientCoins CodeType = 10
-	CodeInvalidCoins      CodeType = 11
-	CodeMemoTooLarge      CodeType = 12
-	CodeInsufficientFee   CodeType = 13
-	CodeMsgNotSupported   CodeType = 14
+	CodeOK                  CodeType = 0
+	CodeInternal            CodeType = 1
+	CodeTxDecode            CodeType = 2
+	CodeInvalidSequence     CodeType = 3
+	CodeUnauthorized        CodeType = 4
+	CodeInsufficientFunds   CodeType = 5
+	CodeUnknownRequest      CodeType = 6
+	CodeInvalidAddress      CodeType = 7
+	CodeInvalidPubKey       CodeType = 8
+	CodeUnknownAddress      CodeType = 9
+	CodeInsufficientCoins   CodeType = 10
+	CodeInvalidCoins        CodeType = 11
+	CodeMemoTooLarge        CodeType = 12
+	CodeInsufficientFee     CodeType = 13
+	CodeMsgNotSupported     CodeType = 14
+	CodeInvalidAccountFlags CodeType = 15
+	CodeInvalidTxMemo       CodeType = 16
 
 	// CodespaceRoot is a codespace for error codes in this file only.
 	// Notice that 0 is an "unset" codespace, which can be overridden with
@@ -103,6 +105,10 @@ func CodeToDefaultMsg(code CodeType) string {
 		return "insufficient fee"
 	case CodeMsgNotSupported:
 		return "msg not supported"
+	case CodeInvalidAccountFlags:
+		return "account flags is invalid"
+	case CodeInvalidTxMemo:
+		return "transaction memo is invalid"
 	default:
 		return unknownCodeMsg(code)
 	}
@@ -151,6 +157,12 @@ func ErrMemoTooLarge(msg string) Error {
 }
 func ErrMsgNotSupported(msg string) Error {
 	return newErrorWithRootCodespace(CodeMsgNotSupported, msg)
+}
+func ErrInvalidAccountFlags(msg string) Error {
+	return newErrorWithRootCodespace(CodeInvalidAccountFlags, msg)
+}
+func ErrInvalidTxMemo(msg string) Error {
+	return newErrorWithRootCodespace(CodeInvalidTxMemo, msg)
 }
 
 //----------------------------------------
