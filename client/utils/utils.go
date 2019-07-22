@@ -54,6 +54,13 @@ func CompleteAndBroadcastTxCli(txBldr authtxb.TxBuilder, cliCtx context.CLIConte
 	}
 
 	if cliCtx.Dry {
+		var tx auth.StdTx
+		if err = txBldr.Codec.UnmarshalBinaryLengthPrefixed(txBytes, &tx); err == nil {
+			json, err := txBldr.Codec.MarshalJSON(tx)
+			if err == nil {
+				fmt.Printf("TX JSON: %s\n", json)
+			}
+		}
 		hexBytes := make([]byte, len(txBytes)*2)
 		hex.Encode(hexBytes, txBytes)
 		txHash := cmn.HexBytes(tmhash.Sum(txBytes)).String()
