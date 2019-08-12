@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"runtime/debug"
+	"strconv"
 	"strings"
 
 	lru "github.com/hashicorp/golang-lru"
@@ -483,7 +484,7 @@ func handleQueryCustom(app *BaseApp, path []string, req abci.RequestQuery) (res 
 	}
 	querier := app.queryRouter.Route(path[1])
 	if querier == nil {
-		return sdk.ErrUnknownRequest(fmt.Sprintf("no custom querier found for route %s", path[1])).QueryResult()
+		return sdk.ErrUnknownRequest("no custom querier found for route "+ path[1]).QueryResult()
 	}
 
 	ctx := sdk.NewContext(app.cms.CacheMultiStore(), app.CheckState.Ctx.BlockHeader(), sdk.RunTxModeCheck, app.Logger)
@@ -760,13 +761,13 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode sdk.RunTxMode)
 
 		// Stop execution and return on first failed message.
 		if !msgResult.IsOK() {
-			logs = append(logs, fmt.Sprintf("%s", msgResult.Log))
+			logs = append(logs, msgResult.Log)
 			code = msgResult.Code
 			break
 		}
 
 		// Construct usable logs in multi-message transactions.
-		logs = append(logs, fmt.Sprintf("Msg %d: %s", msgIdx, msgResult.Log))
+		logs = append(logs, "Msg " + strconv.Itoa(msgIdx) + ": " + msgResult.Log)
 	}
 	// A tx must only contain one msg. If the msg execution is success, record it
 	if code == sdk.ABCICodeOK {
@@ -830,8 +831,9 @@ func (app *BaseApp) RunTx(mode sdk.RunTxMode, tx sdk.Tx, txHash string) (result 
 	}
 
 	// run the ante handler
+	ctx = ctx.WithValue(TxHashKey, txHash)
 	if app.anteHandler != nil {
-		newCtx, result, abort := app.anteHandler(ctx.WithValue(TxHashKey, txHash), tx, mode)
+		newCtx, result, abort := app.anteHandler(ctx, tx, mode)
 		if !newCtx.IsZero() {
 			ctx = newCtx
 		}
@@ -846,7 +848,7 @@ func (app *BaseApp) RunTx(mode sdk.RunTxMode, tx sdk.Tx, txHash string) (result 
 		txSrc = stdTx.GetSource()
 	}
 	result = app.runMsgs(
-		ctx.WithValue(TxHashKey, txHash).WithValue(TxSourceKey, txSrc),
+		ctx.WithValue(TxSourceKey, txSrc),
 		msgs,
 		mode)
 
