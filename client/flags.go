@@ -18,7 +18,7 @@ const (
 	FlagSequence       = "sequence"
 	FlagMemo           = "memo"
 	FlagSource         = "source"
-	FlagAsync          = "async"
+	FlagBroadcastMode  = "broadcast-mode"
 	FlagJson           = "json"
 	FlagPrintResponse  = "print-response"
 	FlagDryRun         = "dry-run"
@@ -26,6 +26,16 @@ const (
 	FlagOffline        = "offline"
 	FlagGenerateOnly   = "generate-only"
 	FlagIndentResponse = "indent"
+
+	// BroadcastBlock defines a tx broadcasting mode where the client waits for
+	// the tx to be committed in a block.
+	BroadcastBlock = "block"
+	// BroadcastSync defines a tx broadcasting mode where the client waits for
+	// a CheckTx execution response only.
+	BroadcastSync = "sync"
+	// BroadcastAsync defines a tx broadcasting mode where the client returns
+	// immediately.
+	BroadcastAsync = "async"
 )
 
 // LineBreak can be included in a command list to provide a blank line
@@ -63,7 +73,7 @@ func PostCommands(cmds ...*cobra.Command) []*cobra.Command {
 		c.Flags().String(FlagChainID, "", "Chain ID of tendermint node")
 		c.Flags().String(FlagNode, "tcp://localhost:26657", "<host>:<port> to tendermint rpc interface for this chain")
 		c.Flags().Bool(FlagUseLedger, false, "Use a connected Ledger device")
-		c.Flags().Bool(FlagAsync, false, "broadcast transactions asynchronously")
+		c.Flags().String(FlagBroadcastMode,  BroadcastBlock, "Transaction broadcasting mode (sync|async|block)")
 		c.Flags().Bool(FlagJson, false, "return output in json format")
 		c.Flags().Bool(FlagPrintResponse, true, "return tx response (only works with async = false)")
 		c.Flags().Bool(FlagTrustNode, true, "Trust connected full node (don't verify proofs for responses)")

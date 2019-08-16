@@ -3,6 +3,7 @@ package context
 import (
 	"bytes"
 	"fmt"
+	"gopkg.in/yaml.v2"
 	"io"
 	"os"
 	"path/filepath"
@@ -37,13 +38,14 @@ type CLIContext struct {
 	AccDecoder    auth.AccountDecoder
 	Client        rpcclient.Client
 	Output        io.Writer
+	OutputFormat  string
 	Height        int64
 	NodeURI       string
 	From          string
 	AccountStore  string
 	TrustNode     bool
 	UseLedger     bool
-	Async         bool
+	BroadcastMode string
 	JSON          bool
 	PrintResponse bool
 	Verifier      tmlite.Verifier
@@ -80,11 +82,12 @@ func NewCLIContext() CLIContext {
 		Output:        os.Stdout,
 		NodeURI:       nodeURI,
 		AccountStore:  ctxAccStoreName,
+		OutputFormat:  viper.GetString(cli.OutputFlag),
 		From:          viper.GetString(client.FlagFrom),
 		Height:        viper.GetInt64(client.FlagHeight),
 		TrustNode:     viper.GetBool(client.FlagTrustNode),
 		UseLedger:     viper.GetBool(client.FlagUseLedger),
-		Async:         viper.GetBool(client.FlagAsync),
+		BroadcastMode: viper.GetString(client.FlagBroadcastMode),
 		JSON:          viper.GetBool(client.FlagJson),
 		PrintResponse: viper.GetBool(client.FlagPrintResponse),
 		Verifier:      verifier,
@@ -234,4 +237,37 @@ func (ctx CLIContext) WithUseLedger(useLedger bool) CLIContext {
 func (ctx CLIContext) WithVerifier(verifier tmlite.Verifier) CLIContext {
 	ctx.Verifier = verifier
 	return ctx
+}
+
+// WithBroadcastMode returns a copy of the context with an updated broadcast
+// mode.
+func (ctx CLIContext) WithBroadcastMode(mode string) CLIContext {
+	ctx.BroadcastMode = mode
+	return ctx
+}
+
+// PrintOutput prints output while respecting output and indent flags
+// NOTE: pass in marshalled structs that have been unmarshaled
+// because this function will panic on marshaling errors
+func (ctx CLIContext) PrintOutput(toPrint fmt.Stringer) (err error) {
+	var out []byte
+
+	switch ctx.OutputFormat {
+	case "text":
+		out, err = yaml.Marshal(&toPrint)
+
+	case "json":
+		if ctx.Indent {
+			out, err = ctx.Codec.MarshalJSONIndent(toPrint, "", "  ")
+		} else {
+			out, err = ctx.Codec.MarshalJSON(toPrint)
+		}
+	}
+
+	if err != nil {
+		return
+	}
+
+	fmt.Println(string(out))
+	return
 }

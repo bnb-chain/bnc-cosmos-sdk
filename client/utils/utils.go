@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/hex"
 	"fmt"
@@ -10,13 +11,14 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/client/input"
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
-	cmn "github.com/tendermint/tendermint/libs/common"
 	"github.com/tendermint/tendermint/crypto/tmhash"
+	cmn "github.com/tendermint/tendermint/libs/common"
 )
 
 // CompleteAndBroadcastTxCli implements a utility function that
@@ -35,6 +37,30 @@ func CompleteAndBroadcastTxCli(txBldr authtxb.TxBuilder, cliCtx context.CLIConte
 
 	name, err := cliCtx.GetFromName()
 	if err != nil {
+		return err
+	}
+
+	stdSignMsg, err := txBldr.Build(msgs)
+	if err != nil {
+		return err
+	}
+
+	var json []byte
+	if viper.GetBool(client.FlagIndentResponse) {
+		json, err = cliCtx.Codec.MarshalJSONIndent(stdSignMsg, "", "  ")
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		json = cliCtx.Codec.MustMarshalJSON(stdSignMsg)
+	}
+
+	_, _ = fmt.Fprintf(os.Stderr, "%s\n\n", json)
+
+	buf := bufio.NewReader(os.Stdin)
+	ok, err := input.GetConfirmation("confirm transaction before signing and broadcasting", buf)
+	if err != nil || !ok {
+		_, _ = fmt.Fprintf(os.Stderr, "%s\n", "cancelled transaction")
 		return err
 	}
 
@@ -68,8 +94,12 @@ func CompleteAndBroadcastTxCli(txBldr authtxb.TxBuilder, cliCtx context.CLIConte
 		return nil
 	}
 	// broadcast to a Tendermint node
-	_, err = cliCtx.BroadcastTx(txBytes)
-	return err
+	res, err := cliCtx.BroadcastTx(txBytes)
+	if err != nil {
+		return err
+	}
+
+	return cliCtx.PrintOutput(res)
 }
 
 // nolint

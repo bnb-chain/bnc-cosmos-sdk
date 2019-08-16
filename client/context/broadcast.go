@@ -2,169 +2,83 @@ package context
 
 import (
 	"fmt"
-	"io"
 
-	"github.com/pkg/errors"
+	"github.com/cosmos/cosmos-sdk/client"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
-
-// TODO: This should get deleted eventually, and perhaps
-// ctypes.ResultBroadcastTx be stripped of unused fields, and
-// ctypes.ResultBroadcastTxCommit returned for tendermint RPC BroadcastTxSync.
-//
-// The motivation is that we want a unified type to return, and the better
-// option is the one that can hold CheckTx/DeliverTx responses optionally.
-func resultBroadcastTxToCommit(res *ctypes.ResultBroadcastTx) *ctypes.ResultBroadcastTxCommit {
-	return &ctypes.ResultBroadcastTxCommit{
-		Hash: res.Hash,
-		// NOTE: other fields are unused for async.
-	}
-}
 
 // BroadcastTx broadcasts a transactions either synchronously or asynchronously
 // based on the context parameters. The result of the broadcast is parsed into
 // an intermediate structure which is logged if the context has a logger
 // defined.
-func (ctx CLIContext) BroadcastTx(txBytes []byte) (*ctypes.ResultBroadcastTxCommit, error) {
-	if ctx.Async {
-		res, err := ctx.broadcastTxAsync(txBytes)
-		if err != nil {
-			return nil, err
-		}
+func (ctx CLIContext) BroadcastTx(txBytes []byte) (res sdk.TxResponse, err error) {
+	switch ctx.BroadcastMode {
+	case client.BroadcastSync:
+		res, err = ctx.BroadcastTxSync(txBytes)
 
-		resCommit := resultBroadcastTxToCommit(res)
-		return resCommit, err
+	case client.BroadcastAsync:
+		res, err = ctx.BroadcastTxAsync(txBytes)
+
+	case client.BroadcastBlock:
+		res, err = ctx.BroadcastTxCommit(txBytes)
+
+	default:
+		return sdk.TxResponse{}, fmt.Errorf("unsupported return type %s; supported types: sync, async, block", ctx.BroadcastMode)
 	}
 
-	return ctx.broadcastTxCommit(txBytes)
+	return res, err
 }
 
-// BroadcastTxAndAwaitCommit broadcasts transaction bytes to a Tendermint node
-// and waits for a commit.
-func (ctx CLIContext) BroadcastTxAndAwaitCommit(tx []byte) (*ctypes.ResultBroadcastTxCommit, error) {
+// BroadcastTxCommit broadcasts transaction bytes to a Tendermint node and
+// waits for a commit. An error is only returned if there is no RPC node
+// connection or if broadcasting fails.
+//
+// NOTE: This should ideally not be used as the request may timeout but the tx
+// may still be included in a block. Use BroadcastTxAsync or BroadcastTxSync
+// instead.
+func (ctx CLIContext) BroadcastTxCommit(txBytes []byte) (sdk.TxResponse, error) {
 	node, err := ctx.GetNode()
 	if err != nil {
-		return nil, err
+		return sdk.TxResponse{}, err
 	}
 
-	res, err := node.BroadcastTxCommit(tx)
+	res, err := node.BroadcastTxCommit(txBytes)
 	if err != nil {
-		return res, err
+		return sdk.NewResponseFormatBroadcastTxCommit(res), err
 	}
 
 	if !res.CheckTx.IsOK() {
-		return res, errors.Errorf(res.CheckTx.Log)
+		return sdk.NewResponseFormatBroadcastTxCommit(res), nil
 	}
 
 	if !res.DeliverTx.IsOK() {
-		return res, errors.Errorf(res.DeliverTx.Log)
+		return sdk.NewResponseFormatBroadcastTxCommit(res), nil
 	}
 
-	return res, err
+	return sdk.NewResponseFormatBroadcastTxCommit(res), nil
 }
 
 // BroadcastTxSync broadcasts transaction bytes to a Tendermint node
-// synchronously.
-func (ctx CLIContext) BroadcastTxSync(tx []byte) (*ctypes.ResultBroadcastTx, error) {
+// synchronously (i.e. returns after CheckTx execution).
+func (ctx CLIContext) BroadcastTxSync(txBytes []byte) (sdk.TxResponse, error) {
 	node, err := ctx.GetNode()
 	if err != nil {
-		return nil, err
+		return sdk.TxResponse{}, err
 	}
 
-	res, err := node.BroadcastTxSync(tx)
-	if err != nil {
-		return res, err
-	}
-
-	return res, err
+	res, err := node.BroadcastTxSync(txBytes)
+	return sdk.NewResponseFormatBroadcastTx(res), err
 }
 
 // BroadcastTxAsync broadcasts transaction bytes to a Tendermint node
-// asynchronously.
-func (ctx CLIContext) BroadcastTxAsync(tx []byte) (*ctypes.ResultBroadcastTx, error) {
+// asynchronously (i.e. returns immediately).
+func (ctx CLIContext) BroadcastTxAsync(txBytes []byte) (sdk.TxResponse, error) {
 	node, err := ctx.GetNode()
 	if err != nil {
-		return nil, err
+		return sdk.TxResponse{}, err
 	}
 
-	res, err := node.BroadcastTxAsync(tx)
-	if err != nil {
-		return res, err
-	}
-
-	return res, err
-}
-
-func (ctx CLIContext) broadcastTxAsync(txBytes []byte) (*ctypes.ResultBroadcastTx, error) {
-	res, err := ctx.BroadcastTxAsync(txBytes)
-	if err != nil {
-		return res, err
-	}
-
-	if ctx.Output != nil {
-		if ctx.JSON {
-			type toJSON struct {
-				TxHash string
-			}
-
-			resJSON := toJSON{res.Hash.String()}
-			bz, err := ctx.Codec.MarshalJSON(resJSON)
-			if err != nil {
-				return res, err
-			}
-
-			ctx.Output.Write(bz)
-			io.WriteString(ctx.Output, "\n")
-		} else {
-			io.WriteString(ctx.Output, fmt.Sprintf("async tx sent (tx hash: %s)\n", res.Hash))
-		}
-	}
-
-	return res, nil
-}
-
-func (ctx CLIContext) broadcastTxCommit(txBytes []byte) (*ctypes.ResultBroadcastTxCommit, error) {
-	res, err := ctx.BroadcastTxAndAwaitCommit(txBytes)
-	if err != nil {
-		return res, err
-	}
-
-	if ctx.JSON {
-		// Since JSON is intended for automated scripts, always include response in
-		// JSON mode.
-		type toJSON struct {
-			Height   int64
-			TxHash   string
-			Response abci.ResponseDeliverTx
-		}
-
-		if ctx.Output != nil {
-			resJSON := toJSON{res.Height, res.Hash.String(), res.DeliverTx}
-			bz, err := ctx.Codec.MarshalJSON(resJSON)
-			if err != nil {
-				return res, err
-			}
-
-			ctx.Output.Write(bz)
-			io.WriteString(ctx.Output, "\n")
-		}
-
-		return res, nil
-	}
-
-	if ctx.Output != nil {
-		resStr := fmt.Sprintf("Committed at block %d (tx hash: %s)\n", res.Height, res.Hash.String())
-
-		if ctx.PrintResponse {
-			resStr = fmt.Sprintf("Committed at block %d (tx hash: %s, response: %+v)\n",
-				res.Height, res.Hash.String(), res.DeliverTx,
-			)
-		}
-
-		io.WriteString(ctx.Output, resStr)
-	}
-
-	return res, nil
+	res, err := node.BroadcastTxAsync(txBytes)
+	return sdk.NewResponseFormatBroadcastTx(res), err
 }

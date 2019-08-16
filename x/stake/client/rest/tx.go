@@ -14,8 +14,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/stake"
 
 	"github.com/gorilla/mux"
-
-	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
 func registerTxRoutes(cliCtx context.CLIContext, r *mux.Router, cdc *codec.Codec, kb keys.Keybase) {
@@ -227,7 +225,7 @@ func delegationsRequestHandlerFn(cdc *codec.Codec, kb keys.Keybase, cliCtx conte
 		// send
 		// XXX the operation might not be atomic if a tx fails
 		//     should we have a sdk.MultiMsg type to make sending atomic?
-		results := make([]*ctypes.ResultBroadcastTxCommit, len(signedTxs[:]))
+		results := make([]sdk.TxResponse, len(signedTxs[:]))
 		for i, txBytes := range signedTxs {
 			res, err := cliCtx.BroadcastTx(txBytes)
 			if err != nil {
