@@ -3,7 +3,6 @@ package context
 import (
 	"bytes"
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io"
 	"os"
 	"path/filepath"
@@ -38,7 +37,6 @@ type CLIContext struct {
 	AccDecoder    auth.AccountDecoder
 	Client        rpcclient.Client
 	Output        io.Writer
-	OutputFormat  string
 	Height        int64
 	NodeURI       string
 	From          string
@@ -82,7 +80,6 @@ func NewCLIContext() CLIContext {
 		Output:        os.Stdout,
 		NodeURI:       nodeURI,
 		AccountStore:  ctxAccStoreName,
-		OutputFormat:  viper.GetString(cli.OutputFlag),
 		From:          viper.GetString(client.FlagFrom),
 		Height:        viper.GetInt64(client.FlagHeight),
 		TrustNode:     viper.GetBool(client.FlagTrustNode),
@@ -252,16 +249,10 @@ func (ctx CLIContext) WithBroadcastMode(mode string) CLIContext {
 func (ctx CLIContext) PrintOutput(toPrint fmt.Stringer) (err error) {
 	var out []byte
 
-	switch ctx.OutputFormat {
-	case "text":
-		out, err = yaml.Marshal(&toPrint)
-
-	case "json":
-		if ctx.Indent {
-			out, err = ctx.Codec.MarshalJSONIndent(toPrint, "", "  ")
-		} else {
-			out, err = ctx.Codec.MarshalJSON(toPrint)
-		}
+	if ctx.Indent {
+		out, err = ctx.Codec.MarshalJSONIndent(toPrint, "", "  ")
+	} else {
+		out, err = ctx.Codec.MarshalJSON(toPrint)
 	}
 
 	if err != nil {

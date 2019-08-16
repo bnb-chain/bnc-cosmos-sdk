@@ -55,12 +55,12 @@ func CompleteAndBroadcastTxCli(txBldr authtxb.TxBuilder, cliCtx context.CLIConte
 		json = cliCtx.Codec.MustMarshalJSON(stdSignMsg)
 	}
 
-	_, _ = fmt.Fprintf(os.Stderr, "%s\n\n", json)
+	fmt.Printf("%s\n\n", json)
 
 	buf := bufio.NewReader(os.Stdin)
 	ok, err := input.GetConfirmation("confirm transaction before signing and broadcasting", buf)
 	if err != nil || !ok {
-		_, _ = fmt.Fprintf(os.Stderr, "%s\n", "cancelled transaction")
+		fmt.Printf("%s\n", "cancelled transaction")
 		return err
 	}
 

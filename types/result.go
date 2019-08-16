@@ -62,13 +62,12 @@ func (logs ABCIMessageLogs) String() (str string) {
 type TxResponse struct {
 	Height    int64           `json:"height"`
 	TxHash    string          `json:"txhash"`
-	Code      uint32          `json:"code,omitempty"`
+	Code      uint32          `json:"code"`
 	Data      string          `json:"data,omitempty"`
 	RawLog    string          `json:"raw_log,omitempty"`
 	Logs      ABCIMessageLogs `json:"logs,omitempty"`
 	Info      string          `json:"info,omitempty"`
-	GasWanted int64           `json:"gas_wanted,omitempty"`
-	GasUsed   int64           `json:"gas_used,omitempty"`
+	Tags      StringTags      `json:"tags,omitempty"`
 	Codespace string          `json:"codespace,omitempty"`
 	Tx        Tx              `json:"tx,omitempty"`
 	Timestamp string          `json:"timestamp,omitempty"`
@@ -90,8 +89,7 @@ func NewResponseResultTx(res *ctypes.ResultTx, tx Tx, timestamp string) TxRespon
 		RawLog:    res.TxResult.Log,
 		Logs:      parsedLogs,
 		Info:      res.TxResult.Info,
-		GasWanted: res.TxResult.GasWanted,
-		GasUsed:   res.TxResult.GasUsed,
+		Tags:      TagsToStringTags(res.TxResult.Tags),
 		Tx:        tx,
 		Timestamp: timestamp,
 	}
@@ -131,8 +129,7 @@ func newTxResponseCheckTx(res *ctypes.ResultBroadcastTxCommit) TxResponse {
 		RawLog:    res.CheckTx.Log,
 		Logs:      parsedLogs,
 		Info:      res.CheckTx.Info,
-		GasWanted: res.CheckTx.GasWanted,
-		GasUsed:   res.CheckTx.GasUsed,
+		Tags:      TagsToStringTags(res.CheckTx.Tags),
 		Codespace: res.CheckTx.Codespace,
 	}
 }
@@ -157,8 +154,7 @@ func newTxResponseDeliverTx(res *ctypes.ResultBroadcastTxCommit) TxResponse {
 		RawLog:    res.DeliverTx.Log,
 		Logs:      parsedLogs,
 		Info:      res.DeliverTx.Info,
-		GasWanted: res.DeliverTx.GasWanted,
-		GasUsed:   res.DeliverTx.GasUsed,
+		Tags:      TagsToStringTags(res.DeliverTx.Tags),
 		Codespace: res.DeliverTx.Codespace,
 	}
 }
@@ -212,12 +208,8 @@ func (r TxResponse) String() string {
 		sb.WriteString(fmt.Sprintf("  Info: %s\n", r.Info))
 	}
 
-	if r.GasWanted != 0 {
-		sb.WriteString(fmt.Sprintf("  GasWanted: %d\n", r.GasWanted))
-	}
-
-	if r.GasUsed != 0 {
-		sb.WriteString(fmt.Sprintf("  GasUsed: %d\n", r.GasUsed))
+	if len(r.Tags) > 0 {
+		sb.WriteString(fmt.Sprintf("  Tags: \n%s\n", r.Tags.String()))
 	}
 
 	if r.Codespace != "" {
