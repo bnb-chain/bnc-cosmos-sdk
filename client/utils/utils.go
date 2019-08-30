@@ -40,28 +40,29 @@ func CompleteAndBroadcastTxCli(txBldr authtxb.TxBuilder, cliCtx context.CLIConte
 		return err
 	}
 
-	stdSignMsg, err := txBldr.Build(msgs)
-	if err != nil {
-		return err
-	}
-
-	var json []byte
-	if viper.GetBool(client.FlagIndentResponse) {
-		json, err = cliCtx.Codec.MarshalJSONIndent(stdSignMsg, "", "  ")
+	if viper.GetBool(client.FlagInteractive) {
+		stdSignMsg, err := txBldr.Build(msgs)
 		if err != nil {
-			panic(err)
+			return err
 		}
-	} else {
-		json = cliCtx.Codec.MustMarshalJSON(stdSignMsg)
-	}
+		var json []byte
+		if viper.GetBool(client.FlagIndentResponse) {
+			json, err = cliCtx.Codec.MarshalJSONIndent(stdSignMsg, "", "  ")
+			if err != nil {
+				panic(err)
+			}
+		} else {
+			json = cliCtx.Codec.MustMarshalJSON(stdSignMsg)
+		}
 
-	fmt.Printf("%s\n\n", json)
+		fmt.Printf("%s\n\n", json)
 
-	buf := bufio.NewReader(os.Stdin)
-	ok, err := input.GetConfirmation("confirm transaction before signing and broadcasting", buf)
-	if err != nil || !ok {
-		fmt.Printf("%s\n", "cancelled transaction")
-		return err
+		buf := bufio.NewReader(os.Stdin)
+		ok, err := input.GetConfirmation("confirm transaction before signing and broadcasting", buf)
+		if err != nil || !ok {
+			fmt.Printf("%s\n", "cancelled transaction")
+			return err
+		}
 	}
 
 	passphrase, err := keys.GetPassphrase(name)

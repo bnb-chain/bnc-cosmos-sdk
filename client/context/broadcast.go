@@ -20,7 +20,7 @@ func (ctx CLIContext) BroadcastTx(txBytes []byte) (res sdk.TxResponse, err error
 	case client.BroadcastAsync:
 		res, err = ctx.BroadcastTxAsync(txBytes)
 
-	case client.BroadcastBlock:
+	case client.BroadcastCommit:
 		res, err = ctx.BroadcastTxCommit(txBytes)
 
 	default:
@@ -44,19 +44,8 @@ func (ctx CLIContext) BroadcastTxCommit(txBytes []byte) (sdk.TxResponse, error) 
 	}
 
 	res, err := node.BroadcastTxCommit(txBytes)
-	if err != nil {
-		return sdk.NewResponseFormatBroadcastTxCommit(res), err
-	}
 
-	if !res.CheckTx.IsOK() {
-		return sdk.NewResponseFormatBroadcastTxCommit(res), nil
-	}
-
-	if !res.DeliverTx.IsOK() {
-		return sdk.NewResponseFormatBroadcastTxCommit(res), nil
-	}
-
-	return sdk.NewResponseFormatBroadcastTxCommit(res), nil
+	return sdk.NewResponseFormatBroadcastTxCommit(res), err
 }
 
 // BroadcastTxSync broadcasts transaction bytes to a Tendermint node

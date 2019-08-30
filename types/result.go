@@ -188,9 +188,7 @@ func (r TxResponse) String() string {
 		sb.WriteString(fmt.Sprintf("  TxHash: %s\n", r.TxHash))
 	}
 
-	if r.Code > 0 {
-		sb.WriteString(fmt.Sprintf("  Code: %d\n", r.Code))
-	}
+	sb.WriteString(fmt.Sprintf("  Code: %d\n", r.Code))
 
 	if r.Data != "" {
 		sb.WriteString(fmt.Sprintf("  Data: %s\n", r.Data))
