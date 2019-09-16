@@ -55,7 +55,7 @@
 [[override]]
   name = "github.com/tendermint/tendermint"
   source = "github.com/binance-chain/bnc-tendermint"
-  version = "=v0.31.5-binance.0"
+  branch = "upgrade_0.32.3"
 
 ## deps without releases:
 
