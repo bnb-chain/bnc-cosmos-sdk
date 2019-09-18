@@ -521,11 +521,11 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	// nil, since it is reset on Commit.
 	if app.DeliverState == nil {
 		app.SetDeliverState(req.Header)
-		app.DeliverState.Ctx = app.DeliverState.Ctx.WithVoteInfos(req.LastCommitInfo.GetVotes())
+		app.DeliverState.Ctx = app.DeliverState.Ctx.WithVoteInfos(req.LastCommitInfo.GetVotes()).WithBlockHash(req.Hash)
 	} else {
 		// In the first block, app.DeliverState.Ctx will already be initialized
 		// by InitChain. Context is now updated with Header information.
-		app.DeliverState.Ctx = app.DeliverState.Ctx.WithBlockHeader(req.Header).WithBlockHeight(req.Header.Height)
+		app.DeliverState.Ctx = app.DeliverState.Ctx.WithBlockHeader(req.Header).WithBlockHeight(req.Header.Height).WithBlockHash(req.Hash)
 	}
 
 	if app.beginBlocker != nil {
