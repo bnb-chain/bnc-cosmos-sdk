@@ -214,17 +214,18 @@ func (app *BaseApp) GetCommitMultiStore() sdk.CommitMultiStore {
 }
 
 func LoadBlockDB() dbm.DB {
-	conf := cfg.DefaultConfig()
-	err := viper.Unmarshal(conf)
-	if err != nil {
-		panic(err)
-	}
+	return LoadDB("blockstore")
+}
 
-	dbType := dbm.DBBackendType(conf.DBBackend)
-	return dbm.NewDB("blockstore", dbType, conf.DBDir())
+func LoadStateDB() dbm.DB {
+	return LoadDB("state")
 }
 
 func LoadTxDB() dbm.DB {
+	return LoadDB("tx_index")
+}
+
+func LoadDB(dbName string) dbm.DB {
 	conf := cfg.DefaultConfig()
 	err := viper.Unmarshal(conf)
 	if err != nil {
@@ -232,7 +233,7 @@ func LoadTxDB() dbm.DB {
 	}
 
 	dbType := dbm.DBBackendType(conf.DBBackend)
-	return dbm.NewDB("tx_index", dbType, conf.DBDir())
+	return dbm.NewDB(dbName, dbType, conf.DBDir())
 }
 
 // initializes the remaining logic from app.cms
