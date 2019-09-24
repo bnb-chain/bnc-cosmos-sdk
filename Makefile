@@ -1,4 +1,4 @@
-PACKAGES_NOSIMULATION=$(shell go list ./... | grep -v '/simulation')
+PACKAGES_NOSIMULATION=$(shell go list ./... | grep -v '/simulation' |grep -v 'lcd')
 PACKAGES_SIMTEST=$(shell go list ./... | grep '/simulation')
 VERSION := $(shell git describe --tags --long | sed 's/v\(.*\)/\1/')
 BUILD_TAGS = netgo ledger

@@ -27,16 +27,15 @@ require (
 	github.com/tendermint/go-amino v0.15.0
 	github.com/tendermint/iavl v0.12.4
 	github.com/tendermint/tendermint v0.32.3
-	github.com/zondax/hid v0.9.0 // indirect
 	github.com/zondax/ledger-cosmos-go v0.9.9
 	github.com/zondax/ledger-go v0.9.0 // indirect
 	golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
 )
 
 replace (
-	github.com/cosmos/ledger-cosmos-go => github.com/binance-chain/ledger-cosmos-go v0.9.9-binance.2
 	github.com/tendermint/go-amino => github.com/binance-chain/bnc-go-amino v0.14.1-binance.1
 	github.com/tendermint/iavl => github.com/binance-chain/bnc-tendermint-iavl v0.12.0-binance.1
 	github.com/tendermint/tendermint => github.com/binance-chain/bnc-tendermint v0.29.1-binance.3.0.20190923114917-479a59a5dbd7
+	github.com/zondax/ledger-cosmos-go => github.com/binance-chain/ledger-cosmos-go v0.9.9-binance.3
 	golang.org/x/crypto => github.com/tendermint/crypto v0.0.0-20180820045704-3764759f34a5
 )
