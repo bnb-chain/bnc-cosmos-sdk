@@ -36,56 +36,15 @@ TMP_BUILD_TAGS := $(BUILD_TAGS)
 BUILD_TAGS = $(filter-out ledger, $(TMP_BUILD_TAGS))
 endif
 
-build: check-ledger update_gaia_lite_docs
-ifeq ($(OS),Windows_NT)
-	go build $(BUILD_FLAGS) -o build/gaiad.exe ./cmd/gaia/cmd/gaiad
-	go build $(BUILD_FLAGS) -o build/gaiacli.exe ./cmd/gaia/cmd/gaiacli
-else
-	go build $(BUILD_FLAGS) -o build/gaiad ./cmd/gaia/cmd/gaiad
-	go build $(BUILD_FLAGS) -o build/gaiacli ./cmd/gaia/cmd/gaiacli
-endif
+build: go.sum
+	@go build ./...
 
-build-linux:
-	LEDGER_ENABLED=false GOOS=linux GOARCH=amd64 $(MAKE) build
+.PHONY: build
 
-update_gaia_lite_docs:
-	@statik -src=client/lcd/swagger-ui -dest=client/lcd -f
 
-build_cosmos-sdk-cli:
-ifeq ($(OS),Windows_NT)
-	go build $(BUILD_FLAGS) -o build/cosmos-sdk-cli.exe ./cmd/cosmos-sdk-cli
-else
-	go build $(BUILD_FLAGS) -o build/cosmos-sdk-cli ./cmd/cosmos-sdk-cli
-endif
 
-build_examples:
-ifeq ($(OS),Windows_NT)
-	go build $(BUILD_FLAGS) -o build/basecoind.exe ./examples/basecoin/cmd/basecoind
-	go build $(BUILD_FLAGS) -o build/basecli.exe ./examples/basecoin/cmd/basecli
-	go build $(BUILD_FLAGS) -o build/democoind.exe ./examples/democoin/cmd/democoind
-	go build $(BUILD_FLAGS) -o build/democli.exe ./examples/democoin/cmd/democli
-else
-	go build $(BUILD_FLAGS) -o build/basecoind ./examples/basecoin/cmd/basecoind
-	go build $(BUILD_FLAGS) -o build/basecli ./examples/basecoin/cmd/basecli
-	go build $(BUILD_FLAGS) -o build/democoind ./examples/democoin/cmd/democoind
-	go build $(BUILD_FLAGS) -o build/democli ./examples/democoin/cmd/democli
-endif
 
-install: check-ledger update_gaia_lite_docs
-	go install $(BUILD_FLAGS) ./cmd/gaia/cmd/gaiad
-	go install $(BUILD_FLAGS) ./cmd/gaia/cmd/gaiacli
 
-install_examples:
-	go install $(BUILD_FLAGS) ./examples/basecoin/cmd/basecoind
-	go install $(BUILD_FLAGS) ./examples/basecoin/cmd/basecli
-	go install $(BUILD_FLAGS) ./examples/democoin/cmd/democoind
-	go install $(BUILD_FLAGS) ./examples/democoin/cmd/democli
-
-install_cosmos-sdk-cli:
-	go install $(BUILD_FLAGS) ./cmd/cosmos-sdk-cli
-
-install_debug:
-	go install $(BUILD_FLAGS) ./cmd/gaia/cmd/gaiadebug
 
 dist:
 	@bash publish/dist.sh
@@ -93,6 +52,16 @@ dist:
 
 ########################################
 ### Tools & dependencies
+
+go-mod-cache: go.sum
+	@echo "--> Download go modules to local cache"
+	@go mod download
+.PHONY: go-mod-cache
+
+go.sum: go.mod
+	@echo "--> Ensure dependencies have not been modified"
+	@go mod verify
+	@go mod tidy
 
 check_tools:
 	@# https://stackoverflow.com/a/25668869
@@ -116,21 +85,6 @@ get_dev_tools:
 	@echo "--> Downloading linters (this may take awhile)"
 	$(GOPATH)/src/github.com/alecthomas/gometalinter/scripts/install.sh -b $(GOBIN)
 	go get github.com/tendermint/lint/golint
-
-get_vendor_deps:
-	@echo "--> Generating vendor directory via dep ensure"
-	@rm -rf .vendor-new
-	@dep ensure -v -vendor-only
-
-update_vendor_deps:
-	@echo "--> Running dep ensure"
-	@rm -rf .vendor-new
-	@dep ensure -v
-
-draw_deps:
-	@# requires brew install graphviz or apt-get install graphviz
-	go get github.com/RobotsAndPencils/goviz
-	@goviz -i github.com/cosmos/cosmos-sdk/cmd/gaia/cmd/gaiad -d 2 | dot -Tpng -o dependency-graph.png
 
 
 ########################################

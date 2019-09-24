@@ -217,7 +217,7 @@ func (app *GaiaApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) ab
 	tags := slashing.BeginBlocker(ctx, req, app.slashingKeeper)
 
 	return abci.ResponseBeginBlock{
-		Tags: tags.ToKVPairs(),
+		Events: tags.ToEvents(),
 	}
 }
 
