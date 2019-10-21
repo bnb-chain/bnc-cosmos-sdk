@@ -33,7 +33,7 @@
 
 [[constraint]]
   name = "github.com/spf13/viper"
-  version = "~1.0.0"
+  version = "~1.4.0"
 
 [[constraint]]
   name = "github.com/pkg/errors"
@@ -66,7 +66,7 @@
 [[override]]
   name = "golang.org/x/crypto"
   source = "https://github.com/tendermint/crypto"
-  revision = "3764759f34a542a3aef74d6b02e35be7ab893bba"
+  revision = "45b1026d81ae4466562fd5c62c2755ae851c45b0"
 
 [[constraint]]
   name = "github.com/cosmos/go-bip39"
@@ -117,4 +117,6 @@
   go-tests = true
   unused-packages = true
 
-
+[[constraint]]
+  branch = "master"
+  name = "github.com/binance-chain/tss"
