@@ -525,7 +525,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	} else {
 		// In the first block, app.DeliverState.Ctx will already be initialized
 		// by InitChain. Context is now updated with Header information.
-		app.DeliverState.Ctx = app.DeliverState.Ctx.WithBlockHeader(req.Header).WithBlockHeight(req.Header.Height).WithBlockHash(req.Hash)
+		app.DeliverState.Ctx = app.DeliverState.Ctx.WithBlockHash(req.Hash).WithBlockHeader(req.Header).WithBlockHeight(req.Header.Height)
 	}
 
 	if app.beginBlocker != nil {
