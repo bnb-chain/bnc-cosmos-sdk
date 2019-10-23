@@ -7,7 +7,6 @@ import (
 
 	"github.com/tendermint/tendermint/abci/client"
 	"github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto/tmhash"
 	cmn "github.com/tendermint/tendermint/libs/common"
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/proxy"
@@ -195,19 +194,15 @@ func (app *asyncLocalClient) DeliverTxAsync(tx []byte) *abcicli.ReqRes {
 	reqres := abcicli.NewReqRes(reqp)
 	mtx := new(sync.Mutex)
 	mtx.Lock()
-	txHash := cmn.HexBytes(tmhash.Sum(tx)).String()
 	app.deliverTxQueue <- WorkItem{reqRes: reqres, mtx: mtx}
-	app.log.Debug("Enqueue DeliverTxAsync", "Tx", txHash)
 	//no need to lock commitLock because Commit and DeliverTx will not be called concurrently
 	app.wgCommit.Add(1)
 	app.deliverTxPool.Schedule(func() {
 		defer mtx.Unlock()
-		app.log.Debug("Start PreDeliverTx", "Tx", txHash)
 		res := app.Application.PreDeliverTx(tx)
 		if !res.IsOK() { // no need to call the real DeliverTx
 			reqres.Response = types.ToResponseDeliverTx(res)
 		}
-		app.log.Debug("Finish PreDeliverTx", "Tx", txHash)
 	})
 
 	return reqres
@@ -223,20 +218,16 @@ func (app *asyncLocalClient) CheckTxAsync(tx []byte) *abcicli.ReqRes {
 	app.checkTxMidLock.Lock()
 	app.commitLock.Lock() // here would block further queue if commit is ready to go
 	app.checkTxMidLock.Unlock()
-	txHash := cmn.HexBytes(tmhash.Sum(tx)).String()
 	app.checkTxQueue <- WorkItem{reqRes: reqres, mtx: mtx}
-	app.log.Debug("Enqueue CheckTxAsync", "Tx", txHash)
 	app.wgCommit.Add(1)
 	app.commitLock.Unlock()
 	app.checkTxLowLock.Unlock()
 	app.checkTxPool.Schedule(func() {
 		defer mtx.Unlock()
-		app.log.Debug("Start PreCheckTx", "Tx", txHash)
 		res := app.Application.PreCheckTx(tx)
 		if !res.IsOK() { // no need to call the real CheckTx
 			reqres.Response = types.ToResponseCheckTx(res)
 		}
-		app.log.Debug("Finish PreCheckTx", "Tx", txHash)
 	})
 	return reqres
 }
@@ -245,10 +236,7 @@ func (app *asyncLocalClient) CheckTxAsync(tx []byte) *abcicli.ReqRes {
 func (app *asyncLocalClient) ReCheckTxAsync(tx []byte) *abcicli.ReqRes {
 	app.rwLock.Lock() // wont
 	defer app.rwLock.Unlock()
-	txHash := cmn.HexBytes(tmhash.Sum(tx)).String()
-	app.log.Debug("Start ReCheckAsync", "Tx", txHash)
 	res := app.Application.ReCheckTx(tx)
-	app.log.Debug("Finish ReCheckAsync", "Tx", txHash)
 	return app.callback(
 		types.ToRequestCheckTx(tx),
 		types.ToResponseCheckTx(res),
