@@ -34,7 +34,8 @@ IMPROVEMENTS
 
 * Gaia
 
-* SDK
+* SDK 
+* [\#167](https://github.com/binance-chain/bnc-cosmos-sdk/pull/167) [sdk] add blockhash context
 
 * Tendermint
 

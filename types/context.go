@@ -131,6 +131,7 @@ const (
 	contextKeyMultiStore contextKey = iota
 	contextKeyBlockHeader
 	contextKeyBlockHeight
+	contextKeyBlockHash
 	contextKeyConsensusParams
 	contextKeyChainID
 	contextKeyRunTxMode
@@ -148,6 +149,10 @@ func (c Context) MultiStore() MultiStore {
 func (c Context) BlockHeader() abci.Header { return c.Value(contextKeyBlockHeader).(abci.Header) }
 
 func (c Context) BlockHeight() int64 { return c.Value(contextKeyBlockHeight).(int64) }
+
+func (c Context) BlockHash() []byte {
+	return c.Value(contextKeyBlockHash).([]byte)
+}
 
 func (c Context) ConsensusParams() abci.ConsensusParams {
 	return c.Value(contextKeyConsensusParams).(abci.ConsensusParams)
@@ -191,6 +196,10 @@ func (c Context) WithMultiStore(ms MultiStore) Context { return c.withValue(cont
 func (c Context) WithBlockHeader(header abci.Header) Context {
 	var _ proto.Message = &header // for cloning.
 	return c.withValue(contextKeyBlockHeader, header)
+}
+
+func (c Context) WithBlockHash(hash []byte) Context {
+	return c.withValue(contextKeyBlockHash, hash)
 }
 
 func (c Context) WithBlockTime(newTime time.Time) Context {
