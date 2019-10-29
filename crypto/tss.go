@@ -1,15 +1,13 @@
 package crypto
 
 import (
-	"github.com/spf13/viper"
-
-	"github.com/ipfs/go-log"
-
-	tmcrypto "github.com/tendermint/tendermint/crypto"
-
 	_ "github.com/binance-chain/tss-lib/ecdsa/signing"
 	"github.com/binance-chain/tss/client"
 	"github.com/binance-chain/tss/common"
+	"github.com/ipfs/go-log"
+	"github.com/spf13/viper"
+
+	tmcrypto "github.com/tendermint/tendermint/crypto"
 )
 
 func NewPrivKeyTss(home, vault, passphrase, message string) (tmcrypto.PrivKey, error) {
