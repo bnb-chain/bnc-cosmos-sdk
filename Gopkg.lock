@@ -37,8 +37,7 @@
   version = "v0.1.0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:04bfe7c2d6a24d70afc13df5bd5f08bb073c1236633b6373adba530cacf9db16"
+  digest = "1:0c7eadbc81949360d5d3093b60aadebfb13c977d921c043c03d75d996036ea3d"
   name = "github.com/binance-chain/tss-lib"
   packages = [
     "common",
@@ -51,10 +50,12 @@
     "ecdsa/keygen",
     "ecdsa/resharing",
     "ecdsa/signing",
+    "test",
     "tss",
   ]
   pruneopts = "UT"
-  revision = "233fa70092e1b8b80d07e2ea6c7dbcd48b6178bb"
+  revision = "c6d390f06a4523c7dcc3ea1adade64c1cfdae9cb"
+  version = "v1.0.0"
 
 [[projects]]
   digest = "1:093bf93a65962e8191e3e8cd8fc6c363f83d43caca9739c906531ba7210a9904"

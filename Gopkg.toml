@@ -120,3 +120,7 @@
 [[constraint]]
   version = "=v0.1.0"
   name = "github.com/binance-chain/tss"
+
+[[constraint]]
+  version = "=v1.0.0"
+  name = "github.com/binance-chain/tss-lib"
