@@ -1,7 +1,9 @@
 package keys
 
 import (
+	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -9,9 +11,12 @@ import (
 	keys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	keyerror "github.com/cosmos/cosmos-sdk/crypto/keys/keyerror"
 	"github.com/gorilla/mux"
+	"github.com/spf13/viper"
 
 	"github.com/spf13/cobra"
 )
+
+const flagYes = "yes"
 
 func deleteKeyCommand() *cobra.Command {
 	cmd := &cobra.Command{
@@ -20,6 +25,8 @@ func deleteKeyCommand() *cobra.Command {
 		RunE:  runDeleteCmd,
 		Args:  cobra.ExactArgs(1),
 	}
+	cmd.Flags().BoolP(flagYes, "y", false,
+		"Skip confirmation prompt when deleting offline or tss key references")
 	return cmd
 }
 
@@ -31,12 +38,27 @@ func runDeleteCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	_, err = kb.Get(name)
+	info, err := kb.Get(name)
 	if err != nil {
 		return err
 	}
 
 	buf := client.BufferStdin()
+	if info.GetType() == keys.TypeLedger ||
+		info.GetType() == keys.TypeOffline ||
+		info.GetType() == keys.TypeTss {
+		if !viper.GetBool(flagYes) {
+			if err := confirmDeletion(buf); err != nil {
+				return err
+			}
+		}
+		if err := kb.Delete(name, "yes"); err != nil {
+			return err
+		}
+		fmt.Println("Public key reference deleted")
+		return nil
+	}
+
 	oldpass, err := client.GetPassword(
 		"DANGER - enter password to permanently delete key:", buf)
 	if err != nil {
@@ -97,4 +119,15 @@ func DeleteKeyRequestHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func confirmDeletion(buf *bufio.Reader) error {
+	answer, err := client.GetConfirmation("Key reference will be deleted. Continue?", buf)
+	if err != nil {
+		return err
+	}
+	if !answer {
+		return errors.New("aborted")
+	}
+	return nil
 }

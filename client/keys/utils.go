@@ -49,9 +49,9 @@ func GetPassphrase(name string) (string, error) {
 		return passphrase, err
 	}
 
-	// we only need a passphrase for locally stored keys
+	// we need a passphrase for locally stored and tss keys
 	// TODO: (ref: #864) address security concerns
-	if keyInfo.GetType() == keys.TypeLocal {
+	if keyInfo.GetType() == keys.TypeLocal || keyInfo.GetType() == keys.TypeTss {
 		passphrase, err = ReadPassphraseFromStdin(name)
 		if err != nil {
 			return passphrase, err

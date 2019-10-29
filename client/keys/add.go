@@ -1,20 +1,25 @@
 package keys
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"path"
 
-	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/crypto/secp256k1"
+	"github.com/tendermint/tendermint/libs/cli"
+
+	"github.com/cosmos/cosmos-sdk/client"
 	ccrypto "github.com/cosmos/cosmos-sdk/crypto"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
-
-	"github.com/tendermint/tendermint/libs/cli"
 )
 
 const (
@@ -24,6 +29,14 @@ const (
 	flagDryRun   = "dry-run"
 	flagAccount  = "account"
 	flagIndex    = "index"
+
+	flagTssHome   = "tss-home"
+	flagTssVault  = "tss-vault"
+	flagTssPubkey = "tss-pubkey" // TODO: this is a workaround for skipping input password in the end of keygen to invoke bnbcli
+	// In future, depending on how tss cli looks like we may
+	// 1. keep public key public in tss vault OR
+	// 2. make tss client independently have all functions of bnbcli OR
+	// 3. make tss client directly can write bnbcli's keystore db
 )
 
 func addKeyCommand() *cobra.Command {
@@ -37,11 +50,15 @@ phrase, otherwise, a new key will be generated.`,
 	}
 	cmd.Flags().StringP(flagType, "t", "secp256k1", "Type of private key (secp256k1|ed25519)")
 	cmd.Flags().Bool(client.FlagUseLedger, false, "Store a local reference to a private key on a Ledger device")
+	cmd.Flags().Bool(client.FlagUseTss, false, "Store a local reference to a private key on a Tss vault")
 	cmd.Flags().Bool(flagRecover, false, "Provide seed phrase to recover existing key instead of creating")
 	cmd.Flags().Bool(flagNoBackup, false, "Don't print out seed phrase (if others are watching the terminal)")
 	cmd.Flags().Bool(flagDryRun, false, "Perform action, but don't add key to local keystore")
 	cmd.Flags().Uint32(flagAccount, 0, "Account number for HD derivation")
 	cmd.Flags().Uint32(flagIndex, 0, "Index number for HD derivation")
+	cmd.Flags().String(flagTssHome, "", "Path to home of tss client")
+	cmd.Flags().String(flagTssVault, "", "Vault under tss home, default value means there is no sub vault")
+	cmd.Flags().String(flagTssPubkey, "", "Hex encoded secp256k1.PubKeySecp256k1, only used when this command run as a child-process of tss cli")
 	return cmd
 }
 
@@ -78,7 +95,7 @@ func runAddCmd(cmd *cobra.Command, args []string) error {
 		}
 
 		// ask for a password when generating a local key
-		if !viper.GetBool(client.FlagUseLedger) {
+		if !(viper.GetBool(client.FlagUseLedger) || viper.GetBool(client.FlagUseTss)) {
 			pass, err = client.GetCheckPassword(
 				"Enter a passphrase for your key:",
 				"Repeat the passphrase:", buf)
@@ -94,6 +111,33 @@ func runAddCmd(cmd *cobra.Command, args []string) error {
 		path := ccrypto.DerivationPath{44, 714, account, 0, index}
 		algo := keys.SigningAlgo(viper.GetString(flagType))
 		info, err := kb.CreateLedger(name, path, algo)
+		if err != nil {
+			return err
+		}
+		printCreate(info, "")
+	} else if viper.GetBool(client.FlagUseTss) {
+		home := viper.GetString(flagTssHome)
+		if home == "" {
+			return fmt.Errorf("tss home is not set")
+		}
+		vault := viper.GetString(flagTssVault)
+		pathToTssCfg := path.Join(home, vault)
+		if _, err := os.Stat(pathToTssCfg); os.IsNotExist(err) {
+			return fmt.Errorf("tss home: %s is not exist", pathToTssCfg)
+		}
+		hexPubKey := viper.GetString(flagTssPubkey)
+		var pubkey crypto.PubKey
+		if hexPubKey != "" {
+			// TODO: support more types
+			var secp secp256k1.PubKeySecp256k1
+			bytes, err := hex.DecodeString(hexPubKey)
+			if err != nil {
+				return fmt.Errorf("failed to decode tss pubkey")
+			}
+			copy(secp[:], bytes)
+			pubkey = secp
+		}
+		info, err := kb.CreateTss(name, home, vault, pubkey)
 		if err != nil {
 			return err
 		}
@@ -129,7 +173,7 @@ func printCreate(info keys.Info, seed string) {
 		printKeyInfo(info, Bech32KeyOutput)
 
 		// print seed unless requested not to.
-		if !viper.GetBool(client.FlagUseLedger) && !viper.GetBool(flagNoBackup) {
+		if !viper.GetBool(client.FlagUseLedger) && !viper.GetBool(client.FlagUseTss) && !viper.GetBool(flagNoBackup) {
 			fmt.Println("**Important** write this seed phrase in a safe place.")
 			fmt.Println("It is the only way to recover your account if you ever forget your password.")
 			fmt.Println()

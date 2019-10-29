@@ -169,6 +169,10 @@ func (kb dbKeybase) CreateLedger(name string, path crypto.DerivationPath, algo S
 	return kb.writeLedgerKey(pub, path, name), nil
 }
 
+func (kb dbKeybase) CreateTss(name, tssHome, tssVault string, pubkey tmcrypto.PubKey) (info Info, err error) {
+	return kb.writeTssKey(name, tssHome, tssVault, pubkey)
+}
+
 // CreateOffline creates a new reference to an offline keypair
 // It returns the created key info
 func (kb dbKeybase) CreateOffline(name string, pub tmcrypto.PubKey) (Info, error) {
@@ -206,7 +210,8 @@ func (kb dbKeybase) List() ([]Info, error) {
 		if strings.HasSuffix(key, infoSuffix) {
 			info, err := readInfo(iter.Value())
 			if err != nil {
-				return nil, err
+				name := nameFromInfoKey(key)
+				return nil, fmt.Errorf("cannot read %s, please use a compatible bnbcli", name)
 			}
 			res = append(res, info)
 		}
@@ -257,6 +262,12 @@ func (kb dbKeybase) Sign(name, passphrase string, msg []byte) (sig []byte, pub t
 		if err != nil {
 			return
 		}
+	case tssInfo:
+		linfo := info.(tssInfo)
+		priv, err = crypto.NewPrivKeyTss(linfo.Home, linfo.Vault, passphrase, fmt.Sprintf("%x", msg))
+		if err != nil {
+			return
+		}
 	case offlineInfo:
 		linfo := info.(offlineInfo)
 		_, err := fmt.Fprintf(os.Stderr, "Bytes to sign:\n%s", msg)
@@ -302,6 +313,8 @@ func (kb dbKeybase) ExportPrivateKeyObject(name string, passphrase string) (tmcr
 			return nil, err
 		}
 	case ledgerInfo:
+		return nil, errors.New("Only works on local private keys")
+	case tssInfo:
 		return nil, errors.New("Only works on local private keys")
 	case offlineInfo:
 		return nil, errors.New("Only works on local private keys")
@@ -386,9 +399,10 @@ func (kb dbKeybase) Delete(name, passphrase string) error {
 		kb.db.DeleteSync(infoKey(name))
 		return nil
 	case ledgerInfo:
+	case tssInfo:
 	case offlineInfo:
 		if passphrase != "yes" {
-			return fmt.Errorf("enter 'yes' exactly to delete the key - this cannot be undone")
+			return fmt.Errorf("enter 'yes' to delete the key - this cannot be undone")
 		}
 		kb.db.DeleteSync(addrKey(info.GetAddress()))
 		kb.db.DeleteSync(infoKey(name))
@@ -448,6 +462,15 @@ func (kb dbKeybase) writeLedgerKey(pub tmcrypto.PubKey, path crypto.DerivationPa
 	return info
 }
 
+func (kb dbKeybase) writeTssKey(name, tssHome, tssVault string, pubkey tmcrypto.PubKey) (Info, error) {
+	if info, err := newTssInfo(name, tssHome, tssVault, pubkey); err == nil {
+		kb.writeInfo(info, name)
+		return info, nil
+	} else {
+		return nil, err
+	}
+}
+
 func (kb dbKeybase) writeOfflineKey(pub tmcrypto.PubKey, name string) Info {
 	info := newOfflineInfo(name, pub)
 	kb.writeInfo(info, name)
@@ -468,4 +491,9 @@ func addrKey(address types.AccAddress) []byte {
 
 func infoKey(name string) []byte {
 	return []byte(fmt.Sprintf("%s.%s", name, infoSuffix))
+}
+
+func nameFromInfoKey(key string) string {
+	seps := strings.Split(key, ".")
+	return strings.Join(seps[:len(seps)-1], ".")
 }
