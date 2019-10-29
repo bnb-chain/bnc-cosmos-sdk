@@ -41,13 +41,11 @@ func GetCommands(cmds ...*cobra.Command) []*cobra.Command {
 		c.Flags().Bool(FlagIndentResponse, false, "Add indent to JSON response")
 		c.Flags().Bool(FlagTrustNode, false, "Trust connected full node (don't verify proofs for responses)")
 		c.Flags().Bool(FlagUseLedger, false, "Use a connected Ledger device")
-		c.Flags().Bool(FlagUseTss, false, "Use tss vault")
 		c.Flags().String(FlagChainID, "", "Chain ID of tendermint node")
 		c.Flags().String(FlagNode, "tcp://localhost:26657", "<host>:<port> to tendermint rpc interface for this chain")
 		c.Flags().Int64(FlagHeight, 0, "block height to query, omit to get most recent provable block")
 		viper.BindPFlag(FlagTrustNode, c.Flags().Lookup(FlagTrustNode))
 		viper.BindPFlag(FlagUseLedger, c.Flags().Lookup(FlagUseLedger))
-		viper.BindPFlag(FlagUseTss, c.Flags().Lookup(FlagUseTss))
 		viper.BindPFlag(FlagChainID, c.Flags().Lookup(FlagChainID))
 		viper.BindPFlag(FlagNode, c.Flags().Lookup(FlagNode))
 	}

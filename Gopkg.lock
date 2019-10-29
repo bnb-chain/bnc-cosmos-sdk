@@ -25,8 +25,7 @@
   version = "v0.1.0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:ccaef11509ae53773dc8dae04135448f8758b714cc5b61c1aef130efab501fd2"
+  digest = "1:907a1770ded354eaccc5c7ce7989b4e1f4b44a57fa0f265c602943769531daad"
   name = "github.com/binance-chain/tss"
   packages = [
     "client",
@@ -34,11 +33,12 @@
     "p2p",
   ]
   pruneopts = "UT"
-  revision = "c85b8440ce8234b18dfe4ffb0827bc82fabb564c"
+  revision = "0afebd8a4ef38e26b8790b96cff4c4e9d1aa6187"
+  version = "v0.1.0"
 
 [[projects]]
   branch = "master"
-  digest = "1:1467de8f916f991be5deffeaa51b86491fcb7c21d87a8b517876756741b88f6c"
+  digest = "1:04bfe7c2d6a24d70afc13df5bd5f08bb073c1236633b6373adba530cacf9db16"
   name = "github.com/binance-chain/tss-lib"
   packages = [
     "common",
@@ -54,7 +54,7 @@
     "tss",
   ]
   pruneopts = "UT"
-  revision = "148b4bd4c6b4cd59a39bc94dcef54ae21e80657d"
+  revision = "233fa70092e1b8b80d07e2ea6c7dbcd48b6178bb"
 
 [[projects]]
   digest = "1:093bf93a65962e8191e3e8cd8fc6c363f83d43caca9739c906531ba7210a9904"
@@ -210,6 +210,22 @@
   pruneopts = "UT"
   revision = "ea4d1f681babbce9545c9c5f3d5194a789c89f5b"
   version = "v1.2.0"
+
+[[projects]]
+  digest = "1:0ade334594e69404d80d9d323445d2297ff8161637f9b2d347cc6973d2d6f05b"
+  name = "github.com/hashicorp/errwrap"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "8a6fb523712970c966eefc6b39ed2c5e74880354"
+  version = "v1.0.0"
+
+[[projects]]
+  digest = "1:f668349b83f7d779567c880550534addeca7ebadfdcf44b0b9c39be61864b4b7"
+  name = "github.com/hashicorp/go-multierror"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "886a7fbe3eb1c874d46f623bfa70af45f425b3d1"
+  version = "v1.0.0"
 
 [[projects]]
   digest = "1:8ec8d88c248041a6df5f6574b87bc00e7e0b493881dad2e7ef47b11dc69093b5"
