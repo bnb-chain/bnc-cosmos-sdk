@@ -8,19 +8,17 @@ require (
 	github.com/btcsuite/btcd v0.0.0-20190115013929-ed77733ec07d
 	github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d
 	github.com/golang/protobuf v1.3.2
-	github.com/gorilla/mux v1.7.3
+	github.com/gorilla/context v1.1.1 // indirect
+	github.com/gorilla/mux v1.6.2
 	github.com/hashicorp/golang-lru v0.5.0
-	github.com/magiconair/properties v1.8.1 // indirect
-	github.com/mattn/go-isatty v0.0.6
+	github.com/mattn/go-isatty v0.0.4
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/pelletier/go-toml v1.4.0
+	github.com/pelletier/go-toml v1.2.0
 	github.com/pkg/errors v0.8.1
 	github.com/rakyll/statik v0.1.5
-	github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a // indirect
-	github.com/spf13/afero v1.2.2 // indirect
-	github.com/spf13/cobra v0.0.5
-	github.com/spf13/pflag v1.0.5
-	github.com/spf13/viper v1.3.2
+	github.com/spf13/cobra v0.0.1
+	github.com/spf13/pflag v1.0.3
+	github.com/spf13/viper v1.0.0
 	github.com/stretchr/testify v1.3.0
 	github.com/syndtr/goleveldb v1.0.1-0.20190318030020-c3a204f8e965
 	github.com/tendermint/btcd v0.1.1
@@ -28,7 +26,6 @@ require (
 	github.com/tendermint/iavl v0.12.4
 	github.com/tendermint/tendermint v0.32.3
 	github.com/zondax/ledger-cosmos-go v0.9.9
-	github.com/zondax/ledger-go v0.9.0 // indirect
 	golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
 )
 
