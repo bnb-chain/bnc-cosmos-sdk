@@ -115,7 +115,7 @@ func (app *asyncLocalClient) checkTxWorker() {
 			app.rwLock.Lock()         // make sure not other non-CheckTx/non-DeliverTx ABCI is called
 			defer app.rwLock.Unlock() // this unlock is put after wgCommit.Done() to give commit priority
 			if i.reqRes.Response == nil {
-				tx := i.reqRes.Request.GetCheckTx().GetTx()
+				tx := types.RequestCheckTx{Tx: i.reqRes.Request.GetCheckTx().GetTx()}
 				res := app.Application.CheckTx(tx)
 				i.reqRes.Response = types.ToResponseCheckTx(res) // Set response
 			}
@@ -137,7 +137,7 @@ func (app *asyncLocalClient) deliverTxWorker() {
 			app.rwLock.Lock()         // make sure not other non-CheckTx/non-DeliverTx ABCI is called
 			defer app.rwLock.Unlock() // this unlock is put after wgCommit.Done() to give commit priority
 			if i.reqRes.Response == nil {
-				tx := i.reqRes.Request.GetDeliverTx().GetTx()
+				tx := types.RequestDeliverTx{Tx: i.reqRes.Request.GetDeliverTx().GetTx()}
 				res := app.Application.DeliverTx(tx)
 				i.reqRes.Response = types.ToResponseDeliverTx(res) // Set response
 			}
@@ -188,9 +188,9 @@ func (app *asyncLocalClient) SetOptionAsync(req types.RequestSetOption) *abcicli
 	)
 }
 
-func (app *asyncLocalClient) DeliverTxAsync(tx []byte) *abcicli.ReqRes {
+func (app *asyncLocalClient) DeliverTxAsync(req types.RequestDeliverTx) *abcicli.ReqRes {
 	// no app level lock because the real DeliverTx would be called in the worker routine
-	reqp := types.ToRequestDeliverTx(tx)
+	reqp := types.ToRequestDeliverTx(req)
 	reqres := abcicli.NewReqRes(reqp)
 	mtx := new(sync.Mutex)
 	mtx.Lock()
@@ -199,7 +199,7 @@ func (app *asyncLocalClient) DeliverTxAsync(tx []byte) *abcicli.ReqRes {
 	app.wgCommit.Add(1)
 	app.deliverTxPool.Schedule(func() {
 		defer mtx.Unlock()
-		res := app.Application.PreDeliverTx(tx)
+		res := app.Application.PreDeliverTx(req)
 		if !res.IsOK() { // no need to call the real DeliverTx
 			reqres.Response = types.ToResponseDeliverTx(res)
 		}
@@ -208,9 +208,9 @@ func (app *asyncLocalClient) DeliverTxAsync(tx []byte) *abcicli.ReqRes {
 	return reqres
 }
 
-func (app *asyncLocalClient) CheckTxAsync(tx []byte) *abcicli.ReqRes {
+func (app *asyncLocalClient) CheckTxAsync(req types.RequestCheckTx) *abcicli.ReqRes {
 	// no app level lock because the real CheckTx would be called in the worker routine
-	reqp := types.ToRequestCheckTx(tx)
+	reqp := types.ToRequestCheckTx(req)
 	reqres := abcicli.NewReqRes(reqp)
 	mtx := new(sync.Mutex)
 	mtx.Lock()
@@ -224,7 +224,7 @@ func (app *asyncLocalClient) CheckTxAsync(tx []byte) *abcicli.ReqRes {
 	app.checkTxLowLock.Unlock()
 	app.checkTxPool.Schedule(func() {
 		defer mtx.Unlock()
-		res := app.Application.PreCheckTx(tx)
+		res := app.Application.PreCheckTx(req)
 		if !res.IsOK() { // no need to call the real CheckTx
 			reqres.Response = types.ToResponseCheckTx(res)
 		}
@@ -233,12 +233,12 @@ func (app *asyncLocalClient) CheckTxAsync(tx []byte) *abcicli.ReqRes {
 }
 
 //ReCheckTxAsync here still runs synchronously
-func (app *asyncLocalClient) ReCheckTxAsync(tx []byte) *abcicli.ReqRes {
+func (app *asyncLocalClient) ReCheckTxAsync(req types.RequestCheckTx) *abcicli.ReqRes {
 	app.rwLock.Lock() // wont
 	defer app.rwLock.Unlock()
-	res := app.Application.ReCheckTx(tx)
+	res := app.Application.ReCheckTx(req)
 	return app.callback(
-		types.ToRequestCheckTx(tx),
+		types.ToRequestCheckTx(req),
 		types.ToResponseCheckTx(res),
 	)
 }
@@ -339,19 +339,19 @@ func (app *asyncLocalClient) SetOptionSync(req types.RequestSetOption) (*types.R
 	return &res, nil
 }
 
-func (app *asyncLocalClient) DeliverTxSync(tx []byte) (*types.ResponseDeliverTx, error) {
+func (app *asyncLocalClient) DeliverTxSync(req types.RequestDeliverTx) (*types.ResponseDeliverTx, error) {
 	app.rwLock.Lock()
 	defer app.rwLock.Unlock()
 	app.log.Debug("Start DeliverTxSync")
-	res := app.Application.DeliverTx(tx)
+	res := app.Application.DeliverTx(req)
 	return &res, nil
 }
 
-func (app *asyncLocalClient) CheckTxSync(tx []byte) (*types.ResponseCheckTx, error) {
+func (app *asyncLocalClient) CheckTxSync(req types.RequestCheckTx) (*types.ResponseCheckTx, error) {
 	app.rwLock.Lock()
 	defer app.rwLock.Unlock()
 	app.log.Debug("Start CheckTxSync")
-	res := app.Application.CheckTx(tx)
+	res := app.Application.CheckTx(req)
 	return &res, nil
 }
 

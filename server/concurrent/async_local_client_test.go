@@ -37,7 +37,7 @@ func (app *TimedApplication) Query(types.RequestQuery) types.ResponseQuery {
 }
 
 // Mempool Connection
-func (app *TimedApplication) CheckTx(tx []byte) types.ResponseCheckTx {
+func (app *TimedApplication) CheckTx(tx types.RequestCheckTx) types.ResponseCheckTx {
 	app.checkingTx = true
 	fmt.Println("Start CheckTx")
 	time.Sleep(app.checkTxSpan)
@@ -45,7 +45,7 @@ func (app *TimedApplication) CheckTx(tx []byte) types.ResponseCheckTx {
 	app.checkingTx = false
 	return types.ResponseCheckTx{}
 }
-func (app *TimedApplication) ReCheckTx(tx []byte) types.ResponseCheckTx {
+func (app *TimedApplication) ReCheckTx(tx types.RequestCheckTx) types.ResponseCheckTx {
 	time.Sleep(app.recheckSpan)
 	return types.ResponseCheckTx{}
 }
@@ -57,7 +57,7 @@ func (app *TimedApplication) InitChain(types.RequestInitChain) types.ResponseIni
 func (app *TimedApplication) BeginBlock(types.RequestBeginBlock) types.ResponseBeginBlock {
 	return types.ResponseBeginBlock{}
 }
-func (app *TimedApplication) DeliverTx(tx []byte) types.ResponseDeliverTx {
+func (app *TimedApplication) DeliverTx(tx types.RequestDeliverTx) types.ResponseDeliverTx {
 	app.deliveringTx = true
 	fmt.Println("Start DeliverTx")
 	time.Sleep(app.deliverTxSpan)
@@ -75,13 +75,13 @@ func (app *TimedApplication) Commit() types.ResponseCommit {
 	return types.ResponseCommit{}
 }
 
-func (app *TimedApplication) PreCheckTx(tx []byte) types.ResponseCheckTx {
+func (app *TimedApplication) PreCheckTx(tx types.RequestCheckTx) types.ResponseCheckTx {
 	fmt.Println("Start PreCheckTx")
 	time.Sleep(app.preCheckTxSpan)
 	fmt.Println("Stop PreCheckTx")
 	return types.ResponseCheckTx{}
 }
-func (app *TimedApplication) PreDeliverTx(tx []byte) types.ResponseDeliverTx {
+func (app *TimedApplication) PreDeliverTx(tx types.RequestDeliverTx) types.ResponseDeliverTx {
 	fmt.Println("Start PreDeliverTx")
 	time.Sleep(app.preDeliverTxSpan)
 	fmt.Println("Stop PreDeliverTx")
@@ -115,8 +115,8 @@ func TestNewAsyncLocalClient(t *testing.T) {
 	expectStop := time.Now().Add(time.Millisecond * 300)
 	nonExpectShort := time.Now().Add(time.Millisecond * 25)
 	for i := 0; i < 2; i++ {
-		go cli.CheckTxAsync(tx)
-		go cli.DeliverTxAsync(tx)
+		go cli.CheckTxAsync(types.RequestCheckTx{Tx:tx})
+		go cli.DeliverTxAsync(types.RequestDeliverTx{Tx:tx})
 	}
 	time.Sleep(time.Millisecond * 5) //wait for go routine to start.
 	cli.CommitAsync()
@@ -144,8 +144,8 @@ func TestReadAPI(t *testing.T) {
 	reqQuery := types.RequestQuery{}
 	reqInfo := types.RequestInfo{}
 	for i := 0; i < 2; i++ {
-		go cli.CheckTxAsync(tx)
-		go cli.DeliverTxAsync(tx)
+		go cli.CheckTxAsync(types.RequestCheckTx{Tx:tx})
+		go cli.DeliverTxAsync(types.RequestDeliverTx{Tx:tx})
 		for j := 0; j < 10; j++ {
 			go cli.QueryAsync(reqQuery)
 			go cli.InfoAsync(reqInfo)

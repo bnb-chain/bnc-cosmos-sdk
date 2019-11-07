@@ -38,9 +38,6 @@ func TestStoreMount(t *testing.T) {
 
 func TestMultistoreCommitLoad(t *testing.T) {
 	var db dbm.DB = dbm.NewMemDB()
-	if useDebugDB {
-		db = dbm.NewDebugDB("CMS", db)
-	}
 	store := newMultiStoreWithMounts(db)
 	err := store.LoadLatestVersion()
 	require.Nil(t, err)

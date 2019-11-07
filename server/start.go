@@ -8,7 +8,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/server/concurrent"
 
 	"github.com/tendermint/tendermint/abci/server"
-	"github.com/tendermint/tendermint/blockchain"
+	tmstore "github.com/tendermint/tendermint/store"
 	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
 	cmn "github.com/tendermint/tendermint/libs/common"
 	"github.com/tendermint/tendermint/node"
@@ -25,7 +25,7 @@ const (
 	flagSequentialABCI = "seq-abci"
 )
 
-var BlockStore *blockchain.BlockStore
+var BlockStore *tmstore.BlockStore
 
 // StartCmd runs the service passed in, either stand-alone or in-process with
 // Tendermint.

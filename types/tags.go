@@ -1,6 +1,7 @@
 package types
 
 import (
+	abci "github.com/tendermint/tendermint/abci/types"
 	cmn "github.com/tendermint/tendermint/libs/common"
 )
 
@@ -28,6 +29,11 @@ func (t Tags) AppendTags(tags Tags) Tags {
 // Turn tags into KVPair list
 func (t Tags) ToKVPairs() []cmn.KVPair {
 	return []cmn.KVPair(t)
+}
+
+// Turn tags into abci.Event list
+func (t Tags) ToEvents() []abci.Event {
+	return []abci.Event{abci.Event{Attributes: t}}
 }
 
 // New variadic tags, must be k string, v []byte repeating
