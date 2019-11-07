@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.25.0 binance.20
+
+* [sdk] [\#163](https://github.com/binance-chain/bnc-cosmos-sdk/pull/163) Tss for project team
+* [sdk] [\#165](https://github.com/binance-chain/bnc-cosmos-sdk/pull/165) Improve perf
+* [sdk] [\#166](https://github.com/binance-chain/bnc-cosmos-sdk/pull/166) Upgrade tendermint to 0.32.3 and use go mod instead of deps
+* [sdk] [\#167](https://github.com/binance-chain/bnc-cosmos-sdk/pull/167) Add blockhash context
+* [sdk] [\#168](https://github.com/binance-chain/bnc-cosmos-sdk/pull/168) Fix sign bytes issue
+
 ## 0.25.0
 
 *October 24th, 2018*
