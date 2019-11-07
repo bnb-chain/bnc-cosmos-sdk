@@ -45,6 +45,36 @@ func TestSortJSON(t *testing.T) {
 	}
 }
 
+func TestSortJSONOverflow(t *testing.T) {
+	UpgradeMgr.AddUpgradeHeight(FixSignBytesOverflow, 100)
+	UpgradeMgr.SetHeight(100)
+
+	cases := []struct {
+		unsortedJSON string
+		want         string
+		wantErr      bool
+	}{
+		// from the TXSpec:
+		{unsortedJSON: `{"chain_id":"test-chain-1","sequence":1,"msg_bytes":{"inputs":[{"address":"696E707574","coins":[{"amount":9007199326368011,"denom":"atom"}]}],"outputs":[{"address":"6F7574707574","coins":[{"amount":9007199326368011,"denom":"atom"}]}]},"alt_bytes":null}`,
+			want:    `{"alt_bytes":null,"chain_id":"test-chain-1","msg_bytes":{"inputs":[{"address":"696E707574","coins":[{"amount":9007199326368011,"denom":"atom"}]}],"outputs":[{"address":"6F7574707574","coins":[{"amount":9007199326368011,"denom":"atom"}]}]},"sequence":1}`,
+			wantErr: false},
+	}
+
+	for tcIndex, tc := range cases {
+		got, err := SortJSON([]byte(tc.unsortedJSON))
+		if tc.wantErr {
+			require.NotNil(t, err, "tc #%d", tcIndex)
+			require.Panics(t, func() { MustSortJSON([]byte(tc.unsortedJSON)) })
+		} else {
+			require.Nil(t, err, "tc #%d, err=%s", tcIndex, err)
+			require.NotPanics(t, func() { MustSortJSON([]byte(tc.unsortedJSON)) })
+			require.Equal(t, got, MustSortJSON([]byte(tc.unsortedJSON)))
+		}
+
+		require.Equal(t, string(got), tc.want)
+	}
+}
+
 func TestTimeFormatAndParse(t *testing.T) {
 	cases := []struct {
 		RFC3339NanoStr     string

@@ -55,7 +55,7 @@ func getEndBlocker(keeper gov.Keeper) sdk.EndBlocker {
 	return func(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
 		tags, _, _ := gov.EndBlocker(ctx, keeper)
 		return abci.ResponseEndBlock{
-			Tags: tags,
+			Events: tags.ToEvents(),
 		}
 	}
 }

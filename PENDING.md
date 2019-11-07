@@ -34,7 +34,7 @@ IMPROVEMENTS
 
 * Gaia
 
-* SDK
+* SDK 
 
 * Tendermint
 

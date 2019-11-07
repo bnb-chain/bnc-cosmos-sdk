@@ -4,19 +4,20 @@ import (
 	"fmt"
 	"io"
 	"runtime/debug"
+	"strconv"
 	"strings"
 
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	abci "github.com/tendermint/tendermint/abci/types"
-	bc "github.com/tendermint/tendermint/blockchain"
 	cfg "github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 	cmn "github.com/tendermint/tendermint/libs/common"
 	dbm "github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/snapshot"
+	tmstore "github.com/tendermint/tendermint/store"
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -213,17 +214,18 @@ func (app *BaseApp) GetCommitMultiStore() sdk.CommitMultiStore {
 }
 
 func LoadBlockDB() dbm.DB {
-	conf := cfg.DefaultConfig()
-	err := viper.Unmarshal(conf)
-	if err != nil {
-		panic(err)
-	}
+	return LoadDB("blockstore")
+}
 
-	dbType := dbm.DBBackendType(conf.DBBackend)
-	return dbm.NewDB("blockstore", dbType, conf.DBDir())
+func LoadStateDB() dbm.DB {
+	return LoadDB("state")
 }
 
 func LoadTxDB() dbm.DB {
+	return LoadDB("tx_index")
+}
+
+func LoadDB(dbName string) dbm.DB {
 	conf := cfg.DefaultConfig()
 	err := viper.Unmarshal(conf)
 	if err != nil {
@@ -231,7 +233,7 @@ func LoadTxDB() dbm.DB {
 	}
 
 	dbType := dbm.DBBackendType(conf.DBBackend)
-	return dbm.NewDB("tx_index", dbType, conf.DBDir())
+	return dbm.NewDB(dbName, dbType, conf.DBDir())
 }
 
 // initializes the remaining logic from app.cms
@@ -248,7 +250,7 @@ func (app *BaseApp) initFromStore(mainKey sdk.StoreKey) error {
 		app.SetCheckState(abci.Header{})
 	} else {
 		blockDB := LoadBlockDB()
-		blockStore := bc.NewBlockStore(blockDB)
+		blockStore := tmstore.NewBlockStore(blockDB)
 		// note here we use appHeight, not current block store height, appHeight may be far behind storeHeight
 		lastHeader := blockStore.LoadBlock(appHeight).Header
 		app.SetCheckState(tmtypes.TM2PB.Header(&lastHeader))
@@ -483,7 +485,7 @@ func handleQueryCustom(app *BaseApp, path []string, req abci.RequestQuery) (res 
 	}
 	querier := app.queryRouter.Route(path[1])
 	if querier == nil {
-		return sdk.ErrUnknownRequest(fmt.Sprintf("no custom querier found for route %s", path[1])).QueryResult()
+		return sdk.ErrUnknownRequest("no custom querier found for route "+ path[1]).QueryResult()
 	}
 
 	ctx := sdk.NewContext(app.cms.CacheMultiStore(), app.CheckState.Ctx.BlockHeader(), sdk.RunTxModeCheck, app.Logger)
@@ -520,11 +522,11 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	// nil, since it is reset on Commit.
 	if app.DeliverState == nil {
 		app.SetDeliverState(req.Header)
-		app.DeliverState.Ctx = app.DeliverState.Ctx.WithVoteInfos(req.LastCommitInfo.GetVotes())
+		app.DeliverState.Ctx = app.DeliverState.Ctx.WithVoteInfos(req.LastCommitInfo.GetVotes()).WithBlockHash(req.Hash)
 	} else {
 		// In the first block, app.DeliverState.Ctx will already be initialized
 		// by InitChain. Context is now updated with Header information.
-		app.DeliverState.Ctx = app.DeliverState.Ctx.WithBlockHeader(req.Header).WithBlockHeight(req.Header.Height)
+		app.DeliverState.Ctx = app.DeliverState.Ctx.WithBlockHash(req.Hash).WithBlockHeader(req.Header).WithBlockHeight(req.Header.Height)
 	}
 
 	if app.beginBlocker != nil {
@@ -557,9 +559,10 @@ func (app *BaseApp) RemoveTxFromCache(txBytes []byte) {
 // first decoding, then the ante handler (which checks signatures/fees/ValidateBasic),
 // then finally the route match to see whether a handler exists. CheckTx does not run the actual
 // Msg handler function(s).
-func (app *BaseApp) CheckTx(txBytes []byte) (res abci.ResponseCheckTx) {
+func (app *BaseApp) CheckTx(req abci.RequestCheckTx) (res abci.ResponseCheckTx) {
 	var result sdk.Result
 	var tx sdk.Tx
+	txBytes := req.Tx
 	// try to get the Tx first from cache, if succeed, it means it is PreChecked.
 	tx, ok := app.GetTxFromCache(txBytes)
 	if ok {
@@ -579,14 +582,14 @@ func (app *BaseApp) CheckTx(txBytes []byte) (res abci.ResponseCheckTx) {
 	}
 
 	if !result.IsOK() {
-		app.txMsgCache.Remove(string(txBytes)) //not usable by DeliverTx
+		app.txMsgCache.Remove(string(req.Tx)) //not usable by DeliverTx
 	}
 
 	return abci.ResponseCheckTx{
-		Code: uint32(result.Code),
-		Data: result.Data,
-		Log:  result.Log,
-		Tags: result.Tags,
+		Code:   uint32(result.Code),
+		Data:   result.Data,
+		Log:    result.Log,
+		Events: result.Tags.ToEvents(),
 	}
 }
 
@@ -608,22 +611,23 @@ func (app *BaseApp) preCheck(txBytes []byte, mode sdk.RunTxMode) sdk.Result {
 
 // PreCheckTx implements extended ABCI for concurrency
 // PreCheckTx would perform decoding, signture and other basic verification
-func (app *BaseApp) PreCheckTx(txBytes []byte) (res abci.ResponseCheckTx) {
-	result := app.preCheck(txBytes, sdk.RunTxModeCheck)
+func (app *BaseApp) PreCheckTx(req abci.RequestCheckTx) (res abci.ResponseCheckTx) {
+	result := app.preCheck(req.Tx, sdk.RunTxModeCheck)
 	return abci.ResponseCheckTx{
-		Code: uint32(result.Code),
-		Data: result.Data,
-		Log:  result.Log,
-		Tags: result.Tags,
+		Code:   uint32(result.Code),
+		Data:   result.Data,
+		Log:    result.Log,
+		Events: result.Tags.ToEvents(),
 	}
 }
 
 // ReCheckTx implements ABCI
 // ReCheckTx runs the "minimun checks", after the inital check,
 // to see whether or not a transaction can possibly be executed.
-func (app *BaseApp) ReCheckTx(txBytes []byte) (res abci.ResponseCheckTx) {
+func (app *BaseApp) ReCheckTx(req abci.RequestCheckTx) (res abci.ResponseCheckTx) {
 	// Decode the Tx.
 	var result sdk.Result
+	txBytes := req.Tx
 	tx, ok := app.GetTxFromCache(txBytes)
 	if ok {
 		result = app.ReRunTx(txBytes, tx)
@@ -637,17 +641,18 @@ func (app *BaseApp) ReCheckTx(txBytes []byte) (res abci.ResponseCheckTx) {
 	}
 
 	return abci.ResponseCheckTx{
-		Code: uint32(result.Code),
-		Data: result.Data,
-		Log:  result.Log,
-		Tags: result.Tags,
+		Code:   uint32(result.Code),
+		Data:   result.Data,
+		Log:    result.Log,
+		Events: result.Tags.ToEvents(),
 	}
 }
 
 // Implements ABCI
-func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
+func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
 	// Decode the Tx.
 	var result sdk.Result
+	txBytes := req.Tx
 	tx, ok := app.GetTxFromCache(txBytes) //from checkTx
 	if ok {
 		// here means either the tx has passed PreDeliverTx or CheckTx,
@@ -671,22 +676,22 @@ func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
 
 	// Tell the blockchain engine (i.e. Tendermint).
 	return abci.ResponseDeliverTx{
-		Code: uint32(result.Code),
-		Data: result.Data,
-		Log:  result.Log,
-		Tags: result.Tags,
+		Code:   uint32(result.Code),
+		Data:   result.Data,
+		Log:    result.Log,
+		Events: result.Tags.ToEvents(),
 	}
 }
 
 // PreDeliverTx implements extended ABCI for concurrency
 // PreCheckTx would perform decoding, signture and other basic verification
-func (app *BaseApp) PreDeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
-	result := app.preCheck(txBytes, sdk.RunTxModeDeliver)
+func (app *BaseApp) PreDeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
+	result := app.preCheck(req.Tx, sdk.RunTxModeDeliver)
 	return abci.ResponseDeliverTx{
-		Code: uint32(result.Code),
-		Data: result.Data,
-		Log:  result.Log,
-		Tags: result.Tags,
+		Code:   uint32(result.Code),
+		Data:   result.Data,
+		Log:    result.Log,
+		Events: result.Tags.ToEvents(),
 	}
 }
 
@@ -760,13 +765,13 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode sdk.RunTxMode)
 
 		// Stop execution and return on first failed message.
 		if !msgResult.IsOK() {
-			logs = append(logs, fmt.Sprintf("%s", msgResult.Log))
+			logs = append(logs, msgResult.Log)
 			code = msgResult.Code
 			break
 		}
 
 		// Construct usable logs in multi-message transactions.
-		logs = append(logs, fmt.Sprintf("Msg %d: %s", msgIdx, msgResult.Log))
+		logs = append(logs, "Msg " + strconv.Itoa(msgIdx) + ": " + msgResult.Log)
 	}
 	// A tx must only contain one msg. If the msg execution is success, record it
 	if code == sdk.ABCICodeOK {
@@ -830,8 +835,9 @@ func (app *BaseApp) RunTx(mode sdk.RunTxMode, tx sdk.Tx, txHash string) (result 
 	}
 
 	// run the ante handler
+	ctx = ctx.WithValue(TxHashKey, txHash)
 	if app.anteHandler != nil {
-		newCtx, result, abort := app.anteHandler(ctx.WithValue(TxHashKey, txHash), tx, mode)
+		newCtx, result, abort := app.anteHandler(ctx, tx, mode)
 		if !newCtx.IsZero() {
 			ctx = newCtx
 		}
@@ -846,7 +852,7 @@ func (app *BaseApp) RunTx(mode sdk.RunTxMode, tx sdk.Tx, txHash string) (result 
 		txSrc = stdTx.GetSource()
 	}
 	result = app.runMsgs(
-		ctx.WithValue(TxHashKey, txHash).WithValue(TxSourceKey, txSrc),
+		ctx.WithValue(TxSourceKey, txSrc),
 		msgs,
 		mode)
 

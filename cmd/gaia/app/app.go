@@ -209,7 +209,7 @@ func (app *GaiaApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) ab
 	mint.BeginBlocker(ctx, app.mintKeeper)
 
 	return abci.ResponseBeginBlock{
-		Tags: tags.ToKVPairs(),
+		Events: tags.ToEvents(),
 	}
 }
 
@@ -225,7 +225,7 @@ func (app *GaiaApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.R
 
 	return abci.ResponseEndBlock{
 		ValidatorUpdates: validatorUpdates,
-		Tags:             tags,
+		Events:           tags.ToEvents(),
 	}
 }
 
@@ -272,7 +272,7 @@ func (app *GaiaApp) initChainer(ctx sdk.Context, req abci.RequestInitChain) abci
 				panic(err)
 			}
 			bz := app.cdc.MustMarshalBinaryLengthPrefixed(tx)
-			res := app.BaseApp.DeliverTx(bz)
+			res := app.BaseApp.DeliverTx(abci.RequestDeliverTx{Tx:bz})
 			if !res.IsOK() {
 				panic(res.Log)
 			}

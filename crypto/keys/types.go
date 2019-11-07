@@ -1,9 +1,11 @@
 package keys
 
 import (
-	ccrypto "github.com/cosmos/cosmos-sdk/crypto"
+	"github.com/binance-chain/tss/client"
+
 	"github.com/tendermint/tendermint/crypto"
 
+	ccrypto "github.com/cosmos/cosmos-sdk/crypto"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/hd"
 	"github.com/cosmos/cosmos-sdk/types"
 )
@@ -34,7 +36,7 @@ type Keybase interface {
 		encryptPasswd string, params hd.BIP44Params) (Info, error)
 	// Create, store, and return a new Ledger key reference
 	CreateLedger(name string, path ccrypto.DerivationPath, algo SigningAlgo) (info Info, err error)
-
+	CreateTss(name, home, vault string, pubkey crypto.PubKey) (info Info, err error)
 	// Create, store, and return a new offline key reference
 	CreateOffline(name string, pubkey crypto.PubKey) (info Info, err error)
 
@@ -60,12 +62,14 @@ const (
 	TypeLocal   KeyType = 0
 	TypeLedger  KeyType = 1
 	TypeOffline KeyType = 2
+	TypeTss     KeyType = 3
 )
 
 var keyTypes = map[KeyType]string{
 	TypeLocal:   "local",
 	TypeLedger:  "ledger",
 	TypeOffline: "offline",
+	TypeTss:     "tss",
 }
 
 // String implements the stringer interface for KeyType.
@@ -88,6 +92,7 @@ type Info interface {
 var _ Info = &localInfo{}
 var _ Info = &ledgerInfo{}
 var _ Info = &offlineInfo{}
+var _ Info = &tssInfo{}
 
 // localInfo is the public information about a locally stored key
 type localInfo struct {
@@ -178,6 +183,46 @@ func (i offlineInfo) GetPubKey() crypto.PubKey {
 
 func (i offlineInfo) GetAddress() types.AccAddress {
 	return i.PubKey.Address().Bytes()
+}
+
+// tssInfo is the public information about a tss key
+type tssInfo struct {
+	Name   string        `json:"name"` // alias of this tss vault registered in bnbcli
+	PubKey crypto.PubKey `json:"pubkey"`
+	Home   string        `json:"home"`  // path to home of tss client
+	Vault  string        `json:"vault"` // vault name of tss client
+}
+
+func (i tssInfo) GetType() KeyType {
+	return TypeTss
+}
+
+func (i tssInfo) GetName() string {
+	return i.Name
+}
+
+func (i tssInfo) GetPubKey() crypto.PubKey {
+	return i.PubKey
+}
+
+func (i tssInfo) GetAddress() types.AccAddress {
+	return i.PubKey.Address().Bytes()
+}
+
+func newTssInfo(name, home, vault string, pubkey crypto.PubKey) (Info, error) {
+	if pubkey == nil {
+		if key, err := client.LoadPubkey(home, vault); err == nil {
+			pubkey = key
+		} else {
+			return nil, err
+		}
+	}
+	return &tssInfo{
+		Name:   name,
+		PubKey: pubkey,
+		Home:   home,
+		Vault:  vault,
+	}, nil
 }
 
 // encoding info
