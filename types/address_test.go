@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/ed25519"
 
 	"github.com/cosmos/cosmos-sdk/types"
@@ -31,6 +32,43 @@ func testMarshal(t *testing.T, original interface{}, res interface{}, marshal fu
 	err = unmarshal(bz)
 	require.Nil(t, err)
 	require.Equal(t, original, res)
+}
+
+func TestGenerateDeadAddress(t *testing.T) {
+	t.Log("Dead address for atomic swap:")
+	types.GetConfig().SetBech32PrefixForAccount("bnb", "")
+	atomicSwapCoinsAccAddr := types.AccAddress(crypto.AddressHash([]byte("BinanceChainAtomicSwapCoins")))
+	t.Log(atomicSwapCoinsAccAddr.String())
+	types.GetConfig().SetBech32PrefixForAccount("tbnb", "")
+	atomicSwapCoinsAccAddr = types.AccAddress(crypto.AddressHash([]byte("BinanceChainAtomicSwapCoins")))
+	t.Log(atomicSwapCoinsAccAddr.String())
+	t.Log("\n")
+
+	t.Log("Dead address for timelock:")
+	types.GetConfig().SetBech32PrefixForAccount("bnb", "")
+	timeLockCoinsAccAddr := types.AccAddress(crypto.AddressHash([]byte("BinanceChainTimeLockCoins")))
+	t.Log(timeLockCoinsAccAddr.String())
+	types.GetConfig().SetBech32PrefixForAccount("tbnb", "")
+	timeLockCoinsAccAddr = types.AccAddress(crypto.AddressHash([]byte("BinanceChainTimeLockCoins")))
+	t.Log(timeLockCoinsAccAddr.String())
+	t.Log("\n")
+
+	t.Log("Dead address for governance:")
+	types.GetConfig().SetBech32PrefixForAccount("bnb", "")
+	depositedCoinsAccAddr := types.AccAddress(crypto.AddressHash([]byte("BinanceChainDepositedCoins")))
+	t.Log(depositedCoinsAccAddr.String())
+	types.GetConfig().SetBech32PrefixForAccount("tbnb", "")
+	depositedCoinsAccAddr = types.AccAddress(crypto.AddressHash([]byte("BinanceChainDepositedCoins")))
+	t.Log(depositedCoinsAccAddr.String())
+	t.Log("\n")
+
+	t.Log("Dead address for staking:")
+	types.GetConfig().SetBech32PrefixForAccount("bnb", "")
+	delegationAccAddr := types.AccAddress(crypto.AddressHash([]byte("BinanceChainStakeDelegation")))
+	t.Log(delegationAccAddr.String())
+	types.GetConfig().SetBech32PrefixForAccount("tbnb", "")
+	delegationAccAddr = types.AccAddress(crypto.AddressHash([]byte("BinanceChainStakeDelegation")))
+	t.Log(delegationAccAddr.String())
 }
 
 func TestRandBech32PubkeyConsistency(t *testing.T) {
