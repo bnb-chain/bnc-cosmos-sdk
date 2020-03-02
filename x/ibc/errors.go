@@ -8,43 +8,19 @@ import (
 const (
 	DefaultCodespace sdk.CodespaceType = 3
 
-	// IBC errors reserve 200 - 299.
-	CodeInvalidSequence sdk.CodeType = 200
-	CodeIdenticalChains sdk.CodeType = 201
-	CodeUnknownRequest  sdk.CodeType = sdk.CodeUnknownRequest
+	CodeUnsupportedChannel sdk.CodeType = 101
+	CodeChainIDTooLong     sdk.CodeType = 102
+	CodeEmptyPackage       sdk.CodeType = 103
 )
 
-func codeToDefaultMsg(code sdk.CodeType) string {
-	switch code {
-	case CodeInvalidSequence:
-		return "invalid IBC packet sequence"
-	case CodeIdenticalChains:
-		return "source and destination chain cannot be identical"
-	default:
-		return sdk.CodeToDefaultMsg(code)
-	}
+func ErrUnsupportedChannel(codespace sdk.CodespaceType, msg string) sdk.Error {
+	return sdk.NewError(codespace, CodeUnsupportedChannel, msg)
 }
 
-// nolint
-func ErrInvalidSequence(codespace sdk.CodespaceType) sdk.Error {
-	return newError(codespace, CodeInvalidSequence, "")
-}
-func ErrIdenticalChains(codespace sdk.CodespaceType) sdk.Error {
-	return newError(codespace, CodeIdenticalChains, "")
+func ErrChainIDTooLong(codespace sdk.CodespaceType, msg string) sdk.Error {
+	return sdk.NewError(codespace, CodeChainIDTooLong, msg)
 }
 
-// -------------------------
-// Helpers
-
-// nolint: unparam
-func newError(codespace sdk.CodespaceType, code sdk.CodeType, msg string) sdk.Error {
-	msg = msgOrDefaultMsg(msg, code)
-	return sdk.NewError(codespace, code, msg)
-}
-
-func msgOrDefaultMsg(msg string, code sdk.CodeType) string {
-	if msg != "" {
-		return msg
-	}
-	return codeToDefaultMsg(code)
+func ErrEmptyPackage(codespace sdk.CodespaceType, msg string) sdk.Error {
+	return sdk.NewError(codespace, CodeEmptyPackage, msg)
 }

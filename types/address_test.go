@@ -74,6 +74,26 @@ func TestRandBech32PubkeyConsistency(t *testing.T) {
 	}
 }
 
+func TestABCD(t *testing.T)  {
+	config := types.GetConfig()
+	config.SetBech32PrefixForAccount("bnb", "bnbp")
+	config.SetBech32PrefixForValidator("bva", "bvap")
+	config.SetBech32PrefixForConsensusNode("bca", "bcap")
+	config.Seal()
+
+	accAddr , err := types.AccAddressFromBech32("bnb1xhvagxsn6mpwq8ymrcjzhtedlx88arzgush8sk")
+	if err != nil {
+		t.Log(err.Error())
+	}
+	t.Log(hex.EncodeToString(accAddr[:]))
+
+
+	accPub,_ := types.GetConsPubKeyBech32("bcap1zcjduepq3wj9z52sascc90yzty7lxmu2hvj6vxgc0l86klj49w2wvnkjmmksyvgqzq")
+	//t.Log(err.Error())
+	pubkey, _ := accPub.(ed25519.PubKeyEd25519)
+	t.Log(hex.EncodeToString(pubkey[:]))
+}
+
 func TestRandBech32AccAddrConsistency(t *testing.T) {
 	var pub ed25519.PubKeyEd25519
 
