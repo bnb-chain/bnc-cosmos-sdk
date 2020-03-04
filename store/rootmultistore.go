@@ -357,6 +357,7 @@ func (rs *rootMultiStore) loadCommitStoreFromParams(key sdk.StoreKey, id CommitI
 		return
 	case sdk.StoreTypeIAVLMock:
 		store, err = LoadIAVLStoreMock()
+		return
 	case sdk.StoreTypeDB:
 		panic("dbm.DB is not a CommitStore")
 	case sdk.StoreTypeTransient:
