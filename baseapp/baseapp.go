@@ -137,6 +137,11 @@ func (app *BaseApp) Name() string {
 	return app.name
 }
 
+// BaseApp Name
+func (app *BaseApp) IsIavlMock() bool {
+	return app.isIvalMock
+}
+
 // SetCommitMultiStoreTracer sets the store tracer on the BaseApp's underlying
 // CommitMultiStore.
 func (app *BaseApp) SetCommitMultiStoreTracer(w io.Writer) {
