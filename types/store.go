@@ -249,6 +249,7 @@ const (
 	StoreTypeMulti StoreType = iota
 	StoreTypeDB
 	StoreTypeIAVL
+	StoreTypeIAVLMock
 	StoreTypeTransient
 )
 

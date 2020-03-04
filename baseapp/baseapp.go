@@ -54,6 +54,8 @@ type BaseApp struct {
 	codespacer  *sdk.Codespacer      // handle module codespacing
 	collect     sdk.CollectConfig
 
+	isIvalMock bool
+
 	TxDecoder sdk.TxDecoder // unmarshal []byte into sdk.Tx
 
 	anteHandler sdk.AnteHandler // ante handler for fee and auth
@@ -126,6 +128,10 @@ func NewBaseApp(name string, logger log.Logger, db dbm.DB, txDecoder sdk.TxDecod
 	return app
 }
 
+func (app *BaseApp) SetIavlIsMock(mock bool) {
+	app.isIvalMock = mock
+}
+
 // BaseApp Name
 func (app *BaseApp) Name() string {
 	return app.name
@@ -145,7 +151,11 @@ func (app *BaseApp) RegisterCodespace(codespace sdk.CodespaceType) sdk.Codespace
 // Mount IAVL stores to the provided keys in the BaseApp multistore
 func (app *BaseApp) MountStoresIAVL(keys ...*sdk.KVStoreKey) {
 	for _, key := range keys {
-		app.MountStore(key, sdk.StoreTypeIAVL)
+		if app.isIvalMock {
+			app.MountStore(key, sdk.StoreTypeIAVLMock)
+		} else {
+			app.MountStore(key, sdk.StoreTypeIAVL)
+		}
 	}
 }
 
@@ -485,7 +495,7 @@ func handleQueryCustom(app *BaseApp, path []string, req abci.RequestQuery) (res 
 	}
 	querier := app.queryRouter.Route(path[1])
 	if querier == nil {
-		return sdk.ErrUnknownRequest("no custom querier found for route "+ path[1]).QueryResult()
+		return sdk.ErrUnknownRequest("no custom querier found for route " + path[1]).QueryResult()
 	}
 
 	ctx := sdk.NewContext(app.cms.CacheMultiStore(), app.CheckState.Ctx.BlockHeader(), sdk.RunTxModeCheck, app.Logger)
@@ -771,7 +781,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode sdk.RunTxMode)
 		}
 
 		// Construct usable logs in multi-message transactions.
-		logs = append(logs, "Msg " + strconv.Itoa(msgIdx) + ": " + msgResult.Log)
+		logs = append(logs, "Msg "+strconv.Itoa(msgIdx)+": "+msgResult.Log)
 	}
 	// A tx must only contain one msg. If the msg execution is success, record it
 	if code == sdk.ABCICodeOK {
