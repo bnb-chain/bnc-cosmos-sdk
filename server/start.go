@@ -22,6 +22,7 @@ const (
 	flagAddress        = "address"
 	flagTraceStore     = "trace-store"
 	flagPruning        = "pruning"
+	flagIavlMock       = "iavl-mock"
 	flagSequentialABCI = "seq-abci"
 )
 
@@ -52,6 +53,7 @@ func StartCmd(ctx *Context, appCreator AppCreator) *cobra.Command {
 	cmd.Flags().String(flagTraceStore, "", "Enable KVStore tracing to an output file")
 	cmd.Flags().Bool(flagSequentialABCI, false, "Run abci app in sync mode")
 	cmd.Flags().String(flagPruning, "syncable", "Pruning strategy: syncable, nothing, everything")
+	cmd.Flags().Bool(flagIavlMock, false, "set if iavl is mock")
 
 	// add support for all Tendermint-specific command line options
 	tcmd.AddNodeFlags(cmd)

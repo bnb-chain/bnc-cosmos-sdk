@@ -128,8 +128,8 @@ func NewBaseApp(name string, logger log.Logger, db dbm.DB, txDecoder sdk.TxDecod
 	return app
 }
 
-func (app *BaseApp) SetIavlIsMock(mock bool) {
-	app.isIvalMock = mock
+func SetIavlIsMock(app *BaseApp) {
+	app.isIvalMock = true
 }
 
 // BaseApp Name

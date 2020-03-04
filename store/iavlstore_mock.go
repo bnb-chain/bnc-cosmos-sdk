@@ -16,7 +16,7 @@ var _ Queryable = (*IavlStoreMock)(nil)
 
 // IavlStoreMock Implements KVStore and CommitStore.
 type IavlStoreMock struct {
-	db dbm.MemDB
+	db *dbm.MemDB
 }
 
 func LoadIAVLStoreMock() (CommitStore, error) {
