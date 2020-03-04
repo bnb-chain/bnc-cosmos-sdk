@@ -845,9 +845,6 @@ func (app *BaseApp) RunTx(mode sdk.RunTxMode, tx sdk.Tx, txHash string) (result 
 	}()
 
 	var msgs = tx.GetMsgs()
-	if err := validateBasicTxMsgs(msgs); err != nil {
-		return err.Result()
-	}
 
 	// run the ante handler
 	ctx = ctx.WithValue(TxHashKey, txHash)
@@ -888,6 +885,8 @@ func (app *BaseApp) RunTx(mode sdk.RunTxMode, tx sdk.Tx, txHash string) (result 
 		}
 		accountCache.Write()
 		msCache.Write()
+	} else {
+		fmt.Println("Txfailed:", txHash, result.Log)
 	}
 
 	return
