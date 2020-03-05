@@ -5,13 +5,13 @@ import (
 )
 
 type IBCPackageMsg struct {
-	Sender      sdk.AccAddress `json:"sender"`
-	DestChainID string         `json:"dest_chain_id"`
-	ChannelID   ChannelID      `json:"channel_id"`
-	Package     []byte         `json:"package"`
+	Sender      sdk.AccAddress   `json:"sender"`
+	DestChainID sdk.CrossChainID `json:"dest_chain_id"`
+	ChannelID   sdk.ChannelID    `json:"channel_id"`
+	Package     []byte           `json:"package"`
 }
 
-func NewIBCPackage(srcAddr sdk.AccAddress, destChainID string, channelID ChannelID, Package []byte) IBCPackageMsg {
+func NewIBCPackage(srcAddr sdk.AccAddress, destChainID sdk.CrossChainID, channelID sdk.ChannelID, Package []byte) IBCPackageMsg {
 
 	return IBCPackageMsg{
 		Sender:      srcAddr,
@@ -32,9 +32,6 @@ func (msg IBCPackageMsg) GetSignBytes() []byte {
 	return sdk.MustSortJSON(b)
 }
 func (msg IBCPackageMsg) ValidateBasic() sdk.Error {
-	if msg.ChannelID != BindChannelID && msg.ChannelID != TransferChannelID && msg.ChannelID != TimeoutChannelID && msg.ChannelID != StakingChannelID {
-		return ErrUnsupportedChannel(DefaultCodespace, "unsupported channelID")
-	}
 	if len(msg.Package) == 0 {
 		return ErrEmptyPackage(DefaultCodespace, "empty package")
 	}

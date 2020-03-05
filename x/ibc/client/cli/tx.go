@@ -3,6 +3,7 @@ package cli
 import (
 	"encoding/hex"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/cosmos/cosmos-sdk/x/ibc/client"
@@ -48,7 +49,11 @@ func IBCBindCmd(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			destChainID := viper.GetString(flagDestChainID)
+			destChainID, err := strconv.Atoi(viper.GetString(flagDestChainID))
+			if err != nil {
+				return err
+			}
+
 			bep2TokenSymbol := viper.GetString(flagBEP2TokenSymbol)
 			bep2TokenOwnerStr := viper.GetString(flagBEP2TokenOwner)
 			bep2TokenOwner, err := sdk.AccAddressFromBech32(bep2TokenOwnerStr)
@@ -69,13 +74,16 @@ func IBCBindCmd(cdc *codec.Codec) *cobra.Command {
 			peggyAmount := viper.GetInt64(flagPeggyAmount)
 			relayReward := viper.GetInt64(flagRelayReward)
 
-			channelID := ibc.BindChannelID
+			channelID, err := sdk.GetChannelID("bind")
+			if err != nil {
+				return err
+			}
 			packageBytes, err := client.SerializeBindPackage(bep2TokenSymbol, bep2TokenOwner, contractAddr, totalSupply, peggyAmount, relayReward)
 			if err != nil {
 				return err
 			}
 
-			msg := ibc.NewIBCPackage(from, destChainID, channelID, packageBytes)
+			msg := ibc.NewIBCPackage(from, sdk.CrossChainID(destChainID), channelID, packageBytes)
 
 			if cliCtx.GenerateOnly {
 				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg})
@@ -85,7 +93,6 @@ func IBCBindCmd(cdc *codec.Codec) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().String(flagDestChainID, "", "destination chain-id")
 	cmd.Flags().String(flagBEP2TokenSymbol, "", "bep2 token symbol")
 	cmd.Flags().String(flagBEP2TokenOwner, "", "bep2 token owner")
 	cmd.Flags().String(flagContractAddr, "", "ERC20 contract address")
@@ -110,7 +117,11 @@ func IBCTimeoutCmd(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			destChainID := viper.GetString(flagDestChainID)
+			destChainID, err := strconv.Atoi(viper.GetString(flagDestChainID))
+			if err != nil {
+				return err
+			}
+
 			refundAmount := viper.GetInt64(flagRefundAmount)
 			refundAddrStr := viper.GetString(flagRefundAddr)
 			if !strings.HasPrefix(refundAddrStr, "0x") {
@@ -128,13 +139,16 @@ func IBCTimeoutCmd(cdc *codec.Codec) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			channelID := ibc.TimeoutChannelID
+			channelID, err := sdk.GetChannelID("timeout")
+			if err != nil {
+				return err
+			}
 			packageBytes, err := client.SerializeTimeoutPackage(refundAmount, contractAddr, refundAddr)
 			if err != nil {
 				return err
 			}
 
-			msg := ibc.NewIBCPackage(from, destChainID, channelID, packageBytes)
+			msg := ibc.NewIBCPackage(from, sdk.CrossChainID(destChainID), channelID, packageBytes)
 
 			if cliCtx.GenerateOnly {
 				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg})
@@ -144,7 +158,6 @@ func IBCTimeoutCmd(cdc *codec.Codec) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().String(flagDestChainID, "", "destination chain-id")
 	cmd.Flags().Int64(flagRefundAmount, 0, "refund amount")
 	cmd.Flags().String(flagContractAddr, "", "ERC20 contract address")
 	cmd.Flags().String(flagRefundAddr, "", "refund address")
@@ -166,7 +179,10 @@ func IBCTransferCmd(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			destChainID := viper.GetString(flagDestChainID)
+			destChainID, err := strconv.Atoi(viper.GetString(flagDestChainID))
+			if err != nil {
+				return err
+			}
 
 			bep2TokenSymbol := viper.GetString(flagBEP2TokenSymbol)
 			contractAddrStr := viper.GetString(flagContractAddr)
@@ -191,13 +207,16 @@ func IBCTransferCmd(cdc *codec.Codec) *cobra.Command {
 			expireTime := viper.GetInt64(flagExpireTime)
 			relayReward := viper.GetInt64(flagRelayReward)
 
-			channelID := ibc.TransferChannelID
+			channelID, err := sdk.GetChannelID("transfer")
+			if err != nil {
+				return err
+			}
 			packageBytes, err := client.SerializeTransferPackage(bep2TokenSymbol, contractAddr, from, recipient, amount, expireTime, relayReward)
 			if err != nil {
 				return err
 			}
 
-			msg := ibc.NewIBCPackage(from, destChainID, channelID, packageBytes)
+			msg := ibc.NewIBCPackage(from, sdk.CrossChainID(destChainID), channelID, packageBytes)
 
 			if cliCtx.GenerateOnly {
 				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg})
@@ -207,7 +226,6 @@ func IBCTransferCmd(cdc *codec.Codec) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().String(flagDestChainID, "", "destination chain-id")
 	cmd.Flags().String(flagBEP2TokenSymbol, "", "bep2 token symbol")
 	cmd.Flags().String(flagContractAddr, "", "ERC20 contract address")
 	cmd.Flags().String(flagRecipient, "", "recipient address")
