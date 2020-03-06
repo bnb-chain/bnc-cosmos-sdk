@@ -23,7 +23,7 @@ func NewKeeper(cdc *codec.Codec, storeKey sdk.StoreKey, codespace sdk.CodespaceT
 }
 
 func (k Keeper) CreateIBCPackage(ctx sdk.Context, destChainID sdk.CrossChainID, channelID sdk.ChannelID, value []byte) sdk.Error {
-	sequence, err:= k.getSequence(ctx, channelID)
+	sequence, err := k.getSequence(ctx, destChainID, channelID)
 	if err != nil {
 		return ErrUnsupportedChannel(DefaultCodespace, err.Error())
 	}
@@ -36,7 +36,7 @@ func (k Keeper) CreateIBCPackage(ctx sdk.Context, destChainID sdk.CrossChainID, 
 	}
 	kvStore.Set(key, value)
 
-	k.incrSequence(ctx, channelID)
+	k.incrSequence(ctx, destChainID, channelID)
 	return nil
 }
 
@@ -62,21 +62,21 @@ func (k Keeper) CleanupIBCPackage(ctx sdk.Context, destChainID sdk.CrossChainID,
 	return nil
 }
 
-func (k *Keeper) getSequence(ctx sdk.Context, channelID sdk.ChannelID) (uint64, error) {
+func (k *Keeper) getSequence(ctx sdk.Context, destChainID sdk.CrossChainID, channelID sdk.ChannelID) (uint64, error) {
 	kvStore := ctx.KVStore(k.storeKey)
-	bz := kvStore.Get(buildChannelSequenceKey(channelID))
+	bz := kvStore.Get(buildChannelSequenceKey(destChainID, channelID))
 	if bz == nil {
 		return 0, nil
 	}
 	return binary.BigEndian.Uint64(bz), nil
 }
 
-func (k *Keeper) incrSequence(ctx sdk.Context, channelID sdk.ChannelID) {
-	sequence, _ := k.getSequence(ctx, channelID)
+func (k *Keeper) incrSequence(ctx sdk.Context, destChainID sdk.CrossChainID, channelID sdk.ChannelID) {
+	sequence, _ := k.getSequence(ctx, destChainID, channelID)
 
 	sequenceBytes := make([]byte, sequenceLength)
-	binary.BigEndian.PutUint64(sequenceBytes ,sequence+1)
+	binary.BigEndian.PutUint64(sequenceBytes, sequence+1)
 
 	kvStore := ctx.KVStore(k.storeKey)
-	kvStore.Set(buildChannelSequenceKey(channelID), sequenceBytes)
+	kvStore.Set(buildChannelSequenceKey(destChainID, channelID), sequenceBytes)
 }

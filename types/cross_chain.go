@@ -1,6 +1,10 @@
 package types
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+	"strconv"
+)
 
 type ChannelID uint8
 type CrossChainID uint16
@@ -49,6 +53,17 @@ func InitCrossChainID(sourceChainID CrossChainID) {
 
 func GetSourceChainID() CrossChainID {
 	return CrossChainChannelHub.sourceChainID
+}
+
+func ParseCrossChainID(input string) (CrossChainID, error) {
+	destChainID, err := strconv.Atoi(input)
+	if err != nil {
+		return CrossChainID(0), err
+	}
+	if destChainID > math.MaxUint16 {
+		return CrossChainID(0), fmt.Errorf("dest chain-id must be uint16")
+	}
+	return CrossChainID(destChainID), nil
 }
 
 func (channelID ChannelID) String() string {
