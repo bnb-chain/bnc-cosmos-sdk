@@ -20,6 +20,8 @@ type Keeper struct {
 
 	// codespace
 	codespace sdk.CodespaceType
+
+	// sideChainStoreKeyPrefixes map[string][]byte	 // sideChainId -> storeKeyPrefix
 }
 
 func NewKeeper(cdc *codec.Codec, key, tkey sdk.StoreKey, ck bank.Keeper, addrPool *sdk.Pool, paramstore params.Subspace, codespace sdk.CodespaceType) Keeper {
@@ -35,6 +37,12 @@ func NewKeeper(cdc *codec.Codec, key, tkey sdk.StoreKey, ck bank.Keeper, addrPoo
 	}
 
 	return keeper
+}
+
+// get side chain store key prefix
+func (k Keeper) GetSideChainStoreKeyPrefix(id string) []byte {
+	// hard code first, will use `sideChainStoreKeyPrefixes` if we need to support multiple side chains
+	return []byte{0x99}
 }
 
 // Set the validator hooks

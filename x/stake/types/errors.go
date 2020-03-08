@@ -49,6 +49,10 @@ func ErrValidatorPubKeyExists(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidValidator, "validator already exist for this pubkey, must use new validator pubkey")
 }
 
+func ErrValidatorSideConsAddrExists(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidValidator, "validator already exist for this sideConsAddr, must use new validator sideConsAddr")
+}
+
 func ErrValidatorJailed(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidValidator, "validator for this address is currently jailed")
 }
@@ -164,8 +168,16 @@ func ErrNoRedelegation(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidDelegation, "no redelegation found")
 }
 
+func ErrBadRedelegationSrc(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidDelegation, "redelegation src validator not found")
+}
+
 func ErrBadRedelegationDst(codespace sdk.CodespaceType) sdk.Error {
-	return sdk.NewError(codespace, CodeInvalidDelegation, "redelegation validator not found")
+	return sdk.NewError(codespace, CodeInvalidDelegation, "redelegation dst validator not found")
+}
+
+func ErrSelfRedelegation(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidDelegation, "cannot redelegate to the same validator")
 }
 
 func ErrTransitiveRedelegation(codespace sdk.CodespaceType) sdk.Error {

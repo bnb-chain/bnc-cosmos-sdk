@@ -81,6 +81,15 @@ func (k Keeper) mustGetValidatorByConsAddr(ctx sdk.Context, consAddr sdk.ConsAdd
 	return validator
 }
 
+func (k Keeper) GetValidatorBySideConsAddr(ctx sdk.Context, sideConsAddr []byte) (validator types.Validator, found bool) {
+	store := ctx.KVStore(k.storeKey)
+	opAddr := store.Get(GetValidatorBySideConsAddrKey(sideConsAddr))
+	if opAddr == nil {
+		return validator, false
+	}
+	return k.GetValidator(ctx, opAddr)
+}
+
 //___________________________________________________________________________
 
 // set the main record holding validator details
@@ -93,31 +102,34 @@ func (k Keeper) SetValidator(ctx sdk.Context, validator types.Validator) {
 // validator index
 func (k Keeper) SetValidatorByConsAddr(ctx sdk.Context, validator types.Validator) {
 	store := ctx.KVStore(k.storeKey)
-	consAddr := sdk.ConsAddress(validator.ConsPubKey.Address())
-	store.Set(GetValidatorByConsAddrKey(consAddr), validator.OperatorAddr)
+	if validator.IsSideChainValidator() {
+		store.Set(GetValidatorByConsAddrKey(validator.SideConsAddr), validator.OperatorAddr)
+	} else {
+		consAddr := sdk.ConsAddress(validator.ConsPubKey.Address())
+		store.Set(GetValidatorByConsAddrKey(consAddr), validator.OperatorAddr)
+	}
 }
 
 // validator index
-func (k Keeper) SetValidatorByPowerIndex(ctx sdk.Context, validator types.Validator, pool types.Pool) {
+func (k Keeper) SetValidatorByPowerIndex(ctx sdk.Context, validator types.Validator) {
 	// jailed validators are not kept in the power index
 	if validator.Jailed {
 		return
 	}
 	store := ctx.KVStore(k.storeKey)
-	store.Set(GetValidatorsByPowerIndexKey(validator, pool), validator.OperatorAddr)
+	store.Set(GetValidatorsByPowerIndexKey(validator), validator.OperatorAddr)
 }
 
 // validator index
-func (k Keeper) DeleteValidatorByPowerIndex(ctx sdk.Context, validator types.Validator, pool types.Pool) {
+func (k Keeper) DeleteValidatorByPowerIndex(ctx sdk.Context, validator types.Validator) {
 	store := ctx.KVStore(k.storeKey)
-	store.Delete(GetValidatorsByPowerIndexKey(validator, pool))
+	store.Delete(GetValidatorsByPowerIndexKey(validator))
 }
 
 // validator index
 func (k Keeper) SetNewValidatorByPowerIndex(ctx sdk.Context, validator types.Validator) {
 	store := ctx.KVStore(k.storeKey)
-	pool := k.GetPool(ctx)
-	store.Set(GetValidatorsByPowerIndexKey(validator, pool), validator.OperatorAddr)
+	store.Set(GetValidatorsByPowerIndexKey(validator), validator.OperatorAddr)
 }
 
 //___________________________________________________________________________
@@ -127,7 +139,7 @@ func (k Keeper) AddValidatorTokensAndShares(ctx sdk.Context, validator types.Val
 	tokensToAdd int64) (valOut types.Validator, addedShares sdk.Dec) {
 
 	pool := k.GetPool(ctx)
-	k.DeleteValidatorByPowerIndex(ctx, validator, pool)
+	k.DeleteValidatorByPowerIndex(ctx, validator)
 	validator, pool, addedShares = validator.AddTokensFromDel(pool, tokensToAdd)
 	// increment the intra-tx counter
 	// in case of a conflict, the validator which least recently changed power takes precedence
@@ -136,7 +148,7 @@ func (k Keeper) AddValidatorTokensAndShares(ctx sdk.Context, validator types.Val
 	k.SetIntraTxCounter(ctx, counter+1)
 	k.SetValidator(ctx, validator)
 	k.SetPool(ctx, pool)
-	k.SetValidatorByPowerIndex(ctx, validator, pool)
+	k.SetValidatorByPowerIndex(ctx, validator)
 	return validator, addedShares
 }
 
@@ -145,22 +157,22 @@ func (k Keeper) RemoveValidatorTokensAndShares(ctx sdk.Context, validator types.
 	sharesToRemove sdk.Dec) (valOut types.Validator, removedTokens sdk.Dec) {
 
 	pool := k.GetPool(ctx)
-	k.DeleteValidatorByPowerIndex(ctx, validator, pool)
+	k.DeleteValidatorByPowerIndex(ctx, validator)
 	validator, pool, removedTokens = validator.RemoveDelShares(pool, sharesToRemove)
 	k.SetValidator(ctx, validator)
 	k.SetPool(ctx, pool)
-	k.SetValidatorByPowerIndex(ctx, validator, pool)
+	k.SetValidatorByPowerIndex(ctx, validator)
 	return validator, removedTokens
 }
 
 // Update the tokens of an existing validator, update the validators power index key
 func (k Keeper) RemoveValidatorTokens(ctx sdk.Context, validator types.Validator, tokensToRemove sdk.Dec) types.Validator {
 	pool := k.GetPool(ctx)
-	k.DeleteValidatorByPowerIndex(ctx, validator, pool)
+	k.DeleteValidatorByPowerIndex(ctx, validator)
 	validator, pool = validator.RemoveTokens(pool, tokensToRemove)
 	k.SetValidator(ctx, validator)
 	k.SetPool(ctx, pool)
-	k.SetValidatorByPowerIndex(ctx, validator, pool)
+	k.SetValidatorByPowerIndex(ctx, validator)
 	return validator
 }
 
@@ -192,11 +204,13 @@ func (k Keeper) RemoveValidator(ctx sdk.Context, address sdk.ValAddress) {
 
 	// delete the old validator record
 	store := ctx.KVStore(k.storeKey)
-	pool := k.GetPool(ctx)
 	store.Delete(GetValidatorKey(address))
-	store.Delete(GetValidatorByConsAddrKey(sdk.ConsAddress(validator.ConsPubKey.Address())))
-	store.Delete(GetValidatorsByPowerIndexKey(validator, pool))
-
+	if validator.IsSideChainValidator() {
+		store.Delete(GetValidatorByConsAddrKey(validator.SideConsAddr))
+	} else {
+		store.Delete(GetValidatorByConsAddrKey(sdk.ConsAddress(validator.ConsPubKey.Address())))
+	}
+	store.Delete(GetValidatorsByPowerIndexKey(validator))
 }
 
 //___________________________________________________________________________

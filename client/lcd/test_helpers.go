@@ -338,7 +338,7 @@ func startLCD(logger log.Logger, listenAddr string, cdc *codec.Codec) (net.Liste
 		return nil, err
 	}
 
-	go tmrpc.StartHTTPServer(listener, createHandler(cdc), logger, &tmrpc.Config{})
+	go tmrpc.StartHTTPServer(listener, createHandler(cdc), logger, tmrpc.DefaultConfig())
 	return listener, nil
 }
 

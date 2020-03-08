@@ -160,10 +160,9 @@ func (k Keeper) jailValidator(ctx sdk.Context, validator types.Validator) {
 		panic(fmt.Sprintf("cannot jail already jailed validator, validator: %v\n", validator))
 	}
 
-	pool := k.GetPool(ctx)
 	validator.Jailed = true
 	k.SetValidator(ctx, validator)
-	k.DeleteValidatorByPowerIndex(ctx, validator, pool)
+	k.DeleteValidatorByPowerIndex(ctx, validator)
 }
 
 // remove a validator from jail
@@ -172,10 +171,9 @@ func (k Keeper) unjailValidator(ctx sdk.Context, validator types.Validator) {
 		panic(fmt.Sprintf("cannot unjail already unjailed validator, validator: %v\n", validator))
 	}
 
-	pool := k.GetPool(ctx)
 	validator.Jailed = false
 	k.SetValidator(ctx, validator)
-	k.SetValidatorByPowerIndex(ctx, validator, pool)
+	k.SetValidatorByPowerIndex(ctx, validator)
 }
 
 // perform all the store operations for when a validator status becomes bonded
@@ -183,7 +181,7 @@ func (k Keeper) bondValidator(ctx sdk.Context, validator types.Validator) types.
 
 	pool := k.GetPool(ctx)
 
-	k.DeleteValidatorByPowerIndex(ctx, validator, pool)
+	k.DeleteValidatorByPowerIndex(ctx, validator)
 
 	validator.BondHeight = ctx.BlockHeight()
 
@@ -194,7 +192,7 @@ func (k Keeper) bondValidator(ctx sdk.Context, validator types.Validator) types.
 	// save the now bonded validator record to the three referenced stores
 	k.SetValidator(ctx, validator)
 
-	k.SetValidatorByPowerIndex(ctx, validator, pool)
+	k.SetValidatorByPowerIndex(ctx, validator)
 
 	// call the bond hook if present
 	if k.hooks != nil {
@@ -210,7 +208,7 @@ func (k Keeper) beginUnbondingValidator(ctx sdk.Context, validator types.Validat
 	pool := k.GetPool(ctx)
 	params := k.GetParams(ctx)
 
-	k.DeleteValidatorByPowerIndex(ctx, validator, pool)
+	k.DeleteValidatorByPowerIndex(ctx, validator)
 
 	// sanity check
 	if validator.Status != sdk.Bonded {
@@ -227,7 +225,7 @@ func (k Keeper) beginUnbondingValidator(ctx sdk.Context, validator types.Validat
 	// save the now unbonded validator record
 	k.SetValidator(ctx, validator)
 
-	k.SetValidatorByPowerIndex(ctx, validator, pool)
+	k.SetValidatorByPowerIndex(ctx, validator)
 
 	// Adds to unbonding validator queue
 	k.InsertValidatorQueue(ctx, validator)

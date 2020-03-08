@@ -1,11 +1,12 @@
 package types
 
 import (
+	"encoding/json"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/stretchr/testify/require"
+	"github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/crypto"
 )
 
@@ -201,4 +202,15 @@ func TestMsgBeginUnbonding(t *testing.T) {
 			require.NotNil(t, msg.ValidateBasic(), "test: %v", tc.name)
 		}
 	}
+}
+
+func TestMsgSideChainDelegate_Type(t *testing.T) {
+	msg := NewMsgSideChainDelegate("aaa", sdk.AccAddress(addr1), addr2, coinPos)
+	bz, err := json.Marshal(msg)
+	require.NoError(t, err)
+	t.Log(string(bz))
+
+	bz2, err := amino.MarshalJSON(msg)
+	require.NoError(t, err)
+	t.Log(string(bz2))
 }

@@ -71,6 +71,10 @@ func (c Context) Value(key interface{}) interface{} {
 
 // KVStore fetches a KVStore from the MultiStore.
 func (c Context) KVStore(key StoreKey) KVStore {
+	kvStore := c.MultiStore().GetKVStore(key)
+	if prefix, ok := c.Value(contextKeySideChainKeyPrefix).([]byte); ok {
+		return kvStore.Prefix(prefix)
+	}
 	return c.MultiStore().GetKVStore(key)
 }
 
@@ -140,6 +144,7 @@ const (
 	contextKeyVoteInfos
 	contextKeyAccountCache
 	contextKeyRouterCallRecord
+	contextKeySideChainKeyPrefix
 )
 
 func (c Context) MultiStore() MultiStore {
@@ -247,6 +252,10 @@ func (c Context) WithAccountCache(cache AccountCache) Context {
 
 func (c Context) WithRouterCallRecord(record map[string]bool) Context {
 	return c.withValue(contextKeyRouterCallRecord, record)
+}
+
+func (c Context) WithSideChainKeyPrefix(prefix []byte) Context {
+	return c.withValue(contextKeySideChainKeyPrefix, prefix)
 }
 
 // Cache the multistore and return a new cached context. The cached context is

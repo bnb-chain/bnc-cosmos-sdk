@@ -37,6 +37,11 @@ type Validator struct {
 	UnbondingMinTime time.Time `json:"unbonding_time"`   // if unbonding, min time for the validator to complete unbonding
 
 	Commission Commission `json:"commission"` // commission parameters
+
+	DistributionAddr sdk.AccAddress // the address receives rewards from the side address, and distribute rewards to delegators. It's auto generated
+	SideChainId      string         // side chain id to distinguish different side chains
+	SideConsAddr     []byte         // consensus address of the side chain validator, this replaces the `ConsPubKey`
+	SideFeeAddr      []byte         // fee address on the side chain
 }
 
 // NewValidator - initialize a new validator
@@ -44,6 +49,7 @@ func NewValidator(operator sdk.ValAddress, pubKey crypto.PubKey, description Des
 	return NewValidatorWithFeeAddr(sdk.AccAddress(operator), operator, pubKey, description)
 }
 
+// Note a few fields are initialized with default value. They will be updated later
 func NewValidatorWithFeeAddr(feeAddr sdk.AccAddress, operator sdk.ValAddress, pubKey crypto.PubKey, description Description) Validator {
 	return Validator{
 		FeeAddr:            feeAddr,
@@ -60,6 +66,33 @@ func NewValidatorWithFeeAddr(feeAddr sdk.AccAddress, operator sdk.ValAddress, pu
 		UnbondingMinTime:   time.Unix(0, 0).UTC(),
 		Commission:         NewCommission(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec()),
 	}
+}
+
+func NewSideChainValidator(feeAddr sdk.AccAddress, operator sdk.ValAddress, description Description, sideChainId string, sideConsAddr, sideFeeAddr []byte) Validator {
+	return Validator{
+		FeeAddr:            feeAddr,
+		OperatorAddr:       operator,
+		ConsPubKey:         nil, // side chain validators do not need this
+		Jailed:             false,
+		Status:             sdk.Unbonded,
+		Tokens:             sdk.ZeroDec(),
+		DelegatorShares:    sdk.ZeroDec(),
+		Description:        description,
+		BondHeight:         int64(0),
+		BondIntraTxCounter: int16(0),
+		UnbondingHeight:    int64(0),
+		UnbondingMinTime:   time.Unix(0, 0).UTC(),
+		Commission:         NewCommission(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec()),
+		DistributionAddr:   generateDistributionAddr(operator, sideChainId),
+		SideChainId:        sideChainId,
+		SideConsAddr:       sideConsAddr,
+		SideFeeAddr:        sideFeeAddr,
+	}
+}
+
+func generateDistributionAddr(operator sdk.ValAddress, sideChainId string) sdk.AccAddress {
+	// TODO:
+	return sdk.AccAddress{}
 }
 
 // return the redelegation without fields contained within the key for the store
@@ -413,3 +446,4 @@ func (v Validator) GetTokens() sdk.Dec           { return v.Tokens }
 func (v Validator) GetCommission() sdk.Dec       { return v.Commission.Rate }
 func (v Validator) GetDelegatorShares() sdk.Dec  { return v.DelegatorShares }
 func (v Validator) GetBondHeight() int64         { return v.BondHeight }
+func (v Validator) IsSideChainValidator() bool   { return len(v.SideChainId) != 0 }

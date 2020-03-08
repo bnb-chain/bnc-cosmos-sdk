@@ -238,7 +238,7 @@ func TestUndelegateSelfDelegation(t *testing.T) {
 	keeper.SetDelegation(ctx, selfDelegation)
 
 	// create a second delegation to this validator
-	keeper.DeleteValidatorByPowerIndex(ctx, validator, pool)
+	keeper.DeleteValidatorByPowerIndex(ctx, validator)
 	validator, pool, issuedShares = validator.AddTokensFromDel(pool, sdk.NewDecWithoutFra(10).RawInt())
 	require.Equal(t, sdk.NewDecWithoutFra(10), issuedShares)
 	keeper.SetPool(ctx, pool)
@@ -286,7 +286,7 @@ func TestUndelegateFromUnbondingValidator(t *testing.T) {
 	keeper.SetDelegation(ctx, selfDelegation)
 
 	// create a second delegation to this validator
-	keeper.DeleteValidatorByPowerIndex(ctx, validator, pool)
+	keeper.DeleteValidatorByPowerIndex(ctx, validator)
 	validator, pool, issuedShares = validator.AddTokensFromDel(pool, sdk.NewDecWithoutFra(10).RawInt())
 	require.Equal(t, sdk.NewDecWithoutFra(10), issuedShares)
 	keeper.SetPool(ctx, pool)
@@ -364,7 +364,7 @@ func TestUndelegateFromUnbondedValidator(t *testing.T) {
 	keeper.SetDelegation(ctx, selfDelegation)
 
 	// create a second delegation to this validator
-	keeper.DeleteValidatorByPowerIndex(ctx, validator, pool)
+	keeper.DeleteValidatorByPowerIndex(ctx, validator)
 	validator, pool, issuedShares = validator.AddTokensFromDel(pool, sdk.NewDecWithoutFra(10).RawInt())
 	_,_,_=keeper.bankKeeper.AddCoins(ctx, DelegationAccAddr, sdk.Coins{sdk.NewCoin(keeper.BondDenom(ctx), sdk.NewDecWithoutFra(10).RawInt())})
 	require.Equal(t, sdk.NewDecWithoutFra(10), issuedShares)
@@ -444,7 +444,7 @@ func TestUnbondingAllDelegationFromValidator(t *testing.T) {
 	keeper.SetDelegation(ctx, selfDelegation)
 
 	// create a second delegation to this validator
-	keeper.DeleteValidatorByPowerIndex(ctx, validator, pool)
+	keeper.DeleteValidatorByPowerIndex(ctx, validator)
 	validator, pool, issuedShares = validator.AddTokensFromDel(pool, sdk.NewDecWithoutFra(10).RawInt())
 	require.Equal(t, sdk.NewDecWithoutFra(10), issuedShares)
 	keeper.SetPool(ctx, pool)
@@ -663,7 +663,7 @@ func TestRedelegateFromUnbondingValidator(t *testing.T) {
 	keeper.SetDelegation(ctx, selfDelegation)
 
 	// create a second delegation to this validator
-	keeper.DeleteValidatorByPowerIndex(ctx, validator, pool)
+	keeper.DeleteValidatorByPowerIndex(ctx, validator)
 	validator, pool, issuedShares = validator.AddTokensFromDel(pool, sdk.NewDecWithoutFra(10).RawInt())
 	require.Equal(t, sdk.NewDecWithoutFra(10), issuedShares)
 	keeper.SetPool(ctx, pool)
@@ -747,7 +747,7 @@ func TestRedelegateFromUnbondedValidator(t *testing.T) {
 	keeper.SetDelegation(ctx, selfDelegation)
 
 	// create a second delegation to this validator
-	keeper.DeleteValidatorByPowerIndex(ctx, validator, pool)
+	keeper.DeleteValidatorByPowerIndex(ctx, validator)
 	validator, pool, issuedShares = validator.AddTokensFromDel(pool, sdk.NewDecWithoutFra(10).RawInt())
 	validator.BondIntraTxCounter = 1
 	require.Equal(t, sdk.NewDecWithoutFra(10), issuedShares)
