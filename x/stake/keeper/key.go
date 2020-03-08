@@ -52,6 +52,13 @@ func GetValidatorByConsAddrKey(addr sdk.ConsAddress) []byte {
 	return append(ValidatorsByConsAddrKey, addr.Bytes()...)
 }
 
+// gets the key for the validator with sideConsAddr
+// VALUE: validator operator address ([]byte)
+// NOTE: here we reuse the `ValidatorsByConsAddrKey` as side chain validator does not need a main chain pubkey(consAddr).
+func GetValidatorBySideConsAddrKey(sideConsAddr []byte) []byte {
+	return append(ValidatorsByConsAddrKey, sideConsAddr...)
+}
+
 // Get the validator operator address from LastValidatorPowerKey
 func AddressFromLastValidatorPowerKey(key []byte) []byte {
 	return key[1:] // remove prefix bytes
@@ -61,7 +68,7 @@ func AddressFromLastValidatorPowerKey(key []byte) []byte {
 // Power index is the key used in the power-store, and represents the relative
 // power ranking of the validator.
 // VALUE: validator operator address ([]byte)
-func GetValidatorsByPowerIndexKey(validator types.Validator, pool types.Pool) []byte {
+func GetValidatorsByPowerIndexKey(validator types.Validator) []byte {
 	// NOTE the address doesn't need to be stored because counter bytes must always be different
 	return getValidatorPowerRank(validator)
 }

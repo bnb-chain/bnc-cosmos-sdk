@@ -30,6 +30,12 @@ type (
 	QueryValidatorParams       = querier.QueryValidatorParams
 	QueryBondsParams           = querier.QueryBondsParams
 	CreateValidatorJsonMsg     = types.CreateValidatorJsonMsg
+
+	MsgCreateSideChainValidator = types.MsgCreateSideChainValidator
+	MsgEditSideChainValidator   = types.MsgEditSideChainValidator
+	MsgSideChainDelegate        = types.MsgSideChainDelegate
+	MsgSideChainBeginRedelegate = types.MsgSideChainBeginRedelegate
+	MsgSideChainUndelegate      = types.MsgSideChainUndelegate
 )
 
 var (
@@ -70,6 +76,7 @@ var (
 	InitialPool             = types.InitialPool
 	NewValidator            = types.NewValidator
 	NewValidatorWithFeeAddr = types.NewValidatorWithFeeAddr
+	NewSideChainValidator   = types.NewSideChainValidator
 	NewDescription          = types.NewDescription
 	NewCommission           = types.NewCommission
 	NewCommissionMsg        = types.NewCommissionMsg
@@ -85,6 +92,13 @@ var (
 	NewMsgDelegate                  = types.NewMsgDelegate
 	NewMsgBeginUnbonding            = types.NewMsgBeginUnbonding
 	NewMsgBeginRedelegate           = types.NewMsgBeginRedelegate
+
+	NewMsgCreateSideChainValidator           = types.NewMsgCreateSideChainValidator
+	NewMsgCreateSideChainValidatorOnBehalfOf = types.NewMsgCreateSideChainValidatorOnBehalfOf
+	NewMsgEditSideChainValidator             = types.NewMsgEditSideChainValidator
+	NewMsgSideChainDelegate                  = types.NewMsgSideChainDelegate
+	NewMsgSideChainBeginUndelegate           = types.NewMsgSideChainBeginRedelegate
+	NewMsgSideChainUndelegate                = types.NewMsgSideChainUndelegate
 
 	NewQuerier = querier.NewQuerier
 )
@@ -117,16 +131,17 @@ const (
 )
 
 var (
-	ErrNilValidatorAddr      = types.ErrNilValidatorAddr
-	ErrNoValidatorFound      = types.ErrNoValidatorFound
-	ErrValidatorOwnerExists  = types.ErrValidatorOwnerExists
-	ErrValidatorPubKeyExists = types.ErrValidatorPubKeyExists
-	ErrValidatorJailed       = types.ErrValidatorJailed
-	ErrInvalidProposal       = types.ErrInvalidProposal
-	ErrBadRemoveValidator    = types.ErrBadRemoveValidator
-	ErrDescriptionLength     = types.ErrDescriptionLength
-	ErrCommissionNegative    = types.ErrCommissionNegative
-	ErrCommissionHuge        = types.ErrCommissionHuge
+	ErrNilValidatorAddr           = types.ErrNilValidatorAddr
+	ErrNoValidatorFound           = types.ErrNoValidatorFound
+	ErrValidatorOwnerExists       = types.ErrValidatorOwnerExists
+	ErrValidatorPubKeyExists      = types.ErrValidatorPubKeyExists
+	ErrValidatorSideConsAddrExist = types.ErrValidatorSideConsAddrExists
+	ErrValidatorJailed            = types.ErrValidatorJailed
+	ErrInvalidProposal            = types.ErrInvalidProposal
+	ErrBadRemoveValidator         = types.ErrBadRemoveValidator
+	ErrDescriptionLength          = types.ErrDescriptionLength
+	ErrCommissionNegative         = types.ErrCommissionNegative
+	ErrCommissionHuge             = types.ErrCommissionHuge
 
 	ErrNilDelegatorAddr          = types.ErrNilDelegatorAddr
 	ErrBadDenom                  = types.ErrBadDenom
@@ -143,7 +158,9 @@ var (
 	ErrNotMature             = types.ErrNotMature
 	ErrNoUnbondingDelegation = types.ErrNoUnbondingDelegation
 	ErrNoRedelegation        = types.ErrNoRedelegation
+	ErrBadRedelegationSrc    = types.ErrBadRedelegationSrc
 	ErrBadRedelegationDst    = types.ErrBadRedelegationDst
+	ErrSelfRedelegation      = types.ErrSelfRedelegation
 
 	ErrBothShareMsgsGiven    = types.ErrBothShareMsgsGiven
 	ErrNeitherShareMsgsGiven = types.ErrNeitherShareMsgsGiven

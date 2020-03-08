@@ -30,6 +30,22 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 		//	return handleMsgBeginRedelegate(ctx, msg, k)
 		//case types.MsgBeginUnbonding:
 		//	return handleMsgBeginUnbonding(ctx, msg, k)
+		//case MsgSideChain
+		case types.MsgCreateSideChainValidator:
+			newCtx := ctx.WithSideChainKeyPrefix(k.GetSideChainStoreKeyPrefix(msg.SideChainId))
+			return handleMsgCreateSideChainValidator(newCtx, msg, k)
+		case types.MsgEditSideChainValidator:
+			newCtx := ctx.WithSideChainKeyPrefix(k.GetSideChainStoreKeyPrefix(msg.SideChainId))
+			return handleMsgEditSideChainValidator(newCtx, msg, k)
+		case types.MsgSideChainDelegate:
+			newCtx := ctx.WithSideChainKeyPrefix(k.GetSideChainStoreKeyPrefix(msg.SideChainId))
+			return handleMsgSideChainDelegate(newCtx, msg, k)
+		case types.MsgSideChainBeginRedelegate:
+			newCtx := ctx.WithSideChainKeyPrefix(k.GetSideChainStoreKeyPrefix(msg.SideChainId))
+			return handleMsgSideChainRedelegate(newCtx, msg, k)
+		case types.MsgSideChainUndelegate:
+			newCtx := ctx.WithSideChainKeyPrefix(k.GetSideChainStoreKeyPrefix(msg.SideChainId))
+			return handleMsgSideChainUndelegate(newCtx, msg, k)
 		default:
 			return sdk.ErrTxDecode("invalid message parse in staking module").Result()
 		}
@@ -195,7 +211,6 @@ func handleMsgCreateValidator(ctx sdk.Context, msg MsgCreateValidator, k keeper.
 	}
 
 	tags := sdk.NewTags(
-		tags.Action, tags.ActionCreateValidator,
 		tags.DstValidator, []byte(msg.ValidatorAddr.String()),
 		tags.Moniker, []byte(msg.Description.Moniker),
 		tags.Identity, []byte(msg.Description.Identity),
@@ -312,7 +327,6 @@ func handleMsgEditValidator(ctx sdk.Context, msg types.MsgEditValidator, k keepe
 	k.SetValidator(ctx, validator)
 
 	tags := sdk.NewTags(
-		tags.Action, tags.ActionEditValidator,
 		tags.DstValidator, []byte(msg.ValidatorAddr.String()),
 		tags.Moniker, []byte(description.Moniker),
 		tags.Identity, []byte(description.Identity),
@@ -333,6 +347,7 @@ func handleMsgDelegate(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper) 
 		return ErrBadDenom(k.Codespace()).Result()
 	}
 
+	// TODO: remove this check
 	if validator.Jailed && !bytes.Equal(validator.OperatorAddr, msg.DelegatorAddr) {
 		return ErrValidatorJailed(k.Codespace()).Result()
 	}
@@ -343,7 +358,6 @@ func handleMsgDelegate(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper) 
 	}
 
 	tags := sdk.NewTags(
-		tags.Action, tags.ActionDelegate,
 		tags.Delegator, []byte(msg.DelegatorAddr.String()),
 		tags.DstValidator, []byte(msg.ValidatorAddr.String()),
 	)
@@ -362,7 +376,6 @@ func handleMsgBeginUnbonding(ctx sdk.Context, msg types.MsgBeginUnbonding, k kee
 	finishTime := types.MsgCdc.MustMarshalBinaryLengthPrefixed(ubd.MinTime)
 
 	tags := sdk.NewTags(
-		tags.Action, tags.ActionBeginUnbonding,
 		tags.Delegator, []byte(msg.DelegatorAddr.String()),
 		tags.SrcValidator, []byte(msg.ValidatorAddr.String()),
 		tags.EndTime, finishTime,
@@ -380,7 +393,6 @@ func handleMsgBeginRedelegate(ctx sdk.Context, msg types.MsgBeginRedelegate, k k
 	finishTime := types.MsgCdc.MustMarshalBinaryLengthPrefixed(red.MinTime)
 
 	tags := sdk.NewTags(
-		tags.Action, tags.ActionBeginRedelegation,
 		tags.Delegator, []byte(msg.DelegatorAddr.String()),
 		tags.SrcValidator, []byte(msg.ValidatorSrcAddr.String()),
 		tags.DstValidator, []byte(msg.ValidatorDstAddr.String()),

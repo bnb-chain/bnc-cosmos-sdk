@@ -419,9 +419,9 @@ func (k Keeper) unbond(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValA
 	// remove the delegation
 	if delegation.Shares.IsZero() {
 
-		// if the delegation is the operator of the validator then
+		// if the delegation is the self-delegation then
 		// trigger a jail validator
-		if bytes.Equal(delegation.DelegatorAddr, validator.OperatorAddr) && !validator.Jailed {
+		if bytes.Equal(delegation.DelegatorAddr, validator.FeeAddr) && !validator.Jailed {
 			k.jailValidator(ctx, validator)
 			validator = k.mustGetValidator(ctx, validator.OperatorAddr)
 		}
@@ -550,9 +550,19 @@ func (k Keeper) CompleteUnbonding(ctx sdk.Context, delAddr sdk.AccAddress, valAd
 func (k Keeper) BeginRedelegation(ctx sdk.Context, delAddr sdk.AccAddress,
 	valSrcAddr, valDstAddr sdk.ValAddress, sharesAmount sdk.Dec) (types.Redelegation, sdk.Error) {
 
+	dstValidator, found := k.GetValidator(ctx, valDstAddr)
+	if !found {
+		return types.Redelegation{}, types.ErrBadRedelegationDst(k.Codespace())
+	}
+
+	_, found = k.GetValidator(ctx, valSrcAddr)
+	if !found {
+		return types.Redelegation{}, types.ErrBadRedelegationSrc(k.Codespace())
+	}
+
 	// check if there is already a redelgation in progress from src to dst
 	// TODO quick fix, instead we should use an index, see https://github.com/cosmos/cosmos-sdk/issues/1402
-	_, found := k.GetRedelegation(ctx, delAddr, valSrcAddr, valDstAddr)
+	_, found = k.GetRedelegation(ctx, delAddr, valSrcAddr, valDstAddr)
 	if found {
 		return types.Redelegation{}, types.ErrConflictingRedelegation(k.Codespace())
 	}
@@ -576,10 +586,6 @@ func (k Keeper) BeginRedelegation(ctx sdk.Context, delAddr sdk.AccAddress,
 	pool.LooseTokens = pool.LooseTokens.Sub(change)
 	k.SetPool(ctx, pool)
 
-	dstValidator, found := k.GetValidator(ctx, valDstAddr)
-	if !found {
-		return types.Redelegation{}, types.ErrBadRedelegationDst(k.Codespace())
-	}
 	sharesCreated, err := k.Delegate(ctx, delAddr, returnCoin, dstValidator, false)
 	if err != nil {
 		return types.Redelegation{}, err

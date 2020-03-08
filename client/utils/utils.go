@@ -19,6 +19,13 @@ import (
 	"github.com/tendermint/tendermint/crypto/tmhash"
 )
 
+func GenerateOrBroadcastMsgs(txBldr authtxb.TxBuilder, cliCtx context.CLIContext, msgs []sdk.Msg) error {
+	if cliCtx.GenerateOnly {
+		return PrintUnsignedStdTx(txBldr, cliCtx, msgs)
+	}
+	return CompleteAndBroadcastTxCli(txBldr, cliCtx, msgs)
+}
+
 // CompleteAndBroadcastTxCli implements a utility function that
 // facilitates sending a series of messages in a signed
 // transaction given a TxBuilder and a QueryContext. It ensures
