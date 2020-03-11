@@ -632,3 +632,27 @@ func (k Keeper) CompleteRedelegation(ctx sdk.Context, delAddr sdk.AccAddress,
 	k.RemoveRedelegation(ctx, red)
 	return nil
 }
+
+func (k Keeper) ValidateUnbondAmount(
+	ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, amt int64,
+) (shares sdk.Dec, err sdk.Error) {
+
+	validator, found := k.GetValidator(ctx, valAddr)
+	if !found {
+		return shares, types.ErrNoValidatorFound(k.Codespace())
+	}
+
+	del, found := k.GetDelegation(ctx, delAddr, valAddr)
+	if !found {
+		return shares, types.ErrNoDelegation(k.Codespace())
+	}
+
+	amountDec := sdk.NewDecFromInt(amt)
+	shares, err = validator.SharesFromTokens(amountDec)
+	if err != nil {
+		return shares, err
+	}
+	// if the shares are greater than the delegation shares, we just unbond all shares.
+	shares = sdk.MinDec(shares, del.GetShares())
+	return shares, nil
+}

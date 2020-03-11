@@ -357,6 +357,16 @@ func (v Validator) UpdateStatus(pool Pool, NewStatus sdk.BondStatus) (Validator,
 	return v, pool
 }
 
+// SharesFromTokens returns the shares of a delegation given a bond amount. It
+// returns an error if the validator has no tokens.
+func (v Validator) SharesFromTokens(amt sdk.Dec) (sdk.Dec, sdk.Error) {
+	if v.Tokens.IsZero() {
+		return sdk.ZeroDec(), ErrInsufficientShares(DefaultCodespace)
+	}
+
+	return v.DelegatorShares.Mul(amt).Quo(v.Tokens), nil
+}
+
 // removes tokens from a validator
 func (v Validator) RemoveTokens(pool Pool, tokens sdk.Dec) (Validator, Pool) {
 	if v.Status == sdk.Bonded {

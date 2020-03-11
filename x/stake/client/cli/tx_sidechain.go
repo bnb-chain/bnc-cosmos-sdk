@@ -11,10 +11,26 @@ import (
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
 	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 	"github.com/cosmos/cosmos-sdk/x/stake"
-	"github.com/cosmos/cosmos-sdk/x/stake/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
+
+func AddCommands(root *cobra.Command, cdc *codec.Codec) {
+	stakingCmd := &cobra.Command{
+		Use:   "staking",
+		Short: "staking commands",
+	}
+
+	stakingCmd.AddCommand(
+		client.PostCommands(
+			GetCmdCreateSideChainValidator(cdc),
+			GetCmdEditSideChainValidator(cdc),
+			GetCmdSideChainDelegate(cdc),
+			GetCmdSideChainRedelegate(cdc),
+			GetCmdSideChainUnbond(cdc),
+		)...,
+	)
+}
 
 func GetCmdCreateSideChainValidator(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
@@ -151,7 +167,7 @@ func GetCmdSideChainDelegate(cdc *codec.Codec) *cobra.Command {
 				WithCodec(cdc).
 				WithAccountDecoder(authcmd.GetAccountDecoder(cdc))
 
-			amount, err := sdk.ParseCoin(viper.GetString(FlagAmount))
+			amount, err := getAmount()
 			if err != nil {
 				return err
 			}
@@ -179,12 +195,11 @@ func GetCmdSideChainDelegate(cdc *codec.Codec) *cobra.Command {
 	cmd.Flags().AddFlagSet(fsAmount)
 	cmd.Flags().AddFlagSet(fsValidator)
 	cmd.Flags().AddFlagSet(fsSideChainId)
-
 	return cmd
 }
 
-func GetCmdSideChainRedelegate(storeName string, cdc *codec.Codec) *cobra.Command {
-	return &cobra.Command{
+func GetCmdSideChainRedelegate(cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
 		Use:   "bsc-redelegate",
 		Short: "Redelegate illiquid tokens from one validator to another",
 
@@ -194,7 +209,6 @@ func GetCmdSideChainRedelegate(storeName string, cdc *codec.Codec) *cobra.Comman
 				WithCodec(cdc).
 				WithAccountDecoder(authcmd.GetAccountDecoder(cdc))
 
-			var err error
 			delAddr, err := cliCtx.GetFromAddress()
 			if err != nil {
 				return err
@@ -210,19 +224,65 @@ func GetCmdSideChainRedelegate(storeName string, cdc *codec.Codec) *cobra.Comman
 				return err
 			}
 
-			amountStr := viper.GetString(FlagAmount)
-			if len(amountStr) == 0 {
-				return fmt.Errorf("%s is required", FlagAmount)
-			}
-			amount, err := sdk.NewDecFromStr(amountStr)
+			amount, err := getAmount()
 			if err != nil {
 				return err
 			}
 
-			msg := types.NewMsgBeginRedelegate(delAddr, valSrcAddr, valDstAddr, amount)
+			sideChainId, err := getSideChainId()
+			if err != nil {
+				return err
+			}
+
+			msg := stake.NewMsgSideChainBeginRedelegate(sideChainId, delAddr, valSrcAddr, valDstAddr, amount)
 			return utils.GenerateOrBroadcastMsgs(txBldr, cliCtx, []sdk.Msg{msg})
 		},
 	}
+
+	cmd.Flags().AddFlagSet(fsAmount)
+	cmd.Flags().AddFlagSet(fsRedelegation)
+	cmd.Flags().AddFlagSet(fsSideChainId)
+	return cmd
+}
+
+func GetCmdSideChainUnbond(cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "bsc-unbond",
+		Short: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			txBldr := authtxb.NewTxBuilderFromCLI().WithCodec(cdc)
+			cliCtx := context.NewCLIContext().
+				WithCodec(cdc).
+				WithAccountDecoder(authcmd.GetAccountDecoder(cdc))
+
+			delAddr, err := cliCtx.GetFromAddress()
+			if err != nil {
+				return err
+			}
+			valAddr, err := getValidatorAddr(FlagAddressValidator)
+			if err != nil {
+				return err
+			}
+
+			amount, err := getAmount()
+			if err != nil {
+				return err
+			}
+
+			sideChainId, err := getSideChainId()
+			if err != nil {
+				return err
+			}
+
+			msg := stake.NewMsgSideChainUndelegate(sideChainId, delAddr, valAddr, amount)
+			return utils.GenerateOrBroadcastMsgs(txBldr, cliCtx, []sdk.Msg{msg})
+		},
+	}
+
+	cmd.Flags().AddFlagSet(fsAmount)
+	cmd.Flags().AddFlagSet(fsValidator)
+	cmd.Flags().AddFlagSet(fsSideChainId)
+	return cmd
 }
 
 func getSideChainId() (sideChainId string, err error) {
@@ -264,6 +324,3 @@ func getValidatorAddr(flagName string) (valAddr sdk.ValAddress, err error) {
 	}
 	return sdk.ValAddressFromBech32(valAddrStr)
 }
-
-
-
