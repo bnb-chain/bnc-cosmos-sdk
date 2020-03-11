@@ -131,8 +131,17 @@ func handleMsgSideChainDelegate(ctx sdk.Context, msg MsgSideChainDelegate, k kee
 }
 
 func handleMsgSideChainRedelegate(ctx sdk.Context, msg MsgSideChainBeginRedelegate, k keeper.Keeper) sdk.Result {
+	if msg.Amount.Denom != k.BondDenom(ctx) {
+		return ErrBadDenom(k.Codespace()).Result()
+	}
+
+	shares ,err := k.ValidateUnbondAmount(ctx, msg.DelegatorAddr, msg.ValidatorSrcAddr, msg.Amount.Amount)
+	if err != nil {
+		return err.Result()
+	}
+
 	red, err := k.BeginRedelegation(ctx, msg.DelegatorAddr, msg.ValidatorSrcAddr,
-		msg.ValidatorDstAddr, msg.Amount)
+		msg.ValidatorDstAddr, shares)
 	if err != nil {
 		return err.Result()
 	}
@@ -149,7 +158,16 @@ func handleMsgSideChainRedelegate(ctx sdk.Context, msg MsgSideChainBeginRedelega
 }
 
 func handleMsgSideChainUndelegate(ctx sdk.Context, msg MsgSideChainUndelegate, k keeper.Keeper) sdk.Result {
-	ubd, err := k.BeginUnbonding(ctx, msg.DelegatorAddr, msg.ValidatorAddr, msg.Amount)
+	if msg.Amount.Denom != k.BondDenom(ctx) {
+		return ErrBadDenom(k.Codespace()).Result()
+	}
+
+	shares ,err := k.ValidateUnbondAmount(ctx, msg.DelegatorAddr, msg.ValidatorAddr, msg.Amount.Amount)
+	if err != nil {
+		return err.Result()
+	}
+
+	ubd, err := k.BeginUnbonding(ctx, msg.DelegatorAddr, msg.ValidatorAddr, shares)
 	if err != nil {
 		return err.Result()
 	}

@@ -97,7 +97,7 @@ var (
 	NewMsgCreateSideChainValidatorOnBehalfOf = types.NewMsgCreateSideChainValidatorOnBehalfOf
 	NewMsgEditSideChainValidator             = types.NewMsgEditSideChainValidator
 	NewMsgSideChainDelegate                  = types.NewMsgSideChainDelegate
-	NewMsgSideChainBeginUndelegate           = types.NewMsgSideChainBeginRedelegate
+	NewMsgSideChainBeginRedelegate           = types.NewMsgSideChainBeginRedelegate
 	NewMsgSideChainUndelegate                = types.NewMsgSideChainUndelegate
 
 	NewQuerier = querier.NewQuerier

@@ -252,11 +252,11 @@ type MsgSideChainBeginRedelegate struct {
 	DelegatorAddr    sdk.AccAddress `json:"delegator_addr"`
 	ValidatorSrcAddr sdk.ValAddress `json:"validator_src_addr"`
 	ValidatorDstAddr sdk.ValAddress `json:"validator_dst_addr"`
-	Amount           sdk.Dec        `json:"amount"`
+	Amount           sdk.Coin        `json:"amount"`
 	SideChainId      string         `json:"side_chain_id"`
 }
 
-func NewMsgSideChainBeginRedelegate(sideChainId string, delegatorAddr sdk.AccAddress, valSrcAddr sdk.ValAddress, valDstAddr sdk.ValAddress, amount sdk.Dec) MsgSideChainBeginRedelegate {
+func NewMsgSideChainBeginRedelegate(sideChainId string, delegatorAddr sdk.AccAddress, valSrcAddr sdk.ValAddress, valDstAddr sdk.ValAddress, amount sdk.Coin) MsgSideChainBeginRedelegate {
 	return MsgSideChainBeginRedelegate{
 		DelegatorAddr:    delegatorAddr,
 		ValidatorSrcAddr: valSrcAddr,
@@ -296,8 +296,8 @@ func (msg MsgSideChainBeginRedelegate) ValidateBasic() sdk.Error {
 	if bytes.Equal(msg.ValidatorSrcAddr, msg.ValidatorDstAddr) {
 		return ErrSelfRedelegation(DefaultCodespace)
 	}
-	if msg.Amount.LTE(sdk.ZeroDec()) {
-		return ErrBadSharesAmount(DefaultCodespace)
+	if msg.Amount.Amount <= 0 {
+		return ErrBadDelegationAmount(DefaultCodespace)
 	}
 	if len(msg.SideChainId) == 0 || len(msg.SideChainId) > MaxSideChainIdLength {
 		return sdk.NewError(DefaultCodespace, CodeInvalidInput, "side chain id must be included and max length is 20 bytes")
@@ -309,11 +309,11 @@ func (msg MsgSideChainBeginRedelegate) ValidateBasic() sdk.Error {
 type MsgSideChainUndelegate struct {
 	DelegatorAddr sdk.AccAddress `json:"delegator_addr"`
 	ValidatorAddr sdk.ValAddress `json:"validator_addr"`
-	Amount        sdk.Dec        `json:"amount"`
+	Amount        sdk.Coin        `json:"amount"`
 	SideChainId   string         `json:"side_chain_id"`
 }
 
-func NewMsgSideChainUndelegate(sideChainId string, delegatorAddr sdk.AccAddress, valAddr sdk.ValAddress, amount sdk.Dec) MsgSideChainUndelegate {
+func NewMsgSideChainUndelegate(sideChainId string, delegatorAddr sdk.AccAddress, valAddr sdk.ValAddress, amount sdk.Coin) MsgSideChainUndelegate {
 	return MsgSideChainUndelegate{
 		DelegatorAddr: delegatorAddr,
 		ValidatorAddr: valAddr,
@@ -342,8 +342,8 @@ func (msg MsgSideChainUndelegate) ValidateBasic() sdk.Error {
 	if len(msg.ValidatorAddr) != sdk.AddrLen {
 		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected validator address length is %d, actual length is %d", sdk.AddrLen, len(msg.ValidatorAddr)))
 	}
-	if msg.Amount.LTE(sdk.ZeroDec()) {
-		return ErrBadSharesAmount(DefaultCodespace)
+	if msg.Amount.Amount <= 0 {
+		return ErrBadDelegationAmount(DefaultCodespace)
 	}
 	if len(msg.SideChainId) == 0 || len(msg.SideChainId) > MaxSideChainIdLength {
 		return sdk.NewError(DefaultCodespace, CodeInvalidInput, "side chain id must be included and max length is 20 bytes")
