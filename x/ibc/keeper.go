@@ -2,7 +2,6 @@ package ibc
 
 import (
 	"encoding/binary"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -23,7 +22,7 @@ func NewKeeper(cdc *codec.Codec, storeKey sdk.StoreKey, codespace sdk.CodespaceT
 }
 
 func (k Keeper) CreateIBCPackage(ctx sdk.Context, destChainID sdk.CrossChainID, channelID sdk.ChannelID, value []byte) sdk.Error {
-	sequence, err := k.getSequence(ctx, destChainID, channelID)
+	sequence, err := k.GetSequence(ctx, destChainID, channelID)
 	if err != nil {
 		return ErrUnsupportedChannel(DefaultCodespace, err.Error())
 	}
@@ -62,7 +61,7 @@ func (k Keeper) CleanupIBCPackage(ctx sdk.Context, destChainID sdk.CrossChainID,
 	return nil
 }
 
-func (k *Keeper) getSequence(ctx sdk.Context, destChainID sdk.CrossChainID, channelID sdk.ChannelID) (uint64, error) {
+func (k *Keeper) GetSequence(ctx sdk.Context, destChainID sdk.CrossChainID, channelID sdk.ChannelID) (uint64, error) {
 	kvStore := ctx.KVStore(k.storeKey)
 	bz := kvStore.Get(buildChannelSequenceKey(destChainID, channelID))
 	if bz == nil {
@@ -72,7 +71,7 @@ func (k *Keeper) getSequence(ctx sdk.Context, destChainID sdk.CrossChainID, chan
 }
 
 func (k *Keeper) incrSequence(ctx sdk.Context, destChainID sdk.CrossChainID, channelID sdk.ChannelID) {
-	sequence, _ := k.getSequence(ctx, destChainID, channelID)
+	sequence, _ := k.GetSequence(ctx, destChainID, channelID)
 
 	sequenceBytes := make([]byte, sequenceLength)
 	binary.BigEndian.PutUint64(sequenceBytes, sequence+1)
