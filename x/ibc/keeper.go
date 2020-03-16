@@ -2,6 +2,7 @@ package ibc
 
 import (
 	"encoding/binary"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -22,24 +23,18 @@ func NewKeeper(cdc *codec.Codec, storeKey sdk.StoreKey, codespace sdk.CodespaceT
 }
 
 func (k Keeper) CreateIBCPackage(ctx sdk.Context, destChainID sdk.CrossChainID, channelID sdk.ChannelID, value []byte) sdk.Error {
-	sequence, err := k.GetSequence(ctx, destChainID, channelID)
-	if err != nil {
-		return ErrUnsupportedChannel(DefaultCodespace, err.Error())
-	}
-
-	key := BuildIBCPackageKey(sdk.GetSourceChainID(), destChainID, channelID, sequence)
-
+	sequence := k.GetSequence(ctx, destChainID, channelID)
+	key := buildIBCPackageKey(sdk.GetSourceChainID(), destChainID, channelID, sequence)
 	kvStore := ctx.KVStore(k.storeKey)
 	if kvStore.Has(key) {
-		panic("duplicated key for cross chain package")
+		return ErrDuplicatedSequence(DefaultCodespace, "duplicated sequence")
 	}
 	kvStore.Set(key, value)
-
 	k.incrSequence(ctx, destChainID, channelID)
 	return nil
 }
 
-func (k Keeper) CleanupIBCPackage(ctx sdk.Context, destChainID sdk.CrossChainID, channelID sdk.ChannelID, confirmedSequence uint64) sdk.Error {
+func (k Keeper) CleanupIBCPackage(ctx sdk.Context, destChainID sdk.CrossChainID, channelID sdk.ChannelID, confirmedSequence uint64) {
 	prefixKey := buildIBCPackageKeyPrefix(sdk.GetSourceChainID(), destChainID, channelID)
 	kvStore := ctx.KVStore(k.storeKey)
 	iterator := sdk.KVStorePrefixIterator(kvStore, prefixKey)
@@ -54,24 +49,21 @@ func (k Keeper) CleanupIBCPackage(ctx sdk.Context, destChainID sdk.CrossChainID,
 		if sequence > confirmedSequence {
 			break
 		}
-		//TODO double check if the delete operation affect iteration
 		kvStore.Delete(packageKey)
 	}
-
-	return nil
 }
 
-func (k *Keeper) GetSequence(ctx sdk.Context, destChainID sdk.CrossChainID, channelID sdk.ChannelID) (uint64, error) {
+func (k *Keeper) GetSequence(ctx sdk.Context, destChainID sdk.CrossChainID, channelID sdk.ChannelID) uint64 {
 	kvStore := ctx.KVStore(k.storeKey)
 	bz := kvStore.Get(buildChannelSequenceKey(destChainID, channelID))
 	if bz == nil {
-		return 0, nil
+		return 0
 	}
-	return binary.BigEndian.Uint64(bz), nil
+	return binary.BigEndian.Uint64(bz)
 }
 
 func (k *Keeper) incrSequence(ctx sdk.Context, destChainID sdk.CrossChainID, channelID sdk.ChannelID) {
-	sequence, _ := k.GetSequence(ctx, destChainID, channelID)
+	sequence := k.GetSequence(ctx, destChainID, channelID)
 
 	sequenceBytes := make([]byte, sequenceLength)
 	binary.BigEndian.PutUint64(sequenceBytes, sequence+1)

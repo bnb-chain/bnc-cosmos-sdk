@@ -6,12 +6,19 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+const (
+	sourceChainIDLength = 2
+	destChainIDLength   = 2
+	channelIDLength     = 1
+	sequenceLength      = 8
+)
+
 var (
 	PrefixForCrossChainPackageKey = []byte{0x00}
 	PrefixForSequenceKey          = []byte{0x01}
 )
 
-func BuildIBCPackageKey(sourceChainID, destinationChainID sdk.CrossChainID, channelID sdk.ChannelID, sequence uint64) []byte {
+func buildIBCPackageKey(sourceChainID, destinationChainID sdk.CrossChainID, channelID sdk.ChannelID, sequence uint64) []byte {
 	key := make([]byte, sourceChainIDLength+destChainIDLength+channelIDLength+sequenceLength)
 	binary.BigEndian.PutUint16(key[:sourceChainIDLength], uint16(sourceChainID))
 	binary.BigEndian.PutUint16(key[sourceChainIDLength:sourceChainIDLength+destChainIDLength], uint16(destinationChainID))

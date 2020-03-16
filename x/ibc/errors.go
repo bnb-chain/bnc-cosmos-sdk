@@ -8,19 +8,9 @@ import (
 const (
 	DefaultCodespace sdk.CodespaceType = 3
 
-	CodeUnsupportedChannel sdk.CodeType = 101
-	CodeChainIDTooLong     sdk.CodeType = 102
-	CodeEmptyPackage       sdk.CodeType = 103
+	CodeDuplicatedSequence sdk.CodeType = 101
 )
 
-func ErrUnsupportedChannel(codespace sdk.CodespaceType, msg string) sdk.Error {
-	return sdk.NewError(codespace, CodeUnsupportedChannel, msg)
-}
-
-func ErrChainIDTooLong(codespace sdk.CodespaceType, msg string) sdk.Error {
-	return sdk.NewError(codespace, CodeChainIDTooLong, msg)
-}
-
-func ErrEmptyPackage(codespace sdk.CodespaceType, msg string) sdk.Error {
-	return sdk.NewError(codespace, CodeEmptyPackage, msg)
+func ErrDuplicatedSequence(codespace sdk.CodespaceType, msg string) sdk.Error {
+	return sdk.NewError(codespace, CodeDuplicatedSequence, msg)
 }
