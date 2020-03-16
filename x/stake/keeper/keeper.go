@@ -8,6 +8,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
 
+// default value, would be overridden by the high level app when starts
+// TODO: to support multi side chains in the future. We will enable a registration mechanism and add these chain ids to db.
+var bscStoreKeyPrefix = []byte{0x99}
+var bscChainId = "bsc"
+
 // keeper of the stake store
 type Keeper struct {
 	storeKey   sdk.StoreKey
@@ -20,8 +25,6 @@ type Keeper struct {
 
 	// codespace
 	codespace sdk.CodespaceType
-
-	// sideChainStoreKeyPrefixes map[string][]byte	 // sideChainId -> storeKeyPrefix
 }
 
 func NewKeeper(cdc *codec.Codec, key, tkey sdk.StoreKey, ck bank.Keeper, addrPool *sdk.Pool, paramstore params.Subspace, codespace sdk.CodespaceType) Keeper {
@@ -39,10 +42,21 @@ func NewKeeper(cdc *codec.Codec, key, tkey sdk.StoreKey, ck bank.Keeper, addrPoo
 	return keeper
 }
 
+func (k Keeper) SetSideChainId(ctx sdk.Context, sideChainId string) {
+	// ctx is for later use to persist sideChainId to db
+	bscChainId = sideChainId
+}
+
+func (k Keeper) GetSideChainId(ctx sdk.Context) string {
+	// ctx is for later use to fetch sideChainId from db
+	return bscChainId
+}
+
 // get side chain store key prefix
-func (k Keeper) GetSideChainStoreKeyPrefix(id string) []byte {
-	// hard code first, will use `sideChainStoreKeyPrefixes` if we need to support multiple side chains
-	return []byte{0x99}
+func (k Keeper) GetSideChainStoreKeyPrefix(ctx sdk.Context, id string) []byte {
+	// hard code first,
+	// ctx is for later use to fetch sideChainId from db
+	return bscStoreKeyPrefix
 }
 
 // Set the validator hooks

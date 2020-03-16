@@ -5,6 +5,7 @@ import "fmt"
 var UpgradeMgr = NewUpgradeManager(UpgradeConfig{})
 
 const FixSignBytesOverflow = "FixSignBytesOverflow" // fix json unmarshal overflow when build SignBytes
+const SideChainStakingUpgrade = "SideChainStakingUpgrade"
 
 var MainNetConfig = UpgradeConfig{
 	HeightMap: map[string]int64{},

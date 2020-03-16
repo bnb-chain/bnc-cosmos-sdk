@@ -32,20 +32,15 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 		//	return handleMsgBeginUnbonding(ctx, msg, k)
 		//case MsgSideChain
 		case types.MsgCreateSideChainValidator:
-			newCtx := ctx.WithSideChainKeyPrefix(k.GetSideChainStoreKeyPrefix(msg.SideChainId))
-			return handleMsgCreateSideChainValidator(newCtx, msg, k)
+			return handleMsgCreateSideChainValidator(ctx, msg, k)
 		case types.MsgEditSideChainValidator:
-			newCtx := ctx.WithSideChainKeyPrefix(k.GetSideChainStoreKeyPrefix(msg.SideChainId))
-			return handleMsgEditSideChainValidator(newCtx, msg, k)
+			return handleMsgEditSideChainValidator(ctx, msg, k)
 		case types.MsgSideChainDelegate:
-			newCtx := ctx.WithSideChainKeyPrefix(k.GetSideChainStoreKeyPrefix(msg.SideChainId))
-			return handleMsgSideChainDelegate(newCtx, msg, k)
+			return handleMsgSideChainDelegate(ctx, msg, k)
 		case types.MsgSideChainBeginRedelegate:
-			newCtx := ctx.WithSideChainKeyPrefix(k.GetSideChainStoreKeyPrefix(msg.SideChainId))
-			return handleMsgSideChainRedelegate(newCtx, msg, k)
+			return handleMsgSideChainRedelegate(ctx, msg, k)
 		case types.MsgSideChainUndelegate:
-			newCtx := ctx.WithSideChainKeyPrefix(k.GetSideChainStoreKeyPrefix(msg.SideChainId))
-			return handleMsgSideChainUndelegate(newCtx, msg, k)
+			return handleMsgSideChainUndelegate(ctx, msg, k)
 		default:
 			return sdk.ErrTxDecode("invalid message parse in staking module").Result()
 		}

@@ -155,6 +155,8 @@ var (
 	ErrBadSharesAmount           = types.ErrBadSharesAmount
 	ErrBadSharesPercent          = types.ErrBadSharesPercent
 
+	ErrInvalidSideChainId = types.ErrInvalidSideChainId
+
 	ErrNotMature             = types.ErrNotMature
 	ErrNoUnbondingDelegation = types.ErrNoUnbondingDelegation
 	ErrNoRedelegation        = types.ErrNoRedelegation
