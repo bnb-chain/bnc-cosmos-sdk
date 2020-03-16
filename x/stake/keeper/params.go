@@ -23,9 +23,6 @@ func ParamTypeTable() params.TypeTable {
 	return params.NewTypeTable().RegisterParamSet(&types.Params{})
 }
 
-// TODO: 1. need to distinguish params for different chains.
-// TODO: 2. SetParams for side chain in the BeginBlocker of the upgrade height
-
 // UnbondingTime
 func (k Keeper) UnbondingTime(ctx sdk.Context) (res time.Duration) {
 	k.paramstore.Get(ctx, types.KeyUnbondingTime, &res)
