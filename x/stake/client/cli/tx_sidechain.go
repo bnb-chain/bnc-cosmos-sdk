@@ -15,22 +15,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func AddCommands(root *cobra.Command, cdc *codec.Codec) {
-	stakingCmd := &cobra.Command{
-		Use:   "staking",
-		Short: "staking commands",
-	}
 
-	stakingCmd.AddCommand(
-		client.PostCommands(
-			GetCmdCreateSideChainValidator(cdc),
-			GetCmdEditSideChainValidator(cdc),
-			GetCmdSideChainDelegate(cdc),
-			GetCmdSideChainRedelegate(cdc),
-			GetCmdSideChainUnbond(cdc),
-		)...,
-	)
-}
 
 func GetCmdCreateSideChainValidator(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
