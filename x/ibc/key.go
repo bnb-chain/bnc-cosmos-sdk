@@ -7,6 +7,7 @@ import (
 )
 
 const (
+	prefixLength        = 1
 	sourceChainIDLength = 2
 	destChainIDLength   = 2
 	channelIDLength     = 1
