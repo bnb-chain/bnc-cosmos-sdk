@@ -90,6 +90,16 @@ func (k Keeper) GetValidatorBySideConsAddr(ctx sdk.Context, sideConsAddr []byte)
 	return k.GetValidator(ctx, opAddr)
 }
 
+func (k Keeper) GetValidatorsByHeight(ctx sdk.Context, height int64) (validators []types.Validator, found bool) {
+	store := ctx.KVStore(k.storeKey)
+	bz := store.Get(GetValidatorHeightKey(height))
+	if bz == nil {
+		return validators, false
+	}
+	validators = types.MustUnmarshalValidators(k.cdc,bz)
+	return validators, true
+}
+
 //___________________________________________________________________________
 
 // set the main record holding validator details
@@ -130,6 +140,12 @@ func (k Keeper) DeleteValidatorByPowerIndex(ctx sdk.Context, validator types.Val
 func (k Keeper) SetNewValidatorByPowerIndex(ctx sdk.Context, validator types.Validator) {
 	store := ctx.KVStore(k.storeKey)
 	store.Set(GetValidatorsByPowerIndexKey(validator), validator.OperatorAddr)
+}
+
+func (k Keeper) SetValidatorsByHeight(ctx sdk.Context, height int64, validators []types.Validator) {
+	store := ctx.KVStore(k.storeKey)
+	bz := types.MustMarshalValidators(k.cdc, validators)
+	store.Set(GetValidatorHeightKey(height), bz)
 }
 
 //___________________________________________________________________________
@@ -211,6 +227,18 @@ func (k Keeper) RemoveValidator(ctx sdk.Context, address sdk.ValAddress) {
 		store.Delete(GetValidatorByConsAddrKey(sdk.ConsAddress(validator.ConsPubKey.Address())))
 	}
 	store.Delete(GetValidatorsByPowerIndexKey(validator))
+}
+
+// remove the validators stored with key of height
+func (k Keeper) RemoveValidatorsByHeight(ctx sdk.Context, height int64) {
+
+	_, found := k.GetValidatorsByHeight(ctx, height)
+	if !found {
+		return
+	}
+
+	store := ctx.KVStore(k.storeKey)
+	store.Delete(GetValidatorHeightKey(height))
 }
 
 //___________________________________________________________________________

@@ -118,6 +118,23 @@ func UnmarshalValidator(cdc *codec.Codec, value []byte) (validator Validator, er
 	return validator, err
 }
 
+func MustMarshalValidators(cdc *codec.Codec, validators []Validator) []byte {
+	return cdc.MustMarshalBinaryLengthPrefixed(validators)
+}
+
+func MustUnmarshalValidators(cdc *codec.Codec, value []byte) []Validator {
+	validators, err := UnmarshalValidators(cdc, value)
+	if err != nil {
+		panic(err)
+	}
+	return validators
+}
+
+func UnmarshalValidators(cdc *codec.Codec, value []byte) (validators []Validator, err error) {
+	err = cdc.UnmarshalBinaryLengthPrefixed(value, &validators)
+	return validators,err
+}
+
 // HumanReadableString returns a human readable string representation of a
 // validator. An error is returned if the operator or the operator's public key
 // cannot be converted to Bech32 format.

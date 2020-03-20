@@ -69,6 +69,28 @@ func TestSetValidator(t *testing.T) {
 	require.Equal(t, 1, len(allVals))
 }
 
+func TestSetGetValidatorsByHeight(t *testing.T) {
+	ctx, _, keeper := CreateTestInput(t, false, 10)
+
+	validators := make([]types.Validator,10)
+	for i:=0;i<10;i++ {
+		valPubKey := PKs[i]
+		valAddr := sdk.ValAddress(valPubKey.Address().Bytes())
+		validator := types.NewValidator(valAddr, valPubKey, types.Description{})
+		validators[i] = validator
+	}
+
+	keeper.SetValidatorsByHeight(ctx,1000,validators)
+
+	getValidators, found := keeper.GetValidatorsByHeight(ctx, 1000)
+	require.True(t,found)
+	require.Equal(t,10,len(getValidators))
+
+	for index,val := range getValidators {
+		require.Equal(t, validators[index].OperatorAddr, val.OperatorAddr)
+	}
+}
+
 func TestUpdateValidatorByPowerIndex(t *testing.T) {
 	ctx, _, keeper := CreateTestInput(t, false, 0)
 	pool := keeper.GetPool(ctx)

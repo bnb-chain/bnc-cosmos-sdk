@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"os"
@@ -243,4 +244,10 @@ func isTxSigner(user sdk.AccAddress, signers []sdk.AccAddress) bool {
 		}
 	}
 	return false
+}
+
+func Int642Bytes(n int64) []byte {
+	b := make([]byte, 8)
+	binary.LittleEndian.PutUint64(b, uint64(n))
+	return b
 }

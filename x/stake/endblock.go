@@ -26,10 +26,17 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 		for i := range storePrefixes {
 			sideChainCtx := ctx.WithSideChainKeyPrefix(storePrefixes[i])
 			newVals, _, _, _ := handleValidatorAndDelegations(sideChainCtx, k)
+
 			ibcTags :=  saveSideChainValidatorsToIBC(ctx, sideChainIds[i], newVals, k)
 			endBlockerTags = endBlockerTags.AppendTags(ibcTags)
-			// TODO: may need to change the return values
+
+			storeValidatorsWithHeight(newVals, k, ctx)
+			markBreatheBlock(ctx,k)
+			k.Distribute(ctx, true)
 		}
+		// TODO: save new validator set to ibc store
+		// TODO: may need to change the return values
+
 	}
 	return
 }
@@ -49,6 +56,24 @@ func saveSideChainValidatorsToIBC(ctx sdk.Context, sideChainId string, newVals [
 		k.Logger(ctx).Error("save validators to ibc package failed: " + err.Error())
 	}
 	return sdk.NewTags(tags.SideChainStakingPackageSequence, []byte(strconv.Itoa(int(sequence))))
+}
+
+func markBreatheBlock(ctx sdk.Context,k keeper.Keeper) {
+	k.SetBreatheBlockHeight(ctx, ctx.BlockHeight(), ctx.BlockHeader().Time)
+}
+
+func storeValidatorsWithHeight(validators []types.Validator, k keeper.Keeper, ctx sdk.Context) {
+	validatorsByHeight := make([]types.Validator, 0)
+	if validators != nil && len(validators) > 0 {
+		for _, validator := range validators {
+			simplifiedDelegations := k.GetDelegationsSimplifiedByValidator(ctx, validator.OperatorAddr)
+
+			k.SetSimplifiedDelegations(ctx, ctx.BlockHeight(), validator.OperatorAddr, simplifiedDelegations)
+
+			validatorsByHeight = append(validatorsByHeight, validator)
+		}
+		k.SetValidatorsByHeight(ctx, ctx.BlockHeight(), validatorsByHeight)
+	}
 }
 
 func handleValidatorAndDelegations(ctx sdk.Context, k keeper.Keeper) ([]types.Validator, []abci.ValidatorUpdate, []types.UnbondingDelegation, sdk.Tags){

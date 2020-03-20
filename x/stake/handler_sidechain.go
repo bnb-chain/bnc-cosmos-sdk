@@ -56,7 +56,7 @@ func handleMsgCreateSideChainValidator(ctx sdk.Context, msg MsgCreateSideChainVa
 
 	// move coins from the msg.Address account to a (self-delegation) delegator account
 	// the validator account and global shares are updated within here
-	_, err = k.Delegate(ctx, msg.DelegatorAddr, msg.Delegation, validator, true)
+	_, err = k.DelegateForSideChain(ctx, msg.DelegatorAddr, msg.Delegation, validator, true)
 	if err != nil {
 		return err.Result()
 	}
@@ -146,7 +146,7 @@ func handleMsgSideChainDelegate(ctx sdk.Context, msg MsgSideChainDelegate, k kee
 		return ErrValidatorJailed(k.Codespace()).Result()
 	}
 
-	_, err = k.Delegate(ctx, msg.DelegatorAddr, msg.Delegation, validator, true)
+	_, err = k.DelegateForSideChain(ctx, msg.DelegatorAddr, msg.Delegation, validator, true)
 	if err != nil {
 		return err.Result()
 	}
@@ -174,7 +174,7 @@ func handleMsgSideChainRedelegate(ctx sdk.Context, msg MsgSideChainRedelegate, k
 		return err.Result()
 	}
 
-	red, err := k.BeginRedelegation(ctx, msg.DelegatorAddr, msg.ValidatorSrcAddr,
+	red, err := k.BeginRedelegationForSideChain(ctx, msg.DelegatorAddr, msg.ValidatorSrcAddr,
 		msg.ValidatorDstAddr, shares)
 	if err != nil {
 		return err.Result()
@@ -207,7 +207,7 @@ func handleMsgSideChainUndelegate(ctx sdk.Context, msg MsgSideChainUndelegate, k
 		return err.Result()
 	}
 
-	ubd, err := k.BeginUnbonding(ctx, msg.DelegatorAddr, msg.ValidatorAddr, shares)
+	ubd, err := k.BeginUnbondingForSideChain(ctx, msg.DelegatorAddr, msg.ValidatorAddr, shares)
 	if err != nil {
 		return err.Result()
 	}
