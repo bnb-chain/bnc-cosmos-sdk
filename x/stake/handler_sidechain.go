@@ -113,7 +113,6 @@ func handleMsgEditSideChainValidator(ctx sdk.Context, msg MsgEditSideChainValida
 			tags.Identity, []byte(description.Identity),
 		),
 	}
-
 }
 
 func handleMsgSideChainDelegate(ctx sdk.Context, msg MsgSideChainDelegate, k keeper.Keeper) sdk.Result {

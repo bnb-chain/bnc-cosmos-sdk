@@ -111,8 +111,8 @@ func ErrBadDelegationAddr(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidInput, "unexpected address length for this (address, validator) pair")
 }
 
-func ErrBadDelegationAmount(codespace sdk.CodespaceType) sdk.Error {
-	return sdk.NewError(codespace, CodeInvalidDelegation, "amount must be > 0")
+func ErrBadDelegationAmount(codespace sdk.CodespaceType, msg string) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidDelegation, "invalid amount: " + msg)
 }
 
 func ErrNoDelegation(codespace sdk.CodespaceType) sdk.Error {
