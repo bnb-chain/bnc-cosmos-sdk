@@ -21,6 +21,7 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 	_, validatorUpdates, completedUbds, events = handleValidatorAndDelegations(ctx, k)
 
 	if sdk.IsUpgrade(sdk.LaunchBscUpgrade) && k.ScKeeper != nil {
+		k.SetBreatheBlockHeight(ctx, ctx.BlockHeight(), ctx.BlockHeader().Time)
 		sideChainIds, storePrefixes := k.ScKeeper.GetAllSideChainPrefixes(ctx)
 		for i := range storePrefixes {
 			sideChainCtx := ctx.WithSideChainKeyPrefix(storePrefixes[i])
@@ -31,6 +32,14 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 			}
 			events = events.AppendEvents(scEvents)
 			// TODO: need to add UBDs for side chains to the return value
+
+			storeValidatorsWithHeight(sideChainCtx, newVals, k)
+			// The rewards collected yesterday is decided by the validators the day before yesterday.
+			// So this distribution is for the validators bonded 2 days ago
+			height, found := k.GetBreatheBlockHeight(ctx, 3)
+			if found {
+				k.Distribute(sideChainCtx, height)
+			}
 		}
 	}
 	ctx.EventManager().EmitEvents(events)
@@ -52,6 +61,17 @@ func saveSideChainValidatorsToIBC(ctx sdk.Context, sideChainId string, newVals [
 		k.Logger(ctx).Error("save validators to ibc package failed: " + err.Error())
 		return
 	}
+}
+
+func storeValidatorsWithHeight(ctx sdk.Context, validators []types.Validator, k keeper.Keeper) {
+	if len(validators) == 0 {
+		return
+	}
+	for _, validator := range validators {
+		simplifiedDelegations := k.GetSimplifiedDelegationsByValidator(ctx, validator.OperatorAddr)
+		k.SetSimplifiedDelegations(ctx, ctx.BlockHeight(), validator.OperatorAddr, simplifiedDelegations)
+	}
+	k.SetValidatorsByHeight(ctx, ctx.BlockHeight(), validators)
 }
 
 func handleValidatorAndDelegations(ctx sdk.Context, k keeper.Keeper) ([]types.Validator, []abci.ValidatorUpdate, []types.UnbondingDelegation, sdk.Events) {
