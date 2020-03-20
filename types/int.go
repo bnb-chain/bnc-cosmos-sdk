@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"testing"
 
@@ -540,4 +541,10 @@ func MinInt64(i1, i2 int64) int64 {
 	} else {
 		return i2
 	}
+}
+
+func Int642Bytes(n int64) []byte {
+	b := make([]byte, 8)
+	binary.LittleEndian.PutUint64(b, uint64(n))
+	return b
 }

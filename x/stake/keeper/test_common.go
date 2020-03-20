@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/hex"
 	"strconv"
 	"testing"
@@ -257,6 +258,12 @@ func createTestAddrs(numAddrs int) []sdk.AccAddress {
 		buffer.Reset()
 	}
 	return addresses
+}
+
+func CreateTestAddr() sdk.AccAddress {
+	bz := make([]byte,20)
+	_,_ = rand.Read(bz)
+	return sdk.AccAddress(bz)
 }
 
 // nolint: unparam
