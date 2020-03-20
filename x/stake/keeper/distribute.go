@@ -52,7 +52,7 @@ func (k Keeper) Distribute(ctx sdk.Context,isCurrentBreatheHeightMarked bool) {
 			panic(err)
 		}
 
-		shouldCarry, shouldNotCarry, remainInt := allocateReward(delegations, commission, validator, remainInt)
+		shouldCarry, shouldNotCarry, remainInt := allocateReward(delegations, commission, validator.DelegatorShares.RawInt(), remainInt)
 
 		if remainInt > 0 { // assign rewards to self-delegator
 			if _, _, err := k.bankKeeper.AddCoins(ctx, validator.GetFeeAddr(), sdk.Coins{sdk.NewCoin("BNB", remainInt)}); err != nil {
@@ -88,13 +88,13 @@ func removeValidatorsAndDelegationsAtHeight(height int64,k Keeper,ctx sdk.Contex
 	k.RemoveValidatorsByHeight(ctx, height)
 }
 
-func allocateReward(delegations []types.SimplifiedDelegation, commission sdk.Dec, validator types.Validator, remainInt int64) ([]*delReward, []*delReward, int64) {
+func allocateReward(delegations []types.SimplifiedDelegation, commission sdk.Dec, totalShares int64, remainInt int64) ([]*delReward, []*delReward, int64) {
 	shouldCarry := make([]*delReward, 0)
 	shouldNotCarry := make([]*delReward, 0)
 	var minToDistribute int64
 	for _, del := range delegations {
 
-		afterRoundDown, firstDecimalValue := Div(del.Shares.Mul(commission).RawInt(), validator.DelegatorShares.RawInt(), 1)
+		afterRoundDown, firstDecimalValue := Div(del.Shares.Mul(commission).RawInt(), totalShares, 1)
 
 		if firstDecimalValue < threshold {
 			shouldNotCarry = append(shouldNotCarry, &delReward{del.DelegatorAddr, afterRoundDown})
@@ -112,8 +112,7 @@ func allocateReward(delegations []types.SimplifiedDelegation, commission sdk.Dec
 				}
 				delR.reward++
 				remainInt--
-			}
-			if leftCommission > 0 {
+			} else {
 				delR.reward++
 				leftCommission--
 			}
@@ -122,8 +121,7 @@ func allocateReward(delegations []types.SimplifiedDelegation, commission sdk.Dec
 			for _, delR := range shouldNotCarry {
 				if leftCommission == 0 {
 					break
-				}
-				if leftCommission > 0 {
+				} else {
 					delR.reward++
 					leftCommission--
 				}
@@ -133,31 +131,31 @@ func allocateReward(delegations []types.SimplifiedDelegation, commission sdk.Dec
 	return shouldCarry, shouldNotCarry, remainInt
 }
 
-func int64Div(x, y int64, expectedDecimalPlace int) (afterRoundDown int64, expectedDecimalValue int) {
-	resultOfAddOneDecimalPlace := (x * int64(Pow(10, numberOfDecimalPlace + expectedDecimalPlace))) / y
-	dived := int64(Pow(10,int(expectedDecimalPlace)))
-	afterRoundDown = resultOfAddOneDecimalPlace / dived
-	expectedDecimalValue = int(resultOfAddOneDecimalPlace % dived)
-	return afterRoundDown,expectedDecimalValue
+func int64Div(x, y int64, extraDecimalPlace int) (afterRoundDown int64, extraDecimalValue int) {
+	resultOfAddDecimalPlace := (x * int64(Pow(10, numberOfDecimalPlace + extraDecimalPlace))) / y
+	dived := int64(Pow(10,int(extraDecimalPlace)))
+	afterRoundDown = resultOfAddDecimalPlace / dived
+	extraDecimalValue = int(resultOfAddDecimalPlace % dived)
+	return afterRoundDown,extraDecimalValue
 }
 
-func Div(x, y int64, expectedDecimalPlace int) (afterRoundDown int64, expectedDecimalValue int) {
+func Div(x, y int64, extraDecimalPlace int) (afterRoundDown int64, extraDecimalValue int) {
 
-	minAllow := math.MaxInt64 / int64(Pow(10,numberOfDecimalPlace + expectedDecimalPlace))
+	minAllow := math.MaxInt64 / int64(Pow(10,numberOfDecimalPlace + extraDecimalPlace))
 	if x <= minAllow {
-		return int64Div(x,y,expectedDecimalPlace)
+		return int64Div(x,y,extraDecimalPlace)
 	}
 
 	z := &big.Int{}
-	z.Mul(big.NewInt(x),big.NewInt(int64(Pow(10, numberOfDecimalPlace + expectedDecimalPlace)))).Div(z,big.NewInt(y))
+	z.Mul(big.NewInt(x),big.NewInt(int64(Pow(10, numberOfDecimalPlace + extraDecimalPlace)))).Div(z,big.NewInt(y))
 
-	dived := big.NewInt(int64(Pow(10,int(expectedDecimalPlace))))
+	dived := big.NewInt(int64(Pow(10,int(extraDecimalPlace))))
 
 	expectedDecimalValueBig := &big.Int{}
 	afterRoundDownBig,expectedDecimalValueBig := z.QuoRem(z,dived,expectedDecimalValueBig)
 	afterRoundDown = afterRoundDownBig.Int64()
-	expectedDecimalValue = int(expectedDecimalValueBig.Int64())
-	return afterRoundDown,expectedDecimalValue
+	extraDecimalValue = int(expectedDecimalValueBig.Int64())
+	return afterRoundDown,extraDecimalValue
 }
 
 
