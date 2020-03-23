@@ -56,14 +56,14 @@ func GetSourceChainID() CrossChainID {
 }
 
 func ParseCrossChainID(input string) (CrossChainID, error) {
-	destChainID, err := strconv.Atoi(input)
+	chainID, err := strconv.Atoi(input)
 	if err != nil {
 		return CrossChainID(0), err
 	}
-	if destChainID > math.MaxUint16 {
-		return CrossChainID(0), fmt.Errorf("dest chain-id must be uint16")
+	if chainID > math.MaxUint16 || chainID < 0 {
+		return CrossChainID(0), fmt.Errorf("cross chainID must be in [0, 1<<16 - 1]")
 	}
-	return CrossChainID(destChainID), nil
+	return CrossChainID(chainID), nil
 }
 
 func (channelID ChannelID) String() string {
