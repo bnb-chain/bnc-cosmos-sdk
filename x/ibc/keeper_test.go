@@ -33,51 +33,65 @@ func createTestInput(t *testing.T, isCheckTx bool) (sdk.Context, Keeper) {
 func TestKeeper(t *testing.T) {
 	sourceChainID := sdk.CrossChainID(0x0001)
 	destChainID := sdk.CrossChainID(0x000f)
+	channelName := "transfer"
 	channelID := sdk.ChannelID(0x01)
-	sdk.InitCrossChainID(sourceChainID)
+	sdk.SetSourceChainID(sourceChainID)
+	err := sdk.RegisterNewCrossChainChannel(channelName, channelID)
+	require.NoError(t, err)
 	ctx, keeper := createTestInput(t, true)
 
 
-	sequence := keeper.GetNextSequence(ctx, destChainID, channelID)
+	sequence := keeper.GetNextSequence(ctx, destChainID, channelName)
 	require.Equal(t, uint64(0), sequence)
 
 	value := []byte{0x00}
-	err := keeper.CreateIBCPackage(ctx, destChainID, channelID, value)
+	err = keeper.CreateIBCPackage(ctx, destChainID, channelName, value)
 	require.NoError(t, err)
-	sequence = keeper.GetNextSequence(ctx, destChainID, channelID)
+	sequence = keeper.GetNextSequence(ctx, destChainID, channelName)
 	require.Equal(t, uint64(1), sequence)
 
 	value = []byte{0x00, 0x01}
-	err = keeper.CreateIBCPackage(ctx, destChainID, channelID, value)
+	err = keeper.CreateIBCPackage(ctx, destChainID, channelName, value)
 	require.NoError(t, err)
 	value = []byte{0x00, 0x01, 0x02}
-	err = keeper.CreateIBCPackage(ctx, destChainID, channelID, value)
+	err = keeper.CreateIBCPackage(ctx, destChainID, channelName, value)
 	require.NoError(t, err)
 	value = []byte{0x00, 0x01, 0x02, 0x03}
-	err = keeper.CreateIBCPackage(ctx, destChainID, channelID, value)
+	err = keeper.CreateIBCPackage(ctx, destChainID, channelName, value)
 	require.NoError(t, err)
 	value = []byte{0x00, 0x01, 0x02, 0x03, 0x04}
-	err = keeper.CreateIBCPackage(ctx, destChainID, channelID, value)
+	err = keeper.CreateIBCPackage(ctx, destChainID, channelName, value)
 	require.NoError(t, err)
 
-	sequence = keeper.GetNextSequence(ctx, destChainID, channelID)
+	sequence = keeper.GetNextSequence(ctx, destChainID, channelName)
 	require.Equal(t, uint64(5), sequence)
 
-	keeper.CleanupIBCPackage(ctx, destChainID, channelID, 3)
-	require.Nil(t, keeper.GetIBCPackage(ctx, destChainID, channelID, 0))
-	require.Nil(t, keeper.GetIBCPackage(ctx, destChainID, channelID, 1))
-	require.Nil(t, keeper.GetIBCPackage(ctx, destChainID, channelID, 2))
-	require.Nil(t, keeper.GetIBCPackage(ctx, destChainID, channelID, 3))
-	require.NotNil(t, keeper.GetIBCPackage(ctx, destChainID, channelID, 4))
+	keeper.CleanupIBCPackage(ctx, destChainID, channelName, 3)
+
+	ibcPackage, err := keeper.GetIBCPackage(ctx, destChainID, channelName, 0)
+	require.NoError(t, err)
+	require.Nil(t, ibcPackage)
+	ibcPackage, err = keeper.GetIBCPackage(ctx, destChainID, channelName, 1)
+	require.NoError(t, err)
+	require.Nil(t, ibcPackage)
+	ibcPackage, err = keeper.GetIBCPackage(ctx, destChainID, channelName, 2)
+	require.NoError(t, err)
+	require.Nil(t, ibcPackage)
+	ibcPackage, err = keeper.GetIBCPackage(ctx, destChainID, channelName, 3)
+	require.NoError(t, err)
+	require.Nil(t, ibcPackage)
+	ibcPackage, err = keeper.GetIBCPackage(ctx, destChainID, channelName, 4)
+	require.NoError(t, err)
+	require.NotNil(t, ibcPackage)
 
 	destChainID = sdk.CrossChainID(0x0002)
 	channelID = sdk.ChannelID(0x01)
-	sequence = keeper.GetNextSequence(ctx, destChainID, channelID)
+	sequence = keeper.GetNextSequence(ctx, destChainID, channelName)
 	require.Equal(t, uint64(0), sequence)
 
 	destChainID = sdk.CrossChainID(0x0001)
 	channelID = sdk.ChannelID(0x02)
-	sequence = keeper.GetNextSequence(ctx, destChainID, channelID)
+	sequence = keeper.GetNextSequence(ctx, destChainID, channelName)
 	require.Equal(t, uint64(0), sequence)
 
 }

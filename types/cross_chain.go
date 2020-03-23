@@ -9,50 +9,60 @@ import (
 type ChannelID uint8
 type CrossChainID uint16
 
-type CrossChainChannelConfig struct {
+type crossChainConfig struct {
 	sourceChainID   CrossChainID
 	nameToChannelID map[string]ChannelID
 	channelIDToName map[ChannelID]string
-	nextChannelID   ChannelID
 }
 
-var CrossChainChannelHub = newCrossChainChannelHub()
+var crossChainCfg = newCrossChainCfg()
 
-func newCrossChainChannelHub() *CrossChainChannelConfig {
-	config := &CrossChainChannelConfig{
+func newCrossChainCfg() *crossChainConfig {
+	config := &crossChainConfig{
 		sourceChainID:   0,
 		nameToChannelID: make(map[string]ChannelID),
 		channelIDToName: make(map[ChannelID]string),
-		nextChannelID:   1,
 	}
 	return config
 }
 
-func RegisterNewCrossChainChannel(name string) error {
-	_, ok := CrossChainChannelHub.nameToChannelID[name]
+func RegisterNewCrossChainChannel(name string, id ChannelID) error {
+	_, ok := crossChainCfg.nameToChannelID[name]
 	if ok {
 		return fmt.Errorf("duplicated channel name")
 	}
-	CrossChainChannelHub.nameToChannelID[name] = CrossChainChannelHub.nextChannelID
-	CrossChainChannelHub.channelIDToName[CrossChainChannelHub.nextChannelID] = name
-	CrossChainChannelHub.nextChannelID++
+	_, ok = crossChainCfg.channelIDToName[id]
+	if ok {
+		return fmt.Errorf("duplicated channel id")
+	}
+	crossChainCfg.nameToChannelID[name] = id
+	crossChainCfg.channelIDToName[id] = name
 	return nil
 }
 
 func GetChannelID(channelName string) (ChannelID, error) {
-	id, ok := CrossChainChannelHub.nameToChannelID[channelName]
+	id, ok := crossChainCfg.nameToChannelID[channelName]
 	if !ok {
 		return ChannelID(0), fmt.Errorf("non-existing channel")
 	}
 	return id, nil
 }
 
-func InitCrossChainID(sourceChainID CrossChainID) {
-	CrossChainChannelHub.sourceChainID = sourceChainID
+func IsChannelRegistered(channelID ChannelID) bool {
+	_, exist := crossChainCfg.channelIDToName[channelID]
+	return exist;
+}
+
+func (channelID ChannelID) String() string {
+	return crossChainCfg.channelIDToName[channelID]
+}
+
+func SetSourceChainID(sourceChainID CrossChainID) {
+	crossChainCfg.sourceChainID = sourceChainID
 }
 
 func GetSourceChainID() CrossChainID {
-	return CrossChainChannelHub.sourceChainID
+	return crossChainCfg.sourceChainID
 }
 
 func ParseCrossChainID(input string) (CrossChainID, error) {
@@ -64,8 +74,4 @@ func ParseCrossChainID(input string) (CrossChainID, error) {
 		return CrossChainID(0), fmt.Errorf("cross chainID must be in [0, 1<<16 - 1]")
 	}
 	return CrossChainID(chainID), nil
-}
-
-func (channelID ChannelID) String() string {
-	return CrossChainChannelHub.channelIDToName[channelID]
 }
