@@ -38,10 +38,10 @@ type Validator struct {
 
 	Commission Commission `json:"commission"` // commission parameters
 
-	DistributionAddr sdk.AccAddress // the address receives rewards from the side address, and distribute rewards to delegators. It's auto generated
-	SideChainId      string         // side chain id to distinguish different side chains
-	SideConsAddr     []byte         // consensus address of the side chain validator, this replaces the `ConsPubKey`
-	SideFeeAddr      []byte         // fee address on the side chain
+	DistributionAddr sdk.AccAddress `json:"distribution_addr"` // the address receives rewards from the side address, and distribute rewards to delegators. It's auto generated
+	SideChainId      string         `json:"side_chain_id"`     // side chain id to distinguish different side chains
+	SideConsAddr     []byte         `json:"side_cons_addr"`    // consensus address of the side chain validator, this replaces the `ConsPubKey`
+	SideFeeAddr      []byte         `json:"side_fee_addr"`     // fee address on the side chain
 }
 
 // NewValidator - initialize a new validator
@@ -118,11 +118,14 @@ func UnmarshalValidator(cdc *codec.Codec, value []byte) (validator Validator, er
 // validator. An error is returned if the operator or the operator's public key
 // cannot be converted to Bech32 format.
 func (v Validator) HumanReadableString() (string, error) {
-	bechConsPubKey, err := sdk.Bech32ifyConsPub(v.ConsPubKey)
-	if err != nil {
-		return "", err
+	var bechConsPubKey string
+	var err error
+	if v.ConsPubKey != nil {
+		bechConsPubKey, err = sdk.Bech32ifyConsPub(v.ConsPubKey)
+		if err != nil {
+			return "", err
+		}
 	}
-
 	resp := "Validator \n"
 	resp += fmt.Sprintf("Fee Address: %s\n", v.FeeAddr)
 	resp += fmt.Sprintf("Operator Address: %s\n", v.OperatorAddr)
@@ -136,6 +139,12 @@ func (v Validator) HumanReadableString() (string, error) {
 	resp += fmt.Sprintf("Unbonding Height: %d\n", v.UnbondingHeight)
 	resp += fmt.Sprintf("Minimum Unbonding Time: %v\n", v.UnbondingMinTime)
 	resp += fmt.Sprintf("Commission: {%s}\n", v.Commission)
+	if len(v.SideChainId) != 0 {
+		resp += fmt.Sprintf("Distribution Addr: %s\n", v.DistributionAddr)
+		resp += fmt.Sprintf("Side Chain Id: %s\n", v.SideChainId)
+		resp += fmt.Sprintf("Consensus Addr on Side Chain: %s\n", v.SideConsAddr)
+		resp += fmt.Sprintf("Fee Addr on Side Chain: %s\n", v.SideFeeAddr)
+	}
 
 	return resp, nil
 }
@@ -165,9 +174,13 @@ type bechValidator struct {
 
 // MarshalJSON marshals the validator to JSON using Bech32
 func (v Validator) MarshalJSON() ([]byte, error) {
-	bechConsPubKey, err := sdk.Bech32ifyConsPub(v.ConsPubKey)
-	if err != nil {
-		return nil, err
+	var bechConsPubKey string
+	var err error
+	if v.ConsPubKey != nil {
+		bechConsPubKey, err = sdk.Bech32ifyConsPub(v.ConsPubKey)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return codec.Cdc.MarshalJSON(bechValidator{

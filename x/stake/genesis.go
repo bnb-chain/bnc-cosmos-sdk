@@ -49,7 +49,7 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, data types.GenesisState) (res [
 		keeper.OnDelegationCreated(ctx, delegation.DelegatorAddr, delegation.ValidatorAddr)
 	}
 
-	res = keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	_, res = keeper.ApplyAndReturnValidatorSetUpdates(ctx)
 	return
 }
 

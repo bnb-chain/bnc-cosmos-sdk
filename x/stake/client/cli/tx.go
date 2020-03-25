@@ -20,36 +20,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-func AddCommands(root *cobra.Command, cdc *codec.Codec) {
-	stakingCmd := &cobra.Command{
-		Use:   "staking",
-		Short: "staking commands",
-	}
-
-	stakingCmd.AddCommand(
-		client.PostCommands(
-			GetCmdCreateValidator(cdc),
-			GetCmdRemoveValidator(cdc),
-			GetCmdQueryValidators("stake", cdc),
-			GetCmdQueryUnbondingDelegations("stake", cdc),
-		)...,
-	)
-
-	stakingCmd.AddCommand(client.LineBreak)
-
-	stakingCmd.AddCommand(
-		client.PostCommands(
-			GetCmdCreateSideChainValidator(cdc),
-			GetCmdEditSideChainValidator(cdc),
-			GetCmdSideChainDelegate(cdc),
-			GetCmdSideChainRedelegate(cdc),
-			GetCmdSideChainUnbond(cdc),
-		)...,
-	)
-
-	root.AddCommand(stakingCmd)
-}
-
 // GetCmdCreateValidator implements the create validator command handler.
 func GetCmdCreateValidator(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
@@ -387,7 +357,6 @@ func GetCmdRedelegate(storeName string, cdc *codec.Codec) *cobra.Command {
 	cmd.Flags().AddFlagSet(fsRedelegation)
 	return cmd
 }
-
 
 // GetCmdUnbond implements the unbond validator command.
 func GetCmdUnbond(storeName string, cdc *codec.Codec) *cobra.Command {

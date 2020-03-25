@@ -296,8 +296,8 @@ func getSideChainInfo() (sideChainId string, sideConsAddr, sideFeeAddr []byte, e
 		return
 	}
 
-	sideConsAddr = Hex2Bytes(sideConsAddrStr)
-	sideFeeAddr = Hex2Bytes(sideFeeAddrStr)
+	sideConsAddr = FromHex(sideConsAddrStr)
+	sideFeeAddr = FromHex(sideFeeAddrStr)
 	return
 }
 

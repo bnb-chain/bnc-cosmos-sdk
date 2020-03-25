@@ -17,7 +17,7 @@ func TestWithdrawDelegationRewardBasic(t *testing.T) {
 	msgCreateValidator := stake.NewTestMsgCreateValidator(valOpAddr1, valConsPk1, 10)
 	got := stakeHandler(ctx, msgCreateValidator)
 	require.True(t, got.IsOK(), "expected msg to be ok, got %v", got)
-	_ = sk.ApplyAndReturnValidatorSetUpdates(ctx)
+	sk.ApplyAndReturnValidatorSetUpdates(ctx)
 
 	// delegate
 	msgDelegate := stake.NewTestMsgDelegate(delAddr1, valOpAddr1, 10)
@@ -53,7 +53,7 @@ func TestWithdrawDelegationRewardWithCommission(t *testing.T) {
 		valOpAddr1, valConsPk1, sdk.NewDecWithoutFra(10).RawInt(), sdk.NewDecWithPrec(1, 1))
 	got := stakeHandler(ctx, msgCreateValidator)
 	require.True(t, got.IsOK(), "expected msg to be ok, got %v", got)
-	_ = sk.ApplyAndReturnValidatorSetUpdates(ctx)
+	sk.ApplyAndReturnValidatorSetUpdates(ctx)
 
 	// delegate
 	msgDelegate := stake.NewTestMsgDelegate(delAddr1, valOpAddr1, 10)
@@ -87,7 +87,7 @@ func TestWithdrawDelegationRewardTwoDelegators(t *testing.T) {
 		valOpAddr1, valConsPk1, sdk.NewDecWithoutFra(10).RawInt(), sdk.NewDecWithPrec(1, 1))
 	got := stakeHandler(ctx, msgCreateValidator)
 	require.True(t, got.IsOK(), "expected msg to be ok, got %v", got)
-	_ = sk.ApplyAndReturnValidatorSetUpdates(ctx)
+	sk.ApplyAndReturnValidatorSetUpdates(ctx)
 
 	// delegate
 	msgDelegate := stake.NewTestMsgDelegate(delAddr1, valOpAddr1, 10)
@@ -129,7 +129,7 @@ func TestWithdrawDelegationRewardTwoDelegatorsUneven(t *testing.T) {
 		valOpAddr1, valConsPk1, sdk.NewDecWithoutFra(10).RawInt(), sdk.ZeroDec())
 	got := stakeHandler(ctx, msgCreateValidator)
 	require.True(t, got.IsOK(), "expected msg to be ok, got %v", got)
-	_ = sk.ApplyAndReturnValidatorSetUpdates(ctx)
+	sk.ApplyAndReturnValidatorSetUpdates(ctx)
 
 	// delegate
 	msgDelegate := stake.NewTestMsgDelegate(delAddr1, valOpAddr1, 10)
@@ -216,7 +216,7 @@ func TestWithdrawDelegationRewardsAll(t *testing.T) {
 	require.True(t, stakeHandler(ctx, msgDelegate).IsOK())
 
 	// Update sk's LastValidatorPower/LastTotalPowers.
-	_ = sk.ApplyAndReturnValidatorSetUpdates(ctx)
+	sk.ApplyAndReturnValidatorSetUpdates(ctx)
 
 	// 40 tokens left after delegating 60 of them
 	amt := accMapper.GetAccount(ctx, delAddr1).GetCoins().AmountOf(denom)

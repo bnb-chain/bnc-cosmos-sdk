@@ -8,10 +8,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
 
-// default value, would be overridden by the high level app when starts
-// TODO: to support multi side chains in the future. We will enable a registration mechanism and add these chain ids to db.
-var bscStoreKeyPrefix = []byte{0x99}
-var bscChainId = "bsc"
 
 // keeper of the stake store
 type Keeper struct {
@@ -42,21 +38,29 @@ func NewKeeper(cdc *codec.Codec, key, tkey sdk.StoreKey, ck bank.Keeper, addrPoo
 	return keeper
 }
 
-func (k Keeper) SetSideChainId(ctx sdk.Context, sideChainId string) {
-	// ctx is for later use to persist sideChainId to db
-	bscChainId = sideChainId
-}
-
-func (k Keeper) GetSideChainId(ctx sdk.Context) string {
-	// ctx is for later use to fetch sideChainId from db
-	return bscChainId
+// TODO: to support multi side chains in the future. We will enable a registration mechanism and add these chain ids to db.
+// then we need to check if the sideChainId already exists
+func (k Keeper) SetSideChainIdAndStorePrefix(ctx sdk.Context, sideChainId string, storePrefix []byte) {
+	store := ctx.KVStore(k.storeKey)
+	key := GetSideChainStorePrefixKey(sideChainId)
+	store.Set(key, storePrefix)
 }
 
 // get side chain store key prefix
-func (k Keeper) GetSideChainStoreKeyPrefix(ctx sdk.Context, id string) []byte {
-	// hard code first,
-	// ctx is for later use to fetch sideChainId from db
-	return bscStoreKeyPrefix
+func (k Keeper) GetSideChainStorePrefix(ctx sdk.Context, sideChainId string) []byte {
+	store := ctx.KVStore(k.storeKey)
+	return store.Get(GetSideChainStorePrefixKey(sideChainId))
+}
+
+func (k Keeper) GetAllSideChainPrefixes(ctx sdk.Context) [][]byte {
+	store := ctx.KVStore(k.storeKey)
+	prefixes := make([][]byte, 0, 1)
+	iterator := sdk.KVStorePrefixIterator(store, SideChainStorePrefixByIdKey)
+	defer iterator.Close()
+	for;iterator.Valid();iterator.Next() {
+		prefixes = append(prefixes, iterator.Value())
+	}
+	return prefixes
 }
 
 // Set the validator hooks

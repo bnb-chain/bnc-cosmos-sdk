@@ -23,8 +23,8 @@ import (
 // CONTRACT: Only validators with non-zero power or zero-power that were bonded
 // at the previous block height or were removed from the validator set entirely
 // are returned to Tendermint.
-func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []abci.ValidatorUpdate) {
-
+// CONTRACT: When handle the side chain validators, `updates` is not collected
+func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (newVals []types.Validator, updates []abci.ValidatorUpdate) {
 	store := ctx.KVStore(k.storeKey)
 	maxValidators := k.GetParams(ctx).MaxValidators
 	var totalPower int64
@@ -34,6 +34,7 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 	// (see LastValidatorPowerKey).
 	last := k.getLastValidatorsByAddr(ctx)
 
+	newVals = make([]types.Validator, 0, maxValidators)
 	// Iterate over validators, highest power to lowest.
 	iterator := sdk.KVStoreReversePrefixIterator(store, ValidatorsByPowerIndexKey)
 	defer iterator.Close()
@@ -67,6 +68,8 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 			panic("unexpected validator status")
 		}
 
+		newVals = append(newVals, validator)
+
 		// fetch the old power bytes
 		var operatorBytes [sdk.AddrLen]byte
 		copy(operatorBytes[:], operator[:])
@@ -77,8 +80,10 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 		newPowerBytes := k.cdc.MustMarshalBinaryLengthPrefixed(newPower)
 		// update the validator set if power has changed
 		if !found || !bytes.Equal(oldPowerBytes, newPowerBytes) {
-			updates = append(updates, validator.ABCIValidatorUpdate())
-
+			// Note: side chain validators do not have ConsPubKey, and we do not need to collect the updates as well.
+			if validator.ConsPubKey != nil {
+				updates = append(updates, validator.ABCIValidatorUpdate())
+			}
 			// set validator power on lookup index.
 			k.SetLastValidatorPower(ctx, operator, newPower)
 		}
@@ -112,7 +117,9 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 		k.DeleteLastValidatorPower(ctx, sdk.ValAddress(operator))
 
 		// update the validator set
-		updates = append(updates, validator.ABCIValidatorUpdateZero())
+		if validator.ConsPubKey != nil {
+			updates = append(updates, validator.ABCIValidatorUpdateZero())
+		}
 	}
 
 	// set total power on lookup index if there are any updates
@@ -120,7 +127,7 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 		k.SetLastTotalPower(ctx, totalPower)
 	}
 
-	return updates
+	return newVals, updates
 }
 
 // Validator state transitions

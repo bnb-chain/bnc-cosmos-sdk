@@ -36,6 +36,8 @@ var (
 	UnbondingQueueKey    = []byte{0x41} // prefix for the timestamps in unbonding queue
 	RedelegationQueueKey = []byte{0x42} // prefix for the timestamps in redelegations queue
 	ValidatorQueueKey    = []byte{0x43} // prefix for the timestamps in validator queue
+
+	SideChainStorePrefixByIdKey = []byte{0x51} // prefix for each key to a side chain store prefix, by side chain id
 )
 
 const maxDigitsForAccount = 12 // ~220,000,000 atoms created at launch
@@ -268,4 +270,8 @@ func GetREDsByDelToValDstIndexKey(delAddr sdk.AccAddress, valDstAddr sdk.ValAddr
 	return append(
 		GetREDsToValDstIndexKey(valDstAddr),
 		delAddr.Bytes()...)
+}
+
+func GetSideChainStorePrefixKey(sideChainId string) []byte {
+	return append(SideChainStorePrefixByIdKey, []byte(sideChainId)...)
 }
