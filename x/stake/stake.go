@@ -66,6 +66,7 @@ var (
 	GetREDsToValDstIndexKey      = keeper.GetREDsToValDstIndexKey
 	GetREDsByDelToValDstIndexKey = keeper.GetREDsByDelToValDstIndexKey
 	TestingUpdateValidator       = keeper.TestingUpdateValidator
+	GetSideChainStorePrefixKey   = keeper.GetSideChainStorePrefixKey
 
 	DefaultParamspace = keeper.DefaultParamspace
 	KeyUnbondingTime  = types.KeyUnbondingTime

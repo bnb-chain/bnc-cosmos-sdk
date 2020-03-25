@@ -11,25 +11,37 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 )
 
-// Called every block, update validator set
 func EndBlocker(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.ValidatorUpdate, completedUbds []types.UnbondingDelegation, endBlockerTags sdk.Tags) {
 	endBlockerTags = sdk.EmptyTags()
 	logger := ctx.Logger().With("module", "stake")
 
-	validatorUpdates, completedUbds, endBlockerTags = handleValidatorAndDelegations(ctx, k, logger)
+	_, validatorUpdates, completedUbds, endBlockerTags = handleValidatorAndDelegations(ctx, k, logger)
+	return
+}
+
+func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.ValidatorUpdate, completedUbds []types.UnbondingDelegation, endBlockerTags sdk.Tags) {
+	endBlockerTags = sdk.EmptyTags()
+	logger := ctx.Logger().With("module", "stake")
+
+	_, validatorUpdates, completedUbds, endBlockerTags = handleValidatorAndDelegations(ctx, k, logger)
 
 	if sdk.IsUpgrade(sdk.SideChainStakingUpgrade) {
-		sideChainId := k.GetSideChainId(ctx)
-		sideChainCtx := ctx.WithSideChainKeyPrefix(k.GetSideChainStoreKeyPrefix(ctx, sideChainId))
-		handleValidatorAndDelegations(sideChainCtx, k, logger)
-
-		// TODO: save new validator set to ibc store
-		// TODO: may need to change the return values
+		storePrefixes := k.GetAllSideChainPrefixes(ctx)
+		for i := range storePrefixes {
+			sideChainCtx := ctx.WithSideChainKeyPrefix(storePrefixes[i])
+			newVals, _, _, _ := handleValidatorAndDelegations(sideChainCtx, k, logger)
+			saveSideChainValidatorsToIBC(newVals)
+			// TODO: may need to change the return values
+		}
 	}
 	return
 }
 
-func handleValidatorAndDelegations(ctx sdk.Context, k keeper.Keeper, logger log.Logger) ([]abci.ValidatorUpdate, []types.UnbondingDelegation, sdk.Tags){
+func saveSideChainValidatorsToIBC(newVals []types.Validator) {
+	// TODO: save new validator set to ibc store
+}
+
+func handleValidatorAndDelegations(ctx sdk.Context, k keeper.Keeper, logger log.Logger) ([]types.Validator, []abci.ValidatorUpdate, []types.UnbondingDelegation, sdk.Tags){
 	endBlockerTags := sdk.EmptyTags()
 
 	k.UnbondAllMatureValidatorQueue(ctx)
@@ -43,8 +55,8 @@ func handleValidatorAndDelegations(ctx sdk.Context, k keeper.Keeper, logger log.
 	k.SetIntraTxCounter(ctx, 0)
 
 	// calculate validator set changes
-	validatorUpdates := k.ApplyAndReturnValidatorSetUpdates(ctx)
-	return validatorUpdates, completedUbd, endBlockerTags
+	newVals, validatorUpdates := k.ApplyAndReturnValidatorSetUpdates(ctx)
+	return newVals, validatorUpdates, completedUbd, endBlockerTags
 }
 
 func handleMatureRedelegations(k keeper.Keeper, ctx sdk.Context, logger log.Logger) (sdk.Tags) {

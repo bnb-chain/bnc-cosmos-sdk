@@ -10,12 +10,13 @@ import (
 )
 
 func handleMsgCreateSideChainValidator(ctx sdk.Context, msg MsgCreateSideChainValidator, k keeper.Keeper) sdk.Result{
-	if msg.SideChainId != k.GetSideChainId(ctx) {
+	storePrefix := k.GetSideChainStorePrefix(ctx, msg.SideChainId)
+	if storePrefix == nil {
 		return ErrInvalidSideChainId(k.Codespace()).Result()
 	}
 
 	// add store prefix to ctx for side chain use
-	ctx = ctx.WithSideChainKeyPrefix(k.GetSideChainStoreKeyPrefix(ctx, msg.SideChainId))
+	ctx = ctx.WithSideChainKeyPrefix(storePrefix)
 
 	// check to see if the pubkey or sender has been registered before
 	_, found := k.GetValidator(ctx, msg.ValidatorAddr)
@@ -67,13 +68,13 @@ func handleMsgCreateSideChainValidator(ctx sdk.Context, msg MsgCreateSideChainVa
 }
 
 func handleMsgEditSideChainValidator(ctx sdk.Context, msg MsgEditSideChainValidator, k keeper.Keeper) sdk.Result {
-	if msg.SideChainId != k.GetSideChainId(ctx) {
+	storePrefix := k.GetSideChainStorePrefix(ctx, msg.SideChainId)
+	if storePrefix == nil {
 		return ErrInvalidSideChainId(k.Codespace()).Result()
 	}
 
 	// add store prefix to ctx for side chain use
-	ctx = ctx.WithSideChainKeyPrefix(k.GetSideChainStoreKeyPrefix(ctx, msg.SideChainId))
-
+	ctx = ctx.WithSideChainKeyPrefix(storePrefix)
 	// validator must already be registered
 	validator, found := k.GetValidator(ctx, msg.ValidatorAddr)
 	if !found {
@@ -116,13 +117,13 @@ func handleMsgEditSideChainValidator(ctx sdk.Context, msg MsgEditSideChainValida
 }
 
 func handleMsgSideChainDelegate(ctx sdk.Context, msg MsgSideChainDelegate, k keeper.Keeper) sdk.Result {
-	if msg.SideChainId != k.GetSideChainId(ctx) {
+	storePrefix := k.GetSideChainStorePrefix(ctx, msg.SideChainId)
+	if storePrefix == nil {
 		return ErrInvalidSideChainId(k.Codespace()).Result()
 	}
 
 	// add store prefix to ctx for side chain use
-	ctx = ctx.WithSideChainKeyPrefix(k.GetSideChainStoreKeyPrefix(ctx, msg.SideChainId))
-
+	ctx = ctx.WithSideChainKeyPrefix(storePrefix)
 	validator, found := k.GetValidator(ctx, msg.ValidatorAddr)
 	if !found {
 		return ErrNoValidatorFound(k.Codespace()).Result()
@@ -151,13 +152,13 @@ func handleMsgSideChainDelegate(ctx sdk.Context, msg MsgSideChainDelegate, k kee
 }
 
 func handleMsgSideChainRedelegate(ctx sdk.Context, msg MsgSideChainBeginRedelegate, k keeper.Keeper) sdk.Result {
-	if msg.SideChainId != k.GetSideChainId(ctx) {
+	storePrefix := k.GetSideChainStorePrefix(ctx, msg.SideChainId)
+	if storePrefix == nil {
 		return ErrInvalidSideChainId(k.Codespace()).Result()
 	}
 
 	// add store prefix to ctx for side chain use
-	ctx = ctx.WithSideChainKeyPrefix(k.GetSideChainStoreKeyPrefix(ctx, msg.SideChainId))
-
+	ctx = ctx.WithSideChainKeyPrefix(storePrefix)
 	if msg.Amount.Denom != k.BondDenom(ctx) {
 		return ErrBadDenom(k.Codespace()).Result()
 	}
@@ -185,13 +186,13 @@ func handleMsgSideChainRedelegate(ctx sdk.Context, msg MsgSideChainBeginRedelega
 }
 
 func handleMsgSideChainUndelegate(ctx sdk.Context, msg MsgSideChainUndelegate, k keeper.Keeper) sdk.Result {
-	if msg.SideChainId != k.GetSideChainId(ctx) {
+	storePrefix := k.GetSideChainStorePrefix(ctx, msg.SideChainId)
+	if storePrefix == nil {
 		return ErrInvalidSideChainId(k.Codespace()).Result()
 	}
 
 	// add store prefix to ctx for side chain use
-	ctx = ctx.WithSideChainKeyPrefix(k.GetSideChainStoreKeyPrefix(ctx, msg.SideChainId))
-
+	ctx = ctx.WithSideChainKeyPrefix(storePrefix)
 	if msg.Amount.Denom != k.BondDenom(ctx) {
 		return ErrBadDenom(k.Codespace()).Result()
 	}

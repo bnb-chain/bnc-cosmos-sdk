@@ -256,7 +256,7 @@ func TestUndelegateSelfDelegation(t *testing.T) {
 	require.NoError(t, err)
 
 	// end block
-	updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	_, updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
 	require.Equal(t, 1, len(updates))
 
 	validator, found := keeper.GetValidator(ctx, addrVals[0])
@@ -312,7 +312,7 @@ func TestUndelegateFromUnbondingValidator(t *testing.T) {
 	require.NoError(t, err)
 
 	// end block
-	updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	_, updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
 	require.Equal(t, 1, len(updates))
 
 	validator, found := keeper.GetValidator(ctx, addrVals[0])
@@ -386,7 +386,7 @@ func TestUndelegateFromUnbondedValidator(t *testing.T) {
 	require.NoError(t, err)
 
 	// end block
-	updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	_, updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
 	require.Equal(t, 1, len(updates))
 
 	validator, found := keeper.GetValidator(ctx, addrVals[0])
@@ -465,7 +465,7 @@ func TestUnbondingAllDelegationFromValidator(t *testing.T) {
 	require.NoError(t, err)
 
 	// end block
-	updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	_, updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
 	require.Equal(t, 1, len(updates))
 
 	// unbond all the remaining delegation
@@ -631,7 +631,7 @@ func TestRedelegateSelfDelegation(t *testing.T) {
 	require.NoError(t, err)
 
 	// end block
-	updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	_, updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
 	require.Equal(t, 2, len(updates))
 
 	validator, found := keeper.GetValidator(ctx, addrVals[0])
@@ -696,7 +696,7 @@ func TestRedelegateFromUnbondingValidator(t *testing.T) {
 	require.NoError(t, err)
 
 	// end block
-	updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	_, updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
 	require.Equal(t, 1, len(updates))
 
 	validator, found := keeper.GetValidator(ctx, addrVals[0])
@@ -778,7 +778,8 @@ func TestRedelegateFromUnbondedValidator(t *testing.T) {
 	require.NoError(t, err)
 
 	// end block
-	updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	newVals, updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	require.Equal(t, 1, len(newVals))
 	require.Equal(t, 1, len(updates))
 
 	validator, found := keeper.GetValidator(ctx, addrVals[0])
