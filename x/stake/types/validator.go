@@ -301,6 +301,9 @@ func (d Description) Equals(d2 Description) bool {
 
 // EnsureLength ensures the length of a validator's description.
 func (d Description) EnsureLength() (Description, sdk.Error) {
+	if len(d.Moniker) == 0 {
+		return d, ErrEmptyMoniker(DefaultCodespace)
+	}
 	if len(d.Moniker) > 70 {
 		return d, ErrDescriptionLength(DefaultCodespace, "moniker", len(d.Moniker), 70)
 	}

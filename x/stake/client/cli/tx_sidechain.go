@@ -62,7 +62,7 @@ func GetCmdCreateSideChainValidator(cdc *codec.Codec) *cobra.Command {
 			return err
 		}
 
-		sideChainId, sideConsAddr, sideFeeAddr, err := getSideChainInfo()
+		sideChainId, sideConsAddr, sideFeeAddr, err := getSideChainInfo(true, true)
 		if err != nil {
 			return err
 		}
@@ -128,7 +128,7 @@ func GetCmdEditSideChainValidator(cdc *codec.Codec) *cobra.Command {
 			newRate = &rate
 		}
 
-		sideChainId, sideConsAddr, sideFeeAddr, err := getSideChainInfo()
+		sideChainId, sideConsAddr, sideFeeAddr, err := getSideChainInfo(false, false)
 		if err != nil {
 			return err
 		}
@@ -278,7 +278,7 @@ func getSideChainId() (sideChainId string, err error) {
 	return
 }
 
-func getSideChainInfo() (sideChainId string, sideConsAddr, sideFeeAddr []byte, err error) {
+func getSideChainInfo(requireConsAddr, requireFeeAddr bool) (sideChainId string, sideConsAddr, sideFeeAddr []byte, err error) {
 	sideChainId, err = getSideChainId()
 	if err != nil {
 		return
@@ -286,18 +286,23 @@ func getSideChainInfo() (sideChainId string, sideConsAddr, sideFeeAddr []byte, e
 
 	sideConsAddrStr := viper.GetString(FlagSideConsAddr)
 	if len(sideConsAddrStr) == 0 {
-		err = fmt.Errorf("%s is required", FlagSideConsAddr)
-		return
+		if requireConsAddr {
+			err = fmt.Errorf("%s is required", FlagSideConsAddr)
+			return
+		}
+	} else {
+		sideConsAddr = FromHex(sideConsAddrStr)
 	}
 
 	sideFeeAddrStr := viper.GetString(FlagSideFeeAddr)
 	if len(sideFeeAddrStr) == 0 {
-		err = fmt.Errorf("%s is required", FlagSideFeeAddr)
-		return
+		if requireFeeAddr {
+			err = fmt.Errorf("%s is required", FlagSideFeeAddr)
+			return
+		}
+	} else {
+		sideFeeAddr = FromHex(sideFeeAddrStr)
 	}
-
-	sideConsAddr = FromHex(sideConsAddrStr)
-	sideFeeAddr = FromHex(sideFeeAddrStr)
 	return
 }
 

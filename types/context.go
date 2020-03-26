@@ -75,7 +75,7 @@ func (c Context) KVStore(key StoreKey) KVStore {
 	if prefix, ok := c.Value(contextKeySideChainKeyPrefix).([]byte); ok {
 		return kvStore.Prefix(prefix)
 	}
-	return c.MultiStore().GetKVStore(key)
+	return kvStore
 }
 
 // TransientStore fetches a TransientStore from the MultiStore.

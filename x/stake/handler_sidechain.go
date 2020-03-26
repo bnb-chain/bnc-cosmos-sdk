@@ -98,11 +98,11 @@ func handleMsgEditSideChainValidator(ctx sdk.Context, msg MsgEditSideChainValida
 		k.OnValidatorModified(ctx, msg.ValidatorAddr)
 	}
 
-	if len(msg.SideConsAddr) == 0 {
+	if len(msg.SideConsAddr) != 0 {
 		validator.SideConsAddr = msg.SideConsAddr
 	}
 
-	if len(msg.SideFeeAddr) == 0 {
+	if len(msg.SideFeeAddr) != 0 {
 		validator.SideFeeAddr = msg.SideFeeAddr
 	}
 
