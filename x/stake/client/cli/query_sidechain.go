@@ -149,14 +149,15 @@ func GetCmdQuerySideChainDelegation(storeName string, cdc *codec.Codec) *cobra.C
 				return err
 			}
 
-			key := append(sideChainStorePrefix, stake.GetDelegationKey(delAddr, valAddr)...)
+			delegationKey := stake.GetDelegationKey(delAddr, valAddr)
+			key := append(sideChainStorePrefix, delegationKey...)
 			res, err := cliCtx.QueryStore(key, storeName)
 			if err != nil {
 				return err
 			}
 
 			// parse out the delegation
-			delegation, err := types.UnmarshalDelegation(cdc, key, res)
+			delegation, err := types.UnmarshalDelegation(cdc, delegationKey, res)
 			if err != nil {
 				return err
 			}
