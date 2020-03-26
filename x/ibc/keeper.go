@@ -71,10 +71,10 @@ func (k Keeper) CleanupIBCPackage(ctx sdk.Context, destChainName string, channel
 
 	for ; iterator.Valid(); iterator.Next() {
 		packageKey := iterator.Key()
-		if len(packageKey) != prefixLength+sourceChainIDLength+destChainIDLength+channelIDLength+sequenceLength {
+		if len(packageKey) != totalPackageKeyLength {
 			continue
 		}
-		sequence := binary.BigEndian.Uint64(packageKey[prefixLength+sourceChainIDLength+destChainIDLength+channelIDLength:])
+		sequence := binary.BigEndian.Uint64(packageKey[totalPackageKeyLength-sequenceLength:])
 		if sequence > confirmedSequence {
 			break
 		}
