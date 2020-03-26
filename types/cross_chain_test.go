@@ -13,11 +13,13 @@ func TestInitCrossChainID(t *testing.T) {
 	require.Equal(t, sourceChainID, types.GetSourceChainID())
 }
 
-func TestRegisterNewCrossChainChannel(t *testing.T) {
-	require.NoError(t, types.RegisterNewCrossChainChannel("bind", types.ChannelID(1)))
-	require.NoError(t, types.RegisterNewCrossChainChannel("transfer", types.ChannelID(2)))
-	require.NoError(t, types.RegisterNewCrossChainChannel("timeout", types.ChannelID(3)))
-	require.NoError(t, types.RegisterNewCrossChainChannel("staking", types.ChannelID(4)))
+func TestRegisterCrossChainChannel(t *testing.T) {
+	require.NoError(t, types.RegisterCrossChainChannel("bind", types.ChannelID(1)))
+	require.NoError(t, types.RegisterCrossChainChannel("transfer", types.ChannelID(2)))
+	require.NoError(t, types.RegisterCrossChainChannel("timeout", types.ChannelID(3)))
+	require.NoError(t, types.RegisterCrossChainChannel("staking", types.ChannelID(4)))
+	require.Error(t, types.RegisterCrossChainChannel("staking", types.ChannelID(5)))
+	require.Error(t, types.RegisterCrossChainChannel("staking-new", types.ChannelID(4)))
 
 	channeID, err := types.GetChannelID("transfer")
 	require.NoError(t, err)
@@ -26,6 +28,23 @@ func TestRegisterNewCrossChainChannel(t *testing.T) {
 	channeID, err = types.GetChannelID("staking")
 	require.NoError(t, err)
 	require.Equal(t, types.ChannelID(4), channeID)
+}
+
+func TestRegisterDestChainID(t *testing.T) {
+	require.NoError(t, types.RegisterDestChainID("bsc", types.CrossChainID(1)))
+	require.NoError(t, types.RegisterDestChainID("ethereum", types.CrossChainID(2)))
+	require.NoError(t, types.RegisterDestChainID("btc", types.CrossChainID(3)))
+	require.NoError(t, types.RegisterDestChainID("cosmos", types.CrossChainID(4)))
+	require.Error(t, types.RegisterDestChainID("cosmos", types.CrossChainID(5)))
+	require.Error(t, types.RegisterDestChainID("mock", types.CrossChainID(4)))
+
+	destChainID, err := types.GetDestChainID("bsc")
+	require.NoError(t, err)
+	require.Equal(t, types.CrossChainID(1), destChainID)
+
+	destChainID, err = types.GetDestChainID("btc")
+	require.NoError(t, err)
+	require.Equal(t, types.CrossChainID(3), destChainID)
 }
 
 func TestCrossChainID(t *testing.T) {

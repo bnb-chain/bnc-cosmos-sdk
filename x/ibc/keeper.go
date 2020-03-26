@@ -19,33 +19,47 @@ func NewKeeper(storeKey sdk.StoreKey, codespace sdk.CodespaceType) Keeper {
 	}
 }
 
-func (k Keeper) CreateIBCPackage(ctx sdk.Context, destChainID sdk.CrossChainID, channelName string, value []byte) sdk.Error {
+func (k Keeper) CreateIBCPackage(ctx sdk.Context, destChainName string, channelName string, value []byte) (uint64, sdk.Error) {
+	destChainID, err := sdk.GetDestChainID(destChainName)
+	if err != nil {
+		return 0, sdk.ErrInternal(err.Error())
+	}
 	channelID, err := sdk.GetChannelID(channelName)
 	if err != nil {
-		return sdk.ErrInternal(err.Error())
+		return 0, sdk.ErrInternal(err.Error())
 	}
-	sequence := k.GetNextSequence(ctx, destChainID, channelName)
+
+	sequence := k.getSequence(ctx, destChainID, channelID)
 	key := buildIBCPackageKey(sdk.GetSourceChainID(), destChainID, channelID, sequence)
 	kvStore := ctx.KVStore(k.storeKey)
 	if kvStore.Has(key) {
-		return ErrDuplicatedSequence(DefaultCodespace, "duplicated sequence")
+		return 0, ErrDuplicatedSequence(DefaultCodespace, "duplicated sequence")
 	}
 	kvStore.Set(key, value)
 	k.incrSequence(ctx, destChainID, channelID)
-	return nil
+	return sequence, nil
 }
 
-func (k *Keeper) GetIBCPackage(ctx sdk.Context, destChainID sdk.CrossChainID, channelName string, sequence uint64) ([]byte, error) {
+func (k *Keeper) GetIBCPackage(ctx sdk.Context, destChainName string, channelName string, sequence uint64) ([]byte, error) {
+	destChainID, err := sdk.GetDestChainID(destChainName)
+	if err != nil {
+		return nil, err
+	}
 	channelID, err := sdk.GetChannelID(channelName)
 	if err != nil {
 		return nil, err
 	}
+
 	kvStore := ctx.KVStore(k.storeKey)
 	key := buildIBCPackageKey(sdk.GetSourceChainID(), destChainID, channelID, sequence)
 	return kvStore.Get(key), nil
 }
 
-func (k Keeper) CleanupIBCPackage(ctx sdk.Context, destChainID sdk.CrossChainID, channelName string, confirmedSequence uint64) {
+func (k Keeper) CleanupIBCPackage(ctx sdk.Context, destChainName string, channelName string, confirmedSequence uint64) {
+	destChainID, err := sdk.GetDestChainID(destChainName)
+	if err != nil {
+		return
+	}
 	channelID, err := sdk.GetChannelID(channelName)
 	if err != nil {
 		return
@@ -68,12 +82,7 @@ func (k Keeper) CleanupIBCPackage(ctx sdk.Context, destChainID sdk.CrossChainID,
 	}
 }
 
-func (k *Keeper) GetNextSequence(ctx sdk.Context, destChainID sdk.CrossChainID, channelName string) uint64 {
-	channelID, err := sdk.GetChannelID(channelName)
-	if err != nil {
-		return 0
-	}
-
+func (k *Keeper) getSequence(ctx sdk.Context, destChainID sdk.CrossChainID, channelID sdk.ChannelID) uint64 {
 	kvStore := ctx.KVStore(k.storeKey)
 	bz := kvStore.Get(buildChannelSequenceKey(destChainID, channelID))
 	if bz == nil {
