@@ -1,57 +1,30 @@
 package types_test
 
 import (
-	"github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/cosmos/cosmos-sdk/types"
 )
 
-func TestInitCrossChainID(t *testing.T) {
-	sourceChainID := types.CrossChainID(0x0001)
-	types.SetSourceChainID(sourceChainID)
+func TestParseChannelID(t *testing.T) {
+	channelID, err := types.ParseCrossChainChannelID("12")
+	require.NoError(t, err)
+	require.Equal(t, types.CrossChainChannelID(12), channelID)
 
-	require.Equal(t, sourceChainID, types.GetSourceChainID())
+	_, err = types.ParseCrossChainChannelID("1024")
+	require.Error(t, err)
 }
 
-func TestRegisterCrossChainChannel(t *testing.T) {
-	require.NoError(t, types.RegisterCrossChainChannel("bind", types.ChannelID(1)))
-	require.NoError(t, types.RegisterCrossChainChannel("transfer", types.ChannelID(2)))
-	require.NoError(t, types.RegisterCrossChainChannel("timeout", types.ChannelID(3)))
-	require.NoError(t, types.RegisterCrossChainChannel("staking", types.ChannelID(4)))
-	require.Error(t, types.RegisterCrossChainChannel("staking", types.ChannelID(5)))
-	require.Error(t, types.RegisterCrossChainChannel("staking-new", types.ChannelID(4)))
-
-	channeID, err := types.GetChannelID("transfer")
+func TestParseCrossChainID(t *testing.T) {
+	chainID, err := types.ParseCrossChainID("12")
 	require.NoError(t, err)
-	require.Equal(t, types.ChannelID(2), channeID)
+	require.Equal(t, types.CrossChainID(12), chainID)
 
-	channeID, err = types.GetChannelID("staking")
+	chainID, err = types.ParseCrossChainID("10000")
 	require.NoError(t, err)
-	require.Equal(t, types.ChannelID(4), channeID)
-}
+	require.Equal(t, types.CrossChainID(10000), chainID)
 
-func TestRegisterDestChainID(t *testing.T) {
-	require.NoError(t, types.RegisterDestChainID("bsc", types.CrossChainID(1)))
-	require.NoError(t, types.RegisterDestChainID("ethereum", types.CrossChainID(2)))
-	require.NoError(t, types.RegisterDestChainID("btc", types.CrossChainID(3)))
-	require.NoError(t, types.RegisterDestChainID("cosmos", types.CrossChainID(4)))
-	require.Error(t, types.RegisterDestChainID("cosmos", types.CrossChainID(5)))
-	require.Error(t, types.RegisterDestChainID("mock", types.CrossChainID(4)))
-
-	destChainID, err := types.GetDestChainID("bsc")
-	require.NoError(t, err)
-	require.Equal(t, types.CrossChainID(1), destChainID)
-
-	destChainID, err = types.GetDestChainID("btc")
-	require.NoError(t, err)
-	require.Equal(t, types.CrossChainID(3), destChainID)
-}
-
-func TestCrossChainID(t *testing.T) {
-	chainID, err := types.ParseCrossChainID("123")
-	require.NoError(t, err)
-	require.Equal(t, types.CrossChainID(123), chainID)
-
-	_, err = types.ParseCrossChainID("65537")
+	_, err = types.ParseCrossChainID("65536")
 	require.Error(t, err)
 }

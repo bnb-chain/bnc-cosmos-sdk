@@ -20,22 +20,19 @@ var (
 	PrefixForSequenceKey          = []byte{0x01}
 )
 
-func buildIBCPackageKey(sourceChainID, destinationChainID sdk.CrossChainID, channelID sdk.ChannelID, sequence uint64) []byte {
+func buildIBCPackageKey(sourceChainID, destinationChainID sdk.CrossChainID, channelID sdk.CrossChainChannelID, sequence uint64) []byte {
 	key := make([]byte, totalPackageKeyLength)
 
 	copy(key[:prefixLength], PrefixForCrossChainPackageKey)
 	binary.BigEndian.PutUint16(key[prefixLength:sourceChainIDLength+prefixLength], uint16(sourceChainID))
 	binary.BigEndian.PutUint16(key[prefixLength+sourceChainIDLength:prefixLength+sourceChainIDLength+destChainIDLength], uint16(destinationChainID))
 	copy(key[prefixLength+sourceChainIDLength+destChainIDLength:], []byte{byte(channelID)})
-
-	sequenceBytes := make([]byte, sequenceLength)
-	binary.BigEndian.PutUint64(sequenceBytes, sequence)
-	copy(key[prefixLength+sourceChainIDLength+destChainIDLength+channelIDLength:], sequenceBytes)
+	binary.BigEndian.PutUint64(key[prefixLength+sourceChainIDLength+destChainIDLength+channelIDLength:], sequence)
 
 	return key
 }
 
-func buildIBCPackageKeyPrefix(sourceChainID, destinationChainID sdk.CrossChainID, channelID sdk.ChannelID) []byte {
+func buildIBCPackageKeyPrefix(sourceChainID, destinationChainID sdk.CrossChainID, channelID sdk.CrossChainChannelID) []byte {
 	key := make([]byte, totalPackageKeyLength-sequenceLength)
 
 	copy(key[:prefixLength], PrefixForCrossChainPackageKey)
@@ -46,7 +43,7 @@ func buildIBCPackageKeyPrefix(sourceChainID, destinationChainID sdk.CrossChainID
 	return key
 }
 
-func buildChannelSequenceKey(destChainID sdk.CrossChainID, channelID sdk.ChannelID) []byte {
+func buildChannelSequenceKey(destChainID sdk.CrossChainID, channelID sdk.CrossChainChannelID) []byte {
 	key := make([]byte, prefixLength+destChainIDLength+channelIDLength)
 
 	copy(key[:prefixLength], PrefixForSequenceKey)
