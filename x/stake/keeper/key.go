@@ -71,8 +71,13 @@ func AddressFromLastValidatorPowerKey(key []byte) []byte {
 // power ranking of the validator.
 // VALUE: validator operator address ([]byte)
 func GetValidatorsByPowerIndexKey(validator types.Validator) []byte {
-	// NOTE the address doesn't need to be stored because counter bytes must always be different
-	return getValidatorPowerRank(validator)
+	var keyBytes []byte
+	sdk.Upgrade(sdk.SideChainStakingUpgrade, func() {
+		keyBytes = getValidatorPowerRank(validator)
+	}, nil, func() {
+		keyBytes = getValidatorPowerRankNew(validator)
+	})
+	return keyBytes
 }
 
 // get the bonded validator index key for an operator address
@@ -84,11 +89,7 @@ func GetLastValidatorPowerKey(operator sdk.ValAddress) []byte {
 // NOTE the larger values are of higher value
 // nolint: unparam
 func getValidatorPowerRank(validator types.Validator) []byte {
-
-	potentialPower := validator.Tokens
-
-	// todo: deal with cases above 2**64, ref https://github.com/cosmos/cosmos-sdk/issues/2439#issuecomment-427167556
-	tendermintPower := potentialPower.RawInt()
+	tendermintPower := validator.Tokens.RawInt()
 	tendermintPowerBytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(tendermintPowerBytes[:], uint64(tendermintPower))
 
@@ -105,7 +106,25 @@ func getValidatorPowerRank(validator types.Validator) []byte {
 	binary.BigEndian.PutUint64(key[powerBytesLen+1:powerBytesLen+9], ^uint64(validator.BondHeight))
 	// include counterBytes, counter is inverted (first txns have priority)
 	binary.BigEndian.PutUint16(key[powerBytesLen+9:powerBytesLen+11], ^uint16(validator.BondIntraTxCounter))
+	return key
+}
 
+func getValidatorPowerRankNew(validator types.Validator) []byte {
+	power := validator.Tokens.RawInt()
+
+	prefixLen := len(ValidatorsByPowerIndexKey)
+	powerLen := 8
+	// key is of format prefix || powerbytes || addrBytes
+	key := make([]byte, prefixLen+powerLen+sdk.AddrLen)
+	copy(key[:prefixLen], ValidatorsByPowerIndexKey)
+	binary.BigEndian.PutUint64(key[prefixLen:prefixLen+powerLen], uint64(power))
+
+	operAddrInvr := make([]byte, len(validator.OperatorAddr))
+	copy(operAddrInvr, validator.OperatorAddr)
+	for i, b := range operAddrInvr {
+		operAddrInvr[i] = ^b
+	}
+	copy(key[prefixLen+powerLen:], operAddrInvr)
 	return key
 }
 

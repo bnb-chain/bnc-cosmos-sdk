@@ -93,18 +93,6 @@ func NewDecWithPrec(i, prec int64) Dec {
 
 // create a new Dec from big integer assuming whole numbers
 // CONTRACT: prec <= Precision
-func NewDecFromBigInt(i int64) Dec {
-	return NewDecFromBigIntWithPrec(i, Precision)
-}
-
-// create a new Dec from big integer assuming whole numbers
-// CONTRACT: prec <= Precision
-func NewDecFromBigIntWithPrec(i int64, prec int64) Dec {
-	return NewDecWithPrec(i, prec)
-}
-
-// create a new Dec from big integer assuming whole numbers
-// CONTRACT: prec <= Precision
 func NewDecFromInt(i int64) Dec {
 	return NewDecFromIntWithPrec(i, Precision)
 }

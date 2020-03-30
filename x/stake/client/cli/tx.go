@@ -362,7 +362,7 @@ func GetCmdRedelegate(storeName string, cdc *codec.Codec) *cobra.Command {
 func GetCmdUnbond(storeName string, cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "unbond",
-		Short: "begin or complete unbonding shares from a validator",
+		Short: "unbond shares from a validator",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			txBldr := authtxb.NewTxBuilderFromCLI().WithCodec(cdc)
 			cliCtx := context.NewCLIContext().

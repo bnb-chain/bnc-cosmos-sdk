@@ -64,7 +64,7 @@ func UnmarshalDelegation(cdc *codec.Codec, key, value []byte) (delegation Delega
 	var storeValue delegationValue
 	err = cdc.UnmarshalBinaryLengthPrefixed(value, &storeValue)
 	if err != nil {
-		err = fmt.Errorf("%v: %v", ErrNoDelegation(DefaultCodespace).Data(), err)
+		err = fmt.Errorf("%v", ErrNoDelegation(DefaultCodespace).Data())
 		return
 	}
 
