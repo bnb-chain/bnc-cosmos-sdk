@@ -10,7 +10,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/stake/keeper"
 	"github.com/cosmos/cosmos-sdk/x/stake/tags"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
-
 )
 
 func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
@@ -37,7 +36,7 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 			return handleMsgEditSideChainValidator(ctx, msg, k)
 		case types.MsgSideChainDelegate:
 			return handleMsgSideChainDelegate(ctx, msg, k)
-		case types.MsgSideChainBeginRedelegate:
+		case types.MsgSideChainRedelegate:
 			return handleMsgSideChainRedelegate(ctx, msg, k)
 		case types.MsgSideChainUndelegate:
 			return handleMsgSideChainUndelegate(ctx, msg, k)
@@ -293,8 +292,14 @@ func handleMsgDelegate(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper) 
 		return ErrBadDenom(k.Codespace()).Result()
 	}
 
-	// TODO: remove this check
-	if validator.Jailed && !bytes.Equal(validator.OperatorAddr, msg.DelegatorAddr) {
+	if bytes.Equal(msg.DelegatorAddr.Bytes(), validator.OperatorAddr.Bytes()) {
+		// if validator uses a different self-delegator address, the operator address is not allowed to delegate to itself.
+		if !bytes.Equal(validator.OperatorAddr.Bytes(), validator.FeeAddr.Bytes()) {
+			return ErrInvalidDelegator(k.Codespace()).Result()
+		}
+	}
+
+	if validator.Jailed && !bytes.Equal(validator.FeeAddr, msg.DelegatorAddr) {
 		return ErrValidatorJailed(k.Codespace()).Result()
 	}
 

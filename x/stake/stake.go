@@ -34,7 +34,7 @@ type (
 	MsgCreateSideChainValidator = types.MsgCreateSideChainValidator
 	MsgEditSideChainValidator   = types.MsgEditSideChainValidator
 	MsgSideChainDelegate        = types.MsgSideChainDelegate
-	MsgSideChainBeginRedelegate = types.MsgSideChainBeginRedelegate
+	MsgSideChainRedelegate      = types.MsgSideChainRedelegate
 	MsgSideChainUndelegate      = types.MsgSideChainUndelegate
 )
 
@@ -98,7 +98,7 @@ var (
 	NewMsgCreateSideChainValidatorOnBehalfOf = types.NewMsgCreateSideChainValidatorOnBehalfOf
 	NewMsgEditSideChainValidator             = types.NewMsgEditSideChainValidator
 	NewMsgSideChainDelegate                  = types.NewMsgSideChainDelegate
-	NewMsgSideChainBeginRedelegate           = types.NewMsgSideChainBeginRedelegate
+	NewMsgSideChainRedelegate                = types.NewMsgSideChainRedelegate
 	NewMsgSideChainUndelegate                = types.NewMsgSideChainUndelegate
 
 	NewQuerier = querier.NewQuerier
@@ -137,6 +137,7 @@ var (
 	ErrValidatorOwnerExists       = types.ErrValidatorOwnerExists
 	ErrValidatorPubKeyExists      = types.ErrValidatorPubKeyExists
 	ErrValidatorSideConsAddrExist = types.ErrValidatorSideConsAddrExists
+	ErrInvalidDelegator           = types.ErrInvalidDelegator
 	ErrValidatorJailed            = types.ErrValidatorJailed
 	ErrInvalidProposal            = types.ErrInvalidProposal
 	ErrBadRemoveValidator         = types.ErrBadRemoveValidator
@@ -164,6 +165,7 @@ var (
 	ErrBadRedelegationSrc    = types.ErrBadRedelegationSrc
 	ErrBadRedelegationDst    = types.ErrBadRedelegationDst
 	ErrSelfRedelegation      = types.ErrSelfRedelegation
+	ErrInvalidRedelegator    = types.ErrInvalidRedelegator
 
 	ErrBothShareMsgsGiven    = types.ErrBothShareMsgsGiven
 	ErrNeitherShareMsgsGiven = types.ErrNeitherShareMsgsGiven

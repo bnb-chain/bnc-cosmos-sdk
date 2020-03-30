@@ -11,11 +11,15 @@ const (
 	MsgTypeCreateSideChainValidator = "side_create_validator"
 	MsgTypeEditSideChainValidator   = "side_edit_validator"
 	MsgTypeSideChainDelegate        = "side_delegate"
-	MsgTypeSideChainBeginRedelegate = "side_begin_redelegate"
+	MsgTypeSideChainRedelegate      = "side_redelegate"
 	MsgTypeSideChainUndelegate      = "side_undelegate"
 
 	MaxSideChainIdLength = 20
 )
+
+type SideChainIder interface {
+	GetSideChainId() string
+}
 
 type MsgCreateSideChainValidator struct {
 	Description   Description    `json:"description"`
@@ -110,6 +114,10 @@ func (msg MsgCreateSideChainValidator) ValidateBasic() sdk.Error {
 	return nil
 }
 
+func (msg MsgCreateSideChainValidator) GetSideChainId() string {
+	return msg.SideChainId
+}
+
 //______________________________________________________________________
 type MsgEditSideChainValidator struct {
 	Description   Description    `json:"description"`
@@ -195,6 +203,10 @@ func (msg MsgEditSideChainValidator) GetInvolvedAddresses() []sdk.AccAddress {
 	return msg.GetSigners()
 }
 
+func (msg MsgEditSideChainValidator) GetSideChainId() string {
+	return msg.SideChainId
+}
+
 //______________________________________________________________________
 type MsgSideChainDelegate struct {
 	DelegatorAddr sdk.AccAddress `json:"delegator_addr"`
@@ -248,8 +260,12 @@ func (msg MsgSideChainDelegate) GetInvolvedAddresses() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.DelegatorAddr, sdk.AccAddress(msg.ValidatorAddr)}
 }
 
+func (msg MsgSideChainDelegate) GetSideChainId() string {
+	return msg.SideChainId
+}
+
 //______________________________________________________________________
-type MsgSideChainBeginRedelegate struct {
+type MsgSideChainRedelegate struct {
 	DelegatorAddr    sdk.AccAddress `json:"delegator_addr"`
 	ValidatorSrcAddr sdk.ValAddress `json:"validator_src_addr"`
 	ValidatorDstAddr sdk.ValAddress `json:"validator_dst_addr"`
@@ -257,8 +273,8 @@ type MsgSideChainBeginRedelegate struct {
 	SideChainId      string         `json:"side_chain_id"`
 }
 
-func NewMsgSideChainBeginRedelegate(sideChainId string, delegatorAddr sdk.AccAddress, valSrcAddr sdk.ValAddress, valDstAddr sdk.ValAddress, amount sdk.Coin) MsgSideChainBeginRedelegate {
-	return MsgSideChainBeginRedelegate{
+func NewMsgSideChainRedelegate(sideChainId string, delegatorAddr sdk.AccAddress, valSrcAddr sdk.ValAddress, valDstAddr sdk.ValAddress, amount sdk.Coin) MsgSideChainRedelegate {
+	return MsgSideChainRedelegate{
 		DelegatorAddr:    delegatorAddr,
 		ValidatorSrcAddr: valSrcAddr,
 		ValidatorDstAddr: valDstAddr,
@@ -268,23 +284,23 @@ func NewMsgSideChainBeginRedelegate(sideChainId string, delegatorAddr sdk.AccAdd
 }
 
 //nolint
-func (msg MsgSideChainBeginRedelegate) Route() string { return MsgRoute }
-func (msg MsgSideChainBeginRedelegate) Type() string  { return MsgTypeSideChainBeginRedelegate }
-func (msg MsgSideChainBeginRedelegate) GetSigners() []sdk.AccAddress {
+func (msg MsgSideChainRedelegate) Route() string { return MsgRoute }
+func (msg MsgSideChainRedelegate) Type() string  { return MsgTypeSideChainRedelegate }
+func (msg MsgSideChainRedelegate) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.DelegatorAddr}
 }
 
 // get the bytes for the message signer to sign on
-func (msg MsgSideChainBeginRedelegate) GetSignBytes() []byte {
+func (msg MsgSideChainRedelegate) GetSignBytes() []byte {
 	b := MsgCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(b)
 }
 
-func (msg MsgSideChainBeginRedelegate) GetInvolvedAddresses() []sdk.AccAddress {
+func (msg MsgSideChainRedelegate) GetInvolvedAddresses() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.DelegatorAddr, sdk.AccAddress(msg.ValidatorSrcAddr), sdk.AccAddress(msg.DelegatorAddr)}
 }
 
-func (msg MsgSideChainBeginRedelegate) ValidateBasic() sdk.Error {
+func (msg MsgSideChainRedelegate) ValidateBasic() sdk.Error {
 	if len(msg.DelegatorAddr) != sdk.AddrLen {
 		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected delegator address length is %d, actual length is %d", sdk.AddrLen, len(msg.DelegatorAddr)))
 	}
@@ -304,6 +320,10 @@ func (msg MsgSideChainBeginRedelegate) ValidateBasic() sdk.Error {
 		return sdk.NewError(DefaultCodespace, CodeInvalidInput, "side chain id must be included and max length is 20 bytes")
 	}
 	return nil
+}
+
+func (msg MsgSideChainRedelegate) GetSideChainId() string {
+	return msg.SideChainId
 }
 
 //______________________________________________________________________
@@ -354,4 +374,8 @@ func (msg MsgSideChainUndelegate) ValidateBasic() sdk.Error {
 
 func (msg MsgSideChainUndelegate) GetInvolvedAddresses() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.DelegatorAddr, sdk.AccAddress(msg.ValidatorAddr)}
+}
+
+func (msg MsgSideChainUndelegate) GetSideChainId() string {
+	return msg.SideChainId
 }

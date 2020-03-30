@@ -192,7 +192,7 @@ func GetCmdQuerySideChainDelegation(storeName string, cdc *codec.Codec) *cobra.C
 
 func GetCmdQuerySideChainDelegations(storeName string, cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "delegations [delegator-addr]",
+		Use:   "side-delegations [delegator-addr]",
 		Short: "Query all delegations made from one delegator",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

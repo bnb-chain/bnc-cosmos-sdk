@@ -38,6 +38,10 @@ func ErrBadValidatorAddr(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidAddress, "validator address is invalid")
 }
 
+func ErrInvalidDelegator(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidDelegation, "delegator address is invalid")
+}
+
 func ErrNoValidatorFound(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidValidator, "validator does not exist for that address")
 }
@@ -183,6 +187,10 @@ func ErrBadRedelegationDst(codespace sdk.CodespaceType) sdk.Error {
 
 func ErrSelfRedelegation(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidDelegation, "cannot redelegate to the same validator")
+}
+
+func ErrInvalidRedelegator(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidDelegation, "self-delegator cannot redelegate to other validators")
 }
 
 func ErrTransitiveRedelegation(codespace sdk.CodespaceType) sdk.Error {

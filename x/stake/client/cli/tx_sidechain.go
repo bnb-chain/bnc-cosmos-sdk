@@ -219,7 +219,7 @@ func GetCmdSideChainRedelegate(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			msg := stake.NewMsgSideChainBeginRedelegate(sideChainId, delAddr, valSrcAddr, valDstAddr, amount)
+			msg := stake.NewMsgSideChainRedelegate(sideChainId, delAddr, valSrcAddr, valDstAddr, amount)
 			return utils.GenerateOrBroadcastMsgs(txBldr, cliCtx, []sdk.Msg{msg})
 		},
 	}

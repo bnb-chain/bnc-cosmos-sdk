@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"bytes"
+	"fmt"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -367,8 +368,7 @@ func (k Keeper) Delegate(ctx sdk.Context, delAddr sdk.AccAddress, bondAmt sdk.Co
 	}
 
 	if subtractAccount {
-		// Account new shares, save
-		_, err = k.bankKeeper.SendCoins(ctx, delegation.DelegatorAddr, DelegationAccAddr, sdk.Coins{bondAmt})
+		err = k.transferBondTokens(ctx, delegation.DelegatorAddr, DelegationAccAddr, bondAmt)
 		if err != nil {
 			return
 		}
@@ -383,8 +383,24 @@ func (k Keeper) Delegate(ctx sdk.Context, delAddr sdk.AccAddress, bondAmt sdk.Co
 	delegation.Shares = delegation.Shares.Add(newShares)
 	delegation.Height = ctx.BlockHeight()
 	k.SetDelegation(ctx, delegation)
-
 	return newShares, nil
+}
+
+func (k Keeper) transferBondTokens(ctx sdk.Context, from, to sdk.AccAddress, bondAmt sdk.Coin) sdk.Error {
+	// we do not use k.bankKeeper.SendCoins to have a better error message
+	balanceCoins := k.bankKeeper.GetCoins(ctx, from)
+	if balance := balanceCoins.AmountOf(bondAmt.Denom); balance < bondAmt.Amount {
+		return sdk.ErrInsufficientCoins(fmt.Sprintf("No enough balance to delegate, token: %s, balance: %d, amount: %d", bondAmt.Denom, balance, bondAmt.Amount))
+	}
+	delegationAccBalance := k.bankKeeper.GetCoins(ctx, to)
+	if err := k.bankKeeper.SetCoins(ctx, from, balanceCoins.Minus(sdk.Coins{bondAmt})); err != nil {
+		return err
+	}
+	if err := k.bankKeeper.SetCoins(ctx, to, delegationAccBalance.Plus(sdk.Coins{bondAmt})); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // unbond the the delegation return
@@ -483,9 +499,6 @@ func (k Keeper) BeginUnbonding(ctx sdk.Context,
 		return types.UnbondingDelegation{}, types.ErrExistingUnbondingDelegation(k.Codespace())
 	}
 
-	// create the unbonding delegation
-	minTime, height, completeNow := k.getBeginInfo(ctx, valAddr)
-
 	returnAmount, err := k.unbond(ctx, delAddr, valAddr, sharesAmount)
 	if err != nil {
 		return types.UnbondingDelegation{}, err
@@ -500,23 +513,12 @@ func (k Keeper) BeginUnbonding(ctx sdk.Context,
 	pool.LooseTokens = pool.LooseTokens.Sub(change)
 	k.SetPool(ctx, pool)
 
-	// no need to create the ubd object just complete now
-	if completeNow {
-		_, err := k.bankKeeper.SendCoins(ctx, DelegationAccAddr, delAddr, sdk.Coins{balance})
-		if err != nil {
-			return types.UnbondingDelegation{}, err
-		}
-		if ctx.IsDeliverTx() && ctx.BlockHeight() > 0 && k.addrPool != nil {
-			k.addrPool.AddAddrs([]sdk.AccAddress{delAddr, DelegationAccAddr})
-		}
-		return types.UnbondingDelegation{MinTime: minTime}, nil
-	}
-
+	completionTime := ctx.BlockHeader().Time.Add(k.UnbondingTime(ctx))
 	ubd := types.UnbondingDelegation{
 		DelegatorAddr:  delAddr,
 		ValidatorAddr:  valAddr,
-		CreationHeight: height,
-		MinTime:        minTime,
+		CreationHeight: ctx.BlockHeight(),
+		MinTime:        completionTime,
 		Balance:        balance,
 		InitialBalance: balance,
 	}
@@ -550,14 +552,15 @@ func (k Keeper) CompleteUnbonding(ctx sdk.Context, delAddr sdk.AccAddress, valAd
 func (k Keeper) BeginRedelegation(ctx sdk.Context, delAddr sdk.AccAddress,
 	valSrcAddr, valDstAddr sdk.ValAddress, sharesAmount sdk.Dec) (types.Redelegation, sdk.Error) {
 
+	if srcValidator, found := k.GetValidator(ctx, valSrcAddr); !found {
+		return types.Redelegation{}, types.ErrBadRedelegationSrc(k.Codespace())
+	} else if srcValidator.FeeAddr.Equals(delAddr) {
+		return types.Redelegation{}, types.ErrInvalidRedelegator(k.Codespace())
+	}
+
 	dstValidator, found := k.GetValidator(ctx, valDstAddr)
 	if !found {
 		return types.Redelegation{}, types.ErrBadRedelegationDst(k.Codespace())
-	}
-
-	_, found = k.GetValidator(ctx, valSrcAddr)
-	if !found {
-		return types.Redelegation{}, types.ErrBadRedelegationSrc(k.Codespace())
 	}
 
 	// check if there is already a redelgation in progress from src to dst
