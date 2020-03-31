@@ -41,6 +41,7 @@ func (k Keeper) Distribute(ctx sdk.Context, height int64) {
 
 		// remove all balance of bondDenom from Distribution account
 		distAccCoins = distAccCoins.Minus(sdk.Coins{sdk.NewCoin(bondDenom, totalReward)})
+
 		if err := k.bankKeeper.SetCoins(ctx, validator.DistributionAddr, distAccCoins); err != nil {
 			panic(err)
 		}
