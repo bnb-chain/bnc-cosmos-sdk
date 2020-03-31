@@ -59,6 +59,7 @@ const (
 	CodeMsgNotSupported     CodeType = 14
 	CodeInvalidAccountFlags CodeType = 15
 	CodeInvalidTxMemo       CodeType = 16
+	CodeInvalidEvidence     CodeType = 17
 
 	// CodespaceRoot is a codespace for error codes in this file only.
 	// Notice that 0 is an "unset" codespace, which can be overridden with
@@ -109,6 +110,8 @@ func CodeToDefaultMsg(code CodeType) string {
 		return "account flags is invalid"
 	case CodeInvalidTxMemo:
 		return "transaction memo is invalid"
+	case CodeInvalidEvidence:
+		return "evidence is invalid"
 	default:
 		return unknownCodeMsg(code)
 	}
@@ -163,6 +166,9 @@ func ErrInvalidAccountFlags(msg string) Error {
 }
 func ErrInvalidTxMemo(msg string) Error {
 	return newErrorWithRootCodespace(CodeInvalidTxMemo, msg)
+}
+func ErrInvalidEvidence(msg string) Error {
+	return newErrorWithRootCodespace(CodeInvalidEvidence, msg)
 }
 
 //----------------------------------------
