@@ -25,16 +25,16 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 		sideChainIds, storePrefixes := k.GetAllSideChainPrefixes(ctx)
 		for i := range storePrefixes {
 			sideChainCtx := ctx.WithSideChainKeyPrefix(storePrefixes[i])
-			newVals, _, _, _ := handleValidatorAndDelegations(sideChainCtx, k)
 
+			newVals, _, _, _ := handleValidatorAndDelegations(sideChainCtx, k)
 			ibcTags :=  saveSideChainValidatorsToIBC(ctx, sideChainIds[i], newVals, k)
 			endBlockerTags = endBlockerTags.AppendTags(ibcTags)
 
 			storeValidatorsWithHeight(newVals, k, ctx)
 			markBreatheBlock(ctx,k)
+
 			k.Distribute(ctx, true)
 		}
-		// TODO: save new validator set to ibc store
 		// TODO: may need to change the return values
 
 	}
@@ -58,7 +58,7 @@ func saveSideChainValidatorsToIBC(ctx sdk.Context, sideChainId string, newVals [
 	return sdk.NewTags(tags.SideChainStakingPackageSequence, []byte(strconv.Itoa(int(sequence))))
 }
 
-func markBreatheBlock(ctx sdk.Context,k keeper.Keeper) {
+func markBreatheBlock(ctx sdk.Context, k keeper.Keeper) {
 	k.SetBreatheBlockHeight(ctx, ctx.BlockHeight(), ctx.BlockHeader().Time)
 }
 
@@ -76,7 +76,8 @@ func storeValidatorsWithHeight(validators []types.Validator, k keeper.Keeper, ct
 	}
 }
 
-func handleValidatorAndDelegations(ctx sdk.Context, k keeper.Keeper) ([]types.Validator, []abci.ValidatorUpdate, []types.UnbondingDelegation, sdk.Tags){
+
+func handleValidatorAndDelegations(ctx sdk.Context, k keeper.Keeper) ([]types.Validator, []abci.ValidatorUpdate, []types.UnbondingDelegation, sdk.Tags) {
 	endBlockerTags := sdk.EmptyTags()
 
 	k.UnbondAllMatureValidatorQueue(ctx)
@@ -138,4 +139,3 @@ func handleMatureUnbondingDelegations(k keeper.Keeper, ctx sdk.Context) ([]types
 	}
 	return completed, endBlockerTags
 }
-
