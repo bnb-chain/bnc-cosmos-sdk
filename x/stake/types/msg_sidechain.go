@@ -15,6 +15,8 @@ const (
 	MsgTypeSideChainUndelegate      = "side_undelegate"
 
 	MaxSideChainIdLength = 20
+	MinSideChainAddrLen = 16
+	MaxSideChainAddrLen = 64
 )
 
 type SideChainIder interface {
@@ -85,6 +87,7 @@ func (msg MsgCreateSideChainValidator) ValidateBasic() sdk.Error {
 	if len(msg.ValidatorAddr) != sdk.AddrLen {
 		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected validator address length is %d, actual length is %d", sdk.AddrLen, len(msg.ValidatorAddr)))
 	}
+	// TODO: determine the minimal self-delegation amount
 	if msg.Delegation.Amount < 1e8 {
 		return ErrBadDelegationAmount(DefaultCodespace, "self delegation must not be less than 1e8")
 	}
@@ -103,12 +106,12 @@ func (msg MsgCreateSideChainValidator) ValidateBasic() sdk.Error {
 		return sdk.NewError(DefaultCodespace, CodeInvalidInput, "side chain id must be included and max length is 20 bytes")
 	}
 
-	if len(msg.SideConsAddr) != sdk.AddrLen {
-		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected SideConsAddr length is %d, actual length is %d", sdk.AddrLen, len(msg.SideConsAddr)))
+	if err := checkSideChainAddr("SideConsAddr", msg.SideFeeAddr); err != nil {
+		return err
 	}
 
-	if len(msg.SideFeeAddr) != sdk.AddrLen {
-		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected SideFeeAddr length is %d, actual length is %d", sdk.AddrLen, len(msg.SideFeeAddr)))
+	if err := checkSideChainAddr("SideFeeAddr", msg.SideFeeAddr); err != nil {
+		return err
 	}
 
 	return nil
@@ -184,15 +187,15 @@ func (msg MsgEditSideChainValidator) ValidateBasic() sdk.Error {
 
 	// if SideConsAddr is empty, we do not update it.
 	if len(msg.SideConsAddr) != 0 {
-		if len(msg.SideConsAddr) != sdk.AddrLen {
-			return sdk.ErrInvalidAddress(fmt.Sprintf("Expected SideConsAddr length is %d, actual length is %d", sdk.AddrLen, len(msg.SideConsAddr)))
+		if err := checkSideChainAddr("SideConsAddr", msg.SideFeeAddr); err != nil {
+			return err
 		}
 	}
 
 	// if SideFeeAddr is empty, we do not update it.
 	if len(msg.SideFeeAddr) != 0 {
-		if len(msg.SideFeeAddr) != sdk.AddrLen {
-			return sdk.ErrInvalidAddress(fmt.Sprintf("Expected SideFeeAddr length is %d, actual length is %d", sdk.AddrLen, len(msg.SideFeeAddr)))
+		if err := checkSideChainAddr("SideFeeAddr", msg.SideFeeAddr); err != nil {
+			return err
 		}
 	}
 
@@ -205,6 +208,14 @@ func (msg MsgEditSideChainValidator) GetInvolvedAddresses() []sdk.AccAddress {
 
 func (msg MsgEditSideChainValidator) GetSideChainId() string {
 	return msg.SideChainId
+}
+
+func checkSideChainAddr(addrName string, addr []byte) sdk.Error {
+	if len(addr) < MinSideChainAddrLen || len(addr) > MaxSideChainAddrLen {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected %s length is between %d and %d, got %d",
+			addrName, MinSideChainAddrLen, MaxSideChainAddrLen,  sdk.AddrLen, len(addr)))
+	}
+	return nil
 }
 
 //______________________________________________________________________
