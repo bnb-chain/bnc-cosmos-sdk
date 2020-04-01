@@ -61,10 +61,14 @@ func GetCmdSubmitEvidence(cdc *codec.Codec) *cobra.Command {
 				evidenceBytes = []byte(txStr)
 			}
 
-			headers := [2]*sidechain.Header{}
-			err = json.Unmarshal(evidenceBytes, &headers)
+			headersInput := make([]*sidechain.Header,0)
+			err = json.Unmarshal(evidenceBytes, &headersInput)
 			if err != nil {
 				return err
+			}
+
+			if len(headersInput) != 2 {
+				return errors.New(fmt.Sprintf("must have 2 headers exactly"))
 			}
 
 			sideChainId,err := getSideChainId()
@@ -72,9 +76,13 @@ func GetCmdSubmitEvidence(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
+			var headers [2]*sidechain.Header
+			copy(headers[:],headersInput[:])
 			msg := slashingsidechain.NewMsgSubmitEvidence(from,sideChainId,headers)
-			bytes ,err := json.Marshal(msg)
-			fmt.Println(string(bytes))
+
+			if cliCtx.GenerateOnly {
+				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg})
+			}
 
 			return utils.GenerateOrBroadcastMsgs(txBldr, cliCtx, []sdk.Msg{msg})
 		},

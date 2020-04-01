@@ -17,6 +17,7 @@ import (
 	bank "github.com/cosmos/cosmos-sdk/x/bank/client/rest"
 	gov "github.com/cosmos/cosmos-sdk/x/gov/client/rest"
 	slashing "github.com/cosmos/cosmos-sdk/x/slashing/client/rest"
+	slashingsc "github.com/cosmos/cosmos-sdk/x/slashingsidechain/client/rest"
 	stake "github.com/cosmos/cosmos-sdk/x/stake/client/rest"
 	"github.com/gorilla/mux"
 	"github.com/rakyll/statik/fs"
@@ -155,6 +156,7 @@ func createHandler(cdc *codec.Codec) *mux.Router {
 	auth.RegisterRoutes(cliCtx, r, cdc, "acc")
 	bank.RegisterRoutes(cliCtx, r, cdc, kb)
 	stake.RegisterRoutes(cliCtx, r, cdc, kb)
+	slashingsc.RegisterRoutes(cliCtx, r, cdc, kb)
 	slashing.RegisterRoutes(cliCtx, r, cdc, kb)
 	gov.RegisterRoutes(cliCtx, r, cdc)
 
