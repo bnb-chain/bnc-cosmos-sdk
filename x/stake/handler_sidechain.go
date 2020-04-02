@@ -26,6 +26,10 @@ func handleMsgCreateSideChainValidator(ctx sdk.Context, msg MsgCreateSideChainVa
 		return ErrValidatorSideConsAddrExist(k.Codespace()).Result()
 	}
 
+	// TODO: get MinSelfDelegation from the params
+	if msg.Delegation.Amount < types.DefaultMinSelfDelegation {
+		return ErrBadDelegationAmount(DefaultCodespace, "self delegation must not be less than 1e8").Result()
+	}
 	if msg.Delegation.Denom != k.GetParams(ctx).BondDenom {
 		return ErrBadDenom(k.Codespace()).Result()
 	}

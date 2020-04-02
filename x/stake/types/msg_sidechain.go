@@ -87,10 +87,6 @@ func (msg MsgCreateSideChainValidator) ValidateBasic() sdk.Error {
 	if len(msg.ValidatorAddr) != sdk.AddrLen {
 		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected validator address length is %d, actual length is %d", sdk.AddrLen, len(msg.ValidatorAddr)))
 	}
-	// TODO: determine the minimal self-delegation amount
-	if msg.Delegation.Amount < 1e8 {
-		return ErrBadDelegationAmount(DefaultCodespace, "self delegation must not be less than 1e8")
-	}
 	if msg.Description == (Description{}) {
 		return sdk.NewError(DefaultCodespace, CodeInvalidInput, "description must be included")
 	}
@@ -106,7 +102,7 @@ func (msg MsgCreateSideChainValidator) ValidateBasic() sdk.Error {
 		return sdk.NewError(DefaultCodespace, CodeInvalidInput, "side chain id must be included and max length is 20 bytes")
 	}
 
-	if err := checkSideChainAddr("SideConsAddr", msg.SideFeeAddr); err != nil {
+	if err := checkSideChainAddr("SideConsAddr", msg.SideConsAddr); err != nil {
 		return err
 	}
 
