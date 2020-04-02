@@ -19,6 +19,12 @@ const (
 	// if this is 1, the validator set at the end of a block will sign the block after the next.
 	// Constant as this should not change without a hard fork.
 	ValidatorUpdateDelay int64 = 1
+
+	// TODO: determine the minimal self-delegation amount
+	// TODO: support changing it via governance
+	// if the self delegation is below the MinSelfDelegation,
+	// the creation of validator would be rejected or the validator would be jailed.
+	DefaultMinSelfDelegation = 10000e8
 )
 
 // nolint - Keys for parameter access

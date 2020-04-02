@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	"bytes"
 	"fmt"
 	"time"
 
@@ -432,16 +431,17 @@ func (k Keeper) unbond(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValA
 	// subtract shares from delegator
 	delegation.Shares = delegation.Shares.Sub(shares)
 
+	// if the delegation is the operator of the validator and undelegating will decrease the validator's self delegation below their minimum
+	// trigger a jail validator
+	// TODO: get MinSelfDelegation from params
+	if validator.IsSelfDelegator(delegation.DelegatorAddr) && !validator.Jailed &&
+		validator.TokensFromShares(shares).RawInt() < types.DefaultMinSelfDelegation {
+		k.jailValidator(ctx, validator)
+		validator = k.mustGetValidator(ctx, validator.OperatorAddr)
+	}
+
 	// remove the delegation
 	if delegation.Shares.IsZero() {
-
-		// if the delegation is the self-delegation then
-		// trigger a jail validator
-		if bytes.Equal(delegation.DelegatorAddr, validator.FeeAddr) && !validator.Jailed {
-			k.jailValidator(ctx, validator)
-			validator = k.mustGetValidator(ctx, validator.OperatorAddr)
-		}
-
 		k.RemoveDelegation(ctx, delegation)
 	} else {
 		// Update height
@@ -451,7 +451,6 @@ func (k Keeper) unbond(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValA
 
 	// remove the coins from the validator
 	validator, amount = k.RemoveValidatorTokensAndShares(ctx, validator, shares)
-
 	if validator.DelegatorShares.IsZero() && validator.Status == sdk.Unbonded {
 		// if not unbonded, we must instead remove validator in EndBlocker once it finishes its unbonding period
 		k.RemoveValidator(ctx, validator.OperatorAddr)

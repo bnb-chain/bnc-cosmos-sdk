@@ -8,47 +8,58 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/stake/tags"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/libs/log"
 )
 
 func EndBlocker(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.ValidatorUpdate, completedUbds []types.UnbondingDelegation, endBlockerTags sdk.Tags) {
 	endBlockerTags = sdk.EmptyTags()
-	logger := ctx.Logger().With("module", "stake")
-
-	_, validatorUpdates, completedUbds, endBlockerTags = handleValidatorAndDelegations(ctx, k, logger)
+	_, validatorUpdates, completedUbds, endBlockerTags = handleValidatorAndDelegations(ctx, k)
 	return
 }
 
 func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.ValidatorUpdate, completedUbds []types.UnbondingDelegation, endBlockerTags sdk.Tags) {
 	endBlockerTags = sdk.EmptyTags()
-	logger := ctx.Logger().With("module", "stake")
-
-	_, validatorUpdates, completedUbds, endBlockerTags = handleValidatorAndDelegations(ctx, k, logger)
+	_, validatorUpdates, completedUbds, endBlockerTags = handleValidatorAndDelegations(ctx, k)
 
 	if sdk.IsUpgrade(sdk.SideChainStakingUpgrade) {
-		storePrefixes := k.GetAllSideChainPrefixes(ctx)
+		sideChainIds, storePrefixes := k.GetAllSideChainPrefixes(ctx)
 		for i := range storePrefixes {
 			sideChainCtx := ctx.WithSideChainKeyPrefix(storePrefixes[i])
-			newVals, _, _, _ := handleValidatorAndDelegations(sideChainCtx, k, logger)
-			saveSideChainValidatorsToIBC(newVals)
+			newVals, _, _, _ := handleValidatorAndDelegations(sideChainCtx, k)
+			saveSideChainValidatorsToIBC(ctx, sideChainIds[i], newVals, k)
 			// TODO: may need to change the return values
 		}
 	}
 	return
 }
 
-func saveSideChainValidatorsToIBC(newVals []types.Validator) {
-	// TODO: save new validator set to ibc store
+func saveSideChainValidatorsToIBC(ctx sdk.Context, sideChainId string, newVals []types.Validator, k keeper.Keeper) (sdk.Tags) {
+	ibcValidatorSet := make(types.IbcValidatorSet, len(newVals))
+	for i := range newVals {
+		ibcValidatorSet[i] = types.IbcValidator{
+			ConsAddr: newVals[i].SideConsAddr,
+			FeeAddr:  newVals[i].SideFeeAddr,
+			DistAddr: newVals[i].DistributionAddr,
+			Power:    newVals[i].GetPower().RawInt(),
+		}
+	}
+	_, err := k.SaveValidatorSetToIbc(ctx, sideChainId, ibcValidatorSet)
+	if err != nil {
+		k.Logger(ctx).Error("save validators to ibc package failed: " + err.Error())
+	}
+	// TODO: add seq to tags
+	return sdk.Tags{
+
+	}
 }
 
-func handleValidatorAndDelegations(ctx sdk.Context, k keeper.Keeper, logger log.Logger) ([]types.Validator, []abci.ValidatorUpdate, []types.UnbondingDelegation, sdk.Tags){
+func handleValidatorAndDelegations(ctx sdk.Context, k keeper.Keeper) ([]types.Validator, []abci.ValidatorUpdate, []types.UnbondingDelegation, sdk.Tags){
 	endBlockerTags := sdk.EmptyTags()
 
 	k.UnbondAllMatureValidatorQueue(ctx)
-	completedUbd, tags := handleMatureUnbondingDelegations(k, ctx, logger)
+	completedUbd, tags := handleMatureUnbondingDelegations(k, ctx)
 	endBlockerTags.AppendTags(tags)
 
-	tags = handleMatureRedelegations(k, ctx, logger)
+	tags = handleMatureRedelegations(k, ctx)
 	endBlockerTags.AppendTags(tags)
 
 	// reset the intra-transaction counter
@@ -59,13 +70,13 @@ func handleValidatorAndDelegations(ctx sdk.Context, k keeper.Keeper, logger log.
 	return newVals, validatorUpdates, completedUbd, endBlockerTags
 }
 
-func handleMatureRedelegations(k keeper.Keeper, ctx sdk.Context, logger log.Logger) (sdk.Tags) {
+func handleMatureRedelegations(k keeper.Keeper, ctx sdk.Context) (sdk.Tags) {
 	endBlockerTags := sdk.EmptyTags()
 	matureRedelegations := k.DequeueAllMatureRedelegationQueue(ctx, ctx.BlockHeader().Time)
 	for _, dvvTriplet := range matureRedelegations {
 		err := k.CompleteRedelegation(ctx, dvvTriplet.DelegatorAddr, dvvTriplet.ValidatorSrcAddr, dvvTriplet.ValidatorDstAddr)
 		if err != nil {
-			logger.Error(fmt.Sprintf("Failed to complete redelegation: %s", err.Error()), "delegator_address", dvvTriplet.DelegatorAddr.String(), "source_validator_address", dvvTriplet.ValidatorSrcAddr.String(), "source_validator_address", dvvTriplet.ValidatorDstAddr.String())
+			k.Logger(ctx).Error(fmt.Sprintf("Failed to complete redelegation: %s", err.Error()), "delegator_address", dvvTriplet.DelegatorAddr.String(), "source_validator_address", dvvTriplet.ValidatorSrcAddr.String(), "source_validator_address", dvvTriplet.ValidatorDstAddr.String())
 			continue
 		}
 		endBlockerTags.AppendTags(sdk.NewTags(
@@ -78,7 +89,8 @@ func handleMatureRedelegations(k keeper.Keeper, ctx sdk.Context, logger log.Logg
 	return endBlockerTags
 }
 
-func handleMatureUnbondingDelegations(k keeper.Keeper, ctx sdk.Context, logger log.Logger) ([]types.UnbondingDelegation, sdk.Tags) {
+func handleMatureUnbondingDelegations(k keeper.Keeper, ctx sdk.Context) ([]types.UnbondingDelegation, sdk.Tags) {
+	logger := k.Logger(ctx)
 	matureUnbonds := k.DequeueAllMatureUnbondingQueue(ctx, ctx.BlockHeader().Time)
 	completed := make([]types.UnbondingDelegation, len(matureUnbonds))
 	var endBlockerTags sdk.Tags

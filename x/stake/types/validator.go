@@ -373,6 +373,11 @@ func (v Validator) UpdateStatus(pool Pool, NewStatus sdk.BondStatus) (Validator,
 	return v, pool
 }
 
+// calculate the token worth of provided shares
+func (v Validator) TokensFromShares(shares sdk.Dec) sdk.Dec {
+	return (shares.Mul(v.Tokens)).Quo(v.DelegatorShares)
+}
+
 // SharesFromTokens returns the shares of a delegation given a bond amount. It
 // returns an error if the validator has no tokens.
 func (v Validator) SharesFromTokens(amt sdk.Dec) (sdk.Dec, sdk.Error) {
@@ -472,4 +477,6 @@ func (v Validator) GetTokens() sdk.Dec           { return v.Tokens }
 func (v Validator) GetCommission() sdk.Dec       { return v.Commission.Rate }
 func (v Validator) GetDelegatorShares() sdk.Dec  { return v.DelegatorShares }
 func (v Validator) GetBondHeight() int64         { return v.BondHeight }
+
+func (v Validator) IsSelfDelegator(address sdk.AccAddress) bool { return v.FeeAddr.Equals(address)}
 func (v Validator) IsSideChainValidator() bool   { return len(v.SideChainId) != 0 }

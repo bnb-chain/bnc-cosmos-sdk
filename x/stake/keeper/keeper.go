@@ -4,10 +4,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/bank"
+	"github.com/cosmos/cosmos-sdk/x/ibc"
 	"github.com/cosmos/cosmos-sdk/x/params"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
+	"github.com/tendermint/tendermint/libs/log"
 )
-
 
 // keeper of the stake store
 type Keeper struct {
@@ -21,14 +22,19 @@ type Keeper struct {
 
 	// codespace
 	codespace sdk.CodespaceType
+
+	// ibc
+	ibcKeeper ibc.Keeper
 }
 
-func NewKeeper(cdc *codec.Codec, key, tkey sdk.StoreKey, ck bank.Keeper, addrPool *sdk.Pool, paramstore params.Subspace, codespace sdk.CodespaceType) Keeper {
+func NewKeeper(cdc *codec.Codec, key, tkey sdk.StoreKey, ck bank.Keeper, ibcKeeper ibc.Keeper, addrPool *sdk.Pool,
+	paramstore params.Subspace, codespace sdk.CodespaceType) Keeper {
 	keeper := Keeper{
 		storeKey:   key,
 		storeTKey:  tkey,
 		cdc:        cdc,
 		bankKeeper: ck,
+		ibcKeeper:  ibcKeeper,
 		addrPool:   addrPool,
 		paramstore: paramstore.WithTypeTable(ParamTypeTable()),
 		hooks:      nil,
@@ -36,6 +42,11 @@ func NewKeeper(cdc *codec.Codec, key, tkey sdk.StoreKey, ck bank.Keeper, addrPoo
 	}
 
 	return keeper
+}
+
+// Logger returns a module-specific logger.
+func (k Keeper) Logger(ctx sdk.Context) log.Logger {
+	return ctx.Logger().With("module", "x/stake")
 }
 
 // TODO: to support multi side chains in the future. We will enable a registration mechanism and add these chain ids to db.
@@ -52,15 +63,17 @@ func (k Keeper) GetSideChainStorePrefix(ctx sdk.Context, sideChainId string) []b
 	return store.Get(GetSideChainStorePrefixKey(sideChainId))
 }
 
-func (k Keeper) GetAllSideChainPrefixes(ctx sdk.Context) [][]byte {
+func (k Keeper) GetAllSideChainPrefixes(ctx sdk.Context) ([]string, [][]byte) {
 	store := ctx.KVStore(k.storeKey)
+	sideChainIds := make([]string, 0, 1)
 	prefixes := make([][]byte, 0, 1)
 	iterator := sdk.KVStorePrefixIterator(store, SideChainStorePrefixByIdKey)
 	defer iterator.Close()
-	for;iterator.Valid();iterator.Next() {
+	for ; iterator.Valid(); iterator.Next() {
+		sideChainIds = append(sideChainIds, string(iterator.Key()))
 		prefixes = append(prefixes, iterator.Value())
 	}
-	return prefixes
+	return sideChainIds, prefixes
 }
 
 // Set the validator hooks
