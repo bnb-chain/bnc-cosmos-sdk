@@ -6,6 +6,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/bank"
+	"github.com/cosmos/cosmos-sdk/x/ibc"
 	"github.com/cosmos/cosmos-sdk/x/mock"
 	"github.com/cosmos/cosmos-sdk/x/params"
 	"github.com/stretchr/testify/require"
@@ -23,11 +24,12 @@ func getMockApp(t *testing.T) (*mock.App, Keeper) {
 	tkeyStake := sdk.NewTransientStoreKey("transient_stake")
 	keyParams := sdk.NewKVStoreKey("params")
 	tkeyParams := sdk.NewTransientStoreKey("transient_params")
+	keyIbc := sdk.NewKVStoreKey("ibc")
 
 	bankKeeper := bank.NewBaseKeeper(mApp.AccountKeeper)
 	pk := params.NewKeeper(mApp.Cdc, keyParams, tkeyParams)
-
-	keeper := NewKeeper(mApp.Cdc, keyStake, tkeyStake, bankKeeper, nil, pk.Subspace(DefaultParamspace), mApp.RegisterCodespace(DefaultCodespace))
+	ibcKeeper := ibc.NewKeeper(keyIbc, ibc.DefaultCodespace)
+	keeper := NewKeeper(mApp.Cdc, keyStake, tkeyStake, bankKeeper, ibcKeeper, nil, pk.Subspace(DefaultParamspace), mApp.RegisterCodespace(DefaultCodespace))
 
 	mApp.Router().AddRoute("stake", NewStakeHandler(keeper))
 	mApp.SetEndBlocker(getEndBlocker(keeper))

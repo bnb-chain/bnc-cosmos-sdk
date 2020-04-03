@@ -3,6 +3,7 @@ package keeper
 import (
 	"testing"
 
+	"github.com/cosmos/cosmos-sdk/x/ibc"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
@@ -95,6 +96,7 @@ func CreateTestInputAdvanced(t *testing.T, isCheckTx bool, initCoins int64,
 	keyFeeCollection := sdk.NewKVStoreKey("fee")
 	keyParams := sdk.NewKVStoreKey("params")
 	tkeyParams := sdk.NewTransientStoreKey("transient_params")
+	keyIbc := sdk.NewKVStoreKey("ibc")
 
 	db := dbm.NewMemDB()
 	ms := store.NewCommitMultiStore(db)
@@ -106,6 +108,7 @@ func CreateTestInputAdvanced(t *testing.T, isCheckTx bool, initCoins int64,
 	ms.MountStoreWithDB(keyFeeCollection, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(keyParams, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(tkeyParams, sdk.StoreTypeTransient, db)
+	ms.MountStoreWithDB(keyIbc, sdk.StoreTypeIAVL, db)
 
 	err := ms.LoadLatestVersion()
 	require.Nil(t, err)
@@ -122,7 +125,8 @@ func CreateTestInputAdvanced(t *testing.T, isCheckTx bool, initCoins int64,
 	ctx = ctx.WithAccountCache(accountCache)
 
 	ck := bank.NewBaseKeeper(accountKeeper)
-	sk := stake.NewKeeper(cdc, keyStake, tkeyStake, ck, nil, pk.Subspace(stake.DefaultParamspace), stake.DefaultCodespace)
+	ibcKeeper := ibc.NewKeeper(keyIbc, ibc.DefaultCodespace)
+	sk := stake.NewKeeper(cdc, keyStake, tkeyStake, ck, ibcKeeper, nil, pk.Subspace(stake.DefaultParamspace), stake.DefaultCodespace)
 	sk.SetPool(ctx, stake.InitialPool())
 	sk.SetParams(ctx, stake.DefaultParams())
 

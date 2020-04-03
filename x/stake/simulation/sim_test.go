@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/cosmos/cosmos-sdk/x/ibc"
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -29,11 +30,13 @@ func TestStakeWithRandomMessages(t *testing.T) {
 	stakeTKey := sdk.NewTransientStoreKey("transient_stake")
 	paramsKey := sdk.NewKVStoreKey("params")
 	paramsTKey := sdk.NewTransientStoreKey("transient_params")
+	ibcKey := sdk.NewKVStoreKey("ibc")
 	distrKey := sdk.NewKVStoreKey("distr")
 
 	feeCollectionKeeper := auth.NewFeeCollectionKeeper(mapp.Cdc, feeKey)
 	paramstore := params.NewKeeper(mapp.Cdc, paramsKey, paramsTKey)
-	stakeKeeper := stake.NewKeeper(mapp.Cdc, stakeKey, stakeTKey, bankKeeper, nil, paramstore.Subspace(stake.DefaultParamspace), stake.DefaultCodespace)
+	ibcKeeper := ibc.NewKeeper(ibcKey, ibc.DefaultCodespace)
+	stakeKeeper := stake.NewKeeper(mapp.Cdc, stakeKey, stakeTKey, bankKeeper, ibcKeeper, nil, paramstore.Subspace(stake.DefaultParamspace), stake.DefaultCodespace)
 	distrKeeper := distribution.NewKeeper(mapp.Cdc, distrKey, paramstore.Subspace(distribution.DefaultParamspace), bankKeeper, stakeKeeper, feeCollectionKeeper, distribution.DefaultCodespace)
 	mapp.Router().AddRoute("stake", stake.NewStakeHandler(stakeKeeper))
 	mapp.SetEndBlocker(func(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {

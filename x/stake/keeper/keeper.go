@@ -47,7 +47,7 @@ func NewKeeper(cdc *codec.Codec, key, tkey sdk.StoreKey, ck bank.Keeper, ibcKeep
 }
 
 func (k Keeper) initIbc() {
-	err := ibc.RegisterChannel(IbcChannelName, IbcChannelId)
+	err := k.ibcKeeper.RegisterChannel(IbcChannelName, IbcChannelId)
 	if err != nil {
 		panic(fmt.Sprintf("register ibc channel failed, channel=%s, err=%s", IbcChannelName, err.Error()))
 	}

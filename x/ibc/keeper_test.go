@@ -39,12 +39,10 @@ func TestKeeper(t *testing.T) {
 	channelName := "transfer"
 	channelID := sdk.IbcChannelID(0x01)
 
-	SetSrcIbcChainID(sourceChainID)
-	require.NoError(t, RegisterDestChain(destChainName, destChainID))
-	require.NoError(t, RegisterChannel(channelName, channelID))
-
 	ctx, keeper := createTestInput(t, true)
-
+	keeper.SetSrcIbcChainID(sourceChainID)
+	require.NoError(t, keeper.RegisterDestChain(destChainName, destChainID))
+	require.NoError(t, keeper.RegisterChannel(channelName, channelID))
 
 	value := []byte{0x00}
 	sequence, err := keeper.CreateIBCPackage(ctx, destChainName, channelName, value)
@@ -87,12 +85,12 @@ func TestKeeper(t *testing.T) {
 	require.NoError(t, sdkErr)
 	require.NotNil(t, ibcPackage)
 
-	require.NoError(t, RegisterDestChain("btc", sdk.IbcChainID(0x0002)))
+	require.NoError(t, keeper.RegisterDestChain("btc", sdk.IbcChainID(0x0002)))
 	sequence, err = keeper.CreateIBCPackage(ctx, "btc", channelName, value)
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), sequence)
 
-	require.NoError(t, RegisterChannel("mockChannel", sdk.IbcChannelID(2)))
+	require.NoError(t, keeper.RegisterChannel("mockChannel", sdk.IbcChannelID(2)))
 	sequence, err = keeper.CreateIBCPackage(ctx, destChainName, "mockChannel", value)
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), sequence)
