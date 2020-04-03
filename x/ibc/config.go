@@ -7,29 +7,29 @@ import (
 )
 
 type crossChainConfig struct {
-	sourceChainID sdk.CrossChainID
+	srcIbcChainID sdk.IbcChainID
 
-	nameToChannelID map[string]sdk.CrossChainChannelID
-	channelIDToName map[sdk.CrossChainChannelID]string
+	nameToChannelID map[string]sdk.IbcChannelID
+	channelIDToName map[sdk.IbcChannelID]string
 
-	destChainNameToID map[string]sdk.CrossChainID
-	destChainIDToName map[sdk.CrossChainID]string
+	destChainNameToID map[string]sdk.IbcChainID
+	destChainIDToName map[sdk.IbcChainID]string
 }
 
 var crossChainCfg = newCrossChainCfg()
 
 func newCrossChainCfg() *crossChainConfig {
 	config := &crossChainConfig{
-		sourceChainID:     0,
-		nameToChannelID:   make(map[string]sdk.CrossChainChannelID),
-		channelIDToName:   make(map[sdk.CrossChainChannelID]string),
-		destChainNameToID: make(map[string]sdk.CrossChainID),
-		destChainIDToName: make(map[sdk.CrossChainID]string),
+		srcIbcChainID:     0,
+		nameToChannelID:   make(map[string]sdk.IbcChannelID),
+		channelIDToName:   make(map[sdk.IbcChannelID]string),
+		destChainNameToID: make(map[string]sdk.IbcChainID),
+		destChainIDToName: make(map[sdk.IbcChainID]string),
 	}
 	return config
 }
 
-func RegisterCrossChainChannel(name string, id sdk.CrossChainChannelID) error {
+func RegisterChannel(name string, id sdk.IbcChannelID) error {
 	_, ok := crossChainCfg.nameToChannelID[name]
 	if ok {
 		return fmt.Errorf("duplicated channel name")
@@ -43,40 +43,41 @@ func RegisterCrossChainChannel(name string, id sdk.CrossChainChannelID) error {
 	return nil
 }
 
-func RegisterDestChainID(name string, id sdk.CrossChainID) error {
+// internally, we use name as the id of the chain, must be unique
+func RegisterDestChain(name string, ibcChainID sdk.IbcChainID) error {
 	_, ok := crossChainCfg.destChainNameToID[name]
 	if ok {
 		return fmt.Errorf("duplicated destination chain name")
 	}
-	_, ok = crossChainCfg.destChainIDToName[id]
+	_, ok = crossChainCfg.destChainIDToName[ibcChainID]
 	if ok {
-		return fmt.Errorf("duplicated destination chain id")
+		return fmt.Errorf("duplicated destination chain ibcChainID")
 	}
-	crossChainCfg.destChainNameToID[name] = id
-	crossChainCfg.destChainIDToName[id] = name
+	crossChainCfg.destChainNameToID[name] = ibcChainID
+	crossChainCfg.destChainIDToName[ibcChainID] = name
 	return nil
 }
 
-func GetChannelID(channelName string) (sdk.CrossChainChannelID, error) {
+func GetChannelID(channelName string) (sdk.IbcChannelID, error) {
 	id, ok := crossChainCfg.nameToChannelID[channelName]
 	if !ok {
-		return sdk.CrossChainChannelID(0), fmt.Errorf("non-existing channel")
+		return sdk.IbcChannelID(0), fmt.Errorf("non-existing channel")
 	}
 	return id, nil
 }
 
-func SetSourceChainID(sourceChainID sdk.CrossChainID) {
-	crossChainCfg.sourceChainID = sourceChainID
+func SetSrcIbcChainID(srcIbcChainID sdk.IbcChainID) {
+	crossChainCfg.srcIbcChainID = srcIbcChainID
 }
 
-func GetSourceChainID() sdk.CrossChainID {
-	return crossChainCfg.sourceChainID
+func GetSrcIbcChainID() sdk.IbcChainID {
+	return crossChainCfg.srcIbcChainID
 }
 
-func GetDestChainID(name string) (sdk.CrossChainID, error) {
+func GetDestIbcChainID(name string) (sdk.IbcChainID, error) {
 	destChainID, exist := crossChainCfg.destChainNameToID[name]
 	if !exist {
-		return sdk.CrossChainID(0), fmt.Errorf("non-existing destination chainID")
+		return sdk.IbcChainID(0), fmt.Errorf("non-existing destination ibcChainID")
 	}
 	return destChainID, nil
 }

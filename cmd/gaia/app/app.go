@@ -7,6 +7,7 @@ import (
 	"os"
 	"sort"
 
+	"github.com/cosmos/cosmos-sdk/x/ibc"
 	abci "github.com/tendermint/tendermint/abci/types"
 	cmn "github.com/tendermint/tendermint/libs/common"
 	dbm "github.com/tendermint/tendermint/libs/db"
@@ -58,6 +59,7 @@ type GaiaApp struct {
 	keyFeeCollection *sdk.KVStoreKey
 	keyParams        *sdk.KVStoreKey
 	tkeyParams       *sdk.TransientStoreKey
+	keyIbc           *sdk.KVStoreKey
 
 	// Manage getting and setting accounts
 	accountKeeper       auth.AccountKeeper
@@ -69,6 +71,7 @@ type GaiaApp struct {
 	distrKeeper         distr.Keeper
 	govKeeper           gov.Keeper
 	paramsKeeper        params.Keeper
+	ibcKeeper           ibc.Keeper
 }
 
 // NewGaiaApp returns a reference to an initialized GaiaApp.
@@ -93,6 +96,7 @@ func NewGaiaApp(logger log.Logger, db dbm.DB, traceStore io.Writer, baseAppOptio
 		keyFeeCollection: sdk.NewKVStoreKey("fee"),
 		keyParams:        sdk.NewKVStoreKey("params"),
 		tkeyParams:       sdk.NewTransientStoreKey("transient_params"),
+		keyIbc:           sdk.NewKVStoreKey("ibc"),
 	}
 
 	// define the accountKeeper
@@ -112,10 +116,11 @@ func NewGaiaApp(logger log.Logger, db dbm.DB, traceStore io.Writer, baseAppOptio
 		app.cdc,
 		app.keyParams, app.tkeyParams,
 	)
+	app.ibcKeeper = ibc.NewKeeper(app.keyIbc, ibc.DefaultCodespace)
 	app.stakeKeeper = stake.NewKeeper(
 		app.cdc,
 		app.keyStake, app.tkeyStake,
-		app.bankKeeper, app.Pool, app.paramsKeeper.Subspace(stake.DefaultParamspace),
+		app.bankKeeper, app.ibcKeeper, app.Pool, app.paramsKeeper.Subspace(stake.DefaultParamspace),
 		app.RegisterCodespace(stake.DefaultCodespace),
 	)
 	app.mintKeeper = mint.NewKeeper(app.cdc, app.keyMint,
@@ -161,7 +166,7 @@ func NewGaiaApp(logger log.Logger, db dbm.DB, traceStore io.Writer, baseAppOptio
 
 	// initialize BaseApp
 	app.MountStoresIAVL(app.keyMain, app.keyAccount, app.keyStake, app.keyMint, app.keyDistr,
-		app.keySlashing, app.keyGov, app.keyFeeCollection, app.keyParams)
+		app.keySlashing, app.keyGov, app.keyFeeCollection, app.keyParams, app.keyIbc)
 	app.SetInitChainer(app.initChainer)
 	app.SetBeginBlocker(app.BeginBlocker)
 	app.SetAnteHandler(auth.NewAnteHandler(app.accountKeeper))
@@ -272,7 +277,7 @@ func (app *GaiaApp) initChainer(ctx sdk.Context, req abci.RequestInitChain) abci
 				panic(err)
 			}
 			bz := app.cdc.MustMarshalBinaryLengthPrefixed(tx)
-			res := app.BaseApp.DeliverTx(abci.RequestDeliverTx{Tx:bz})
+			res := app.BaseApp.DeliverTx(abci.RequestDeliverTx{Tx: bz})
 			if !res.IsOK() {
 				panic(res.Log)
 			}

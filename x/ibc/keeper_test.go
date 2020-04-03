@@ -31,17 +31,17 @@ func createTestInput(t *testing.T, isCheckTx bool) (sdk.Context, Keeper) {
 }
 
 func TestKeeper(t *testing.T) {
-	sourceChainID := sdk.CrossChainID(0x0001)
+	sourceChainID := sdk.IbcChainID(0x0001)
 
 	destChainName := "bsc"
-	destChainID := sdk.CrossChainID(0x000f)
+	destChainID := sdk.IbcChainID(0x000f)
 
 	channelName := "transfer"
-	channelID := sdk.CrossChainChannelID(0x01)
+	channelID := sdk.IbcChannelID(0x01)
 
-	SetSourceChainID(sourceChainID)
-	require.NoError(t, RegisterDestChainID(destChainName, destChainID))
-	require.NoError(t, RegisterCrossChainChannel(channelName, channelID))
+	SetSrcIbcChainID(sourceChainID)
+	require.NoError(t, RegisterDestChain(destChainName, destChainID))
+	require.NoError(t, RegisterChannel(channelName, channelID))
 
 	ctx, keeper := createTestInput(t, true)
 
@@ -87,12 +87,12 @@ func TestKeeper(t *testing.T) {
 	require.NoError(t, sdkErr)
 	require.NotNil(t, ibcPackage)
 
-	require.NoError(t, RegisterDestChainID("btc", sdk.CrossChainID(0x0002)))
+	require.NoError(t, RegisterDestChain("btc", sdk.IbcChainID(0x0002)))
 	sequence, err = keeper.CreateIBCPackage(ctx, "btc", channelName, value)
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), sequence)
 
-	require.NoError(t, RegisterCrossChainChannel("mockChannel", sdk.CrossChainChannelID(2)))
+	require.NoError(t, RegisterChannel("mockChannel", sdk.IbcChannelID(2)))
 	sequence, err = keeper.CreateIBCPackage(ctx, destChainName, "mockChannel", value)
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), sequence)

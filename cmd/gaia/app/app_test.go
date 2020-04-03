@@ -13,6 +13,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	distr "github.com/cosmos/cosmos-sdk/x/distribution"
 	"github.com/cosmos/cosmos-sdk/x/gov"
+	"github.com/cosmos/cosmos-sdk/x/ibc"
 	"github.com/cosmos/cosmos-sdk/x/mint"
 	"github.com/cosmos/cosmos-sdk/x/params"
 	"github.com/cosmos/cosmos-sdk/x/slashing"
@@ -51,6 +52,7 @@ func NewMockGaiaApp(logger log.Logger, db dbm.DB, traceStore io.Writer, baseAppO
 		keyGov:      sdk.NewKVStoreKey("gov"),
 		keyParams:   sdk.NewKVStoreKey("params"),
 		tkeyParams:  sdk.NewTransientStoreKey("transient_params"),
+		keyIbc:      sdk.NewKVStoreKey("ibc"),
 	}
 
 	var app = &MockGaiaApp{gApp}
@@ -68,10 +70,11 @@ func NewMockGaiaApp(logger log.Logger, db dbm.DB, traceStore io.Writer, baseAppO
 		app.cdc,
 		app.keyParams, app.tkeyParams,
 	)
+	app.ibcKeeper = ibc.NewKeeper(app.keyIbc, ibc.DefaultCodespace)
 	app.stakeKeeper = stake.NewKeeper(
 		app.cdc,
 		app.keyStake, app.tkeyStake,
-		app.bankKeeper,  nil, app.paramsKeeper.Subspace(stake.DefaultParamspace),
+		app.bankKeeper, app.ibcKeeper, nil, app.paramsKeeper.Subspace(stake.DefaultParamspace),
 		app.RegisterCodespace(stake.DefaultCodespace),
 	)
 	app.mintKeeper = mint.NewKeeper(app.cdc, app.keyMint,

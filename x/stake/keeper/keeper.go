@@ -1,6 +1,8 @@
 package keeper
 
 import (
+	"fmt"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/bank"
@@ -40,8 +42,15 @@ func NewKeeper(cdc *codec.Codec, key, tkey sdk.StoreKey, ck bank.Keeper, ibcKeep
 		hooks:      nil,
 		codespace:  codespace,
 	}
-
+	keeper.initIbc()
 	return keeper
+}
+
+func (k Keeper) initIbc() {
+	err := ibc.RegisterChannel(IbcChannelName, IbcChannelId)
+	if err != nil {
+		panic(fmt.Sprintf("register ibc channel failed, channel=%s, err=%s", IbcChannelName, err.Error()))
+	}
 }
 
 // Logger returns a module-specific logger.
