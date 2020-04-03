@@ -72,7 +72,7 @@ func AddressFromLastValidatorPowerKey(key []byte) []byte {
 // VALUE: validator operator address ([]byte)
 func GetValidatorsByPowerIndexKey(validator types.Validator) []byte {
 	var keyBytes []byte
-	sdk.Upgrade(sdk.SideChainStakingUpgrade, func() {
+	sdk.Upgrade(sdk.LaunchBscUpgrade, func() {
 		keyBytes = getValidatorPowerRank(validator)
 	}, nil, func() {
 		keyBytes = getValidatorPowerRankNew(validator)

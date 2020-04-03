@@ -4,8 +4,10 @@ import "fmt"
 
 var UpgradeMgr = NewUpgradeManager(UpgradeConfig{})
 
-const FixSignBytesOverflow = "FixSignBytesOverflow" // fix json unmarshal overflow when build SignBytes
-const SideChainStakingUpgrade = "SideChainStakingUpgrade"
+const (
+	FixSignBytesOverflow = "FixSignBytesOverflow" // fix json unmarshal overflow when build SignBytes
+	LaunchBscUpgrade = "LaunchBscUpgrade"
+)
 
 var MainNetConfig = UpgradeConfig{
 	HeightMap: map[string]int64{},
