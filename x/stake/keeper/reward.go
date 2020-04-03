@@ -1,9 +1,10 @@
 package keeper
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"math"
 	"math/big"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 type Sharer struct {

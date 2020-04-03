@@ -1,9 +1,10 @@
 package keeper
 
 import (
+	"testing"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestAllocateReward(t *testing.T) {

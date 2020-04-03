@@ -2,10 +2,10 @@ package keeper
 
 import (
 	"encoding/binary"
-	"github.com/cosmos/cosmos-sdk/client/utils"
 	"strconv"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/client/utils"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
@@ -27,7 +27,7 @@ var (
 	ValidatorsKey             = []byte{0x21} // prefix for each key to a validator
 	ValidatorsByConsAddrKey   = []byte{0x22} // prefix for each key to a validator index, by pubkey
 	ValidatorsByPowerIndexKey = []byte{0x23} // prefix for each key to a validator index, sorted by power
-	ValidatorsByHeightKey	  = []byte{0x24} // prefix for each key to a validator index, by height
+	ValidatorsByHeightKey     = []byte{0x24} // prefix for each key to a validator index, by height
 
 	DelegationKey                    = []byte{0x31} // key for a delegation
 	UnbondingDelegationKey           = []byte{0x32} // key for an unbonding-delegation
@@ -163,12 +163,12 @@ func GetDelegationsKey(delAddr sdk.AccAddress) []byte {
 
 // gets the key for validator bond with delegator
 func GetDelegationKeyByValDelIndexKey(valAddr sdk.ValAddress, delAddr sdk.AccAddress) []byte {
-	return append(GetDelegationsKeyByVal(valAddr),delAddr.Bytes()...)
+	return append(GetDelegationsKeyByVal(valAddr), delAddr.Bytes()...)
 }
 
 // gets the prefix for a validator for all delegator
 func GetDelegationsKeyByVal(valAddr sdk.ValAddress) []byte {
-	return append(DelegationKeyByValDel,valAddr.Bytes()...)
+	return append(DelegationKeyByValDel, valAddr.Bytes()...)
 }
 
 //______________________________________________________________________________
@@ -176,8 +176,8 @@ func GetDelegationsKeyByVal(valAddr sdk.ValAddress) []byte {
 // gets the prefix for an array of simplified delegation for particular validator and height
 // VALUE: []stake/types.SimplifiedDelegation
 func GetSimplifiedDelegationsKey(height int64, valAddr sdk.ValAddress) []byte {
-	heightBytes := []byte(strconv.FormatInt(height,16))
-	return append(append(SimplifiedDelegationsKey,heightBytes...), valAddr.Bytes()...)
+	heightBytes := []byte(strconv.FormatInt(height, 16))
+	return append(append(SimplifiedDelegationsKey, heightBytes...), valAddr.Bytes()...)
 }
 
 //______________________________________________________________________________
@@ -327,8 +327,9 @@ func GetREDsByDelToValDstIndexKey(delAddr sdk.AccAddress, valDstAddr sdk.ValAddr
 func GetSideChainStorePrefixKey(sideChainId string) []byte {
 	return append(SideChainStorePrefixByIdKey, []byte(sideChainId)...)
 }
+
 //____________________________________________________________________________________________
 
 func GetBreatheBlockHeightKey(blockTime time.Time) []byte {
-	return append(BreatheBlockHeightKey,utils.Int642Bytes(blockTime.Unix() / utils.SecondsPerDay)...)
+	return append(BreatheBlockHeightKey, utils.Int642Bytes(blockTime.Unix()/utils.SecondsPerDay)...)
 }

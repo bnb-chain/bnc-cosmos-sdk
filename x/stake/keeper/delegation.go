@@ -25,7 +25,7 @@ func (k Keeper) GetDelegation(ctx sdk.Context,
 }
 
 // return a specific delegation stored by key being stored in order of validator and delegator
-func (k Keeper) GetDelegationByValDel(ctx sdk.Context,valAddr sdk.ValAddress, delAddr sdk.AccAddress) (
+func (k Keeper) GetDelegationByValDel(ctx sdk.Context, valAddr sdk.ValAddress, delAddr sdk.AccAddress) (
 	delegation types.Delegation, found bool) {
 
 	store := ctx.KVStore(k.storeKey)
@@ -78,7 +78,7 @@ func (k Keeper) GetValidatorDelegations(ctx sdk.Context, validator sdk.ValAddres
 	iterator := sdk.KVStorePrefixIterator(store, GetDelegationsKeyByVal(validator))
 	defer iterator.Close()
 
-	for ;iterator.Valid();iterator.Next() {
+	for ; iterator.Valid(); iterator.Next() {
 		delegation := types.MustUnmarshalDelegationValDelAsKey(k.cdc, iterator.Key(), iterator.Value())
 		delegations = append(delegations, delegation)
 	}
@@ -91,7 +91,7 @@ func (k Keeper) GetDelegationsSimplifiedByValidator(ctx sdk.Context, validator s
 	iterator := sdk.KVStorePrefixIterator(store, GetDelegationsKeyByVal(validator))
 	defer iterator.Close()
 
-	for ;iterator.Valid();iterator.Next() {
+	for ; iterator.Valid(); iterator.Next() {
 		delegation := types.MustUnmarshalDelegationValDelAsKey(k.cdc, iterator.Key(), iterator.Value())
 		simDel := types.SimplifiedDelegation{DelegatorAddr: delegation.DelegatorAddr, Shares: delegation.Shares}
 		simDelegations = append(simDelegations, simDel)
@@ -110,7 +110,7 @@ func (k Keeper) SetDelegation(ctx sdk.Context, delegation types.Delegation) {
 func (k Keeper) SetDelegationByValDel(ctx sdk.Context, delegation types.Delegation) {
 	store := ctx.KVStore(k.storeKey)
 	b := types.MustMarshalDelegation(k.cdc, delegation)
-	store.Set(GetDelegationKeyByValDelIndexKey(delegation.ValidatorAddr,delegation.DelegatorAddr), b)
+	store.Set(GetDelegationKeyByValDelIndexKey(delegation.ValidatorAddr, delegation.DelegatorAddr), b)
 }
 
 // remove a delegation from store
@@ -122,12 +122,8 @@ func (k Keeper) RemoveDelegation(ctx sdk.Context, delegation types.Delegation) {
 
 // remove a delegation stored within key grouped in order of validator and delegator
 func (k Keeper) RemoveDelegationByValDel(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) {
-	_,found := k.GetDelegationByValDel(ctx,valAddr,delAddr)
-	if !found {
-		return
-	}
 	store := ctx.KVStore(k.storeKey)
-	store.Delete(GetDelegationKeyByValDelIndexKey(valAddr,delAddr))
+	store.Delete(GetDelegationKeyByValDelIndexKey(valAddr, delAddr))
 }
 
 //_____________________________________________________________________________________
@@ -135,12 +131,12 @@ func (k Keeper) RemoveDelegationByValDel(ctx sdk.Context, delAddr sdk.AccAddress
 func (k Keeper) SetSimplifiedDelegations(ctx sdk.Context, height int64, validator sdk.ValAddress, simDels []types.SimplifiedDelegation) {
 	store := ctx.KVStore(k.storeKey)
 	bz := types.MustMarshalSimplifiedDelegations(k.cdc, simDels)
-	store.Set(GetSimplifiedDelegationsKey(height,validator),bz)
+	store.Set(GetSimplifiedDelegationsKey(height, validator), bz)
 }
 
 func (k Keeper) GetSimplifiedDelegations(ctx sdk.Context, height int64, validator sdk.ValAddress) (simDels []types.SimplifiedDelegation, found bool) {
 	store := ctx.KVStore(k.storeKey)
-	bz := store.Get(GetSimplifiedDelegationsKey(height,validator))
+	bz := store.Get(GetSimplifiedDelegationsKey(height, validator))
 	if bz == nil {
 		return simDels, false
 	}
@@ -149,12 +145,8 @@ func (k Keeper) GetSimplifiedDelegations(ctx sdk.Context, height int64, validato
 }
 
 func (k Keeper) RemoveSimplifiedDelegations(ctx sdk.Context, height int64, validator sdk.ValAddress) {
-	_,found := k.GetSimplifiedDelegations(ctx,height,validator)
-	if !found {
-		return
-	}
 	store := ctx.KVStore(k.storeKey)
-	store.Delete(GetSimplifiedDelegationsKey(height,validator))
+	store.Delete(GetSimplifiedDelegationsKey(height, validator))
 }
 
 //_____________________________________________________________________________________
@@ -435,21 +427,21 @@ func (k Keeper) DequeueAllMatureRedelegationQueue(ctx sdk.Context, currTime time
 // Set delegation by the key grouped in the order of validator and delegator
 func (k Keeper) DelegateForSideChain(ctx sdk.Context, delAddr sdk.AccAddress, bondAmt sdk.Coin,
 	validator types.Validator, subtractAccount bool) (newShares sdk.Dec, err sdk.Error) {
-	newShares,err = k.Delegate(ctx,delAddr,bondAmt,validator,subtractAccount)
+	newShares, err = k.Delegate(ctx, delAddr, bondAmt, validator, subtractAccount)
 	if err != nil {
 		return
 	}
-	k.SyncDelegationByValDel(ctx,validator.OperatorAddr,delAddr)
+	k.SyncDelegationByValDel(ctx, validator.OperatorAddr, delAddr)
 	return newShares, err
 }
 
-func (k Keeper) SyncDelegationByValDel(ctx sdk.Context,valAddr sdk.ValAddress,delAddr sdk.AccAddress) {
-	delegation,found := k.GetDelegation(ctx,delAddr,valAddr)
+func (k Keeper) SyncDelegationByValDel(ctx sdk.Context, valAddr sdk.ValAddress, delAddr sdk.AccAddress) {
+	delegation, found := k.GetDelegation(ctx, delAddr, valAddr)
 	if !found {
-		k.RemoveDelegationByValDel(ctx,delAddr,valAddr)
+		k.RemoveDelegationByValDel(ctx, delAddr, valAddr)
 		return
 	}
-	k.SetDelegationByValDel(ctx,delegation)
+	k.SetDelegationByValDel(ctx, delegation)
 }
 
 // Perform a delegation, set/update everything necessary within the store.
@@ -599,14 +591,13 @@ func (k Keeper) getBeginInfo(ctx sdk.Context, valSrcAddr sdk.ValAddress) (
 // Set delegation with the key grouped in the order of validator and delegator
 func (k Keeper) BeginUnbondingForSideChain(ctx sdk.Context,
 	delAddr sdk.AccAddress, valAddr sdk.ValAddress, sharesAmount sdk.Dec) (ubd types.UnbondingDelegation, err sdk.Error) {
-	ubd, err = k.BeginUnbonding(ctx,delAddr,valAddr,sharesAmount)
+	ubd, err = k.BeginUnbonding(ctx, delAddr, valAddr, sharesAmount)
 	if err != nil {
 		return
 	}
-	k.SyncDelegationByValDel(ctx,valAddr,delAddr)
-	return ubd,err
+	k.SyncDelegationByValDel(ctx, valAddr, delAddr)
+	return ubd, err
 }
-
 
 // begin unbonding an unbonding record
 func (k Keeper) BeginUnbonding(ctx sdk.Context,
@@ -669,12 +660,12 @@ func (k Keeper) CompleteUnbonding(ctx sdk.Context, delAddr sdk.AccAddress, valAd
 
 func (k Keeper) BeginRedelegationForSideChain(ctx sdk.Context, delAddr sdk.AccAddress,
 	valSrcAddr, valDstAddr sdk.ValAddress, sharesAmount sdk.Dec) (types.Redelegation, sdk.Error) {
-	red, err := k.BeginRedelegation(ctx, delAddr, valSrcAddr, valDstAddr, sharesAmount )
+	red, err := k.BeginRedelegation(ctx, delAddr, valSrcAddr, valDstAddr, sharesAmount)
 	if err != nil {
 		return red, err
 	}
-	k.SyncDelegationByValDel(ctx,valSrcAddr,delAddr)
-	k.SyncDelegationByValDel(ctx,valDstAddr,delAddr)
+	k.SyncDelegationByValDel(ctx, valSrcAddr, delAddr)
+	k.SyncDelegationByValDel(ctx, valDstAddr, delAddr)
 	return red, err
 }
 

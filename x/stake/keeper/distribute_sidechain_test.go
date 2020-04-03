@@ -1,12 +1,13 @@
 package keeper
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/stake/types"
-	"github.com/stretchr/testify/require"
 	"math/rand"
 	"testing"
 	"time"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/stake/types"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDistribute(t *testing.T) {

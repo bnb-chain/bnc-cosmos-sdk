@@ -72,23 +72,35 @@ func TestSetValidator(t *testing.T) {
 func TestSetGetValidatorsByHeight(t *testing.T) {
 	ctx, _, keeper := CreateTestInput(t, false, 10)
 
-	validators := make([]types.Validator,10)
-	for i:=0;i<10;i++ {
+	validators := make([]types.Validator, 10)
+	for i := 0; i < 10; i++ {
 		valPubKey := PKs[i]
 		valAddr := sdk.ValAddress(valPubKey.Address().Bytes())
 		validator := types.NewValidator(valAddr, valPubKey, types.Description{})
 		validators[i] = validator
 	}
 
-	keeper.SetValidatorsByHeight(ctx,1000,validators)
+	keeper.SetValidatorsByHeight(ctx, 1000, validators)
 
 	getValidators, found := keeper.GetValidatorsByHeight(ctx, 1000)
-	require.True(t,found)
-	require.Equal(t,10,len(getValidators))
+	require.True(t, found)
+	require.Equal(t, 10, len(getValidators))
 
-	for index,val := range getValidators {
+	for index, val := range getValidators {
 		require.Equal(t, validators[index].OperatorAddr, val.OperatorAddr)
 	}
+}
+
+func TestExistValidatorsWithHeight(t *testing.T) {
+	ctx, _, keeper := CreateTestInput(t, false, 10)
+	valPubKey := PKs[0]
+	valAddr := sdk.ValAddress(valPubKey.Address().Bytes())
+	validator := types.NewValidator(valAddr, valPubKey, types.Description{})
+	keeper.SetValidatorsByHeight(ctx, 1000, []types.Validator{validator})
+
+	require.True(t, keeper.ExistValidatorsWithHeight(ctx, 1000))
+	require.False(t, keeper.ExistValidatorsWithHeight(ctx, 1001))
+
 }
 
 func TestUpdateValidatorByPowerIndex(t *testing.T) {

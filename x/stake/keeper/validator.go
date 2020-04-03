@@ -96,8 +96,13 @@ func (k Keeper) GetValidatorsByHeight(ctx sdk.Context, height int64) (validators
 	if bz == nil {
 		return validators, false
 	}
-	validators = types.MustUnmarshalValidators(k.cdc,bz)
+	validators = types.MustUnmarshalValidators(k.cdc, bz)
 	return validators, true
+}
+
+func (k Keeper) ExistValidatorsWithHeight(ctx sdk.Context, height int64) bool {
+	store := ctx.KVStore(k.storeKey)
+	return store.Get(GetValidatorHeightKey(height)) != nil
 }
 
 //___________________________________________________________________________
@@ -232,8 +237,7 @@ func (k Keeper) RemoveValidator(ctx sdk.Context, address sdk.ValAddress) {
 // remove the validators stored with key of height
 func (k Keeper) RemoveValidatorsByHeight(ctx sdk.Context, height int64) {
 
-	_, found := k.GetValidatorsByHeight(ctx, height)
-	if !found {
+	if !k.ExistValidatorsWithHeight(ctx, height) {
 		return
 	}
 
