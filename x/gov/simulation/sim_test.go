@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/cosmos/cosmos-sdk/x/ibc"
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -30,7 +31,9 @@ func TestGovWithRandomMessages(t *testing.T) {
 	paramKey := sdk.NewKVStoreKey("params")
 	paramTKey := sdk.NewTransientStoreKey("transient_params")
 	paramKeeper := params.NewKeeper(mapp.Cdc, paramKey, paramTKey)
-	stakeKeeper := stake.NewKeeper(mapp.Cdc, stakeKey, stakeTKey, bankKeeper, nil, paramKeeper.Subspace(stake.DefaultParamspace), stake.DefaultCodespace)
+	keyIbc := sdk.NewKVStoreKey("ibc")
+	ibcKeeper := ibc.NewKeeper(keyIbc, ibc.DefaultCodespace)
+	stakeKeeper := stake.NewKeeper(mapp.Cdc, stakeKey, stakeTKey, bankKeeper, ibcKeeper, nil, paramKeeper.Subspace(stake.DefaultParamspace), stake.DefaultCodespace)
 	govKey := sdk.NewKVStoreKey("gov")
 	govKeeper := gov.NewKeeper(mapp.Cdc, govKey, paramKeeper, paramKeeper.Subspace(gov.DefaultParamSpace), bankKeeper, stakeKeeper, gov.DefaultCodespace, &sdk.Pool{})
 	mapp.Router().AddRoute("gov", gov.NewHandler(govKeeper))

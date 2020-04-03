@@ -8,6 +8,7 @@ import (
 	"path"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
+	"github.com/cosmos/cosmos-sdk/x/ibc"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -136,6 +137,7 @@ type GaiaApp struct {
 	keySlashing *sdk.KVStoreKey
 	keyParams   *sdk.KVStoreKey
 	tkeyParams  *sdk.TransientStoreKey
+	keyIbc      *sdk.KVStoreKey
 
 	// Manage getting and setting accounts
 	accountKeeper  auth.AccountKeeper
@@ -143,6 +145,7 @@ type GaiaApp struct {
 	stakeKeeper    stake.Keeper
 	slashingKeeper slashing.Keeper
 	paramsKeeper   params.Keeper
+	ibcKeeper      ibc.Keeper
 }
 
 func NewGaiaApp(logger log.Logger, db dbm.DB, baseAppOptions ...func(*bam.BaseApp)) *GaiaApp {
@@ -162,6 +165,7 @@ func NewGaiaApp(logger log.Logger, db dbm.DB, baseAppOptions ...func(*bam.BaseAp
 		keySlashing: sdk.NewKVStoreKey("slashing"),
 		keyParams:   sdk.NewKVStoreKey("params"),
 		tkeyParams:  sdk.NewTransientStoreKey("transient_params"),
+		keyIbc:      sdk.NewKVStoreKey("ibc"),
 	}
 
 	// define the accountKeeper
@@ -174,7 +178,8 @@ func NewGaiaApp(logger log.Logger, db dbm.DB, baseAppOptions ...func(*bam.BaseAp
 	// add handlers
 	app.bankKeeper = bank.NewBaseKeeper(app.accountKeeper)
 	app.paramsKeeper = params.NewKeeper(app.cdc, app.keyParams, app.tkeyParams)
-	app.stakeKeeper = stake.NewKeeper(app.cdc, app.keyStake, app.tkeyStake, app.bankKeeper, nil, app.paramsKeeper.Subspace(stake.DefaultParamspace), app.RegisterCodespace(stake.DefaultCodespace))
+	app.ibcKeeper = ibc.NewKeeper(app.keyIbc, app.RegisterCodespace(ibc.DefaultCodespace))
+	app.stakeKeeper = stake.NewKeeper(app.cdc, app.keyStake, app.tkeyStake, app.bankKeeper, app.ibcKeeper, nil, app.paramsKeeper.Subspace(stake.DefaultParamspace), app.RegisterCodespace(stake.DefaultCodespace))
 	app.slashingKeeper = slashing.NewKeeper(app.cdc, app.keySlashing, app.stakeKeeper, app.paramsKeeper.Subspace(slashing.DefaultParamspace), app.RegisterCodespace(slashing.DefaultCodespace))
 
 	// register message routes

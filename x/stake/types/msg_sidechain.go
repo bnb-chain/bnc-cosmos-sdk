@@ -15,8 +15,6 @@ const (
 	MsgTypeSideChainUndelegate      = "side_undelegate"
 
 	MaxSideChainIdLength = 20
-	MinSideChainAddrLen = 16
-	MaxSideChainAddrLen = 64
 )
 
 type SideChainIder interface {
@@ -207,9 +205,9 @@ func (msg MsgEditSideChainValidator) GetSideChainId() string {
 }
 
 func checkSideChainAddr(addrName string, addr []byte) sdk.Error {
-	if len(addr) < MinSideChainAddrLen || len(addr) > MaxSideChainAddrLen {
-		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected %s length is between %d and %d, got %d",
-			addrName, MinSideChainAddrLen, MaxSideChainAddrLen,  sdk.AddrLen, len(addr)))
+	if len(addr) != sdk.AddrLen {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected %s length is %d, got %d",
+			addrName, sdk.AddrLen, len(addr)))
 	}
 	return nil
 }
@@ -276,7 +274,7 @@ type MsgSideChainRedelegate struct {
 	DelegatorAddr    sdk.AccAddress `json:"delegator_addr"`
 	ValidatorSrcAddr sdk.ValAddress `json:"validator_src_addr"`
 	ValidatorDstAddr sdk.ValAddress `json:"validator_dst_addr"`
-	Amount           sdk.Coin        `json:"amount"`
+	Amount           sdk.Coin       `json:"amount"`
 	SideChainId      string         `json:"side_chain_id"`
 }
 
@@ -337,7 +335,7 @@ func (msg MsgSideChainRedelegate) GetSideChainId() string {
 type MsgSideChainUndelegate struct {
 	DelegatorAddr sdk.AccAddress `json:"delegator_addr"`
 	ValidatorAddr sdk.ValAddress `json:"validator_addr"`
-	Amount        sdk.Coin        `json:"amount"`
+	Amount        sdk.Coin       `json:"amount"`
 	SideChainId   string         `json:"side_chain_id"`
 }
 
