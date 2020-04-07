@@ -1,11 +1,13 @@
 package types
 
 import (
+	"bytes"
 	"fmt"
 	"time"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/crypto/tmhash"
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -80,8 +82,8 @@ func NewSideChainValidator(feeAddr sdk.AccAddress, operator sdk.ValAddress, desc
 		Description:        description,
 		BondHeight:         int64(0),
 		BondIntraTxCounter: int16(0),
-		UnbondingHeight:    int64(0),
 		UnbondingMinTime:   time.Unix(0, 0).UTC(),
+		UnbondingHeight:    int64(0),
 		Commission:         NewCommission(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec()),
 		DistributionAddr:   generateDistributionAddr(operator, sideChainId),
 		SideChainId:        sideChainId,
@@ -91,8 +93,10 @@ func NewSideChainValidator(feeAddr sdk.AccAddress, operator sdk.ValAddress, desc
 }
 
 func generateDistributionAddr(operator sdk.ValAddress, sideChainId string) sdk.AccAddress {
-	// TODO:
-	return sdk.AccAddress{}
+	// DistributionAddr = hash(sideChainId) ^ operator
+	// so we can easily recover operator address from DistributionAddr,
+	// operator = DistributionAddr ^ hash(sideChainId)
+	return sdk.XOR(tmhash.SumTruncated([]byte(sideChainId)), operator)
 }
 
 // return the redelegation without fields contained within the key for the store
@@ -142,8 +146,8 @@ func (v Validator) HumanReadableString() (string, error) {
 	if len(v.SideChainId) != 0 {
 		resp += fmt.Sprintf("Distribution Addr: %s\n", v.DistributionAddr)
 		resp += fmt.Sprintf("Side Chain Id: %s\n", v.SideChainId)
-		resp += fmt.Sprintf("Consensus Addr on Side Chain: %s\n", v.SideConsAddr)
-		resp += fmt.Sprintf("Fee Addr on Side Chain: %s\n", v.SideFeeAddr)
+		resp += fmt.Sprintf("Consensus Addr on Side Chain: %s\n", sdk.HexAddress(v.SideConsAddr))
+		resp += fmt.Sprintf("Fee Addr on Side Chain: %s\n", sdk.HexAddress(v.SideFeeAddr))
 	}
 
 	return resp, nil
@@ -170,6 +174,11 @@ type bechValidator struct {
 	UnbondingMinTime time.Time `json:"unbonding_time"`   // if unbonding, min time for the validator to complete unbonding
 
 	Commission Commission `json:"commission"` // commission parameters
+
+	DistributionAddr sdk.AccAddress `json:"distribution_addr"` // the address receives rewards from the side address, and distribute rewards to delegators. It's auto generated
+	SideChainId      string         `json:"side_chain_id"`     // side chain id to distinguish different side chains
+	SideConsAddr     string         `json:"side_cons_addr"`    // consensus address of the side chain validator, this replaces the `ConsPubKey`
+	SideFeeAddr      string         `json:"side_fee_addr"`     // fee address on the side chain
 }
 
 // MarshalJSON marshals the validator to JSON using Bech32
@@ -197,6 +206,10 @@ func (v Validator) MarshalJSON() ([]byte, error) {
 		UnbondingHeight:    v.UnbondingHeight,
 		UnbondingMinTime:   v.UnbondingMinTime,
 		Commission:         v.Commission,
+		DistributionAddr:   v.DistributionAddr,
+		SideChainId:        v.SideChainId,
+		SideConsAddr:       sdk.HexAddress(v.SideConsAddr),
+		SideFeeAddr:        sdk.HexAddress(v.SideFeeAddr),
 	})
 }
 
@@ -225,6 +238,21 @@ func (v *Validator) UnmarshalJSON(data []byte) error {
 		UnbondingMinTime:   bv.UnbondingMinTime,
 		Commission:         bv.Commission,
 	}
+	if len(bv.SideChainId) != 0 {
+		v.DistributionAddr = bv.DistributionAddr
+		v.SideChainId = bv.SideChainId
+		if sideConsAddr, err := sdk.HexDecode(bv.SideConsAddr); err != nil {
+			return err
+		} else {
+			v.SideConsAddr = sideConsAddr
+		}
+		if sideFeeAddr, err := sdk.HexDecode(bv.SideFeeAddr); err != nil {
+			return err
+		} else {
+			v.SideFeeAddr = sideFeeAddr
+		}
+	}
+
 	return nil
 }
 
@@ -238,8 +266,12 @@ func (v Validator) Equal(v2 Validator) bool {
 		v.Status.Equal(v2.Status) &&
 		v.Tokens.Equal(v2.Tokens) &&
 		v.DelegatorShares.Equal(v2.DelegatorShares) &&
-		v.Description == v2.Description &&
-		v.Commission.Equal(v2.Commission)
+		v.Description.Equals(v2.Description) &&
+		v.Commission.Equal(v2.Commission) &&
+		v.SideChainId == v2.SideChainId &&
+		v.DistributionAddr.Equals(v2.DistributionAddr) &&
+		bytes.Equal(v.SideConsAddr, v2.SideConsAddr) &&
+		bytes.Equal(v.SideFeeAddr, v2.SideFeeAddr)
 }
 
 // return the TM validator address
@@ -478,5 +510,5 @@ func (v Validator) GetCommission() sdk.Dec       { return v.Commission.Rate }
 func (v Validator) GetDelegatorShares() sdk.Dec  { return v.DelegatorShares }
 func (v Validator) GetBondHeight() int64         { return v.BondHeight }
 
-func (v Validator) IsSelfDelegator(address sdk.AccAddress) bool { return v.FeeAddr.Equals(address)}
-func (v Validator) IsSideChainValidator() bool   { return len(v.SideChainId) != 0 }
+func (v Validator) IsSelfDelegator(address sdk.AccAddress) bool { return v.FeeAddr.Equals(address) }
+func (v Validator) IsSideChainValidator() bool                  { return len(v.SideChainId) != 0 }
