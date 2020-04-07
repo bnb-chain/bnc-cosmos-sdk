@@ -291,7 +291,10 @@ func getSideChainInfo(requireConsAddr, requireFeeAddr bool) (sideChainId string,
 			return
 		}
 	} else {
-		sideConsAddr = FromHex(sideConsAddrStr)
+		sideConsAddr, err = sdk.HexDecode(sideConsAddrStr)
+		if err != nil {
+			return
+		}
 	}
 
 	sideFeeAddrStr := viper.GetString(FlagSideFeeAddr)
@@ -301,7 +304,10 @@ func getSideChainInfo(requireConsAddr, requireFeeAddr bool) (sideChainId string,
 			return
 		}
 	} else {
-		sideFeeAddr = FromHex(sideFeeAddrStr)
+		sideFeeAddr, err = sdk.HexDecode(sideFeeAddrStr)
+		if err != nil {
+			return
+		}
 	}
 	return
 }

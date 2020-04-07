@@ -2,6 +2,7 @@ package stake
 
 import (
 	"bytes"
+	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/stake/keeper"
@@ -28,7 +29,8 @@ func handleMsgCreateSideChainValidator(ctx sdk.Context, msg MsgCreateSideChainVa
 
 	// TODO: get MinSelfDelegation from the params
 	if msg.Delegation.Amount < types.DefaultMinSelfDelegation {
-		return ErrBadDelegationAmount(DefaultCodespace, "self delegation must not be less than 1e8").Result()
+		return ErrBadDelegationAmount(DefaultCodespace,
+			fmt.Sprintf("self delegation must not be less than %d", types.DefaultMinSelfDelegation)).Result()
 	}
 	if msg.Delegation.Denom != k.GetParams(ctx).BondDenom {
 		return ErrBadDenom(k.Codespace()).Result()
@@ -67,8 +69,6 @@ func handleMsgCreateSideChainValidator(ctx sdk.Context, msg MsgCreateSideChainVa
 		),
 	}
 }
-
-
 
 func handleMsgEditSideChainValidator(ctx sdk.Context, msg MsgEditSideChainValidator, k keeper.Keeper) sdk.Result {
 	var err sdk.Error
