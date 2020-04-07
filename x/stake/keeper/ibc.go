@@ -6,7 +6,7 @@ import (
 )
 
 const IbcChannelName = "staking"
-const IbcChannelId = sdk.IbcChannelID(4)
+const IbcChannelId = sdk.IbcChannelID(8)
 
 func (k Keeper) SaveValidatorSetToIbc(ctx sdk.Context, sideChainId string, ibcVals types.IbcValidatorSet) (seq uint64, sdkErr sdk.Error) {
 	bz, err := ibcVals.Serialize()
