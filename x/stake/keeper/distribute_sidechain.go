@@ -2,8 +2,6 @@ package keeper
 
 import (
 	"fmt"
-	"strings"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
@@ -11,15 +9,10 @@ import (
 const (
 	numberOfDecimalPlace = 8
 	threshold            = 5
-	distrDaysBefore      = 2
 )
 
-func (k Keeper) Distribute(ctx sdk.Context, isCurrentBreatheHeightMarked bool) {
+func (k Keeper) Distribute(ctx sdk.Context, height int64) {
 
-	height, found := getTargetValidatorsStoreHeight(ctx, k, isCurrentBreatheHeightMarked)
-	if !found { // no data stored at expected breathe block height
-		return
-	}
 	validators, found := k.GetValidatorsByHeight(ctx, height)
 	if !found { // do nothing, if there is no validators to be rewarded.
 		return
@@ -31,7 +24,7 @@ func (k Keeper) Distribute(ctx sdk.Context, isCurrentBreatheHeightMarked bool) {
 
 		distAccCoins := k.bankKeeper.GetCoins(ctx, validator.DistributionAddr)
 
-		totalReward := getTotalRewardThenClear(distAccCoins, bondDenom)
+		totalReward := distAccCoins.AmountOf(bondDenom)
 
 		if totalReward == 0 { // there is no reward for this validator
 			continue
@@ -47,6 +40,7 @@ func (k Keeper) Distribute(ctx sdk.Context, isCurrentBreatheHeightMarked bool) {
 		remainInt := totalRewardDec.Sub(commission).RawInt()
 
 		// remove all balance of bondDenom from Distribution account
+		distAccCoins = distAccCoins.Minus(sdk.Coins{sdk.NewCoin(bondDenom, totalReward)})
 		if err := k.bankKeeper.SetCoins(ctx, validator.DistributionAddr, distAccCoins); err != nil {
 			panic(err)
 		}
@@ -91,28 +85,4 @@ func removeValidatorsAndDelegationsAtHeight(height int64, k Keeper, ctx sdk.Cont
 		k.RemoveSimplifiedDelegations(ctx, height, validator.OperatorAddr)
 	}
 	k.RemoveValidatorsByHeight(ctx, height)
-}
-
-func getTotalRewardThenClear(distAccCoins sdk.Coins, bondDenom string) int64 {
-	var totalReward int64
-	for i := 0; i < distAccCoins.Len(); i++ {
-		if strings.Compare(distAccCoins[i].Denom, bondDenom) == 0 {
-			totalReward = distAccCoins[i].Amount
-			distAccCoins[i].Amount = 0
-			break
-		}
-	}
-	return totalReward
-}
-
-/**
- * If the current day's breathe block height is marked before this query, then find the third height from the bottom.
- * Otherwise, find the second-to-last one.
- */
-func getTargetValidatorsStoreHeight(ctx sdk.Context, k Keeper, isCurrentBreatheHeightMarked bool) (height int64, found bool) {
-	index := distrDaysBefore
-	if isCurrentBreatheHeightMarked {
-		index++
-	}
-	return k.GetBreatheBlockHeight(ctx, index)
 }

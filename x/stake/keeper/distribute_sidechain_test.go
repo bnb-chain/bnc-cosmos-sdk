@@ -77,7 +77,10 @@ func TestDistribute(t *testing.T) {
 		am.SetAccount(ctx, distrAcc)
 	}
 	k.SetValidatorsByHeight(ctx, height, validators)
-	k.Distribute(ctx, true)
+
+	targetHeight,found := k.GetBreatheBlockHeight(ctx,3)
+	require.True(t, found)
+	k.Distribute(ctx, targetHeight)
 
 	for i, validator := range validators {
 		_, found := k.GetSimplifiedDelegations(ctx, height, validator.OperatorAddr)
@@ -94,7 +97,7 @@ func TestDistribute(t *testing.T) {
 		}
 		require.Equal(t, rewards[i], amountOfAllAccount)
 	}
-	_, found := k.GetValidatorsByHeight(ctx, height)
+	_, found = k.GetValidatorsByHeight(ctx, height)
 	require.False(t, found)
 
 }
