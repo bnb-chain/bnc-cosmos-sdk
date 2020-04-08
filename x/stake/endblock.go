@@ -33,6 +33,8 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 
 			storeValidatorsWithHeight(sideChainCtx, newVals, k)
 
+			// The rewards collected yesterday is decided by the validators the day before yesterday.
+			// So this distribution is for the validators bonded 2 days ago
 			height, found := k.GetBreatheBlockHeight(ctx, 3)
 			if found {
 				k.Distribute(sideChainCtx, height)
@@ -63,17 +65,14 @@ func saveSideChainValidatorsToIBC(ctx sdk.Context, sideChainId string, newVals [
 }
 
 func storeValidatorsWithHeight(ctx sdk.Context, validators []types.Validator, k keeper.Keeper) {
-	validatorsByHeight := make([]types.Validator, 0)
-	if len(validators) > 0 {
-		for _, validator := range validators {
-			simplifiedDelegations := k.GetDelegationsSimplifiedByValidator(ctx, validator.OperatorAddr)
-
-			k.SetSimplifiedDelegations(ctx, ctx.BlockHeight(), validator.OperatorAddr, simplifiedDelegations)
-
-			validatorsByHeight = append(validatorsByHeight, validator)
-		}
-		k.SetValidatorsByHeight(ctx, ctx.BlockHeight(), validatorsByHeight)
+	if len(validators) == 0 {
+		return
 	}
+	for _, validator := range validators {
+		simplifiedDelegations := k.GetSimplifiedDelegationsByValidator(ctx, validator.OperatorAddr)
+		k.SetSimplifiedDelegations(ctx, ctx.BlockHeight(), validator.OperatorAddr, simplifiedDelegations)
+	}
+	k.SetValidatorsByHeight(ctx, ctx.BlockHeight(), validators)
 }
 
 func handleValidatorAndDelegations(ctx sdk.Context, k keeper.Keeper) ([]types.Validator, []abci.ValidatorUpdate, []types.UnbondingDelegation, sdk.Tags) {

@@ -86,7 +86,7 @@ func (k Keeper) GetValidatorDelegations(ctx sdk.Context, validator sdk.ValAddres
 }
 
 // return all delegations simplified from a validator
-func (k Keeper) GetDelegationsSimplifiedByValidator(ctx sdk.Context, validator sdk.ValAddress) (simDelegations []types.SimplifiedDelegation) {
+func (k Keeper) GetSimplifiedDelegationsByValidator(ctx sdk.Context, validator sdk.ValAddress) (simDelegations []types.SimplifiedDelegation) {
 	store := ctx.KVStore(k.storeKey)
 	iterator := sdk.KVStorePrefixIterator(store, GetDelegationsKeyByVal(validator))
 	defer iterator.Close()
