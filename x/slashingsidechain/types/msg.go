@@ -52,11 +52,11 @@ func (msg MsgSubmitEvidence) ValidateBasic() sdk.Error {
 	if msg.Headers[0].ParentHash.Cmp(msg.Headers[1].ParentHash) != 0 {
 		return sdk.ErrInvalidEvidence("The parent hash of two block headers are not the same")
 	}
-	signature1, err := msg.Headers[0].GetSignature();
+	signature1, err := msg.Headers[0].GetSignature()
 	if err != nil {
 		return sdk.ErrInvalidEvidence(fmt.Sprintf("Failed to get signature from block header, %s", err.Error()))
 	}
-	signature2, err := msg.Headers[1].GetSignature();
+	signature2, err := msg.Headers[1].GetSignature()
 	if err != nil {
 		return sdk.ErrInvalidEvidence(fmt.Sprintf("Failed to get signature from block header, %s", err.Error()))
 	}
@@ -64,11 +64,11 @@ func (msg MsgSubmitEvidence) ValidateBasic() sdk.Error {
 		return sdk.ErrInvalidEvidence("The two blocks are the same")
 	}
 
-	signer1, err := msg.Headers[0].ExtractSignerFromHeader();
+	signer1, err := msg.Headers[0].ExtractSignerFromHeader()
 	if err != nil {
 		return sdk.ErrInvalidEvidence(fmt.Sprintf("Failed to extract signer from block header, %s", err.Error()))
 	}
-	signer2, err := msg.Headers[1].ExtractSignerFromHeader();
+	signer2, err := msg.Headers[1].ExtractSignerFromHeader()
 	if err != nil {
 		return sdk.ErrInvalidEvidence(fmt.Sprintf("Failed to extract signer from block header, %s", err.Error()))
 	}

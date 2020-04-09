@@ -25,6 +25,6 @@ func ErrFailedToSlash(codespace sdk.CodespaceType, msg string) sdk.Error {
 	return sdk.NewError(codespace, CodeFailSlash, fmt.Sprintf("failed to slash, %s", msg))
 }
 
-func ErrHandledEvidence(codespace sdk.CodespaceType) sdk.Error {
+func ErrEvidenceHasBeenHandled(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeHandledEvidence, "The evidence has been handled")
 }

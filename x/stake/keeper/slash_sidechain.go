@@ -110,9 +110,15 @@ func (k Keeper) SlashForSideChain(ctx sdk.Context, sideChainId string, consAddr 
 	}
 
 	if !remainingReward.IsZero() {
+
+		// remove bad validator if it exists in the eligible validators for current day
 		for i := 0; i < len(validators); i++ {
 			if validators[i].OperatorAddr.Equals(validator.OperatorAddr) {
-				validators = append(validators[:i], validators[i+1:]...)
+				if i == len(validators) - 1 {
+					validators = validators[:i]
+				} else {
+					validators = append(validators[:i], validators[i+1:]...)
+				}
 				break
 			}
 		}

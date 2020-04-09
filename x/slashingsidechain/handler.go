@@ -22,7 +22,7 @@ func handleMsgSubmitEvidence(k keeper.Keeper, ctx sdk.Context, msg types.MsgSubm
 	//verify evidence age
 	sideConsAddr,_ := msg.Headers[0].ExtractSignerFromHeader()
 	if k.GetSlashRecord(ctx, sideConsAddr.Bytes(), msg.Headers[0].Number.Int64()) != nil {
-		return types.ErrHandledEvidence(k.Codespace()).Result()
+		return types.ErrEvidenceHasBeenHandled(k.Codespace()).Result()
 	}
 
 	evidenceTime := int64(min(msg.Headers[0].Time,msg.Headers[1].Time))
@@ -40,14 +40,6 @@ func handleMsgSubmitEvidence(k keeper.Keeper, ctx sdk.Context, msg types.MsgSubm
 
 	k.SetSlashRecord(ctx, sideConsAddr.Bytes(), msg.Headers[0].Number.Int64())
 	return sdk.Result{}
-}
-
-
-func min( a,b uint64) uint64{
-	if a < b {
-		return a
-	}
-	return b
 }
 
 
