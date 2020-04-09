@@ -2,6 +2,7 @@ package stake
 
 import (
 	"fmt"
+	"strconv"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/stake/keeper"
@@ -25,7 +26,8 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 		for i := range storePrefixes {
 			sideChainCtx := ctx.WithSideChainKeyPrefix(storePrefixes[i])
 			newVals, _, _, _ := handleValidatorAndDelegations(sideChainCtx, k)
-			saveSideChainValidatorsToIBC(ctx, sideChainIds[i], newVals, k)
+			ibcTags :=  saveSideChainValidatorsToIBC(ctx, sideChainIds[i], newVals, k)
+			endBlockerTags = endBlockerTags.AppendTags(ibcTags)
 			// TODO: may need to change the return values
 		}
 	}
@@ -42,14 +44,11 @@ func saveSideChainValidatorsToIBC(ctx sdk.Context, sideChainId string, newVals [
 			Power:    newVals[i].GetPower().RawInt(),
 		}
 	}
-	_, err := k.SaveValidatorSetToIbc(ctx, sideChainId, ibcValidatorSet)
+	sequence, err := k.SaveValidatorSetToIbc(ctx, sideChainId, ibcValidatorSet)
 	if err != nil {
 		k.Logger(ctx).Error("save validators to ibc package failed: " + err.Error())
 	}
-	// TODO: add seq to tags
-	return sdk.Tags{
-
-	}
+	return sdk.NewTags(tags.SideChainStakingPackageSequence, []byte(strconv.Itoa(int(sequence))))
 }
 
 func handleValidatorAndDelegations(ctx sdk.Context, k keeper.Keeper) ([]types.Validator, []abci.ValidatorUpdate, []types.UnbondingDelegation, sdk.Tags){
