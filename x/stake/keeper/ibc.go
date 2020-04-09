@@ -14,5 +14,13 @@ func (k Keeper) SaveValidatorSetToIbc(ctx sdk.Context, sideChainId string, ibcVa
 		k.Logger(ctx).Error("serialize failed: " + err.Error())
 		return 0, sdk.ErrInternal(err.Error())
 	}
-	return k.ibcKeeper.CreateIBCPackage(ctx, sideChainId, IbcChannelName, bz)
+	//remove store prefix
+	ctx = ctx.WithSideChainKeyPrefix(nil)
+	sequence, err := k.ibcKeeper.CreateIBCPackage(ctx, sideChainId, IbcChannelName, bz)
+	if err != nil {
+		k.Logger(ctx).Error("create ibc package failed: " + err.Error())
+		return 0, sdk.ErrInternal(err.Error())
+	}
+	k.Logger(ctx).Info("created staking package", "sequence", sequence)
+	return sequence, nil
 }
