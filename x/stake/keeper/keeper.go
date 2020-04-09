@@ -79,7 +79,8 @@ func (k Keeper) GetAllSideChainPrefixes(ctx sdk.Context) ([]string, [][]byte) {
 	iterator := sdk.KVStorePrefixIterator(store, SideChainStorePrefixByIdKey)
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
-		sideChainIds = append(sideChainIds, string(iterator.Key()))
+		sideChainId := iterator.Key()[len(SideChainStorePrefixByIdKey):]
+		sideChainIds = append(sideChainIds, string(sideChainId))
 		prefixes = append(prefixes, iterator.Value())
 	}
 	return sideChainIds, prefixes
