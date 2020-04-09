@@ -21,4 +21,6 @@ var (
 	Moniker      = "moniker"
 	Identity     = "identity"
 	EndTime      = "end-time"
+
+	SideChainStakingPackageSequence = "SideChainStakingPackageSequence"
 )
