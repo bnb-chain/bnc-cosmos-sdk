@@ -38,3 +38,21 @@ func TestPool(t *testing.T) {
 	resPool = keeper.GetPool(ctx)
 	require.True(t, expPool.Equal(resPool))
 }
+
+func TestKeeper_SetSideChainIdAndStorePrefix(t *testing.T) {
+	ctx, _, keeper := CreateTestInput(t, false, 0)
+
+	scIds, scPrefixes := keeper.GetAllSideChainPrefixes(ctx)
+	require.Equal(t, len(scIds),0)
+	require.Equal(t, len(scPrefixes), 0)
+
+	keeper.SetSideChainIdAndStorePrefix(ctx, "abc", []byte{0x11, 0x12})
+	keeper.SetSideChainIdAndStorePrefix(ctx, "xyz", []byte{0xab})
+	scIds, scPrefixes = keeper.GetAllSideChainPrefixes(ctx)
+	require.Equal(t, len(scIds),2)
+	require.Equal(t, len(scPrefixes), 2)
+	require.Equal(t, scIds[0], "abc")
+	require.Equal(t, scPrefixes[0], []byte{0x11, 0x12})
+	require.Equal(t, scIds[1], "xyz")
+	require.Equal(t, scPrefixes[1], []byte{0xab})
+}
