@@ -407,7 +407,7 @@ func (v Validator) UpdateStatus(pool Pool, NewStatus sdk.BondStatus) (Validator,
 
 // calculate the token worth of provided shares
 func (v Validator) TokensFromShares(shares sdk.Dec) sdk.Dec {
-	return (shares.Mul(v.Tokens)).Quo(v.DelegatorShares)
+	return sdk.MulDivDec(shares,v.Tokens,v.DelegatorShares)
 }
 
 // SharesFromTokens returns the shares of a delegation given a bond amount. It
@@ -417,7 +417,7 @@ func (v Validator) SharesFromTokens(amt sdk.Dec) (sdk.Dec, sdk.Error) {
 		return sdk.ZeroDec(), ErrInsufficientShares(DefaultCodespace)
 	}
 
-	return v.DelegatorShares.Mul(amt).Quo(v.Tokens), nil
+	return sdk.MulDivDec(v.DelegatorShares,amt,v.Tokens),nil
 }
 
 // removes tokens from a validator
