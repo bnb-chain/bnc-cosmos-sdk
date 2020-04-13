@@ -24,7 +24,7 @@ const (
 	// TODO: support changing it via governance
 	// if the self delegation is below the MinSelfDelegation,
 	// the creation of validator would be rejected or the validator would be jailed.
-	DefaultMinSelfDelegation = 10000e8
+	DefaultMinSelfDelegation int64 = 10000e8
 )
 
 // nolint - Keys for parameter access

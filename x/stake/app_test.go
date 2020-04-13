@@ -42,7 +42,7 @@ func getMockApp(t *testing.T) (*mock.App, Keeper) {
 // getEndBlocker returns a stake endblocker.
 func getEndBlocker(keeper Keeper) sdk.EndBlocker {
 	return func(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
-		validatorUpdates, _, _ := EndBlocker(ctx, keeper)
+		validatorUpdates, _ := EndBlocker(ctx, keeper)
 
 		return abci.ResponseEndBlock{
 			ValidatorUpdates: validatorUpdates,

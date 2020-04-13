@@ -491,6 +491,21 @@ func (v Validator) BondedTokens() sdk.Dec {
 	return sdk.ZeroDec()
 }
 
+// IsBonded checks if the validator status equals Bonded
+func (v Validator) IsBonded() bool {
+	return v.GetStatus().Equal(sdk.Bonded)
+}
+
+// IsUnbonded checks if the validator status equals Unbonded
+func (v Validator) IsUnbonded() bool {
+	return v.GetStatus().Equal(sdk.Unbonded)
+}
+
+// IsUnbonding checks if the validator status equals Unbonding
+func (v Validator) IsUnbonding() bool {
+	return v.GetStatus().Equal(sdk.Unbonding)
+}
+
 //______________________________________________________________________
 
 // ensure fulfills the sdk validator types

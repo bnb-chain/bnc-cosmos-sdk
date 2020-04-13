@@ -347,18 +347,20 @@ func (k Keeper) GetAllMatureValidatorQueue(ctx sdk.Context, currTime time.Time) 
 func (k Keeper) UnbondAllMatureValidatorQueue(ctx sdk.Context) {
 	store := ctx.KVStore(k.storeKey)
 	validatorTimesliceIterator := k.ValidatorQueueIterator(ctx, ctx.BlockHeader().Time)
+	defer validatorTimesliceIterator.Close()
+
 	for ; validatorTimesliceIterator.Valid(); validatorTimesliceIterator.Next() {
 		timeslice := []sdk.ValAddress{}
 		k.cdc.MustUnmarshalBinaryLengthPrefixed(validatorTimesliceIterator.Value(), &timeslice)
 		for _, valAddr := range timeslice {
 			val, found := k.GetValidator(ctx, valAddr)
-			if !found || val.GetStatus() != sdk.Unbonding {
+			if !found || !val.IsUnbonding() {
 				continue
 			}
+
+			k.unbondingToUnbonded(ctx, val)
 			if val.GetDelegatorShares().IsZero() {
 				k.RemoveValidator(ctx, val.OperatorAddr)
-			} else {
-				k.unbondingToUnbonded(ctx, val)
 			}
 		}
 		store.Delete(validatorTimesliceIterator.Key())

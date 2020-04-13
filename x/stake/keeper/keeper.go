@@ -8,6 +8,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/ibc"
 	"github.com/cosmos/cosmos-sdk/x/params"
+	"github.com/cosmos/cosmos-sdk/x/sidechain"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 	"github.com/tendermint/tendermint/libs/log"
 )
@@ -25,8 +26,9 @@ type Keeper struct {
 	// codespace
 	codespace sdk.CodespaceType
 
-	// ibc
+	// side chain
 	ibcKeeper ibc.Keeper
+	ScKeeper  sidechain.Keeper
 }
 
 func NewKeeper(cdc *codec.Codec, key, tkey sdk.StoreKey, ck bank.Keeper, ibcKeeper ibc.Keeper, addrPool *sdk.Pool,
@@ -63,34 +65,6 @@ func (k Keeper) RegisterUpgradeBeginBlock() {
 // Logger returns a module-specific logger.
 func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("module", "x/stake")
-}
-
-// TODO: to support multi side chains in the future. We will enable a registration mechanism and add these chain ids to db.
-// then we need to check if the sideChainId already exists
-func (k Keeper) SetSideChainIdAndStorePrefix(ctx sdk.Context, sideChainId string, storePrefix []byte) {
-	store := ctx.KVStore(k.storeKey)
-	key := GetSideChainStorePrefixKey(sideChainId)
-	store.Set(key, storePrefix)
-}
-
-// get side chain store key prefix
-func (k Keeper) GetSideChainStorePrefix(ctx sdk.Context, sideChainId string) []byte {
-	store := ctx.KVStore(k.storeKey)
-	return store.Get(GetSideChainStorePrefixKey(sideChainId))
-}
-
-func (k Keeper) GetAllSideChainPrefixes(ctx sdk.Context) ([]string, [][]byte) {
-	store := ctx.KVStore(k.storeKey)
-	sideChainIds := make([]string, 0, 1)
-	prefixes := make([][]byte, 0, 1)
-	iterator := sdk.KVStorePrefixIterator(store, SideChainStorePrefixByIdKey)
-	defer iterator.Close()
-	for ; iterator.Valid(); iterator.Next() {
-		sideChainId := iterator.Key()[len(SideChainStorePrefixByIdKey):]
-		sideChainIds = append(sideChainIds, string(sideChainId))
-		prefixes = append(prefixes, iterator.Value())
-	}
-	return sideChainIds, prefixes
 }
 
 // Set the validator hooks

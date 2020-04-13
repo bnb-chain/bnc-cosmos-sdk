@@ -11,9 +11,10 @@ import (
 )
 
 func handleMsgCreateSideChainValidator(ctx sdk.Context, msg MsgCreateSideChainValidator, k keeper.Keeper) sdk.Result{
-	var err sdk.Error
-	if ctx, err = prepareCtxForSideChain(k, ctx, msg); err != nil {
-		return err.Result()
+	if scCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, msg.SideChainId); err != nil {
+		return ErrInvalidSideChainId(k.Codespace()).Result()
+	} else {
+		ctx = scCtx
 	}
 
 	// check to see if the pubkey or sender has been registered before
@@ -43,6 +44,7 @@ func handleMsgCreateSideChainValidator(ctx sdk.Context, msg MsgCreateSideChainVa
 		msg.Commission.Rate, msg.Commission.MaxRate,
 		msg.Commission.MaxChangeRate, ctx.BlockHeader().Time,
 	)
+	var err sdk.Error
 	validator, err = validator.SetInitialCommission(commission)
 	if err != nil {
 		return err.Result()
@@ -51,7 +53,6 @@ func handleMsgCreateSideChainValidator(ctx sdk.Context, msg MsgCreateSideChainVa
 	k.SetValidator(ctx, validator)
 	k.SetValidatorByConsAddr(ctx, validator) // here consAddr is the sideConsAddr
 	k.SetNewValidatorByPowerIndex(ctx, validator)
-
 	k.OnValidatorCreated(ctx, validator.OperatorAddr)
 
 	// move coins from the msg.Address account to a (self-delegation) delegator account
@@ -71,9 +72,10 @@ func handleMsgCreateSideChainValidator(ctx sdk.Context, msg MsgCreateSideChainVa
 }
 
 func handleMsgEditSideChainValidator(ctx sdk.Context, msg MsgEditSideChainValidator, k keeper.Keeper) sdk.Result {
-	var err sdk.Error
-	if ctx, err = prepareCtxForSideChain(k, ctx, msg); err != nil {
-		return err.Result()
+	if scCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, msg.SideChainId); err != nil {
+		return ErrInvalidSideChainId(k.Codespace()).Result()
+	} else {
+		ctx = scCtx
 	}
 
 	// validator must already be registered
@@ -121,9 +123,10 @@ func handleMsgEditSideChainValidator(ctx sdk.Context, msg MsgEditSideChainValida
 }
 
 func handleMsgSideChainDelegate(ctx sdk.Context, msg MsgSideChainDelegate, k keeper.Keeper) sdk.Result {
-	var err sdk.Error
-	if ctx, err = prepareCtxForSideChain(k, ctx, msg); err != nil {
-		return err.Result()
+	if scCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, msg.SideChainId); err != nil {
+		return ErrInvalidSideChainId(k.Codespace()).Result()
+	} else {
+		ctx = scCtx
 	}
 
 	validator, found := k.GetValidator(ctx, msg.ValidatorAddr)
@@ -146,7 +149,7 @@ func handleMsgSideChainDelegate(ctx sdk.Context, msg MsgSideChainDelegate, k kee
 		return ErrValidatorJailed(k.Codespace()).Result()
 	}
 
-	_, err = k.Delegate(ctx, msg.DelegatorAddr, msg.Delegation, validator, true)
+	_, err := k.Delegate(ctx, msg.DelegatorAddr, msg.Delegation, validator, true)
 	if err != nil {
 		return err.Result()
 	}
@@ -160,9 +163,10 @@ func handleMsgSideChainDelegate(ctx sdk.Context, msg MsgSideChainDelegate, k kee
 }
 
 func handleMsgSideChainRedelegate(ctx sdk.Context, msg MsgSideChainRedelegate, k keeper.Keeper) sdk.Result {
-	var err sdk.Error
-	if ctx, err = prepareCtxForSideChain(k, ctx, msg); err != nil {
-		return err.Result()
+	if scCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, msg.SideChainId); err != nil {
+		return ErrInvalidSideChainId(k.Codespace()).Result()
+	} else {
+		ctx = scCtx
 	}
 
 	if msg.Amount.Denom != k.BondDenom(ctx) {
@@ -192,10 +196,10 @@ func handleMsgSideChainRedelegate(ctx sdk.Context, msg MsgSideChainRedelegate, k
 }
 
 func handleMsgSideChainUndelegate(ctx sdk.Context, msg MsgSideChainUndelegate, k keeper.Keeper) sdk.Result {
-	var err sdk.Error
-	ctx, err = prepareCtxForSideChain(k, ctx, msg)
-	if err != nil {
-		return err.Result()
+	if scCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, msg.SideChainId); err != nil {
+		return ErrInvalidSideChainId(k.Codespace()).Result()
+	} else {
+		ctx = scCtx
 	}
 
 	if msg.Amount.Denom != k.BondDenom(ctx) {
@@ -220,14 +224,4 @@ func handleMsgSideChainUndelegate(ctx sdk.Context, msg MsgSideChainUndelegate, k
 		tags.EndTime, finishTime,
 	)
 	return sdk.Result{Data: finishTime, Tags: tags}
-}
-
-func prepareCtxForSideChain(k keeper.Keeper, ctx sdk.Context, msg types.SideChainIder) (sdk.Context, sdk.Error) {
-	storePrefix := k.GetSideChainStorePrefix(ctx, msg.GetSideChainId())
-	if storePrefix == nil {
-		return sdk.Context{}, ErrInvalidSideChainId(k.Codespace())
-	}
-
-	// add store prefix to ctx for side chain use
-	return ctx.WithSideChainKeyPrefix(storePrefix), nil
 }

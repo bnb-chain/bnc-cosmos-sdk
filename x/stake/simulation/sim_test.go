@@ -40,7 +40,7 @@ func TestStakeWithRandomMessages(t *testing.T) {
 	distrKeeper := distribution.NewKeeper(mapp.Cdc, distrKey, paramstore.Subspace(distribution.DefaultParamspace), bankKeeper, stakeKeeper, feeCollectionKeeper, distribution.DefaultCodespace)
 	mapp.Router().AddRoute("stake", stake.NewStakeHandler(stakeKeeper))
 	mapp.SetEndBlocker(func(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
-		validatorUpdates, _, _ := stake.EndBlocker(ctx, stakeKeeper)
+		validatorUpdates, _ := stake.EndBlocker(ctx, stakeKeeper)
 		return abci.ResponseEndBlock{
 			ValidatorUpdates: validatorUpdates,
 		}

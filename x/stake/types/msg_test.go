@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	coinPos  = sdk.NewCoin("steak", 1000)
+	coinPos  = sdk.NewCoin("steak", 10000e8)
 	coinZero = sdk.NewCoin("steak", 0)
 	coinNeg  = sdk.NewCoin("steak", -10000)
 )
