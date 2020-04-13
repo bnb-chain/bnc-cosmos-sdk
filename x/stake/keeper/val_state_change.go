@@ -203,7 +203,11 @@ func (k Keeper) bondValidator(ctx sdk.Context, validator types.Validator) types.
 
 	// call the bond hook if present
 	if k.hooks != nil {
-		k.hooks.OnValidatorBonded(ctx, validator.ConsAddress(), validator.OperatorAddr)
+		if validator.IsSideChainValidator() {
+			k.hooks.OnValidatorBonded(ctx, validator.SideConsAddr, validator.OperatorAddr)
+		} else {
+			k.hooks.OnValidatorBonded(ctx, validator.ConsAddress(), validator.OperatorAddr)
+		}
 	}
 
 	return validator
@@ -239,7 +243,11 @@ func (k Keeper) beginUnbondingValidator(ctx sdk.Context, validator types.Validat
 
 	// call the unbond hook if present
 	if k.hooks != nil {
-		k.hooks.OnValidatorBeginUnbonding(ctx, validator.ConsAddress(), validator.OperatorAddr)
+		if validator.IsSideChainValidator() {
+			k.hooks.OnValidatorBeginUnbonding(ctx, validator.SideConsAddr, validator.OperatorAddr)
+		} else {
+			k.hooks.OnValidatorBeginUnbonding(ctx, validator.ConsAddress(), validator.OperatorAddr)
+		}
 	}
 
 	return validator
