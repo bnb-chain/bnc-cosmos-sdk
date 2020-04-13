@@ -4,7 +4,6 @@ package stake
 import (
 	"github.com/cosmos/cosmos-sdk/x/stake/keeper"
 	"github.com/cosmos/cosmos-sdk/x/stake/querier"
-	"github.com/cosmos/cosmos-sdk/x/stake/tags"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
 
@@ -66,7 +65,6 @@ var (
 	GetREDsToValDstIndexKey      = keeper.GetREDsToValDstIndexKey
 	GetREDsByDelToValDstIndexKey = keeper.GetREDsByDelToValDstIndexKey
 	TestingUpdateValidator       = keeper.TestingUpdateValidator
-	GetSideChainStorePrefixKey   = keeper.GetSideChainStorePrefixKey
 
 	DefaultParamspace = keeper.DefaultParamspace
 	KeyUnbondingTime  = types.KeyUnbondingTime
@@ -170,21 +168,4 @@ var (
 	ErrBothShareMsgsGiven    = types.ErrBothShareMsgsGiven
 	ErrNeitherShareMsgsGiven = types.ErrNeitherShareMsgsGiven
 	ErrMissingSignature      = types.ErrMissingSignature
-)
-
-var (
-	ActionCreateValidator      = tags.ActionCreateValidator
-	ActionEditValidator        = tags.ActionEditValidator
-	ActionDelegate             = tags.ActionDelegate
-	ActionBeginUnbonding       = tags.ActionBeginUnbonding
-	ActionCompleteUnbonding    = tags.ActionCompleteUnbonding
-	ActionBeginRedelegation    = tags.ActionBeginRedelegation
-	ActionCompleteRedelegation = tags.ActionCompleteRedelegation
-
-	TagAction       = tags.Action
-	TagSrcValidator = tags.SrcValidator
-	TagDstValidator = tags.DstValidator
-	TagDelegator    = tags.Delegator
-	TagMoniker      = tags.Moniker
-	TagIdentity     = tags.Identity
 )
