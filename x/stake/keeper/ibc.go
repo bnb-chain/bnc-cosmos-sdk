@@ -14,5 +14,7 @@ func (k Keeper) SaveValidatorSetToIbc(ctx sdk.Context, sideChainId string, ibcVa
 		k.Logger(ctx).Error("serialize failed: " + err.Error())
 		return 0, sdk.ErrInternal(err.Error())
 	}
+	// prepend a flag 0x00
+	bz = append([]byte{0x00}, bz...)
 	return k.ibcKeeper.CreateIBCPackage(ctx, sideChainId, IbcChannelName, bz)
 }

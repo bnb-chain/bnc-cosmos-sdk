@@ -53,7 +53,8 @@ keyIbc := sdk.NewKVStoreKey("ibc")
 // stake endblocker
 func getEndBlocker(keeper stake.Keeper) sdk.EndBlocker {
 	return func(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
-		validatorUpdates, _, _ := stake.EndBlocker(ctx, keeper)
+		ctx = ctx.WithEventManager(sdk.NewEventManager())
+		validatorUpdates, _ := stake.EndBlocker(ctx, keeper)
 		return abci.ResponseEndBlock{
 			ValidatorUpdates: validatorUpdates,
 		}

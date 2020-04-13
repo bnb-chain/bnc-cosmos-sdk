@@ -179,7 +179,7 @@ func IsMsgTypeSupported(msgType string) bool {
 }
 
 func Upgrade(name string, before func(), in func(), after func()) {
-	// if no special logic for the UpgradeHeight, than apply the `after` logic
+	// if no special logic for the UpgradeHeight, apply the `after` logic
 	if in == nil {
 		in = after
 	}

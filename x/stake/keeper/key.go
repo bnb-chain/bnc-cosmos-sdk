@@ -290,7 +290,3 @@ func GetREDsByDelToValDstIndexKey(delAddr sdk.AccAddress, valDstAddr sdk.ValAddr
 		GetREDsToValDstIndexKey(valDstAddr),
 		delAddr.Bytes()...)
 }
-
-func GetSideChainStorePrefixKey(sideChainId string) []byte {
-	return append(SideChainStorePrefixByIdKey, []byte(sideChainId)...)
-}

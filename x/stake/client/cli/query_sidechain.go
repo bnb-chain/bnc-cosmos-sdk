@@ -5,11 +5,13 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
 	"github.com/tendermint/tendermint/libs/cli"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/sidechain"
 	"github.com/cosmos/cosmos-sdk/x/stake"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
@@ -24,7 +26,7 @@ func GetCmdQuerySideValidator(storeName string, cdc *codec.Codec) *cobra.Command
 			if err != nil {
 				return err
 			}
-			
+
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			sideChainStorePrefix, err := getSideChainStorePrefix(cliCtx, storeName)
 			if err != nil {
@@ -507,7 +509,7 @@ func getSideChainStorePrefix(cliCtx context.CLIContext, storeName string) ([]byt
 		return nil, err
 	}
 
-	res, err := cliCtx.QueryStore(stake.GetSideChainStorePrefixKey(sideChainId), storeName)
+	res, err := cliCtx.QueryStore(sidechain.GetSideChainStorePrefixKey(sideChainId), storeName)
 	if err != nil {
 		return nil, err
 	} else if len(res) == 0 {

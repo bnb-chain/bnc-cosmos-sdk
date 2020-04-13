@@ -14,7 +14,7 @@ type IbcValidator struct {
 	Power    int64
 }
 
-// {20 bytes consensusAddress} + {20 bytes feeAddress} + {20 bytes BBCFeeAddress} + {8 bytes voting power}
+// {20 bytes consensusAddress} + {20 bytes feeAddress} + {20 bytes distributionAddress} + {8 bytes voting power}
 func (v *IbcValidator) Serialize() ([]byte, error) {
 	consAddrLen, feeAddrLen, distAddrLen, powerLen:= len(v.ConsAddr), len(v.FeeAddr), len(v.DistAddr), 8
 	if consAddrLen == 0 || feeAddrLen == 0 || distAddrLen == 0 || v.Power == 0 {
@@ -38,9 +38,9 @@ func (vs IbcValidatorSet) Serialize() ([]byte, error) {
 	}
 
 	v0 := vs[0]
-	consAddrLen, feeAddrLen, distAddrLen, powerLen:= len(v0.ConsAddr), len(v0.FeeAddr), len(v0.DistAddr), 8
+	consAddrLen, feeAddrLen, distAddrLen, powerLen:= len(v0.ConsAddr), len(v0.FeeAddr), sdk.AddrLen, 8
 	eachLen := consAddrLen + feeAddrLen + distAddrLen + powerLen
-	result := make([]byte, 1+vsLen*eachLen)
+	result := make([]byte, vsLen*eachLen)
 	for i:= range vs {
 		v := vs[i]
 		if len(v.ConsAddr) != consAddrLen ||
@@ -49,7 +49,7 @@ func (vs IbcValidatorSet) Serialize() ([]byte, error) {
 			v.Power == 0 {
 			return nil, errors.New("not all validators' fields are complete")
 		}
-		start := 1+i*eachLen
+		start := i*eachLen
 		copy(result[start: start+consAddrLen], vs[i].ConsAddr)
 		copy(result[start+consAddrLen: start+consAddrLen+feeAddrLen], vs[i].FeeAddr)
 		copy(result[start+consAddrLen+feeAddrLen: start+eachLen-powerLen], vs[i].DistAddr)
