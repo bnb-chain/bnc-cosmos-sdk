@@ -17,29 +17,29 @@ func Mul64(a, b int64) (int64, bool) {
 	return c, false
 }
 
-func MulBig64(a, b *big.Int) *big.Int {
+func MulBigInt64(a, b *big.Int) *big.Int {
 	var bi big.Int
 	bi.Mul(a, b)
 	return &bi
 }
 
-func DivBig64(x, y *big.Int) *big.Int {
+func DivBigInt64(x, y *big.Int) *big.Int {
 	var bi big.Int
 	bi.Div(x, y)
 	return &bi
 }
 
-func MulDivDec(a, b, c Dec) Dec {
+func MulDivDec(a, b, c Dec) (Dec, bool) {
 	r, ok := Mul64(a.RawInt(), b.RawInt())
 	if !ok {
 		var bi big.Int
 		bi.Div(bi.Mul(big.NewInt(a.RawInt()), big.NewInt(b.RawInt())), big.NewInt(c.RawInt()))
 		if !bi.IsInt64() {
-			panic("int64 overflow")
+			return Dec{}, false
 		}
-		return NewDec(bi.Int64())
+		return NewDec(bi.Int64()), true
 	}
-	return NewDec(r / c.RawInt())
+	return NewDec(r / c.RawInt()), true
 }
 
 func MulDivDecWithExtraDecimal(a, b, c Dec, extraDecimalPlace int) (afterRoundDown int64, extraDecimalValue int) {
@@ -59,8 +59,8 @@ func MulDivDecWithExtraDecimal(a, b, c Dec, extraDecimalPlace int) (afterRoundDo
 }
 
 func mulDivBig64WithExtraDecimal(a, b, c, extra *big.Int) (afterRoundDown int64, extraDecimalValue int) {
-	product := MulBig64(MulBig64(a, b), extra)
-	result := DivBig64(product, c)
+	product := MulBigInt64(MulBigInt64(a, b), extra)
+	result := DivBigInt64(product, c)
 
 	expectedDecimalValueBig := &big.Int{}
 	afterRoundDownBig, expectedDecimalValueBig := result.QuoRem(result, extra, expectedDecimalValueBig)
