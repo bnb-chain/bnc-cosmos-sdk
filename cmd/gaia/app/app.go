@@ -120,7 +120,7 @@ func NewGaiaApp(logger log.Logger, db dbm.DB, traceStore io.Writer, baseAppOptio
 	app.stakeKeeper = stake.NewKeeper(
 		app.cdc,
 		app.keyStake, app.tkeyStake,
-		app.bankKeeper, app.ibcKeeper, app.Pool, app.paramsKeeper.Subspace(stake.DefaultParamspace),
+		app.bankKeeper, app.Pool, app.paramsKeeper.Subspace(stake.DefaultParamspace),
 		app.RegisterCodespace(stake.DefaultCodespace),
 	)
 	app.mintKeeper = mint.NewKeeper(app.cdc, app.keyMint,

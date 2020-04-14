@@ -27,6 +27,7 @@ func TestValidatorEqual(t *testing.T) {
 
 func TestUpdateDescription(t *testing.T) {
 	d1 := Description{
+		Moniker: "d1",
 		Website: "https://validator.cosmos",
 		Details: "Test validator",
 	}
@@ -39,7 +40,7 @@ func TestUpdateDescription(t *testing.T) {
 	}
 
 	d3 := Description{
-		Moniker:  "",
+		Moniker:  "d3",
 		Identity: "",
 		Website:  "",
 		Details:  "",

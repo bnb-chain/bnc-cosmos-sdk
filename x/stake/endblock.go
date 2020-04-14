@@ -21,7 +21,7 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 	var events sdk.Events
 	_, validatorUpdates, completedUbds, events = handleValidatorAndDelegations(ctx, k)
 
-	if sdk.IsUpgrade(sdk.LaunchBscUpgrade) {
+	if sdk.IsUpgrade(sdk.LaunchBscUpgrade) && k.ScKeeper != nil {
 		sideChainIds, storePrefixes := k.ScKeeper.GetAllSideChainPrefixes(ctx)
 		for i := range storePrefixes {
 			sideChainCtx := ctx.WithSideChainKeyPrefix(storePrefixes[i])

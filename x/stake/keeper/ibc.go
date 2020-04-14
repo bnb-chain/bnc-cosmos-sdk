@@ -9,6 +9,9 @@ const IbcChannelName = "staking"
 const IbcChannelId = sdk.IbcChannelID(8)
 
 func (k Keeper) SaveValidatorSetToIbc(ctx sdk.Context, sideChainId string, ibcVals types.IbcValidatorSet) (seq uint64, sdkErr sdk.Error) {
+	if k.ibcKeeper == nil {
+		return 0, sdk.ErrInternal("the keeper is not prepared for side chain")
+	}
 	bz, err := ibcVals.Serialize()
 	if err != nil {
 		k.Logger(ctx).Error("serialize failed: " + err.Error())

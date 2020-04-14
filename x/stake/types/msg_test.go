@@ -30,7 +30,8 @@ func TestMsgCreateValidator(t *testing.T) {
 		expectPass                                bool
 	}{
 		{"basic good", "a", "b", "c", "d", commission1, addr1, pk1, coinPos, true},
-		{"partial description", "", "", "c", "", commission1, addr1, pk1, coinPos, true},
+		{"empty moniker", "", "", "c", "", commission1, addr1, pk1, coinPos, false},
+		{"partial description", "a", "", "", "", commission1, addr1, pk1, coinPos, true},
 		{"empty description", "", "", "", "", commission2, addr1, pk1, coinPos, false},
 		{"empty address", "a", "b", "c", "d", commission2, emptyAddr, pk1, coinPos, false},
 		{"empty pubkey", "a", "b", "c", "d", commission1, addr1, emptyPubkey, coinPos, true},
@@ -91,7 +92,8 @@ func TestMsgCreateValidatorOnBehalfOf(t *testing.T) {
 		expectPass                                bool
 	}{
 		{"basic good", "a", "b", "c", "d", commission2, sdk.AccAddress(addr1), addr2, pk2, coinPos, true},
-		{"partial description", "", "", "c", "", commission2, sdk.AccAddress(addr1), addr2, pk2, coinPos, true},
+		{"empty moniker", "", "", "c", "", commission2, sdk.AccAddress(addr1), addr2, pk2, coinPos, false},
+		{"partial description", "a", "", "c", "", commission2, sdk.AccAddress(addr1), addr2, pk2, coinPos, true},
 		{"empty description", "", "", "", "", commission1, sdk.AccAddress(addr1), addr2, pk2, coinPos, false},
 		{"empty delegator address", "a", "b", "c", "d", commission1, sdk.AccAddress(emptyAddr), addr2, pk2, coinPos, false},
 		{"empty validator address", "a", "b", "c", "d", commission2, sdk.AccAddress(addr1), emptyAddr, pk2, coinPos, false},

@@ -26,40 +26,42 @@ type Keeper struct {
 	// codespace
 	codespace sdk.CodespaceType
 
-	// side chain
-	ibcKeeper ibc.Keeper
-	ScKeeper  sidechain.Keeper
+	// the two keepers are optional,
+	// if you want to enable side chains, you need call `SetupForSideChain`
+	ibcKeeper *ibc.Keeper
+	ScKeeper  *sidechain.Keeper
 }
 
-func NewKeeper(cdc *codec.Codec, key, tkey sdk.StoreKey, ck bank.Keeper, ibcKeeper ibc.Keeper, addrPool *sdk.Pool,
+func NewKeeper(cdc *codec.Codec, key, tkey sdk.StoreKey, ck bank.Keeper, addrPool *sdk.Pool,
 	paramstore params.Subspace, codespace sdk.CodespaceType) Keeper {
 	keeper := Keeper{
 		storeKey:   key,
 		storeTKey:  tkey,
 		cdc:        cdc,
 		bankKeeper: ck,
-		ibcKeeper:  ibcKeeper,
 		addrPool:   addrPool,
 		paramstore: paramstore.WithTypeTable(ParamTypeTable()),
 		hooks:      nil,
 		codespace:  codespace,
 	}
-	keeper.initIbc()
-	keeper.RegisterUpgradeBeginBlock()
+
 	return keeper
 }
 
 func (k Keeper) initIbc() {
+	if k.ibcKeeper != nil {
+		return
+	}
 	err := k.ibcKeeper.RegisterChannel(IbcChannelName, IbcChannelId)
 	if err != nil {
 		panic(fmt.Sprintf("register ibc channel failed, channel=%s, err=%s", IbcChannelName, err.Error()))
 	}
 }
 
-func (k Keeper) RegisterUpgradeBeginBlock() {
-	sdk.UpgradeMgr.RegisterBeginBlocker(sdk.LaunchBscUpgrade, func(ctx sdk.Context) {
-		MigratePowerRankKey(ctx, k)
-	})
+func (k Keeper) SetupForSideChain(scKeeper *sidechain.Keeper, ibcKeeper *ibc.Keeper) {
+	k.ScKeeper = scKeeper
+	k.ibcKeeper = ibcKeeper
+	k.initIbc()
 }
 
 // Logger returns a module-specific logger.

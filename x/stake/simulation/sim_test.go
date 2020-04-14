@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/cosmos/cosmos-sdk/x/ibc"
+	"github.com/cosmos/cosmos-sdk/x/sidechain"
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -31,12 +32,15 @@ func TestStakeWithRandomMessages(t *testing.T) {
 	paramsKey := sdk.NewKVStoreKey("params")
 	paramsTKey := sdk.NewTransientStoreKey("transient_params")
 	ibcKey := sdk.NewKVStoreKey("ibc")
+	keySideChain := sdk.NewKVStoreKey("sc")
 	distrKey := sdk.NewKVStoreKey("distr")
 
 	feeCollectionKeeper := auth.NewFeeCollectionKeeper(mapp.Cdc, feeKey)
 	paramstore := params.NewKeeper(mapp.Cdc, paramsKey, paramsTKey)
 	ibcKeeper := ibc.NewKeeper(ibcKey, ibc.DefaultCodespace)
-	stakeKeeper := stake.NewKeeper(mapp.Cdc, stakeKey, stakeTKey, bankKeeper, ibcKeeper, nil, paramstore.Subspace(stake.DefaultParamspace), stake.DefaultCodespace)
+	scKeeper := sidechain.NewKeeper(keySideChain)
+	stakeKeeper := stake.NewKeeper(mapp.Cdc, stakeKey, stakeTKey, bankKeeper, nil, paramstore.Subspace(stake.DefaultParamspace), stake.DefaultCodespace)
+	stakeKeeper.SetupForSideChain(&scKeeper, &ibcKeeper)
 	distrKeeper := distribution.NewKeeper(mapp.Cdc, distrKey, paramstore.Subspace(distribution.DefaultParamspace), bankKeeper, stakeKeeper, feeCollectionKeeper, distribution.DefaultCodespace)
 	mapp.Router().AddRoute("stake", stake.NewStakeHandler(stakeKeeper))
 	mapp.SetEndBlocker(func(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
