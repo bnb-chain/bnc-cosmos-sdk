@@ -43,6 +43,7 @@ func NewKeeper(cdc *codec.Codec, key, tkey sdk.StoreKey, ck bank.Keeper, ibcKeep
 		codespace:  codespace,
 	}
 	keeper.initIbc()
+	keeper.RegisterUpgradeBeginBlock()
 	return keeper
 }
 
@@ -51,6 +52,12 @@ func (k Keeper) initIbc() {
 	if err != nil {
 		panic(fmt.Sprintf("register ibc channel failed, channel=%s, err=%s", IbcChannelName, err.Error()))
 	}
+}
+
+func (k Keeper) RegisterUpgradeBeginBlock() {
+	sdk.UpgradeMgr.RegisterBeginBlocker(sdk.LaunchBscUpgrade, func(ctx sdk.Context) {
+		MigratePowerRankKey(ctx, k)
+	})
 }
 
 // Logger returns a module-specific logger.
