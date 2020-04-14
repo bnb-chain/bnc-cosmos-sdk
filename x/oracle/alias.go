@@ -42,7 +42,8 @@ var (
 
 	RegisterClaimHooks = types.RegisterClaimHooks
 
-	IsValidClaimType = types.IsValidClaimType
+	IsValidClaimType    = types.IsValidClaimType
+	ClaimTypeFromString = types.ClaimTypeFromString
 
 	NewClaimMsg = types.NewClaimMsg
 	RouteOracle = types.RouteOracle
