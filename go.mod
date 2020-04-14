@@ -10,8 +10,7 @@ require (
 	github.com/btcsuite/btcd v0.20.0-beta
 	github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d
 	github.com/golang/protobuf v1.3.2
-	github.com/gorilla/context v1.1.1 // indirect
-	github.com/gorilla/mux v1.6.2
+	github.com/gorilla/mux v1.7.3
 	github.com/hashicorp/golang-lru v0.5.3
 	github.com/ipfs/go-log v0.0.1
 	github.com/mattn/go-isatty v0.0.10
@@ -19,11 +18,12 @@ require (
 	github.com/pelletier/go-toml v1.4.0
 	github.com/pkg/errors v0.8.1
 	github.com/rakyll/statik v0.1.5
+	github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a // indirect
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.3
 	github.com/spf13/viper v1.4.0
 	github.com/stretchr/testify v1.4.0
-	github.com/syndtr/goleveldb v1.0.1-0.20190318030020-c3a204f8e965
+	github.com/syndtr/goleveldb v1.0.1-0.20190625080220-02440ea7a285
 	github.com/tendermint/btcd v0.1.1
 	github.com/tendermint/go-amino v0.15.0
 	github.com/tendermint/iavl v0.12.4
