@@ -138,10 +138,8 @@ func handleMsgSideChainDelegate(ctx sdk.Context, msg MsgSideChainDelegate, k kee
 		return ErrBadDenom(k.Codespace()).Result()
 	}
 
-	// if validator uses a different self-delegator address, the operator address is not allowed to delegate to itself.
-	if bytes.Equal(msg.DelegatorAddr.Bytes(), validator.OperatorAddr.Bytes()) &&
-		!bytes.Equal(validator.OperatorAddr.Bytes(), validator.FeeAddr.Bytes()) {
-			return ErrInvalidDelegator(k.Codespace()).Result()
+	if err := checkOperatorAsDelegator(k, msg.DelegatorAddr, validator); err != nil {
+		return err.Result()
 	}
 
 	// if the validator is jailed, only the self-delegator can delegate to itself
@@ -171,6 +169,15 @@ func handleMsgSideChainRedelegate(ctx sdk.Context, msg MsgSideChainRedelegate, k
 
 	if msg.Amount.Denom != k.BondDenom(ctx) {
 		return ErrBadDenom(k.Codespace()).Result()
+	}
+
+	dstValidator, found := k.GetValidator(ctx, msg.ValidatorDstAddr)
+	if !found {
+		return types.ErrBadRedelegationDst(k.Codespace()).Result()
+	}
+
+	if err := checkOperatorAsDelegator(k, msg.DelegatorAddr, dstValidator); err != nil {
+		return err.Result()
 	}
 
 	shares ,err := k.ValidateUnbondAmount(ctx, msg.DelegatorAddr, msg.ValidatorSrcAddr, msg.Amount.Amount)
@@ -224,4 +231,16 @@ func handleMsgSideChainUndelegate(ctx sdk.Context, msg MsgSideChainUndelegate, k
 		tags.EndTime, finishTime,
 	)
 	return sdk.Result{Data: finishTime, Tags: tags}
+}
+
+// we allow the self-delegator delegating/redelegating to its validator.
+// but the operator is not allowed if it is not a self-delegator
+func checkOperatorAsDelegator(k Keeper, delegator sdk.AccAddress, validator Validator) sdk.Error {
+	delegatorIsOperator := bytes.Equal(delegator.Bytes(), validator.OperatorAddr.Bytes())
+	isSelfDelegator := validator.IsSelfDelegator(delegator)
+
+	if delegatorIsOperator && !isSelfDelegator {
+		return ErrInvalidDelegator(k.Codespace())
+	}
+	return nil
 }
