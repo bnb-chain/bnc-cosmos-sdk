@@ -16,13 +16,13 @@ const (
 var _ sdk.Msg = ClaimMsg{}
 
 type ClaimMsg struct {
-	ClaimType        ClaimType      `json:"claim_type"`
+	ClaimType        sdk.ClaimType  `json:"claim_type"`
 	Sequence         int64          `json:"sequence"`
 	Claim            string         `json:"claim"`
 	ValidatorAddress sdk.AccAddress `json:"validator_address"`
 }
 
-func NewClaimMsg(claimType ClaimType, sequence int64, claim string, validatorAddr sdk.AccAddress) ClaimMsg {
+func NewClaimMsg(claimType sdk.ClaimType, sequence int64, claim string, validatorAddr sdk.AccAddress) ClaimMsg {
 	return ClaimMsg{
 		ClaimType:        claimType,
 		Sequence:         sequence,
@@ -58,10 +58,6 @@ func (msg ClaimMsg) GetInvolvedAddresses() []sdk.AccAddress {
 
 // ValidateBasic is used to quickly disqualify obviously invalid messages quickly
 func (msg ClaimMsg) ValidateBasic() sdk.Error {
-	if !IsValidClaimType(msg.ClaimType) {
-		return ErrInvalidClaimType(fmt.Sprintf("claim type %v does not exist", msg.ClaimType))
-	}
-
 	if msg.Sequence < 0 {
 		return ErrInvalidSequence("sequence should not be less than 0")
 	}

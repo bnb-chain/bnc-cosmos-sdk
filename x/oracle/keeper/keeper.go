@@ -20,6 +20,10 @@ type Keeper struct {
 	paramSpace params.Subspace
 
 	stakeKeeper types.StakingKeeper
+
+	claimTypeToName map[sdk.ClaimType]string
+	nameToClaimType map[string]sdk.ClaimType
+	claimHooksMap   map[sdk.ClaimType]sdk.ClaimHooks
 }
 
 // Parameter store
@@ -42,10 +46,13 @@ func NewKeeper(
 	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace params.Subspace, stakeKeeper types.StakingKeeper,
 ) Keeper {
 	return Keeper{
-		cdc:         cdc,
-		storeKey:    storeKey,
-		paramSpace:  paramSpace.WithTypeTable(ParamTypeTable()),
-		stakeKeeper: stakeKeeper,
+		cdc:             cdc,
+		storeKey:        storeKey,
+		paramSpace:      paramSpace.WithTypeTable(ParamTypeTable()),
+		stakeKeeper:     stakeKeeper,
+		claimTypeToName: make(map[sdk.ClaimType]string),
+		nameToClaimType: make(map[string]sdk.ClaimType),
+		claimHooksMap:   make(map[sdk.ClaimType]sdk.ClaimHooks),
 	}
 }
 
@@ -95,7 +102,36 @@ func (k Keeper) setProphecy(ctx sdk.Context, prophecy types.Prophecy) {
 	store.Set([]byte(prophecy.ID), k.cdc.MustMarshalBinaryBare(serializedProphecy))
 }
 
-func (k Keeper) IncreaseSequence(ctx sdk.Context, claimType types.ClaimType) int64 {
+func (k Keeper) RegisterClaimType(claimType sdk.ClaimType, claimTypeName string, hooks sdk.ClaimHooks) error {
+	if claimTypeName == "" {
+		return fmt.Errorf("claim type name should not be empty")
+	}
+
+	if _, ok := k.claimTypeToName[claimType]; ok {
+		return fmt.Errorf("claim type %d already exists", claimType)
+	}
+	if _, ok := k.nameToClaimType[claimTypeName]; ok {
+		return fmt.Errorf("claim type name %s already exists", claimTypeName)
+	}
+	if _, ok := k.claimHooksMap[claimType]; ok {
+		return fmt.Errorf("hooks of claim type %d already exists", claimType)
+	}
+
+	k.claimTypeToName[claimType] = claimTypeName
+	k.nameToClaimType[claimTypeName] = claimType
+	k.claimHooksMap[claimType] = hooks
+	return nil
+}
+
+func (k Keeper) GetClaimHooks(claimType sdk.ClaimType) sdk.ClaimHooks {
+	return k.claimHooksMap[claimType]
+}
+
+func (k Keeper) GetClaimTypeName(claimType sdk.ClaimType) string {
+	return k.claimTypeToName[claimType]
+}
+
+func (k Keeper) IncreaseSequence(ctx sdk.Context, claimType sdk.ClaimType) int64 {
 	currentSequence := k.GetCurrentSequence(ctx, claimType)
 
 	kvStore := ctx.KVStore(k.storeKey)
@@ -104,7 +140,7 @@ func (k Keeper) IncreaseSequence(ctx sdk.Context, claimType types.ClaimType) int
 	return nextSeq
 }
 
-func (k Keeper) GetCurrentSequence(ctx sdk.Context, claimType types.ClaimType) int64 {
+func (k Keeper) GetCurrentSequence(ctx sdk.Context, claimType sdk.ClaimType) int64 {
 	kvStore := ctx.KVStore(k.storeKey)
 	bz := kvStore.Get(types.GetClaimTypeSequence(claimType))
 	if bz == nil {
@@ -113,7 +149,7 @@ func (k Keeper) GetCurrentSequence(ctx sdk.Context, claimType types.ClaimType) i
 
 	sequence, err := strconv.ParseInt(string(bz), 10, 64)
 	if err != nil {
-		panic(fmt.Errorf("wrong sequence, claim_types=%s, sequence=%s", claimType.String(), string(bz)))
+		panic(fmt.Errorf("wrong sequence, claim_types=%d, sequence=%s", claimType, string(bz)))
 	}
 	return sequence
 }

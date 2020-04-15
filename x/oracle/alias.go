@@ -10,11 +10,6 @@ const (
 	SuccessStatusText = types.SuccessStatusText
 	FailedStatusText  = types.FailedStatusText
 	DefaultParamSpace = keeper.DefaultParamSpace
-
-	ClaimTypeSkipSequence      = types.ClaimTypeSkipSequence
-	ClaimTypeUpdateBind        = types.ClaimTypeUpdateBind
-	ClaimTypeUpdateTransferOut = types.ClaimTypeUpdateTransferOut
-	ClaimTypeTransferIn        = types.ClaimTypeTransferIn
 )
 
 var (
@@ -40,11 +35,6 @@ var (
 	StatusTextToString = types.StatusTextToString
 	StringToStatusText = types.StringToStatusText
 
-	RegisterClaimHooks = types.RegisterClaimHooks
-
-	IsValidClaimType    = types.IsValidClaimType
-	ClaimTypeFromString = types.ClaimTypeFromString
-
 	NewClaimMsg = types.NewClaimMsg
 	RouteOracle = types.RouteOracle
 	GetClaimId  = types.GetClaimId
@@ -58,6 +48,5 @@ type (
 	Status     = types.Status
 	StatusText = types.StatusText
 
-	ClaimMsg  = types.ClaimMsg
-	ClaimType = types.ClaimType
+	ClaimMsg = types.ClaimMsg
 )

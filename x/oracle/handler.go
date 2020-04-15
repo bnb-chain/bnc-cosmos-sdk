@@ -21,9 +21,14 @@ func NewHandler(keeper Keeper) sdk.Handler {
 }
 
 func handleClaimMsg(ctx sdk.Context, oracleKeeper Keeper, msg ClaimMsg) sdk.Result {
-	claimHooks := types.GetClaimHooks(msg.ClaimType)
+	claimTypeName := oracleKeeper.GetClaimTypeName(msg.ClaimType)
+	if claimTypeName == "" {
+		return types.ErrInvalidClaimType(fmt.Sprintf("claim type %d does not exist", msg.ClaimType)).Result()
+	}
+
+	claimHooks := oracleKeeper.GetClaimHooks(msg.ClaimType)
 	if claimHooks == nil {
-		return types.ErrInvalidClaimType(fmt.Sprintf("hooks of claim type %s does not exist", msg.ClaimType.String())).Result()
+		return types.ErrInvalidClaimType(fmt.Sprintf("hooks of claim type %s does not exist", claimTypeName)).Result()
 	}
 
 	sdkErr := claimHooks.CheckClaim(ctx, msg.Claim)
@@ -33,7 +38,7 @@ func handleClaimMsg(ctx sdk.Context, oracleKeeper Keeper, msg ClaimMsg) sdk.Resu
 
 	currentSequence := oracleKeeper.GetCurrentSequence(ctx, msg.ClaimType)
 	if msg.Sequence != currentSequence {
-		return types.ErrInvalidSequence(fmt.Sprintf("current sequence of claim type %s is %d", msg.ClaimType.String(), currentSequence)).Result()
+		return types.ErrInvalidSequence(fmt.Sprintf("current sequence of claim type %s is %d", claimTypeName, currentSequence)).Result()
 	}
 
 	claim := types.Claim{
@@ -56,13 +61,13 @@ func handleClaimMsg(ctx sdk.Context, oracleKeeper Keeper, msg ClaimMsg) sdk.Resu
 		return sdk.Result{}
 	}
 
-	tags, sdkErr := claimHooks.ExecuteClaim(ctx, prophecy)
+	tags, sdkErr := claimHooks.ExecuteClaim(ctx, prophecy.Status.FinalClaim)
 	if sdkErr != nil {
 		return sdkErr.Result()
 	}
 
 	resultTags := sdk.NewTags(
-		types.ClaimTypeToString(msg.ClaimType), []byte(strconv.FormatInt(msg.Sequence, 10)),
+		claimTypeName, []byte(strconv.FormatInt(msg.Sequence, 10)),
 	)
 	if tags != nil {
 		resultTags = resultTags.AppendTags(tags)

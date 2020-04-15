@@ -17,19 +17,16 @@ func TestClaimMsg(t *testing.T) {
 		expectedPass bool
 	}{
 		{
-			NewClaimMsg(ClaimTypeSkipSequence, 1, "test", addrs[0]),
+			NewClaimMsg(sdk.ClaimType(0x8), 1, "test", addrs[0]),
 			true,
 		}, {
-			NewClaimMsg(ClaimType(0x80), 1, "test", addrs[0]),
+			NewClaimMsg(sdk.ClaimType(0x8), -1, "test", addrs[0]),
 			false,
 		}, {
-			NewClaimMsg(ClaimTypeSkipSequence, -1, "test", addrs[0]),
+			NewClaimMsg(sdk.ClaimType(0x8), 1, "", addrs[0]),
 			false,
 		}, {
-			NewClaimMsg(ClaimTypeSkipSequence, 1, "", addrs[0]),
-			false,
-		}, {
-			NewClaimMsg(ClaimTypeSkipSequence, 1, "test", sdk.AccAddress{1}),
+			NewClaimMsg(sdk.ClaimType(0x8), 1, "test", sdk.AccAddress{1}),
 			false,
 		},
 	}
