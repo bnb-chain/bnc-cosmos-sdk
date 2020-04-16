@@ -237,9 +237,9 @@ func handleMsgSideChainUndelegate(ctx sdk.Context, msg MsgSideChainUndelegate, k
 // but the operator is not allowed if it is not a self-delegator
 func checkOperatorAsDelegator(k Keeper, delegator sdk.AccAddress, validator Validator) sdk.Error {
 	delegatorIsOperator := bytes.Equal(delegator.Bytes(), validator.OperatorAddr.Bytes())
-	isSelfDelegator := validator.IsSelfDelegator(delegator)
+	operatorIsSelfDelegator := validator.IsSelfDelegator(sdk.AccAddress(validator.OperatorAddr))
 
-	if delegatorIsOperator && !isSelfDelegator {
+	if delegatorIsOperator && !operatorIsSelfDelegator {
 		return ErrInvalidDelegator(k.Codespace())
 	}
 	return nil
