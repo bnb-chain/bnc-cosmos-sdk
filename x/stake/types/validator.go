@@ -407,7 +407,7 @@ func (v Validator) UpdateStatus(pool Pool, NewStatus sdk.BondStatus) (Validator,
 
 // calculate the token worth of provided shares
 func (v Validator) TokensFromShares(shares sdk.Dec) sdk.Dec {
-	result, ok := sdk.MulDivDec(shares, v.Tokens, v.DelegatorShares)
+	result, ok := sdk.MulQuoDec(shares, v.Tokens, v.DelegatorShares)
 	if !ok {
 		panic("Int overflow")
 	}
@@ -420,7 +420,7 @@ func (v Validator) SharesFromTokens(amt sdk.Dec) (sdk.Dec, sdk.Error) {
 	if v.Tokens.IsZero() {
 		return sdk.ZeroDec(), ErrInsufficientShares(DefaultCodespace)
 	}
-	result, ok := sdk.MulDivDec(v.DelegatorShares, amt, v.Tokens)
+	result, ok := sdk.MulQuoDec(v.DelegatorShares, amt, v.Tokens)
 	if !ok {
 		panic("Int overflow")
 	}

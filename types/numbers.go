@@ -17,11 +17,11 @@ func Mul64(a, b int64) (int64, bool) {
 	return c, false
 }
 
-func MulDivDec(a, b, c Dec) (Dec, bool) {
+func MulQuoDec(a, b, c Dec) (Dec, bool) {
 	r, ok := Mul64(a.RawInt(), b.RawInt())
 	if !ok {
 		var bi big.Int
-		bi.Div(bi.Mul(big.NewInt(a.RawInt()), big.NewInt(b.RawInt())), big.NewInt(c.RawInt()))
+		bi.Quo(bi.Mul(big.NewInt(a.RawInt()), big.NewInt(b.RawInt())), big.NewInt(c.RawInt()))
 		if !bi.IsInt64() {
 			return Dec{}, false
 		}
