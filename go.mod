@@ -23,7 +23,7 @@ require (
 	github.com/spf13/pflag v1.0.3
 	github.com/spf13/viper v1.4.0
 	github.com/stretchr/testify v1.4.0
-	github.com/syndtr/goleveldb v1.0.1-0.20190625080220-02440ea7a285
+	github.com/syndtr/goleveldb v1.0.1-0.20190318030020-c3a204f8e965
 	github.com/tendermint/btcd v0.1.1
 	github.com/tendermint/go-amino v0.15.0
 	github.com/tendermint/iavl v0.12.4
