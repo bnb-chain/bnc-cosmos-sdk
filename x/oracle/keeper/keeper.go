@@ -1,8 +1,8 @@
 package keeper
 
 import (
+	"encoding/binary"
 	"fmt"
-	"strconv"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -136,7 +136,11 @@ func (k Keeper) IncreaseSequence(ctx sdk.Context, claimType sdk.ClaimType) int64
 
 	kvStore := ctx.KVStore(k.storeKey)
 	nextSeq := currentSequence + 1
-	kvStore.Set(types.GetClaimTypeSequence(claimType), []byte(strconv.FormatInt(nextSeq, 10)))
+
+	bz := make([]byte, 8)
+	binary.BigEndian.PutUint64(bz, uint64(nextSeq))
+
+	kvStore.Set(types.GetClaimTypeSequence(claimType), bz)
 	return nextSeq
 }
 
@@ -147,11 +151,8 @@ func (k Keeper) GetCurrentSequence(ctx sdk.Context, claimType sdk.ClaimType) int
 		return types.StartSequence
 	}
 
-	sequence, err := strconv.ParseInt(string(bz), 10, 64)
-	if err != nil {
-		panic(fmt.Errorf("wrong sequence, claim_types=%d, sequence=%s", claimType, string(bz)))
-	}
-	return sequence
+	sequence := binary.BigEndian.Uint64(bz)
+	return int64(sequence)
 }
 
 // ProcessClaim ...
