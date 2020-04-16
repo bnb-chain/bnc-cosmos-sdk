@@ -1,22 +1,41 @@
 package types
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
 
-func TestMulDivDec(t *testing.T) {
-	a := NewDec(2000000000)
-	b := NewDec(300000000)
-	c := NewDec(1500000000)
-	r, ok := MulQuoDec(a, b, c)
-	require.True(t, ok)
-	require.EqualValues(t, 400000000, r.RawInt())
+func TestMulQuoDec(t *testing.T) {
+	a := NewDecWithoutFra(2)
+	b := NewDecWithoutFra(4)
+	c := NewDecWithoutFra(70)
+	r, err := MulQuoDec(a, b, c)
+	require.Nil(t, err, fmt.Sprintf("expected nil error, but returns %s ",err))
+	require.EqualValues(t, 11428571, r.RawInt())
 
-	a = NewDec(2000000000000000)
-	b = NewDec(3000000000000)
-	c = NewDec(1500000000)
-	r, ok = MulQuoDec(a, b, c)
-	require.True(t, ok)
-	require.EqualValues(t, 4000000000000000000, r.RawInt())
+	a = NewDecWithoutFra(20)
+	b = NewDecWithoutFra(3)
+	c = NewDecWithoutFra(15)
+	r, err = MulQuoDec(a, b, c)
+	require.Nil(t, err, fmt.Sprintf("expected nil error, but returns %s ",err))
+	require.EqualValues(t, 4e8, r.RawInt())
+
+	a = NewDecWithoutFra(20000000)
+	b = NewDecWithoutFra(30000)
+	c = NewDecWithoutFra(15)
+	r, err = MulQuoDec(a, b, c)
+	require.Nil(t, err, fmt.Sprintf("expected nil error, but returns %s ",err))
+	require.EqualValues(t, 40000000000e8, r.RawInt())
+
+	c = NewDec(15)
+	r, err = MulQuoDec(a, b, c)
+	require.NotNil(t, err)
+	require.EqualError(t,err,ErrIntOverflow)
+
+	c = ZeroDec()
+	r, err = MulQuoDec(a, b, c)
+	require.NotNil(t, err)
+	require.EqualError(t,err,ErrZeroDividend)
+
 }

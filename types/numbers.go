@@ -1,7 +1,13 @@
 package types
 
 import (
+	"errors"
 	"math/big"
+)
+
+const (
+	ErrZeroDividend = "Dividend is zero "
+	ErrIntOverflow  = "Int Overflow "
 )
 
 func Mul64(a, b int64) (int64, bool) {
@@ -17,15 +23,18 @@ func Mul64(a, b int64) (int64, bool) {
 	return c, false
 }
 
-func MulQuoDec(a, b, c Dec) (Dec, bool) {
+func MulQuoDec(a, b, c Dec) (Dec, error) {
+	if c.IsZero() {
+		return Dec{}, errors.New(ErrZeroDividend)
+	}
 	r, ok := Mul64(a.RawInt(), b.RawInt())
 	if !ok {
 		var bi big.Int
 		bi.Quo(bi.Mul(big.NewInt(a.RawInt()), big.NewInt(b.RawInt())), big.NewInt(c.RawInt()))
 		if !bi.IsInt64() {
-			return Dec{}, false
+			return Dec{}, errors.New(ErrIntOverflow)
 		}
-		return NewDec(bi.Int64()), true
+		return NewDec(bi.Int64()), nil
 	}
-	return NewDec(r / c.RawInt()), true
+	return NewDec(r / c.RawInt()), nil
 }
