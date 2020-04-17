@@ -21,7 +21,7 @@ func TestAllocateReward(t *testing.T) {
 		simDel := Sharer{AccAddr: delAddr, Shares: shares}
 		simDels[i] = simDel
 	}
-	totalShares := int64(100 * pow(8))
+	totalShares := int64(100e8)
 
 	commission := sdk.NewDec(10)
 
@@ -115,27 +115,4 @@ func TestAllocateReward(t *testing.T) {
 		require.EqualValues(t, 1, sc.Reward)
 	}
 
-}
-
-func TestDiv(t *testing.T) {
-	x := int64(1)
-	y := int64(3)
-	afterRoundDown, extraDecimalValue := Div(x, y, 1)
-	require.EqualValues(t, 33333333, afterRoundDown)
-	require.EqualValues(t, 3, extraDecimalValue)
-
-	y = int64(300000000)
-	afterRoundDown, extraDecimalValue = Div(x, y, 1)
-	require.EqualValues(t, 0, afterRoundDown)
-	require.EqualValues(t, 3, extraDecimalValue)
-
-	x = int64(20000000000000000)
-	y = int64(600000000)
-	afterRoundDown, extraDecimalValue = Div(x, y, 1)
-	require.EqualValues(t, 3333333333333333, afterRoundDown)
-	require.EqualValues(t, 3, extraDecimalValue)
-}
-
-func pow(n int) int {
-	return Pow(10, n)
 }
