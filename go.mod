@@ -10,7 +10,8 @@ require (
 	github.com/btcsuite/btcd v0.20.0-beta
 	github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d
 	github.com/golang/protobuf v1.3.2
-	github.com/gorilla/mux v1.7.3
+	github.com/gorilla/context v1.1.1 // indirect
+	github.com/gorilla/mux v1.6.2
 	github.com/hashicorp/golang-lru v0.5.3
 	github.com/ipfs/go-log v0.0.1
 	github.com/mattn/go-isatty v0.0.10
