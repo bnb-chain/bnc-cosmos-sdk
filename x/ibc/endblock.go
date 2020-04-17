@@ -5,30 +5,16 @@ import (
 )
 
 func EndBlocker(ctx sdk.Context, keeper Keeper) {
-	chainIDList := keeper.cfg.getChainIDList()
-	channelList := keeper.cfg.getChannelIDList()
-
+	if keeper.ibcPacakgeCollector == nil {
+		return
+	}
 	var attributes []sdk.Attribute
-	for _, destChainID := range chainIDList {
-		for _, channelID := range channelList {
-
-			lastHeightSequence := keeper.getLastHeightSequence(ctx, destChainID, channelID)
-			curSequence := keeper.getSequence(ctx, destChainID, channelID)
-
-			destChainName := keeper.cfg.destChainIDToName[destChainID]
-
-			for sequence := lastHeightSequence; sequence < curSequence; sequence++ {
-				attributes = append(attributes,
-					sdk.NewAttribute(ibcPackageInfoAttributeKey, buildIBCPackageAttributeValue(destChainName, destChainID, channelID, sequence)))
-			}
-			//update last height sequence
-			if lastHeightSequence != curSequence{
-				keeper.setLastHeightSequence(ctx, destChainID, channelID, curSequence)
-			}
-		}
+	for _, ibcPackageRecord := range keeper.ibcPacakgeCollector {
+		attributes = append(attributes,
+			sdk.NewAttribute(ibcPackageInfoAttributeKey,
+				buildIBCPackageAttributeValue(ibcPackageRecord.destChainName, ibcPackageRecord.destChainID, ibcPackageRecord.channelID, ibcPackageRecord.sequence)))
 	}
-	if len(attributes) > 0 {
-		event := sdk.NewEvent(ibcEventType, attributes...)
-		ctx.EventManager().EmitEvent(event)
-	}
+	keeper.ibcPacakgeCollector = nil
+	event := sdk.NewEvent(ibcEventType, attributes...)
+	ctx.EventManager().EmitEvent(event)
 }

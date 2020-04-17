@@ -3,8 +3,9 @@ package ibc
 import (
 	"encoding/binary"
 	"fmt"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"strings"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // IBC Keeper
@@ -12,14 +13,16 @@ type Keeper struct {
 	storeKey  sdk.StoreKey
 	codespace sdk.CodespaceType
 
-	cfg *crossChainConfig
+	cfg                 *crossChainConfig
+	ibcPacakgeCollector []ibcPackageRecord
 }
 
 func NewKeeper(storeKey sdk.StoreKey, codespace sdk.CodespaceType) Keeper {
 	return Keeper{
-		storeKey:  storeKey,
-		codespace: codespace,
-		cfg:       newCrossChainCfg(),
+		storeKey:            storeKey,
+		codespace:           codespace,
+		cfg:                 newCrossChainCfg(),
+		ibcPacakgeCollector: nil,
 	}
 }
 
@@ -41,6 +44,13 @@ func (k Keeper) CreateIBCPackage(ctx sdk.Context, destChainName string, channelN
 	}
 	kvStore.Set(key, value)
 	k.incrSequence(ctx, destIbcChainID, channelID)
+
+	k.ibcPacakgeCollector = append(k.ibcPacakgeCollector, ibcPackageRecord{
+		destChainName: destChainName,
+		destChainID:   destIbcChainID,
+		channelID:     channelID,
+		sequence:      sequence,
+	})
 	return sequence, nil
 }
 
@@ -151,15 +161,6 @@ func (k *Keeper) getSequence(ctx sdk.Context, destChainID sdk.IbcChainID, channe
 	return binary.BigEndian.Uint64(bz)
 }
 
-func (k *Keeper) getLastHeightSequence(ctx sdk.Context, destChainID sdk.IbcChainID, channelID sdk.IbcChannelID) uint64 {
-	kvStore := ctx.KVStore(k.storeKey)
-	bz := kvStore.Get(buildChannelLastHeightSequenceKey(destChainID, channelID))
-	if bz == nil {
-		return 0
-	}
-	return binary.BigEndian.Uint64(bz)
-}
-
 func (k *Keeper) incrSequence(ctx sdk.Context, destChainID sdk.IbcChainID, channelID sdk.IbcChannelID) {
 	var sequence uint64
 	kvStore := ctx.KVStore(k.storeKey)
@@ -172,12 +173,5 @@ func (k *Keeper) incrSequence(ctx sdk.Context, destChainID sdk.IbcChainID, chann
 
 	sequenceBytes := make([]byte, sequenceLength)
 	binary.BigEndian.PutUint64(sequenceBytes, sequence+1)
-	kvStore.Set(buildChannelSequenceKey(destChainID, channelID), sequenceBytes)
-}
-
-func (k *Keeper) setLastHeightSequence(ctx sdk.Context, destChainID sdk.IbcChainID, channelID sdk.IbcChannelID, sequence uint64) {
-	kvStore := ctx.KVStore(k.storeKey)
-	sequenceBytes := make([]byte, sequenceLength)
-	binary.BigEndian.PutUint64(sequenceBytes, sequence)
 	kvStore.Set(buildChannelSequenceKey(destChainID, channelID), sequenceBytes)
 }

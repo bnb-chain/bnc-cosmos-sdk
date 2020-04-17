@@ -16,9 +16,8 @@ const (
 )
 
 var (
-	PrefixForIbcPackageKey         = []byte{0x00}
-	PrefixForSequenceKey           = []byte{0x01}
-	PrefixForLastHeightSequenceKey = []byte{0x02}
+	PrefixForIbcPackageKey = []byte{0x00}
+	PrefixForSequenceKey   = []byte{0x01}
 )
 
 func buildIBCPackageKey(srcIbcChainID, destIbcChainID sdk.IbcChainID, channelID sdk.IbcChannelID, sequence uint64) []byte {
@@ -48,16 +47,6 @@ func buildChannelSequenceKey(destIbcChainID sdk.IbcChainID, channelID sdk.IbcCha
 	key := make([]byte, prefixLength+destIbcChainIDLength+channelIDLength)
 
 	copy(key[:prefixLength], PrefixForSequenceKey)
-	binary.BigEndian.PutUint16(key[prefixLength:prefixLength+destIbcChainIDLength], uint16(destIbcChainID))
-	copy(key[prefixLength+destIbcChainIDLength:], []byte{byte(channelID)})
-
-	return key
-}
-
-func buildChannelLastHeightSequenceKey(destIbcChainID sdk.IbcChainID, channelID sdk.IbcChannelID) []byte {
-	key := make([]byte, prefixLength+destIbcChainIDLength+channelIDLength)
-
-	copy(key[:prefixLength], PrefixForLastHeightSequenceKey)
 	binary.BigEndian.PutUint16(key[prefixLength:prefixLength+destIbcChainIDLength], uint16(destIbcChainID))
 	copy(key[prefixLength+destIbcChainIDLength:], []byte{byte(channelID)})
 

@@ -32,9 +32,6 @@ func TestRegisterCrossChainChannel(t *testing.T) {
 	channeID, err = keeper.GetChannelID("staking")
 	require.NoError(t, err)
 	require.Equal(t, sdk.IbcChannelID(4), channeID)
-
-	channelIDList := keeper.cfg.getChannelIDList()
-	require.Equal(t, len(channelIDList), 4)
 }
 
 func TestRegisterDestChainID(t *testing.T) {
@@ -54,9 +51,6 @@ func TestRegisterDestChainID(t *testing.T) {
 	destChainID, err = keeper.GetDestIbcChainID("btc")
 	require.NoError(t, err)
 	require.Equal(t, sdk.IbcChainID(3), destChainID)
-
-	chainIDList := keeper.cfg.getChainIDList()
-	require.Equal(t, len(chainIDList), 4)
 }
 
 func TestCrossChainID(t *testing.T) {
