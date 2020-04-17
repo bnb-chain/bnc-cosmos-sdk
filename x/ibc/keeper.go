@@ -3,6 +3,7 @@ package ibc
 import (
 	"encoding/binary"
 	"fmt"
+	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -12,14 +13,16 @@ type Keeper struct {
 	storeKey  sdk.StoreKey
 	codespace sdk.CodespaceType
 
-	cfg *crossChainConfig
+	cfg             *crossChainConfig
+	packgeCollector []PackageRecord
 }
 
 func NewKeeper(storeKey sdk.StoreKey, codespace sdk.CodespaceType) Keeper {
 	return Keeper{
-		storeKey:  storeKey,
-		codespace: codespace,
-		cfg:       newCrossChainCfg(),
+		storeKey:        storeKey,
+		codespace:       codespace,
+		cfg:             newCrossChainCfg(),
+		packgeCollector: nil,
 	}
 }
 
@@ -41,6 +44,13 @@ func (k Keeper) CreateIBCPackage(ctx sdk.Context, destChainName string, channelN
 	}
 	kvStore.Set(key, value)
 	k.incrSequence(ctx, destIbcChainID, channelID)
+
+	k.packgeCollector = append(k.packgeCollector, PackageRecord{
+		destChainName: destChainName,
+		destChainID:   destIbcChainID,
+		channelID:     channelID,
+		sequence:      sequence,
+	})
 	return sequence, nil
 }
 
@@ -102,6 +112,9 @@ func (k *Keeper) RegisterChannel(name string, id sdk.IbcChannelID) error {
 
 // internally, we use name as the id of the chain, must be unique
 func (k *Keeper) RegisterDestChain(name string, ibcChainID sdk.IbcChainID) error {
+	if strings.Contains(name, separator) {
+		return fmt.Errorf("destination chain name should not contains %s", separator)
+	}
 	_, ok := k.cfg.destChainNameToID[name]
 	if ok {
 		return fmt.Errorf("duplicated destination chain name")

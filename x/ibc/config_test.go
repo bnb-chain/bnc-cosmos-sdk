@@ -42,6 +42,7 @@ func TestRegisterDestChainID(t *testing.T) {
 	require.NoError(t, keeper.RegisterDestChain("cosmos", sdk.IbcChainID(4)))
 	require.Error(t, keeper.RegisterDestChain("cosmos", sdk.IbcChainID(5)))
 	require.Error(t, keeper.RegisterDestChain("mock", sdk.IbcChainID(4)))
+	require.Error(t, keeper.RegisterDestChain("cosmos::", sdk.IbcChainID(5)))
 
 	destChainID, err := keeper.GetDestIbcChainID("bsc")
 	require.NoError(t, err)

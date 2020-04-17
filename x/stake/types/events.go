@@ -8,7 +8,6 @@ const (
 	EventTypeDelegate                       = "delegate"
 	EventTypeUnbond                         = "unbond"
 	EventTypeRedelegate                     = "redelegate"
-	EventTypeSaveValidatorUpdatesIbcPackage = "save_val_updates_ibc_package"
 
 	AttributeKeyValidator         = "validator"
 	AttributeKeyCommissionRate    = "commission_rate"
@@ -19,5 +18,4 @@ const (
 	AttributeKeyCompletionTime    = "completion_time"
 
 	AttributeKeySideChainId                 = "side_chain_id"
-	AttributeKeyValidatorUpdatesIbcSequence = "validator_updates_ibc_sequence"
 )

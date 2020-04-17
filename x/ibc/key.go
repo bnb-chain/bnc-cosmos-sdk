@@ -32,7 +32,7 @@ func buildIBCPackageKey(srcIbcChainID, destIbcChainID sdk.IbcChainID, channelID 
 	return key
 }
 
-func buildIBCPackageKeyPrefix(srcIbcChainID, destIbcChainID  sdk.IbcChainID, channelID sdk.IbcChannelID) []byte {
+func buildIBCPackageKeyPrefix(srcIbcChainID, destIbcChainID sdk.IbcChainID, channelID sdk.IbcChannelID) []byte {
 	key := make([]byte, totalPackageKeyLength-sequenceLength)
 
 	copy(key[:prefixLength], PrefixForIbcPackageKey)

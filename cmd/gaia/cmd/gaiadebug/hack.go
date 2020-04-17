@@ -231,6 +231,7 @@ func (app *GaiaApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) ab
 func (app *GaiaApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
 	ctx = ctx.WithEventManager(sdk.NewEventManager())
 	validatorUpdates, _ := stake.EndBlocker(ctx, app.stakeKeeper)
+	ibc.EndBlocker(ctx, app.ibcKeeper)
 
 	return abci.ResponseEndBlock{
 		ValidatorUpdates: validatorUpdates,
