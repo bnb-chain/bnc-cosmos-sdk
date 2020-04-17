@@ -3,8 +3,8 @@ package ibc
 import (
 	"encoding/binary"
 	"fmt"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"strings"
 )
 
 // IBC Keeper
@@ -102,6 +102,9 @@ func (k *Keeper) RegisterChannel(name string, id sdk.IbcChannelID) error {
 
 // internally, we use name as the id of the chain, must be unique
 func (k *Keeper) RegisterDestChain(name string, ibcChainID sdk.IbcChainID) error {
+	if strings.Contains(name, separator) {
+		return fmt.Errorf("destination chain name should not contains %s", separator)
+	}
 	_, ok := k.cfg.destChainNameToID[name]
 	if ok {
 		return fmt.Errorf("duplicated destination chain name")
@@ -148,6 +151,15 @@ func (k *Keeper) getSequence(ctx sdk.Context, destChainID sdk.IbcChainID, channe
 	return binary.BigEndian.Uint64(bz)
 }
 
+func (k *Keeper) getLastHeightSequence(ctx sdk.Context, destChainID sdk.IbcChainID, channelID sdk.IbcChannelID) uint64 {
+	kvStore := ctx.KVStore(k.storeKey)
+	bz := kvStore.Get(buildChannelLastHeightSequenceKey(destChainID, channelID))
+	if bz == nil {
+		return 0
+	}
+	return binary.BigEndian.Uint64(bz)
+}
+
 func (k *Keeper) incrSequence(ctx sdk.Context, destChainID sdk.IbcChainID, channelID sdk.IbcChannelID) {
 	var sequence uint64
 	kvStore := ctx.KVStore(k.storeKey)
@@ -160,5 +172,12 @@ func (k *Keeper) incrSequence(ctx sdk.Context, destChainID sdk.IbcChainID, chann
 
 	sequenceBytes := make([]byte, sequenceLength)
 	binary.BigEndian.PutUint64(sequenceBytes, sequence+1)
+	kvStore.Set(buildChannelSequenceKey(destChainID, channelID), sequenceBytes)
+}
+
+func (k *Keeper) setLastHeightSequence(ctx sdk.Context, destChainID sdk.IbcChainID, channelID sdk.IbcChannelID, sequence uint64) {
+	kvStore := ctx.KVStore(k.storeKey)
+	sequenceBytes := make([]byte, sequenceLength)
+	binary.BigEndian.PutUint64(sequenceBytes, sequence)
 	kvStore.Set(buildChannelSequenceKey(destChainID, channelID), sequenceBytes)
 }

@@ -230,6 +230,7 @@ func (app *GaiaApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) ab
 // nolint: unparam
 func (app *GaiaApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
 	ctx = ctx.WithEventManager(sdk.NewEventManager())
+	ibc.EndBlocker(ctx, app.ibcKeeper)
 	validatorUpdates, _ := stake.EndBlocker(ctx, app.stakeKeeper)
 
 	return abci.ResponseEndBlock{
