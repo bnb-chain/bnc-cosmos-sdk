@@ -4,7 +4,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-type ibcPackageRecord struct {
+type PackageRecord struct {
 	destChainName string
 	destChainID   sdk.IbcChainID
 	channelID     sdk.IbcChannelID
