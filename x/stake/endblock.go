@@ -2,9 +2,9 @@ package stake
 
 import (
 	"fmt"
-	"strconv"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/ibc"
 	"github.com/cosmos/cosmos-sdk/x/stake/keeper"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -25,7 +25,7 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 		sideChainIds, storePrefixes := k.ScKeeper.GetAllSideChainPrefixes(ctx)
 		for i := range storePrefixes {
 			sideChainCtx := ctx.WithSideChainKeyPrefix(storePrefixes[i])
-			newVals, _, _, scEvents:= handleValidatorAndDelegations(sideChainCtx, k)
+			newVals, _, _, scEvents := handleValidatorAndDelegations(sideChainCtx, k)
 			saveEvents := saveSideChainValidatorsToIBC(ctx, sideChainIds[i], newVals, k)
 			scEvents = scEvents.AppendEvents(saveEvents)
 			for j := range scEvents {
@@ -39,7 +39,7 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 	return
 }
 
-func saveSideChainValidatorsToIBC(ctx sdk.Context, sideChainId string, newVals []types.Validator, k keeper.Keeper) (sdk.Events) {
+func saveSideChainValidatorsToIBC(ctx sdk.Context, sideChainId string, newVals []types.Validator, k keeper.Keeper) sdk.Events {
 	ibcValidatorSet := make(types.IbcValidatorSet, len(newVals))
 	for i := range newVals {
 		ibcValidatorSet[i] = types.IbcValidator{
@@ -56,13 +56,13 @@ func saveSideChainValidatorsToIBC(ctx sdk.Context, sideChainId string, newVals [
 	}
 	return sdk.Events{
 		sdk.NewEvent(
-			types.EventTypeSaveValidatorUpdatesIbcPackage,
-			sdk.NewAttribute(types.AttributeKeyValidatorUpdatesIbcSequence, strconv.Itoa(int(sequence))),
+			ibc.IBCEventType,
+			sdk.NewAttribute(ibc.IBCPackageInfoAttributeKey, ibc.BuildIBCPackageAttributeValue(sideChainId, keeper.IbcChannelId, sequence)),
 		),
 	}
 }
 
-func handleValidatorAndDelegations(ctx sdk.Context, k keeper.Keeper) ([]types.Validator, []abci.ValidatorUpdate, []types.UnbondingDelegation, sdk.Events){
+func handleValidatorAndDelegations(ctx sdk.Context, k keeper.Keeper) ([]types.Validator, []abci.ValidatorUpdate, []types.UnbondingDelegation, sdk.Events) {
 	// calculate validator set changes
 	newVals, validatorUpdates := k.ApplyAndReturnValidatorSetUpdates(ctx)
 
