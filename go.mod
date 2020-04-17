@@ -19,7 +19,6 @@ require (
 	github.com/pelletier/go-toml v1.4.0
 	github.com/pkg/errors v0.8.1
 	github.com/rakyll/statik v0.1.5
-	github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a // indirect
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.3
 	github.com/spf13/viper v1.4.0
