@@ -58,7 +58,7 @@ func (k Keeper) initIbc() {
 	}
 }
 
-func (k Keeper) SetupForSideChain(scKeeper *sidechain.Keeper, ibcKeeper *ibc.Keeper) {
+func (k *Keeper) SetupForSideChain(scKeeper *sidechain.Keeper, ibcKeeper *ibc.Keeper) {
 	k.ScKeeper = scKeeper
 	k.ibcKeeper = ibcKeeper
 	k.initIbc()
