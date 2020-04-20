@@ -66,6 +66,9 @@ func handleClaimMsg(ctx sdk.Context, oracleKeeper Keeper, msg ClaimMsg) sdk.Resu
 		return sdkErr.Result()
 	}
 
+	// delete prophecy when execute claim success
+	oracleKeeper.DeleteProphecy(ctx, prophecy.ID)
+
 	resultTags := sdk.NewTags(
 		claimTypeName, []byte(strconv.FormatInt(msg.Sequence, 10)),
 	)
