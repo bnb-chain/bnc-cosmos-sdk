@@ -49,7 +49,7 @@ func NewKeeper(cdc *codec.Codec, key, tkey sdk.StoreKey, ck bank.Keeper, addrPoo
 }
 
 func (k Keeper) initIbc() {
-	if k.ibcKeeper != nil {
+	if k.ibcKeeper == nil {
 		return
 	}
 	err := k.ibcKeeper.RegisterChannel(IbcChannelName, IbcChannelId)
