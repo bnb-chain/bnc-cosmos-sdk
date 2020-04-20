@@ -7,6 +7,7 @@ import (
 )
 
 var storeKey = "stake"
+var scStoreKey = "sc"
 
 func AddCommands(root *cobra.Command, cdc *codec.Codec) {
 	stakingCmd := &cobra.Command{
@@ -51,6 +52,7 @@ func AddCommands(root *cobra.Command, cdc *codec.Codec) {
 			GetCmdQuerySideChainRedelegations(storeKey, cdc),
 			GetCmdQuerySideChainUnbondingDelegation(storeKey, cdc),
 			GetCmdQuerySideChainUnbondingDelegations(storeKey, cdc),
+			GetCmdQuerySideChainPool(storeKey, cdc),
 		)...,
 	)
 
