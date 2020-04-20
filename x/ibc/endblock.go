@@ -5,7 +5,7 @@ import (
 )
 
 func EndBlocker(ctx sdk.Context, keeper Keeper) {
-	if keeper.packageCollector.collectedPackages == nil {
+	if len(keeper.packageCollector.collectedPackages) == 0 {
 		return
 	}
 	var attributes []sdk.Attribute
@@ -14,7 +14,7 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) {
 			sdk.NewAttribute(ibcPackageInfoAttributeKey,
 				buildIBCPackageAttributeValue(ibcPackageRecord.destChainName, ibcPackageRecord.destChainID, ibcPackageRecord.channelID, ibcPackageRecord.sequence)))
 	}
-	keeper.packageCollector.collectedPackages = nil
+	keeper.packageCollector.collectedPackages = keeper.packageCollector.collectedPackages[:0]
 	event := sdk.NewEvent(ibcEventType, attributes...)
 	ctx.EventManager().EmitEvent(event)
 }
