@@ -14,7 +14,7 @@ type Keeper struct {
 	codespace sdk.CodespaceType
 
 	cfg              *crossChainConfig
-	packageCollector []PackageRecord
+	packageCollector *packageCollector
 }
 
 func NewKeeper(storeKey sdk.StoreKey, codespace sdk.CodespaceType) Keeper {
@@ -22,11 +22,11 @@ func NewKeeper(storeKey sdk.StoreKey, codespace sdk.CodespaceType) Keeper {
 		storeKey:         storeKey,
 		codespace:        codespace,
 		cfg:              newCrossChainCfg(),
-		packageCollector: nil,
+		packageCollector: newPackageCollector(),
 	}
 }
 
-func (k Keeper) CreateIBCPackage(ctx sdk.Context, destChainName string, channelName string, value []byte) (uint64, sdk.Error) {
+func (k *Keeper) CreateIBCPackage(ctx sdk.Context, destChainName string, channelName string, value []byte) (uint64, sdk.Error) {
 	destIbcChainID, err := k.GetDestIbcChainID(destChainName)
 	if err != nil {
 		return 0, sdk.ErrInternal(err.Error())
@@ -45,7 +45,7 @@ func (k Keeper) CreateIBCPackage(ctx sdk.Context, destChainName string, channelN
 	kvStore.Set(key, value)
 	k.incrSequence(ctx, destIbcChainID, channelID)
 
-	k.packageCollector = append(k.packageCollector, PackageRecord{
+	k.packageCollector.collectedPackages = append(k.packageCollector.collectedPackages, packageRecord{
 		destChainName: destChainName,
 		destChainID:   destIbcChainID,
 		channelID:     channelID,
@@ -69,7 +69,7 @@ func (k *Keeper) GetIBCPackage(ctx sdk.Context, destChainName string, channelNam
 	return kvStore.Get(key), nil
 }
 
-func (k Keeper) CleanupIBCPackage(ctx sdk.Context, destChainName string, channelName string, confirmedSequence uint64) {
+func (k *Keeper) CleanupIBCPackage(ctx sdk.Context, destChainName string, channelName string, confirmedSequence uint64) {
 	destChainID, err := k.GetDestIbcChainID(destChainName)
 	if err != nil {
 		return
