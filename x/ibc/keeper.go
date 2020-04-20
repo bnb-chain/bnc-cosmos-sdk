@@ -14,7 +14,7 @@ type Keeper struct {
 	codespace sdk.CodespaceType
 
 	cfg              *crossChainConfig
-	packageCollector []PackageRecord
+	packageCollector *packageCollector
 }
 
 func NewKeeper(storeKey sdk.StoreKey, codespace sdk.CodespaceType) Keeper {
@@ -22,7 +22,7 @@ func NewKeeper(storeKey sdk.StoreKey, codespace sdk.CodespaceType) Keeper {
 		storeKey:         storeKey,
 		codespace:        codespace,
 		cfg:              newCrossChainCfg(),
-		packageCollector: nil,
+		packageCollector: newPackageCollector(),
 	}
 }
 
@@ -45,7 +45,7 @@ func (k Keeper) CreateIBCPackage(ctx sdk.Context, destChainName string, channelN
 	kvStore.Set(key, value)
 	k.incrSequence(ctx, destIbcChainID, channelID)
 
-	k.packageCollector = append(k.packageCollector, PackageRecord{
+	k.packageCollector.collectedPackages = append(k.packageCollector.collectedPackages, packageRecord{
 		destChainName: destChainName,
 		destChainID:   destIbcChainID,
 		channelID:     channelID,

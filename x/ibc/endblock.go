@@ -5,16 +5,16 @@ import (
 )
 
 func EndBlocker(ctx sdk.Context, keeper Keeper) {
-	if keeper.packageCollector == nil {
+	if keeper.packageCollector.collectedPackages == nil {
 		return
 	}
 	var attributes []sdk.Attribute
-	for _, ibcPackageRecord := range keeper.packageCollector {
+	for _, ibcPackageRecord := range keeper.packageCollector.collectedPackages {
 		attributes = append(attributes,
 			sdk.NewAttribute(ibcPackageInfoAttributeKey,
 				buildIBCPackageAttributeValue(ibcPackageRecord.destChainName, ibcPackageRecord.destChainID, ibcPackageRecord.channelID, ibcPackageRecord.sequence)))
 	}
-	keeper.packageCollector = nil
+	keeper.packageCollector.collectedPackages = nil
 	event := sdk.NewEvent(ibcEventType, attributes...)
 	ctx.EventManager().EmitEvent(event)
 }
