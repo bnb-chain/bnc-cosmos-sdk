@@ -28,7 +28,7 @@ func GetCmdQuerySideValidator(storeName string, cdc *codec.Codec) *cobra.Command
 			}
 
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			sideChainStorePrefix, err := getSideChainStorePrefix(cliCtx, storeName)
+			sideChainStorePrefix, err := getSideChainStorePrefix(cliCtx)
 			if err != nil {
 				return err
 			}
@@ -80,7 +80,7 @@ func GetCmdQuerySideValidators(storeName string, cdc *codec.Codec) *cobra.Comman
 		Short: "Query for all validators",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			storeKeyPrefix, err := getSideChainStorePrefix(cliCtx, storeName)
+			storeKeyPrefix, err := getSideChainStorePrefix(cliCtx)
 			if err != nil {
 				return err
 			}
@@ -146,7 +146,7 @@ func GetCmdQuerySideChainDelegation(storeName string, cdc *codec.Codec) *cobra.C
 			}
 
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			sideChainStorePrefix, err := getSideChainStorePrefix(cliCtx, storeName)
+			sideChainStorePrefix, err := getSideChainStorePrefix(cliCtx)
 			if err != nil {
 				return err
 			}
@@ -204,7 +204,7 @@ func GetCmdQuerySideChainDelegations(storeName string, cdc *codec.Codec) *cobra.
 			}
 
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			sideChainStorePrefix, err := getSideChainStorePrefix(cliCtx, storeName)
+			sideChainStorePrefix, err := getSideChainStorePrefix(cliCtx)
 			if err != nil {
 				return err
 			}
@@ -256,7 +256,7 @@ func GetCmdQuerySideChainUnbondingDelegation(storeName string, cdc *codec.Codec)
 			}
 
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			sideChainStorePrefix, err := getSideChainStorePrefix(cliCtx, storeName)
+			sideChainStorePrefix, err := getSideChainStorePrefix(cliCtx)
 			if err != nil {
 				return err
 			}
@@ -312,7 +312,7 @@ func GetCmdQuerySideChainUnbondingDelegations(storeName string, cdc *codec.Codec
 			}
 
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			sideChainStorePrefix, err := getSideChainStorePrefix(cliCtx, storeName)
+			sideChainStorePrefix, err := getSideChainStorePrefix(cliCtx)
 			if err != nil {
 				return err
 			}
@@ -370,7 +370,7 @@ func GetCmdQuerySideChainRedelegation(storeName string, cdc *codec.Codec) *cobra
 			}
 
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			sideChainStorePrefix, err := getSideChainStorePrefix(cliCtx, storeName)
+			sideChainStorePrefix, err := getSideChainStorePrefix(cliCtx)
 			if err != nil {
 				return err
 			}
@@ -426,7 +426,7 @@ func GetCmdQuerySideChainRedelegations(storeName string, cdc *codec.Codec) *cobr
 			}
 
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			sideChainStorePrefix, err := getSideChainStorePrefix(cliCtx, storeName)
+			sideChainStorePrefix, err := getSideChainStorePrefix(cliCtx)
 			if err != nil {
 				return err
 			}
@@ -462,12 +462,12 @@ func GetCmdQuerySideChainRedelegations(storeName string, cdc *codec.Codec) *cobr
 
 func GetCmdQuerySideChainPool(storeName string, cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "pool",
+		Use:   "side-pool",
 		Short: "Query the current staking pool values",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			sideChainStorePrefix, err := getSideChainStorePrefix(cliCtx, storeName)
+			sideChainStorePrefix, err := getSideChainStorePrefix(cliCtx)
 			if err != nil {
 				return err
 			}
@@ -503,13 +503,13 @@ func GetCmdQuerySideChainPool(storeName string, cdc *codec.Codec) *cobra.Command
 	return cmd
 }
 
-func getSideChainStorePrefix(cliCtx context.CLIContext, storeName string) ([]byte, error) {
+func getSideChainStorePrefix(cliCtx context.CLIContext) ([]byte, error) {
 	sideChainId, err := getSideChainId()
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := cliCtx.QueryStore(sidechain.GetSideChainStorePrefixKey(sideChainId), storeName)
+	res, err := cliCtx.QueryStore(sidechain.GetSideChainStorePrefixKey(sideChainId), scStoreKey)
 	if err != nil {
 		return nil, err
 	} else if len(res) == 0 {
