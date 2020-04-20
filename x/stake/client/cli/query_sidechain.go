@@ -1,10 +1,11 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"strconv"
 
 	"github.com/tendermint/tendermint/libs/cli"
 
@@ -71,62 +72,6 @@ func GetCmdQuerySideValidator(storeName string, cdc *codec.Codec) *cobra.Command
 
 	cmd.Flags().AddFlagSet(fsSideChainId)
 
-	return cmd
-}
-
-func GetCmdQuerySideValidators(storeName string, cdc *codec.Codec) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "side-validators",
-		Short: "Query for all validators",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			storeKeyPrefix, err := getSideChainStorePrefix(cliCtx)
-			if err != nil {
-				return err
-			}
-			key := append(storeKeyPrefix, stake.ValidatorsKey...)
-
-			resKVs, err := cliCtx.QuerySubspace(key, storeName)
-			if err != nil {
-				return err
-			}
-
-			// parse out the validators
-			var validators []stake.Validator
-			for _, kv := range resKVs {
-				validator, err := types.UnmarshalValidator(cdc, kv.Value)
-				if err != nil {
-					return err
-				}
-				validators = append(validators, validator)
-			}
-
-			switch viper.Get(cli.OutputFlag) {
-			case "text":
-				for _, validator := range validators {
-					resp, err := validator.HumanReadableString()
-					if err != nil {
-						return err
-					}
-
-					fmt.Println(resp)
-				}
-			case "json":
-				output, err := codec.MarshalJSONIndent(cdc, validators)
-				if err != nil {
-					return err
-				}
-
-				fmt.Println(string(output))
-				return nil
-			}
-
-			// TODO: output with proofs / machine parseable etc.
-			return nil
-		},
-	}
-
-	cmd.Flags().AddFlagSet(fsSideChainId)
 	return cmd
 }
 
@@ -218,7 +163,8 @@ func GetCmdQuerySideChainDelegations(storeName string, cdc *codec.Codec) *cobra.
 			// parse out the validators
 			var delegations []stake.Delegation
 			for _, kv := range resKVs {
-				delegation := types.MustUnmarshalDelegation(cdc, kv.Key, kv.Value)
+				k := kv.Key[1:] // remove side chain prefix bytes
+				delegation := types.MustUnmarshalDelegation(cdc, k, kv.Value)
 				delegations = append(delegations, delegation)
 			}
 
@@ -261,14 +207,15 @@ func GetCmdQuerySideChainUnbondingDelegation(storeName string, cdc *codec.Codec)
 				return err
 			}
 
-			key := append(sideChainStorePrefix, stake.GetUBDKey(delAddr, valAddr)...)
+			ubdKey := stake.GetUBDKey(delAddr, valAddr)
+			key := append(sideChainStorePrefix, ubdKey...)
 			res, err := cliCtx.QueryStore(key, storeName)
 			if err != nil {
 				return err
 			}
 
 			// parse out the unbonding delegation
-			ubd := types.MustUnmarshalUBD(cdc, key, res)
+			ubd := types.MustUnmarshalUBD(cdc, ubdKey, res)
 
 			switch viper.Get(cli.OutputFlag) {
 			case "text":
@@ -327,7 +274,8 @@ func GetCmdQuerySideChainUnbondingDelegations(storeName string, cdc *codec.Codec
 			// parse out the validators
 			var ubds []stake.UnbondingDelegation
 			for _, kv := range resKVs {
-				ubd := types.MustUnmarshalUBD(cdc, kv.Key, kv.Value)
+				k := kv.Key[1:] // remove side chain prefix bytes
+				ubd := types.MustUnmarshalUBD(cdc, k, kv.Value)
 				ubds = append(ubds, ubd)
 			}
 
@@ -375,14 +323,15 @@ func GetCmdQuerySideChainRedelegation(storeName string, cdc *codec.Codec) *cobra
 				return err
 			}
 
-			key := append(sideChainStorePrefix, stake.GetREDKey(delAddr, valSrcAddr, valDstAddr)...)
+			redKey := stake.GetREDKey(delAddr, valSrcAddr, valDstAddr)
+			key := append(sideChainStorePrefix, redKey...)
 			res, err := cliCtx.QueryStore(key, storeName)
 			if err != nil {
 				return err
 			}
 
 			// parse out the unbonding delegation
-			red := types.MustUnmarshalRED(cdc, key, res)
+			red := types.MustUnmarshalRED(cdc, redKey, res)
 
 			switch viper.Get(cli.OutputFlag) {
 			case "text":
@@ -440,7 +389,8 @@ func GetCmdQuerySideChainRedelegations(storeName string, cdc *codec.Codec) *cobr
 			// parse out the validators
 			var reds []stake.Redelegation
 			for _, kv := range resKVs {
-				red := types.MustUnmarshalRED(cdc, kv.Key, kv.Value)
+				k := kv.Key[1:]
+				red := types.MustUnmarshalRED(cdc, k, kv.Value)
 				reds = append(reds, red)
 			}
 
@@ -456,6 +406,89 @@ func GetCmdQuerySideChainRedelegations(storeName string, cdc *codec.Codec) *cobr
 		},
 	}
 
+	cmd.Flags().AddFlagSet(fsSideChainId)
+	return cmd
+}
+
+func GetCmdQuerySideChainUnbondingDelegationsByValidator(cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "side-val-unbonding-delegations [validator-addr]",
+		Short: "Query all unbonding-delegations records for one validator",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			valAddr, err := sdk.ValAddressFromBech32(args[0])
+			if err != nil {
+				return err
+			}
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			sideChainId, err := getSideChainId()
+			if err != nil {
+				return err
+			}
+			if err = checkSideChainId(cliCtx, sideChainId); err != nil {
+				return err
+			}
+
+			params := stake.QueryValidatorParams{
+				ValidatorAddr: valAddr,
+				SideChainId:   sideChainId,
+			}
+
+			bz, err := cdc.MarshalJSON(params)
+			if err != nil {
+				return err
+			}
+
+			response, err := cliCtx.QueryWithData("custom/stake/validatorUnbondingDelegations", bz)
+			if err != nil {
+				return err
+			}
+
+			fmt.Println(string(response))
+			return nil
+		},
+	}
+	cmd.Flags().AddFlagSet(fsSideChainId)
+	return cmd
+}
+
+func GetCmdQuerySideChainReDelegationsByValidator(cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "side-val-redelegations [validator-addr]",
+		Short: "Query all redelegations records for one validator",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			valAddr, err := sdk.ValAddressFromBech32(args[0])
+			if err != nil {
+				return err
+			}
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			sideChainId, err := getSideChainId()
+			if err != nil {
+				return err
+			}
+			if err = checkSideChainId(cliCtx, sideChainId); err != nil {
+				return err
+			}
+			params := stake.QueryValidatorParams{
+				ValidatorAddr: valAddr,
+				SideChainId:   sideChainId,
+			}
+
+			bz, err := cdc.MarshalJSON(params)
+			if err != nil {
+				return err
+			}
+
+			response, err := cliCtx.QueryWithData("custom/stake/validatorRedelegations", bz)
+			if err != nil {
+				return err
+			}
+
+			fmt.Println(string(response))
+			return nil
+		},
+	}
 	cmd.Flags().AddFlagSet(fsSideChainId)
 	return cmd
 }
@@ -503,6 +536,51 @@ func GetCmdQuerySideChainPool(storeName string, cdc *codec.Codec) *cobra.Command
 	return cmd
 }
 
+func GetCmdQuerySideChainCurrentTopValidators(cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "side-top-validators",
+		Short: "Query top N validators at current time",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			topS := viper.GetString("top")
+			top, err := strconv.Atoi(topS)
+			if err != nil {
+				return err
+			}
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			if top > 100 || top < 1 {
+				return errors.New("top must be between 1 and 100")
+			}
+			sideChainId, err := getSideChainId()
+			if err != nil {
+				return err
+			}
+			if err = checkSideChainId(cliCtx, sideChainId); err != nil {
+				return err
+			}
+			params := stake.QuerySideTopValidatorsParams{
+				Top:         top,
+				SideChainId: sideChainId,
+			}
+
+			bz, err := cdc.MarshalJSON(params)
+			if err != nil {
+				return err
+			}
+
+			response, err := cliCtx.QueryWithData("custom/stake/sideTopValidators", bz)
+			if err != nil {
+				return err
+			}
+
+			fmt.Println(string(response))
+			return nil
+		},
+	}
+	cmd.Flags().AddFlagSet(fsSideChainId)
+	cmd.Flags().String("top", "21", "")
+	return cmd
+}
+
 func getSideChainStorePrefix(cliCtx context.CLIContext) ([]byte, error) {
 	sideChainId, err := getSideChainId()
 	if err != nil {
@@ -513,7 +591,17 @@ func getSideChainStorePrefix(cliCtx context.CLIContext) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	} else if len(res) == 0 {
-		return nil, fmt.Errorf("Invalid side-chain-id %s", sideChainId)
+		return nil, fmt.Errorf("Invalid side-chain-id %s ", sideChainId)
 	}
 	return res, err
+}
+
+func checkSideChainId(cliCtx context.CLIContext, sideChainId string) error {
+	res, err := cliCtx.QueryStore(sidechain.GetSideChainStorePrefixKey(sideChainId), scStoreKey)
+	if err != nil {
+		return err
+	} else if len(res) == 0 {
+		return fmt.Errorf("Invalid side-chain-id %s ", sideChainId)
+	}
+	return nil
 }

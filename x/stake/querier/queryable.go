@@ -24,6 +24,7 @@ const (
 	QueryDelegatorValidator            = "delegatorValidator"
 	QueryPool                          = "pool"
 	QueryParameters                    = "parameters"
+	QuerySideTopValidators             = "sideTopValidators"
 )
 
 // creates a querier for staking REST endpoints
@@ -56,6 +57,8 @@ func NewQuerier(k keep.Keeper, cdc *codec.Codec) sdk.Querier {
 			return queryPool(ctx, cdc, k)
 		case QueryParameters:
 			return queryParameters(ctx, cdc, k)
+		case QuerySideTopValidators:
+			return querySideTopValidators(ctx, cdc, req, k)
 		default:
 			return nil, sdk.ErrUnknownRequest("unknown stake query endpoint")
 		}
@@ -77,6 +80,7 @@ type QueryDelegatorParams struct {
 // - 'custom/stake/validatorRedelegations'
 type QueryValidatorParams struct {
 	ValidatorAddr sdk.ValAddress
+	SideChainId   string
 }
 
 // defines the params for the following queries:
@@ -86,6 +90,12 @@ type QueryValidatorParams struct {
 type QueryBondsParams struct {
 	DelegatorAddr sdk.AccAddress
 	ValidatorAddr sdk.ValAddress
+}
+
+// defines the params for 'custom/stake/sideTopValidators'
+type QuerySideTopValidatorsParams struct {
+	SideChainId string
+	Top         int
 }
 
 func queryValidators(ctx sdk.Context, cdc *codec.Codec, k keep.Keeper) (res []byte, err sdk.Error) {
@@ -105,6 +115,14 @@ func queryValidator(ctx sdk.Context, cdc *codec.Codec, req abci.RequestQuery, k 
 	errRes := cdc.UnmarshalJSON(req.Data, &params)
 	if errRes != nil {
 		return []byte{}, sdk.ErrUnknownAddress("")
+	}
+
+	if len(params.SideChainId) == 0 {
+		if scCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, params.SideChainId); err != nil {
+			return nil, types.ErrInvalidSideChainId(k.Codespace())
+		} else {
+			ctx = scCtx
+		}
 	}
 
 	validator, found := k.GetValidator(ctx, params.ValidatorAddr)
@@ -127,6 +145,14 @@ func queryValidatorUnbondingDelegations(ctx sdk.Context, cdc *codec.Codec, req a
 		return []byte{}, sdk.ErrUnknownAddress("")
 	}
 
+	if len(params.SideChainId) != 0 {
+		if scCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, params.SideChainId); err != nil {
+			return nil, types.ErrInvalidSideChainId(k.Codespace())
+		} else {
+			ctx = scCtx
+		}
+	}
+
 	unbonds := k.GetUnbondingDelegationsFromValidator(ctx, params.ValidatorAddr)
 
 	res, errRes = codec.MarshalJSONIndent(cdc, unbonds)
@@ -142,6 +168,14 @@ func queryValidatorRedelegations(ctx sdk.Context, cdc *codec.Codec, req abci.Req
 	errRes := cdc.UnmarshalJSON(req.Data, &params)
 	if errRes != nil {
 		return []byte{}, sdk.ErrUnknownAddress("")
+	}
+
+	if len(params.SideChainId) != 0 {
+		if scCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, params.SideChainId); err != nil {
+			return nil, types.ErrInvalidSideChainId(k.Codespace())
+		} else {
+			ctx = scCtx
+		}
 	}
 
 	redelegations := k.GetRedelegationsFromValidator(ctx, params.ValidatorAddr)
@@ -301,4 +335,37 @@ func queryParameters(ctx sdk.Context, cdc *codec.Codec, k keep.Keeper) (res []by
 		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("could not marshal result to JSON", errRes.Error()))
 	}
 	return res, nil
+}
+
+func querySideTopValidators(ctx sdk.Context, cdc *codec.Codec, req abci.RequestQuery, k keep.Keeper) ([]byte, sdk.Error) {
+
+	var params QuerySideTopValidatorsParams
+
+	errRes := cdc.UnmarshalJSON(req.Data, &params)
+	if errRes != nil {
+		return []byte{}, sdk.ErrInternal(sdk.AppendMsgToErr("could not unmarshal request", errRes.Error()))
+	}
+
+	if len(params.SideChainId) == 0 {
+		return []byte{}, sdk.ErrInternal("sideChainId can not be nil")
+	}
+
+	if scCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, params.SideChainId); err != nil {
+		return nil, types.ErrInvalidSideChainId(k.Codespace())
+	} else {
+		ctx = scCtx
+	}
+
+	if params.Top > 100 || params.Top < 1 {
+		return []byte{}, sdk.ErrInternal("top must be between 1 and 100")
+	}
+
+	validators := k.GetTopValidatorsByPower(ctx, uint64(params.Top))
+
+	res, errRes := codec.MarshalJSONIndent(cdc, validators)
+	if errRes != nil {
+		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("could not marshal result to JSON", errRes.Error()))
+	}
+	return res, nil
+
 }
