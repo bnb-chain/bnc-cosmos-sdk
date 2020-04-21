@@ -295,7 +295,7 @@ func (k Keeper) GetBondedValidatorsByPower(ctx sdk.Context) []types.Validator {
 	return validators[:i] // trim
 }
 
-func (k Keeper) GetTopValidatorsByPower(ctx sdk.Context, maxRetrieve uint64) []types.Validator {
+func (k Keeper) GetTopValidatorsByPower(ctx sdk.Context, maxRetrieve int) []types.Validator {
 	store := ctx.KVStore(k.storeKey)
 	validators := make([]types.Validator, maxRetrieve)
 

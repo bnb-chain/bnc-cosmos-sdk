@@ -163,7 +163,7 @@ func GetCmdQuerySideChainDelegations(storeName string, cdc *codec.Codec) *cobra.
 			// parse out the validators
 			var delegations []stake.Delegation
 			for _, kv := range resKVs {
-				k := kv.Key[1:] // remove side chain prefix bytes
+				k := kv.Key[len(sideChainStorePrefix):] // remove side chain prefix bytes
 				delegation := types.MustUnmarshalDelegation(cdc, k, kv.Value)
 				delegations = append(delegations, delegation)
 			}
@@ -274,7 +274,7 @@ func GetCmdQuerySideChainUnbondingDelegations(storeName string, cdc *codec.Codec
 			// parse out the validators
 			var ubds []stake.UnbondingDelegation
 			for _, kv := range resKVs {
-				k := kv.Key[1:] // remove side chain prefix bytes
+				k := kv.Key[len(sideChainStorePrefix):] // remove side chain prefix bytes
 				ubd := types.MustUnmarshalUBD(cdc, k, kv.Value)
 				ubds = append(ubds, ubd)
 			}
@@ -389,7 +389,7 @@ func GetCmdQuerySideChainRedelegations(storeName string, cdc *codec.Codec) *cobr
 			// parse out the validators
 			var reds []stake.Redelegation
 			for _, kv := range resKVs {
-				k := kv.Key[1:]
+				k := kv.Key[len(sideChainStorePrefix):]
 				red := types.MustUnmarshalRED(cdc, k, kv.Value)
 				reds = append(reds, red)
 			}
@@ -536,7 +536,7 @@ func GetCmdQuerySideChainPool(storeName string, cdc *codec.Codec) *cobra.Command
 	return cmd
 }
 
-func GetCmdQuerySideChainCurrentTopValidators(cdc *codec.Codec) *cobra.Command {
+func GetCmdQuerySideChainTopValidators(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "side-top-validators",
 		Short: "Query top N validators at current time",

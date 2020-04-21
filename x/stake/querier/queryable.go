@@ -117,11 +117,10 @@ func queryValidator(ctx sdk.Context, cdc *codec.Codec, req abci.RequestQuery, k 
 		return []byte{}, sdk.ErrUnknownAddress("")
 	}
 
-	if len(params.SideChainId) == 0 {
-		if scCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, params.SideChainId); err != nil {
-			return nil, types.ErrInvalidSideChainId(k.Codespace())
-		} else {
-			ctx = scCtx
+	if len(params.SideChainId) != 0 {
+		ctx, err = prepareSideChainCtx(ctx, k, params.SideChainId)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -146,10 +145,9 @@ func queryValidatorUnbondingDelegations(ctx sdk.Context, cdc *codec.Codec, req a
 	}
 
 	if len(params.SideChainId) != 0 {
-		if scCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, params.SideChainId); err != nil {
-			return nil, types.ErrInvalidSideChainId(k.Codespace())
-		} else {
-			ctx = scCtx
+		ctx, err = prepareSideChainCtx(ctx, k, params.SideChainId)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -171,10 +169,9 @@ func queryValidatorRedelegations(ctx sdk.Context, cdc *codec.Codec, req abci.Req
 	}
 
 	if len(params.SideChainId) != 0 {
-		if scCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, params.SideChainId); err != nil {
-			return nil, types.ErrInvalidSideChainId(k.Codespace())
-		} else {
-			ctx = scCtx
+		ctx, err = prepareSideChainCtx(ctx, k, params.SideChainId)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -360,7 +357,7 @@ func querySideTopValidators(ctx sdk.Context, cdc *codec.Codec, req abci.RequestQ
 		return []byte{}, sdk.ErrInternal("top must be between 1 and 100")
 	}
 
-	validators := k.GetTopValidatorsByPower(ctx, uint64(params.Top))
+	validators := k.GetTopValidatorsByPower(ctx, params.Top)
 
 	res, errRes := codec.MarshalJSONIndent(cdc, validators)
 	if errRes != nil {
@@ -368,4 +365,12 @@ func querySideTopValidators(ctx sdk.Context, cdc *codec.Codec, req abci.RequestQ
 	}
 	return res, nil
 
+}
+
+func prepareSideChainCtx(ctx sdk.Context, k keep.Keeper, sideChainId string) (sdk.Context, sdk.Error) {
+	scCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, sideChainId)
+	if err != nil {
+		return sdk.Context{}, types.ErrInvalidSideChainId(k.Codespace())
+	}
+	return scCtx, nil
 }
