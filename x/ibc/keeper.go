@@ -45,12 +45,15 @@ func (k *Keeper) CreateIBCPackage(ctx sdk.Context, destChainName string, channel
 	kvStore.Set(key, value)
 	k.incrSequence(ctx, destIbcChainID, channelID)
 
-	k.packageCollector.collectedPackages = append(k.packageCollector.collectedPackages, packageRecord{
-		destChainName: destChainName,
-		destChainID:   destIbcChainID,
-		channelID:     channelID,
-		sequence:      sequence,
-	})
+	if ctx.IsDeliverTx() {
+		k.packageCollector.collectedPackages = append(k.packageCollector.collectedPackages, packageRecord{
+			destChainName: destChainName,
+			destChainID:   destIbcChainID,
+			channelID:     channelID,
+			sequence:      sequence,
+		})
+	}
+
 	return sequence, nil
 }
 
