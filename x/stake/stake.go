@@ -8,28 +8,29 @@ import (
 )
 
 type (
-	Keeper                       = keeper.Keeper
-	Validator                    = types.Validator
-	Description                  = types.Description
-	Commission                   = types.Commission
-	Delegation                   = types.Delegation
-	UnbondingDelegation          = types.UnbondingDelegation
-	Redelegation                 = types.Redelegation
-	Params                       = types.Params
-	Pool                         = types.Pool
-	MsgCreateValidator           = types.MsgCreateValidator
-	MsgRemoveValidator           = types.MsgRemoveValidator
-	MsgCreateValidatorProposal   = types.MsgCreateValidatorProposal
-	MsgEditValidator             = types.MsgEditValidator
-	MsgDelegate                  = types.MsgDelegate
-	MsgBeginUnbonding            = types.MsgBeginUnbonding
-	MsgBeginRedelegate           = types.MsgBeginRedelegate
-	GenesisState                 = types.GenesisState
-	QueryDelegatorParams         = querier.QueryDelegatorParams
-	QueryValidatorParams         = querier.QueryValidatorParams
-	QueryBondsParams             = querier.QueryBondsParams
-	CreateValidatorJsonMsg       = types.CreateValidatorJsonMsg
-	QuerySideTopValidatorsParams = querier.QuerySideTopValidatorsParams
+	Keeper                     = keeper.Keeper
+	Validator                  = types.Validator
+	Description                = types.Description
+	Commission                 = types.Commission
+	Delegation                 = types.Delegation
+	UnbondingDelegation        = types.UnbondingDelegation
+	Redelegation               = types.Redelegation
+	Params                     = types.Params
+	Pool                       = types.Pool
+	MsgCreateValidator         = types.MsgCreateValidator
+	MsgRemoveValidator         = types.MsgRemoveValidator
+	MsgCreateValidatorProposal = types.MsgCreateValidatorProposal
+	MsgEditValidator           = types.MsgEditValidator
+	MsgDelegate                = types.MsgDelegate
+	MsgBeginUnbonding          = types.MsgBeginUnbonding
+	MsgBeginRedelegate         = types.MsgBeginRedelegate
+	GenesisState               = types.GenesisState
+	QueryDelegatorParams       = querier.QueryDelegatorParams
+	QueryValidatorParams       = querier.QueryValidatorParams
+	QueryBondsParams           = querier.QueryBondsParams
+	CreateValidatorJsonMsg     = types.CreateValidatorJsonMsg
+	QueryTopValidatorsParams   = querier.QueryTopValidatorsParams
+	BaseParams                 = querier.BaseParams
 
 	MsgCreateSideChainValidator = types.MsgCreateSideChainValidator
 	MsgEditSideChainValidator   = types.MsgEditSideChainValidator
@@ -101,7 +102,8 @@ var (
 	NewMsgSideChainRedelegate                = types.NewMsgSideChainRedelegate
 	NewMsgSideChainUndelegate                = types.NewMsgSideChainUndelegate
 
-	NewQuerier = querier.NewQuerier
+	NewQuerier    = querier.NewQuerier
+	NewBaseParams = querier.NewBaseParams
 )
 
 const (

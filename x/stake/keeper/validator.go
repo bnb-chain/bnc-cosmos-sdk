@@ -313,6 +313,26 @@ func (k Keeper) GetTopValidatorsByPower(ctx sdk.Context, maxRetrieve int) []type
 
 }
 
+func (k Keeper) GetAllValidatorsCount(ctx sdk.Context) (count int64) {
+	store := ctx.KVStore(k.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, ValidatorsKey)
+	defer iterator.Close()
+	for ; iterator.Valid(); iterator.Next() {
+		count++
+	}
+	return count
+}
+
+func (k Keeper) GetAllUnJailValidatorsCount(ctx sdk.Context) (count int64) {
+	store := ctx.KVStore(k.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, ValidatorsByPowerIndexKey)
+	defer iterator.Close()
+	for ; iterator.Valid(); iterator.Next() {
+		count++
+	}
+	return count
+}
+
 // gets a specific validator queue timeslice. A timeslice is a slice of ValAddresses corresponding to unbonding validators
 // that expire at a certain time.
 func (k Keeper) GetValidatorQueueTimeSlice(ctx sdk.Context, timestamp time.Time) (valAddrs []sdk.ValAddress) {
