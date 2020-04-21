@@ -8,6 +8,9 @@ import (
 )
 
 func HexAddress(a []byte) string {
+	if len(a) == 0 {
+		return ""
+	}
 	unchecksummed := hex.EncodeToString(a[:])
 	sha := sha3.NewLegacyKeccak256()
 	sha.Write([]byte(unchecksummed))
