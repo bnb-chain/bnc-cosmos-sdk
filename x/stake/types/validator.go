@@ -22,10 +22,10 @@ import (
 // exchange rate. Voting power can be calculated as total bonds multiplied by
 // exchange rate.
 type Validator struct {
-	FeeAddr      sdk.AccAddress `json:"fee_addr"`         // address for fee collection
-	OperatorAddr sdk.ValAddress `json:"operator_address"` // address of the validator's operator; bech encoded in JSON
+	FeeAddr      sdk.AccAddress `json:"fee_addr"`                   // address for fee collection
+	OperatorAddr sdk.ValAddress `json:"operator_address"`           // address of the validator's operator; bech encoded in JSON
 	ConsPubKey   crypto.PubKey  `json:"consensus_pubkey,omitempty"` // the consensus public key of the validator; bech encoded in JSON
-	Jailed       bool           `json:"jailed"`           // has the validator been jailed from bonded status?
+	Jailed       bool           `json:"jailed"`                     // has the validator been jailed from bonded status?
 
 	Status          sdk.BondStatus `json:"status"`           // validator status (bonded/unbonding/unbonded)
 	Tokens          sdk.Dec        `json:"tokens"`           // delegated tokens (incl. self-delegation)
@@ -157,10 +157,10 @@ func (v Validator) HumanReadableString() (string, error) {
 
 // this is a helper struct used for JSON de- and encoding only
 type bechValidator struct {
-	FeeAddr      sdk.AccAddress `json:"fee_addr"`         // the bech32 address for fee collection
-	OperatorAddr sdk.ValAddress `json:"operator_address"` // the bech32 address of the validator's operator
+	FeeAddr      sdk.AccAddress `json:"fee_addr"`                   // the bech32 address for fee collection
+	OperatorAddr sdk.ValAddress `json:"operator_address"`           // the bech32 address of the validator's operator
 	ConsPubKey   string         `json:"consensus_pubkey,omitempty"` // the bech32 consensus public key of the validator
-	Jailed       bool           `json:"jailed"`           // has the validator been jailed from bonded status?
+	Jailed       bool           `json:"jailed"`                     // has the validator been jailed from bonded status?
 
 	Status          sdk.BondStatus `json:"status"`           // validator status (bonded/unbonding/unbonded)
 	Tokens          sdk.Dec        `json:"tokens"`           // delegated tokens (incl. self-delegation)
@@ -219,10 +219,15 @@ func (v *Validator) UnmarshalJSON(data []byte) error {
 	if err := codec.Cdc.UnmarshalJSON(data, bv); err != nil {
 		return err
 	}
-	consPubKey, err := sdk.GetConsPubKeyBech32(bv.ConsPubKey)
-	if err != nil {
-		return err
+	var consPubKey crypto.PubKey
+	if len(bv.ConsPubKey) != 0 {
+		getConsPubKey, err := sdk.GetConsPubKeyBech32(bv.ConsPubKey)
+		if err != nil {
+			return err
+		}
+		consPubKey = getConsPubKey
 	}
+
 	*v = Validator{
 		FeeAddr:            bv.FeeAddr,
 		OperatorAddr:       bv.OperatorAddr,
