@@ -189,10 +189,10 @@ func TestDuplicatesMsgCreateValidatorOnBehalfOf(t *testing.T) {
 }
 
 func TestLegacyValidatorDelegations(t *testing.T) {
-	ctx, _, keeper := keep.CreateTestInput(t, false, int64(1000))
+	ctx, _, keeper := keep.CreateTestInput(t, false, int64(100000))
 	setInstantUnbondPeriod(keeper, ctx)
 
-	bondAmount := int64(10)
+	bondAmount := int64(10000)
 	valAddr := sdk.ValAddress(keep.Addrs[0])
 	valConsPubKey, valConsAddr := keep.PKs[0], sdk.ConsAddress(keep.PKs[0].Address())
 	delAddr := keep.Addrs[1]
@@ -225,7 +225,7 @@ func TestLegacyValidatorDelegations(t *testing.T) {
 	require.Equal(t, sdk.NewDecWithoutFra(bondAmount*2), validator.BondedTokens())
 
 	// unbond validator total self-delegations (which should jail the validator)
-	unbondShares := sdk.NewDecWithoutFra(10)
+	unbondShares := sdk.NewDecWithoutFra(10000)
 	msgBeginUnbonding := NewMsgBeginUnbonding(sdk.AccAddress(valAddr), valAddr, unbondShares)
 
 	got = handleMsgBeginUnbonding(ctx, msgBeginUnbonding, keeper)
@@ -240,7 +240,7 @@ func TestLegacyValidatorDelegations(t *testing.T) {
 	validator, found = keeper.GetValidator(ctx, valAddr)
 	require.True(t, found)
 	require.True(t, validator.Jailed)
-	require.Equal(t, sdk.NewDecWithoutFra(10), validator.Tokens)
+	require.Equal(t, sdk.NewDecWithoutFra(10000), validator.Tokens)
 
 	// verify delegation still exists
 	bond, found := keeper.GetDelegation(ctx, delAddr, valAddr)

@@ -36,18 +36,22 @@ func (b BondStatus) Equal(b2 BondStatus) bool {
 
 // validator for a delegated proof of stake system
 type Validator interface {
-	GetJailed() bool              // whether the validator is jailed
-	GetMoniker() string           // moniker of the validator
-	GetStatus() BondStatus        // status of the validator
-	GetFeeAddr() AccAddress       // fee address of validator
-	GetOperator() ValAddress      // operator address to receive/return validators coins
-	GetConsPubKey() crypto.PubKey // validation consensus pubkey
-	GetConsAddr() ConsAddress     // validation consensus address
-	GetPower() Dec                // validation power
-	GetTokens() Dec               // validation tokens
-	GetCommission() Dec           // validator commission rate
-	GetDelegatorShares() Dec      // Total out standing delegator shares
-	GetBondHeight() int64         // height in which the validator became active
+	GetJailed() bool                 // whether the validator is jailed
+	GetMoniker() string              // moniker of the validator
+	GetStatus() BondStatus           // status of the validator
+	GetFeeAddr() AccAddress          // fee address of validator
+	GetOperator() ValAddress         // operator address to receive/return validators coins
+	GetConsPubKey() crypto.PubKey    // validation consensus pubkey
+	GetConsAddr() ConsAddress        // validation consensus address
+	GetPower() Dec                   // validation power
+	GetTokens() Dec                  // validation tokens
+	TokensFromShares(shares Dec) Dec // calculate the token worth of provided shares
+	GetCommission() Dec              // validator commission rate
+	GetDelegatorShares() Dec         // Total out standing delegator shares
+	GetBondHeight() int64            // height in which the validator became active
+	GetSideChainConsAddr() []byte    // validation consensus address on side chain
+	GetMinSelfDelegation() int64     // validator minimum self delegation
+	IsSideChainValidator() bool      // if it belongs to side chain
 }
 
 // validator which fulfills abci validator interface for use in Tendermint
@@ -80,6 +84,12 @@ type ValidatorSet interface {
 	// Delegation allows for getting a particular delegation for a given validator
 	// and delegator outside the scope of the staking module.
 	Delegation(Context, AccAddress, ValAddress) Delegation
+
+	// functions for side chain
+	ValidatorBySideChainConsAddr(Context, []byte) Validator
+	JailSideChain(Context, []byte)
+	UnjailSideChain(Context, []byte)
+	SlashSideChain(ctx Context, sideChainId string, sideConsAddr []byte, slashAmount Dec, submitterReward Dec, submitter AccAddress) error
 }
 
 //_______________________________________________________________________________
@@ -122,4 +132,7 @@ type StakingHooks interface {
 	OnDelegationCreated(ctx Context, delAddr AccAddress, valAddr ValAddress)        // Must be called when a delegation is created
 	OnDelegationSharesModified(ctx Context, delAddr AccAddress, valAddr ValAddress) // Must be called when a delegation's shares are modified
 	OnDelegationRemoved(ctx Context, delAddr AccAddress, valAddr ValAddress)        // Must be called when a delegation is removed
+
+	OnSideChainValidatorBonded(ctx Context, sideConsAddr []byte, operator ValAddress)
+	OnSideChainValidatorBeginUnbonding(ctx Context, sideConsAddr []byte, operator ValAddress)
 }

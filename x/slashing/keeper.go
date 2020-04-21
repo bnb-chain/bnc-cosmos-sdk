@@ -2,6 +2,7 @@ package slashing
 
 import (
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/x/sidechain"
 	"time"
 
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -23,6 +24,8 @@ type Keeper struct {
 
 	// codespace
 	codespace sdk.CodespaceType
+
+	scKeeper *sidechain.Keeper
 }
 
 // NewKeeper creates a slashing keeper
@@ -35,6 +38,10 @@ func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, vs sdk.ValidatorSet, paramspa
 		codespace:    codespace,
 	}
 	return keeper
+}
+
+func (k Keeper) SetSideChain(scKeeper *sidechain.Keeper) {
+	k.scKeeper = scKeeper
 }
 
 // handle a validator signing two blocks at the same height

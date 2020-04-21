@@ -21,6 +21,9 @@ var (
 	KeyDowntimeUnbondDuration   = []byte("DowntimeUnbondDuration")
 	KeySlashFractionDoubleSign  = []byte("SlashFractionDoubleSign")
 	KeySlashFractionDowntime    = []byte("SlashFractionDowntime")
+	KeySlashAmount              = []byte("SlashAmount")
+	KeySubmitterReward          = []byte("SubmitterReward")
+	KeyBscSideChainId           = []byte("BscSideChainId")
 )
 
 // ParamTypeTable for slashing module
@@ -37,6 +40,9 @@ type Params struct {
 	DowntimeUnbondDuration   time.Duration `json:"downtime-unbond-duration"`
 	SlashFractionDoubleSign  sdk.Dec       `json:"slash-fraction-double-sign"`
 	SlashFractionDowntime    sdk.Dec       `json:"slash-fraction-downtime"`
+	SlashAmount              int64         `json:"slash_amount"`
+	SubmitterReward          int64         `json:"submitter_reward"`
+	BscSideChainId           string        `json:"bsc_side_chain_id"`
 }
 
 // Implements params.ParamStruct
@@ -49,6 +55,9 @@ func (p *Params) KeyValuePairs() params.KeyValuePairs {
 		{KeyDowntimeUnbondDuration, &p.DowntimeUnbondDuration},
 		{KeySlashFractionDoubleSign, &p.SlashFractionDoubleSign},
 		{KeySlashFractionDowntime, &p.SlashFractionDowntime},
+		{KeySlashAmount, &p.SlashAmount},
+		{KeySubmitterReward, &p.SubmitterReward},
+		{KeyBscSideChainId, &p.BscSideChainId},
 	}
 }
 
@@ -73,6 +82,12 @@ func DefaultParams() Params {
 		SlashFractionDoubleSign: sdk.OneDec().Quo(sdk.NewDecWithoutFra(20)),
 
 		SlashFractionDowntime: sdk.OneDec().Quo(sdk.NewDecWithoutFra(100)),
+
+		SlashAmount: 100e8,
+
+		SubmitterReward: 10e8,
+
+		BscSideChainId: "bsc",
 	}
 }
 
@@ -119,4 +134,24 @@ func (k Keeper) SlashFractionDoubleSign(ctx sdk.Context) (res sdk.Dec) {
 func (k Keeper) SlashFractionDowntime(ctx sdk.Context) (res sdk.Dec) {
 	k.paramspace.Get(ctx, KeySlashFractionDowntime, &res)
 	return
+}
+
+func (k Keeper) SlashAmount(ctx sdk.Context) (slashAmt int64) {
+	k.paramspace.Get(ctx, KeySlashAmount, &slashAmt)
+	return
+}
+
+func (k Keeper) SubmitterReward(ctx sdk.Context) (submitterReward int64) {
+	k.paramspace.Get(ctx, KeySubmitterReward, &submitterReward)
+	return
+}
+
+func (k Keeper) BscSideChainId(ctx sdk.Context) (sideChainId string) {
+	k.paramspace.Get(ctx, KeyBscSideChainId, &sideChainId)
+	return
+}
+
+// set the params
+func (k Keeper) SetParams(ctx sdk.Context, params Params) {
+	k.paramspace.SetParamSet(ctx, &params)
 }
