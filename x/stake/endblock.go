@@ -21,6 +21,7 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 	_, validatorUpdates, completedUbds, events = handleValidatorAndDelegations(ctx, k)
 
 	if sdk.IsUpgrade(sdk.LaunchBscUpgrade) && k.ScKeeper != nil {
+		k.Logger(ctx).Info(fmt.Sprintf("[%d]staking EndBreatheBlock, begin to set breatheBlockHeight %d", ctx.BlockHeight(), ctx.BlockHeight()))
 		k.SetBreatheBlockHeight(ctx, ctx.BlockHeight(), ctx.BlockHeader().Time)
 		sideChainIds, storePrefixes := k.ScKeeper.GetAllSideChainPrefixes(ctx)
 		for i := range storePrefixes {
@@ -37,6 +38,7 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 			// The rewards collected yesterday is decided by the validators the day before yesterday.
 			// So this distribution is for the validators bonded 2 days ago
 			height, found := k.GetBreatheBlockHeight(ctx, 3)
+			k.Logger(ctx).Info(fmt.Sprintf("[%d]staking EndBreatheBlock, found: %t, height: %d ", ctx.BlockHeight(), found, height))
 			if found {
 				k.Distribute(sideChainCtx, height)
 			}
@@ -70,8 +72,10 @@ func storeValidatorsWithHeight(ctx sdk.Context, validators []types.Validator, k 
 	for _, validator := range validators {
 		simplifiedDelegations := k.GetSimplifiedDelegationsByValidator(ctx, validator.OperatorAddr)
 		k.SetSimplifiedDelegations(ctx, ctx.BlockHeight(), validator.OperatorAddr, simplifiedDelegations)
+		k.Logger(ctx).Info(fmt.Sprintf("[%d]staking EndBreatheBlock, SetSimplifiedDelegations, simplifiedDelegations count: %d", ctx.BlockHeight(), len(simplifiedDelegations)))
 	}
 	k.SetValidatorsByHeight(ctx, ctx.BlockHeight(), validators)
+	k.Logger(ctx).Info(fmt.Sprintf("[%d]staking EndBreatheBlock, storeValidatorsWithHeight, validators count: %d", ctx.BlockHeight(), len(validators)))
 }
 
 func handleValidatorAndDelegations(ctx sdk.Context, k keeper.Keeper) ([]types.Validator, []abci.ValidatorUpdate, []types.UnbondingDelegation, sdk.Events) {
