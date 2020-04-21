@@ -12,8 +12,8 @@ const (
 )
 
 func (k Keeper) Distribute(ctx sdk.Context, height int64) {
-
 	validators, found := k.GetValidatorsByHeight(ctx, height)
+	k.Logger(ctx).Info(fmt.Sprintf("[%d]Distribute, found: %t, validators: %d", ctx.BlockHeight(), found, len(validators)))
 	if !found { // do nothing, if there is no validators to be rewarded.
 		return
 	}

@@ -2,6 +2,7 @@ package slashing
 
 import (
 	"encoding/binary"
+	"strconv"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	stake "github.com/cosmos/cosmos-sdk/x/stake/types"
@@ -13,6 +14,7 @@ var (
 	ValidatorMissedBlockBitArrayKey = []byte{0x02} // Prefix for missed block bit array
 	ValidatorSlashingPeriodKey      = []byte{0x03} // Prefix for slashing period
 	AddrPubkeyRelationKey           = []byte{0x04} // Prefix for address-pubkey relation
+	SlashRecordKey                  = []byte{0x05}
 )
 
 // stored by *Tendermint* address (not operator address)
@@ -47,4 +49,8 @@ func GetValidatorSlashingPeriodKey(v sdk.ConsAddress, startHeight int64) []byte 
 
 func getAddrPubkeyRelationKey(address []byte) []byte {
 	return append(AddrPubkeyRelationKey, address...)
+}
+
+func getSlashRecordKey(sideConsAddr []byte, sideHeight int64) []byte {
+	return append(append(SlashRecordKey, sideConsAddr...), []byte(strconv.FormatInt(sideHeight, 16))...)
 }
