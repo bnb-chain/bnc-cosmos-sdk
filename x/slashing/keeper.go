@@ -44,6 +44,13 @@ func (k *Keeper) SetSideChain(scKeeper *sidechain.Keeper) {
 	k.ScKeeper = scKeeper
 }
 
+func (k Keeper) ClaimRegister(oracleKeeper sdk.OracleKeeper) error {
+	if err := oracleKeeper.RegisterClaimType(ClaimTypeDowntimeSlash, ClaimNameDowntimeSlash, k.Hooks()); err != nil {
+		return err
+	}
+	return nil
+}
+
 // handle a validator signing two blocks at the same height
 // power: power of the double-signing validator at the height of infraction
 func (k Keeper) handleDoubleSign(ctx sdk.Context, addr crypto.Address, infractionHeight int64, timestamp time.Time, power int64) {

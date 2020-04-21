@@ -89,7 +89,7 @@ type ValidatorSet interface {
 	ValidatorBySideChainConsAddr(Context, []byte) Validator
 	JailSideChain(Context, []byte)
 	UnjailSideChain(Context, []byte)
-	SlashSideChain(ctx Context, sideChainId string, sideConsAddr []byte, slashAmount Dec, submitterReward Dec, submitter AccAddress) error
+	SlashSideChain(ctx Context, sideChainId string, sideConsAddr []byte, slashAmount Dec, submitterReward Dec, submitter AccAddress) (Dec,error)
 }
 
 //_______________________________________________________________________________

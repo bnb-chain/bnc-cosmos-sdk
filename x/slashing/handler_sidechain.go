@@ -40,9 +40,9 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 		return ErrExpiredEvidence(k.Codespace).Result()
 	}
 
-	slashAmount := k.SlashAmount(sideCtx)
+	slashAmount := k.DoubleSignSlashAmount(sideCtx)
 	submitterReward := k.SubmitterReward(sideCtx)
-	slashErr := k.validatorSet.SlashSideChain(ctx, sideChainId, sideConsAddr.Bytes(), sdk.NewDec(slashAmount), sdk.NewDec(submitterReward), msg.Submitter)
+	slashedAmount,slashErr := k.validatorSet.SlashSideChain(ctx, sideChainId, sideConsAddr.Bytes(), sdk.NewDec(slashAmount), sdk.NewDec(submitterReward), msg.Submitter)
 	if slashErr != nil {
 		return ErrFailedToSlash(k.Codespace, slashErr.Error()).Result()
 	}
@@ -55,7 +55,7 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 		InfractionHeight: msg.Headers[0].Number,
 		SlashHeight:      sideCtx.BlockHeight(),
 		JailUntil:        jailUtil,
-		SlashAmt:         sdk.NewDec(slashAmount),
+		SlashAmt:         slashedAmount,
 		SideChainId:      sideChainId,
 	}
 	k.setSlashRecord(sideCtx, sr)

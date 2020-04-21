@@ -16,10 +16,13 @@ func TestSideChainSlashDoubleSign(t *testing.T) {
 	// initial setup
 	slashParams := DefaultParams()
 	slashParams.DoubleSignUnbondDuration = 5 * time.Second
+	slashParams.DoubleSignSlashAmount = 15000e8
 	ctx, sideCtx, bankKeeper, stakeKeeper, _, keeper := createSideTestInput(t, slashParams)
 
 	// create a validator
 	bondAmount := int64(10000e8)
+	realSlashAmt := sdk.MinInt64(slashParams.DoubleSignSlashAmount,bondAmount)
+	realSubmitterReward := sdk.MinInt64(slashParams.SubmitterReward,bondAmount)
 
 	valAddr1 := addrs[0]
 
@@ -53,22 +56,21 @@ func TestSideChainSlashDoubleSign(t *testing.T) {
 	// check bad validator state
 	validator1, found := stakeKeeper.GetValidatorBySideConsAddr(sideCtx, sideConsAddr1)
 	require.True(t, found)
-	require.EqualValues(t, bondAmount-slashParams.SlashAmount, validator1.Tokens.RawInt())
-	require.EqualValues(t, bondAmount-slashParams.SlashAmount, validator1.DelegatorShares.RawInt())
+	require.EqualValues(t, 0, validator1.Tokens.RawInt()) // should be 0, as the delegation left is not enough to pay a fine
+	require.EqualValues(t, 0, validator1.DelegatorShares.RawInt())
 
-	delegation, found := stakeKeeper.GetDelegation(sideCtx, validator1.FeeAddr, validator1.OperatorAddr)
-	require.True(t, found)
-	require.EqualValues(t, bondAmount-slashParams.SlashAmount, delegation.Shares.RawInt())
+	_, found = stakeKeeper.GetDelegation(sideCtx, validator1.FeeAddr, validator1.OperatorAddr)
+	require.False(t, found)
 
 	validator2, found := stakeKeeper.GetValidatorBySideConsAddr(sideCtx, sideConsAddr2)
 	require.True(t, found)
 	balance := bankKeeper.GetCoins(ctx, validator2.DistributionAddr).AmountOf("steak")
 	submitterBalance := bankKeeper.GetCoins(ctx, submitter).AmountOf("steak")
-	require.EqualValues(t, 20000e8+slashParams.SubmitterReward, submitterBalance)
-	require.EqualValues(t, slashParams.SlashAmount-slashParams.SubmitterReward, balance)
+	require.EqualValues(t, initCoins + realSubmitterReward, submitterBalance)
+	require.EqualValues(t, realSlashAmt - realSubmitterReward, balance)
 
 	slashRecord, found := keeper.getSlashRecord(sideCtx, sideConsAddr1, DoubleSign, 1)
 	require.True(t, found)
-	require.EqualValues(t, slashParams.SlashAmount, slashRecord.SlashAmt.RawInt())
-	require.EqualValues(t, slashRecord.JailUntil.Unix(), ctx.BlockHeader().Time.Add(slashParams.DoubleSignUnbondDuration).Unix())
+	require.EqualValues(t, realSlashAmt, slashRecord.SlashAmt.RawInt())
+	require.EqualValues(t, ctx.BlockHeader().Time.Add(slashParams.DoubleSignUnbondDuration).Unix(), slashRecord.JailUntil.Unix())
 }

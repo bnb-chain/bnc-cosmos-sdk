@@ -3,11 +3,12 @@ package bsc
 import (
 	"encoding/json"
 	"errors"
+	"io"
+	"math/big"
+
 	"github.com/cosmos/cosmos-sdk/x/slashing/bsc/rlp"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
 	"golang.org/x/crypto/sha3"
-	"io"
-	"math/big"
 )
 
 type Header struct {
