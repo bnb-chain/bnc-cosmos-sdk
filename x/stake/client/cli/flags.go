@@ -56,6 +56,7 @@ var (
 	fsDelegator         = flag.NewFlagSet("", flag.ContinueOnError)
 	fsRedelegation      = flag.NewFlagSet("", flag.ContinueOnError)
 	fsSideChainFull     = flag.NewFlagSet("", flag.ContinueOnError)
+	fsSideChainEdit     = flag.NewFlagSet("", flag.ContinueOnError)
 	fsSideChainId       = flag.NewFlagSet("", flag.ContinueOnError)
 )
 
@@ -83,5 +84,7 @@ func init() {
 	fsSideChainFull.String(FlagSideChainId, "", "chain-id of the side chain the validator belongs to")
 	fsSideChainFull.String(FlagSideConsAddr, "", "consensus address of the validator on side chain, please use hex format prefixed with 0x")
 	fsSideChainFull.String(FlagSideFeeAddr, "", "address that validator collects fee rewards on side chain, please use hex format prefixed with 0x")
+	fsSideChainEdit.String(FlagSideChainId, "", "chain-id of the side chain the validator belongs to")
+	fsSideChainEdit.String(FlagSideFeeAddr, "", "address that validator collects fee rewards on side chain, please use hex format prefixed with 0x")
 	fsSideChainId.String(FlagSideChainId, "", "chain-id of the side chain the validator belongs to")
 }

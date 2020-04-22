@@ -15,8 +15,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-
-
 func GetCmdCreateSideChainValidator(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "bsc-create-validator",
@@ -128,17 +126,17 @@ func GetCmdEditSideChainValidator(cdc *codec.Codec) *cobra.Command {
 			newRate = &rate
 		}
 
-		sideChainId, sideConsAddr, sideFeeAddr, err := getSideChainInfo(false, false)
+		sideChainId, _, sideFeeAddr, err := getSideChainInfo(false, false)
 		if err != nil {
 			return err
 		}
-		msg := stake.NewMsgEditSideChainValidator(sideChainId, sdk.ValAddress(valAddr), description, newRate, sideConsAddr, sideFeeAddr)
+		msg := stake.NewMsgEditSideChainValidator(sideChainId, sdk.ValAddress(valAddr), description, newRate, sideFeeAddr)
 		return utils.GenerateOrBroadcastMsgs(txBldr, cliCtx, []sdk.Msg{msg})
 	}
 
 	cmd.Flags().AddFlagSet(fsDescriptionEdit)
 	cmd.Flags().AddFlagSet(fsCommissionUpdate)
-	cmd.Flags().AddFlagSet(fsSideChainFull)
+	cmd.Flags().AddFlagSet(fsSideChainEdit)
 	return cmd
 }
 

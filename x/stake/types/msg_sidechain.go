@@ -128,18 +128,16 @@ type MsgEditSideChainValidator struct {
 	CommissionRate *sdk.Dec `json:"commission_rate"`
 
 	SideChainId string `json:"side_chain_id"`
-	// for SideConsAddr and SideFeeAddr, we do not update the values if they are not provided.
-	SideConsAddr []byte `json:"side_cons_addr"`
-	SideFeeAddr  []byte `json:"side_fee_addr"`
+	// for SideFeeAddr, we do not update the values if they are not provided.
+	SideFeeAddr []byte `json:"side_fee_addr"`
 }
 
-func NewMsgEditSideChainValidator(sideChainId string, validatorAddr sdk.ValAddress, description Description, commissionRate *sdk.Dec, sideConsAddr, sideFeeAddr []byte) MsgEditSideChainValidator {
+func NewMsgEditSideChainValidator(sideChainId string, validatorAddr sdk.ValAddress, description Description, commissionRate *sdk.Dec, sideFeeAddr []byte) MsgEditSideChainValidator {
 	return MsgEditSideChainValidator{
 		Description:    description,
 		ValidatorAddr:  validatorAddr,
 		CommissionRate: commissionRate,
 		SideChainId:    sideChainId,
-		SideConsAddr:   sideConsAddr,
 		SideFeeAddr:    sideFeeAddr,
 	}
 }
@@ -177,13 +175,6 @@ func (msg MsgEditSideChainValidator) ValidateBasic() sdk.Error {
 
 	if len(msg.SideChainId) == 0 || len(msg.SideChainId) > MaxSideChainIdLength {
 		return sdk.NewError(DefaultCodespace, CodeInvalidInput, "side chain id must be included and max length is 20 bytes")
-	}
-
-	// if SideConsAddr is empty, we do not update it.
-	if len(msg.SideConsAddr) != 0 {
-		if err := checkSideChainAddr("SideConsAddr", msg.SideFeeAddr); err != nil {
-			return err
-		}
 	}
 
 	// if SideFeeAddr is empty, we do not update it.
