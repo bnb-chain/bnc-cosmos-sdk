@@ -135,4 +135,6 @@ type StakingHooks interface {
 
 	OnSideChainValidatorBonded(ctx Context, sideConsAddr []byte, operator ValAddress)
 	OnSideChainValidatorBeginUnbonding(ctx Context, sideConsAddr []byte, operator ValAddress)
+
+	OnSelfDelDropBelowMin(ctx Context, operator ValAddress)
 }

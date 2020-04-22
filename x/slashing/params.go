@@ -19,6 +19,7 @@ var (
 	KeyMinSignedPerWindow       = []byte("MinSignedPerWindow")
 	KeyDoubleSignUnbondDuration = []byte("DoubleSignUnbondDuration")
 	KeyDowntimeUnbondDuration   = []byte("DowntimeUnbondDuration")
+	KeyTooLowDelUnbondDuration  = []byte("TooLowDelUnbondDuration")
 	KeySlashFractionDoubleSign  = []byte("SlashFractionDoubleSign")
 	KeySlashFractionDowntime    = []byte("SlashFractionDowntime")
 	KeySlashAmount              = []byte("SlashAmount")
@@ -33,13 +34,14 @@ func ParamTypeTable() params.TypeTable {
 
 // Params - used for initializing default parameter for slashing at genesis
 type Params struct {
-	MaxEvidenceAge           time.Duration `json:"max-evidence-age"`
-	SignedBlocksWindow       int64         `json:"signed-blocks-window"`
-	MinSignedPerWindow       sdk.Dec       `json:"min-signed-per-window"`
-	DoubleSignUnbondDuration time.Duration `json:"double-sign-unbond-duration"`
-	DowntimeUnbondDuration   time.Duration `json:"downtime-unbond-duration"`
-	SlashFractionDoubleSign  sdk.Dec       `json:"slash-fraction-double-sign"`
-	SlashFractionDowntime    sdk.Dec       `json:"slash-fraction-downtime"`
+	MaxEvidenceAge           time.Duration `json:"max_evidence_age"`
+	SignedBlocksWindow       int64         `json:"signed_blocks_window"`
+	MinSignedPerWindow       sdk.Dec       `json:"min_signed_per_window"`
+	DoubleSignUnbondDuration time.Duration `json:"double_sign_unbond_duration"`
+	DowntimeUnbondDuration   time.Duration `json:"downtime_unbond_duration"`
+	TooLowDelUnbondDuration  time.Duration `json:"too_low_del_unbond_duration"`
+	SlashFractionDoubleSign  sdk.Dec       `json:"slash_fraction_double_sign"`
+	SlashFractionDowntime    sdk.Dec       `json:"slash_fraction_downtime"`
 	SlashAmount              int64         `json:"slash_amount"`
 	SubmitterReward          int64         `json:"submitter_reward"`
 	BscSideChainId           string        `json:"bsc_side_chain_id"`
@@ -53,6 +55,7 @@ func (p *Params) KeyValuePairs() params.KeyValuePairs {
 		{KeyMinSignedPerWindow, &p.MinSignedPerWindow},
 		{KeyDoubleSignUnbondDuration, &p.DoubleSignUnbondDuration},
 		{KeyDowntimeUnbondDuration, &p.DowntimeUnbondDuration},
+		{KeyTooLowDelUnbondDuration, &p.TooLowDelUnbondDuration},
 		{KeySlashFractionDoubleSign, &p.SlashFractionDoubleSign},
 		{KeySlashFractionDowntime, &p.SlashFractionDowntime},
 		{KeySlashAmount, &p.SlashAmount},
@@ -76,6 +79,9 @@ func DefaultParams() Params {
 
 		// TODO Temporarily set to 10 minutes for testnets
 		DowntimeUnbondDuration: 60 * 10 * time.Second,
+
+		// TODO Temporarily set to 5 minutes for testnets
+		TooLowDelUnbondDuration: 60 * 5 * time.Second,
 
 		MinSignedPerWindow: sdk.NewDecWithPrec(5, 1),
 
@@ -121,6 +127,11 @@ func (k Keeper) DoubleSignUnbondDuration(ctx sdk.Context) (res time.Duration) {
 // Downtime unbond duration
 func (k Keeper) DowntimeUnbondDuration(ctx sdk.Context) (res time.Duration) {
 	k.paramspace.Get(ctx, KeyDowntimeUnbondDuration, &res)
+	return
+}
+
+func (k Keeper) TooLowDelUnbondDuration(ctx sdk.Context) (res time.Duration) {
+	k.paramspace.Get(ctx, KeyTooLowDelUnbondDuration, &res)
 	return
 }
 

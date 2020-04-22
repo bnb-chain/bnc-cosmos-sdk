@@ -496,6 +496,7 @@ func (k Keeper) unbond(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValA
 	if validator.IsSelfDelegator(delegation.DelegatorAddr) && !validator.Jailed &&
 		validator.TokensFromShares(delegation.Shares).RawInt() < types.DefaultMinSelfDelegation {
 		k.jailValidator(ctx, validator)
+		k.OnSelfDelDropBelowMin(ctx, valAddr)
 		validator = k.mustGetValidator(ctx, validator.OperatorAddr)
 	}
 

@@ -27,7 +27,7 @@ func (k Keeper) Unjail(ctx sdk.Context, validatorAddr sdk.ValAddress) sdk.Error 
 	if validator.IsSideChainValidator() {
 		consAddr = validator.GetSideChainConsAddr()
 	} else {
-		consAddr = validator.GetConsAddr()
+		consAddr = validator.GetConsAddr().Bytes()
 	}
 	info, found := k.getValidatorSigningInfo(ctx, consAddr)
 	if found {
