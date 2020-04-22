@@ -18,8 +18,8 @@ var (
 )
 
 // stored by *Tendermint* address (not operator address)
-func GetValidatorSigningInfoKey(v sdk.ConsAddress) []byte {
-	return append(ValidatorSigningInfoKey, v.Bytes()...)
+func GetValidatorSigningInfoKey(consAddr []byte) []byte {
+	return append(ValidatorSigningInfoKey, consAddr...)
 }
 
 // stored by *Tendermint* address (not operator address)

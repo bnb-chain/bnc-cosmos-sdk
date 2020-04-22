@@ -50,6 +50,29 @@ func (k Keeper) onValidatorBeginUnbonding(ctx sdk.Context, address sdk.ConsAddre
 	k.addOrUpdateValidatorSlashingPeriod(ctx, slashingPeriod)
 }
 
+// Create SigningInfo and jail the validator
+func (k Keeper) onSelfDelDropBelowMin(ctx sdk.Context, valAddress sdk.ValAddress) {
+	validator := k.validatorSet.Validator(ctx, valAddress)
+	consAddr := validator.GetConsAddr().Bytes()
+	if validator.IsSideChainValidator() {
+		consAddr = validator.GetSideChainConsAddr()
+	}
+
+	signingInfo, found := k.getValidatorSigningInfo(ctx, consAddr)
+	if !found {
+		signingInfo := ValidatorSigningInfo{
+			StartHeight:         ctx.BlockHeight(),
+			IndexOffset:         0,
+			JailedUntil:         ctx.BlockHeader().Time.Add(k.TooLowDelUnbondDuration(ctx)),
+			MissedBlocksCounter: 0,
+		}
+		k.setValidatorSigningInfo(ctx, consAddr, signingInfo)
+	} else {
+		signingInfo.JailedUntil = ctx.BlockHeader().Time.Add(k.TooLowDelUnbondDuration(ctx))
+		k.setValidatorSigningInfo(ctx, consAddr, signingInfo)
+	}
+}
+
 //_________________________________________________________________________________________
 
 // Wrapper struct
@@ -69,6 +92,7 @@ func (h Hooks) OnValidatorBonded(ctx sdk.Context, address sdk.ConsAddress, opera
 	h.k.onValidatorBonded(ctx, address, operator)
 }
 
+// Implements sdk.ValidatorHooks
 func (h Hooks) OnSideChainValidatorBonded(ctx sdk.Context, sideConsAddr []byte, operator sdk.ValAddress) {
 	h.k.onSideChainValidatorBonded(ctx, sideConsAddr, operator)
 }
@@ -76,6 +100,11 @@ func (h Hooks) OnSideChainValidatorBonded(ctx sdk.Context, sideConsAddr []byte, 
 // Implements sdk.ValidatorHooks
 func (h Hooks) OnValidatorBeginUnbonding(ctx sdk.Context, address sdk.ConsAddress, operator sdk.ValAddress) {
 	h.k.onValidatorBeginUnbonding(ctx, address, operator)
+}
+
+// Implements sdk.ValidatorHooks
+func (h Hooks) OnSelfDelDropBelowMin(ctx sdk.Context, operator sdk.ValAddress) {
+	h.k.onSelfDelDropBelowMin(ctx, operator)
 }
 
 // nolint - unused hooks

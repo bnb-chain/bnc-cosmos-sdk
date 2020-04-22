@@ -35,6 +35,12 @@ func (k Keeper) OnSideChainValidatorBonded(ctx sdk.Context, sideConsAddr []byte,
 	}
 }
 
+func (k Keeper) OnSelfDelDropBelowMin(ctx sdk.Context, operator sdk.ValAddress) {
+	if k.hooks != nil {
+		k.hooks.OnSelfDelDropBelowMin(ctx, operator)
+	}
+}
+
 func (k Keeper) OnValidatorBeginUnbonding(ctx sdk.Context, address sdk.ConsAddress, operator sdk.ValAddress) {
 	if k.hooks != nil {
 		k.hooks.OnValidatorBeginUnbonding(ctx, address, operator)
