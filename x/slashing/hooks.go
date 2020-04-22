@@ -53,7 +53,10 @@ func (k Keeper) onValidatorBeginUnbonding(ctx sdk.Context, address sdk.ConsAddre
 // Create SigningInfo and jail the validator
 func (k Keeper) onSelfDelDropBelowMin(ctx sdk.Context, valAddress sdk.ValAddress) {
 	validator := k.validatorSet.Validator(ctx, valAddress)
-	consAddr := validator.GetConsAddr().Bytes()
+	if validator == nil {
+		return
+	}
+	consAddr := validator.GetConsAddr()
 	if validator.IsSideChainValidator() {
 		consAddr = validator.GetSideChainConsAddr()
 	}
