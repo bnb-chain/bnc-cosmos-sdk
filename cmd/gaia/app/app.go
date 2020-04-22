@@ -380,3 +380,5 @@ func (h Hooks) OnSideChainValidatorBonded(ctx sdk.Context, sideConsAddr []byte, 
 }
 func (h Hooks) OnSideChainValidatorBeginUnbonding(ctx sdk.Context, sideConsAddr []byte, operator sdk.ValAddress) {
 }
+func (h Hooks) OnSelfDelDropBelowMin(ctx sdk.Context, operator sdk.ValAddress) {
+}
