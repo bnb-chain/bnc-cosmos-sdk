@@ -615,14 +615,19 @@ func GetCmdQuerySideChainTopValidators(cdc *codec.Codec) *cobra.Command {
 		Short: "Query top N validators at current time",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			topS := viper.GetString("top")
-			top, err := strconv.Atoi(topS)
-			if err != nil {
-				return err
+			var top int
+			if len(topS) != 0 {
+				topI, err := strconv.Atoi(topS)
+				if err != nil {
+					return err
+				}
+				if topI > 50 || topI < 1 {
+					return errors.New("top must be between 1 and 50")
+				}
+				top = topI
 			}
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			if top > 50 || top < 1 {
-				return errors.New("top must be between 1 and 50")
-			}
+
 			sideChainId, _, err := getSideChainConfig(cliCtx)
 			if err != nil {
 				return err
@@ -663,7 +668,7 @@ func GetCmdQuerySideChainTopValidators(cdc *codec.Codec) *cobra.Command {
 		},
 	}
 	cmd.Flags().AddFlagSet(fsSideChainId)
-	cmd.Flags().String("top", "21", "")
+	cmd.Flags().String("top", "", "")
 	return cmd
 }
 

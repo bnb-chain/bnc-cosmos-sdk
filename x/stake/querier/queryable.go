@@ -152,7 +152,7 @@ func NewQuerier(k keep.Keeper, cdc *codec.Codec) sdk.Querier {
 	}
 }
 
-func RequestPrepare(ctx sdk.Context, k keep.Keeper, req abci.RequestQuery, p SideChain) (newCtx sdk.Context, err sdk.Error) {
+func RequestPrepare(ctx sdk.Context, k keep.Keeper, req abci.RequestQuery, p types.SideChainIder) (newCtx sdk.Context, err sdk.Error) {
 	if req.Data == nil || len(req.Data) == 0 {
 		return ctx, nil
 	}
@@ -162,17 +162,13 @@ func RequestPrepare(ctx sdk.Context, k keep.Keeper, req abci.RequestQuery, p Sid
 	if errRes != nil {
 		return newCtx, sdk.ErrInternal("can not unmarshal request")
 	}
-	if len(p.getSideChainId()) != 0 {
-		newCtx, err = prepareSideChainCtx(ctx, k, p.getSideChainId())
+	if len(p.GetSideChainId()) != 0 {
+		newCtx, err = prepareSideChainCtx(ctx, k, p.GetSideChainId())
 		if err != nil {
 			return newCtx, err
 		}
 	}
 	return newCtx, nil
-}
-
-type SideChain interface {
-	getSideChainId() string
 }
 
 // BaseParams
@@ -186,7 +182,7 @@ func NewBaseParams(sideChainId string) BaseParams {
 	}
 }
 
-func (p BaseParams) getSideChainId() string {
+func (p BaseParams) GetSideChainId() string {
 	return p.SideChainId
 }
 
@@ -200,10 +196,6 @@ type QueryDelegatorParams struct {
 	DelegatorAddr sdk.AccAddress
 }
 
-func (p QueryDelegatorParams) getSideChainId() string {
-	return p.SideChainId
-}
-
 // defines the params for the following queries:
 // - 'custom/stake/validator'
 // - 'custom/stake/validatorUnbondingDelegations'
@@ -211,10 +203,6 @@ func (p QueryDelegatorParams) getSideChainId() string {
 type QueryValidatorParams struct {
 	BaseParams
 	ValidatorAddr sdk.ValAddress
-}
-
-func (p QueryValidatorParams) getSideChainId() string {
-	return p.SideChainId
 }
 
 // defines the params for the following queries:
@@ -227,18 +215,10 @@ type QueryBondsParams struct {
 	ValidatorAddr sdk.ValAddress
 }
 
-func (p QueryBondsParams) getSideChainId() string {
-	return p.SideChainId
-}
-
 // defines the params for 'custom/stake/topValidators'
 type QueryTopValidatorsParams struct {
 	BaseParams
 	Top int
-}
-
-func (p QueryTopValidatorsParams) getSideChainId() string {
-	return p.SideChainId
 }
 
 func queryValidators(ctx sdk.Context, cdc *codec.Codec, k keep.Keeper) (res []byte, err sdk.Error) {
@@ -391,6 +371,10 @@ func queryParameters(ctx sdk.Context, cdc *codec.Codec, k keep.Keeper) (res []by
 }
 
 func queryTopValidators(ctx sdk.Context, cdc *codec.Codec, params *QueryTopValidatorsParams, k keep.Keeper) (res []byte, err sdk.Error) {
+
+	if params.Top == 0 {
+		params.Top = int(k.MaxValidators(ctx))
+	}
 
 	if params.Top > 50 || params.Top < 1 {
 		return []byte{}, sdk.ErrInternal("top must be between 1 and 50")
