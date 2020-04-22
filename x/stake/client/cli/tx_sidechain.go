@@ -136,7 +136,7 @@ func GetCmdEditSideChainValidator(cdc *codec.Codec) *cobra.Command {
 
 	cmd.Flags().AddFlagSet(fsDescriptionEdit)
 	cmd.Flags().AddFlagSet(fsCommissionUpdate)
-	cmd.Flags().AddFlagSet(fsSideChainFull)
+	cmd.Flags().AddFlagSet(fsSideChainEdit)
 	return cmd
 }
 
