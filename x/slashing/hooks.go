@@ -56,9 +56,11 @@ func (k Keeper) onSelfDelDropBelowMin(ctx sdk.Context, valAddress sdk.ValAddress
 	if validator == nil {
 		return
 	}
-	consAddr := validator.GetConsAddr()
+	var consAddr []byte
 	if validator.IsSideChainValidator() {
 		consAddr = validator.GetSideChainConsAddr()
+	} else {
+		consAddr = validator.GetConsAddr().Bytes()
 	}
 
 	signingInfo, found := k.getValidatorSigningInfo(ctx, consAddr)
