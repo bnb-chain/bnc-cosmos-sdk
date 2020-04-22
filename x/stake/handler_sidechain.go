@@ -10,7 +10,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
 
-func handleMsgCreateSideChainValidator(ctx sdk.Context, msg MsgCreateSideChainValidator, k keeper.Keeper) sdk.Result{
+func handleMsgCreateSideChainValidator(ctx sdk.Context, msg MsgCreateSideChainValidator, k keeper.Keeper) sdk.Result {
 	if scCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, msg.SideChainId); err != nil {
 		return ErrInvalidSideChainId(k.Codespace()).Result()
 	} else {
@@ -100,14 +100,6 @@ func handleMsgEditSideChainValidator(ctx sdk.Context, msg MsgEditSideChainValida
 		k.OnValidatorModified(ctx, msg.ValidatorAddr)
 	}
 
-	if len(msg.SideConsAddr) != 0 {
-		_, found = k.GetValidatorBySideConsAddr(ctx, msg.SideConsAddr)
-		if found {
-			return ErrValidatorSideConsAddrExist(k.Codespace()).Result()
-		}
-		validator.SideConsAddr = msg.SideConsAddr
-	}
-
 	if len(msg.SideFeeAddr) != 0 {
 		validator.SideFeeAddr = msg.SideFeeAddr
 	}
@@ -180,7 +172,7 @@ func handleMsgSideChainRedelegate(ctx sdk.Context, msg MsgSideChainRedelegate, k
 		return err.Result()
 	}
 
-	shares ,err := k.ValidateUnbondAmount(ctx, msg.DelegatorAddr, msg.ValidatorSrcAddr, msg.Amount.Amount)
+	shares, err := k.ValidateUnbondAmount(ctx, msg.DelegatorAddr, msg.ValidatorSrcAddr, msg.Amount.Amount)
 	if err != nil {
 		return err.Result()
 	}
@@ -213,7 +205,7 @@ func handleMsgSideChainUndelegate(ctx sdk.Context, msg MsgSideChainUndelegate, k
 		return ErrBadDenom(k.Codespace()).Result()
 	}
 
-	shares ,err := k.ValidateUnbondAmount(ctx, msg.DelegatorAddr, msg.ValidatorAddr, msg.Amount.Amount)
+	shares, err := k.ValidateUnbondAmount(ctx, msg.DelegatorAddr, msg.ValidatorAddr, msg.Amount.Amount)
 	if err != nil {
 		return err.Result()
 	}
