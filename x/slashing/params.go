@@ -34,17 +34,17 @@ func ParamTypeTable() params.TypeTable {
 
 // Params - used for initializing default parameter for slashing at genesis
 type Params struct {
-	MaxEvidenceAge           time.Duration `json:"max-evidence-age"`
-	SignedBlocksWindow       int64         `json:"signed-blocks-window"`
-	MinSignedPerWindow       sdk.Dec       `json:"min-signed-per-window"`
-	DoubleSignUnbondDuration time.Duration `json:"double-sign-unbond-duration"`
-	DowntimeUnbondDuration   time.Duration `json:"downtime-unbond-duration"`
-	TooLowDelUnbondDuration  time.Duration `json:"too-low-del-unbond-duration"`
-	SlashFractionDoubleSign  sdk.Dec       `json:"slash-fraction-double-sign"`
-	SlashFractionDowntime    sdk.Dec       `json:"slash-fraction-downtime"`
-	SlashAmount              int64         `json:"slash-amount"`
-	SubmitterReward          int64         `json:"submitter-reward"`
-	BscSideChainId           string        `json:"bsc-side-chain-id"`
+	MaxEvidenceAge           time.Duration `json:"max_evidence_age"`
+	SignedBlocksWindow       int64         `json:"signed_blocks_window"`
+	MinSignedPerWindow       sdk.Dec       `json:"min_signed_per_window"`
+	DoubleSignUnbondDuration time.Duration `json:"double_sign_unbond_duration"`
+	DowntimeUnbondDuration   time.Duration `json:"downtime_unbond_duration"`
+	TooLowDelUnbondDuration  time.Duration `json:"too_low_del_unbond_duration"`
+	SlashFractionDoubleSign  sdk.Dec       `json:"slash_fraction_double_sign"`
+	SlashFractionDowntime    sdk.Dec       `json:"slash_fraction_downtime"`
+	SlashAmount              int64         `json:"slash_amount"`
+	SubmitterReward          int64         `json:"submitter_reward"`
+	BscSideChainId           string        `json:"bsc_side_chain_id"`
 }
 
 // Implements params.ParamStruct
