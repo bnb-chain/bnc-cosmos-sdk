@@ -14,7 +14,7 @@ var (
 	ValidatorMissedBlockBitArrayKey = []byte{0x02} // Prefix for missed block bit array
 	ValidatorSlashingPeriodKey      = []byte{0x03} // Prefix for slashing period
 	AddrPubkeyRelationKey           = []byte{0x04} // Prefix for address-pubkey relation
-	SlashRecordKey                  = []byte{0x05}
+	SlashRecordKey                  = []byte{0x05} // Prefix for slash record
 )
 
 // stored by *Tendermint* address (not operator address)
@@ -51,6 +51,14 @@ func getAddrPubkeyRelationKey(address []byte) []byte {
 	return append(AddrPubkeyRelationKey, address...)
 }
 
-func getSlashRecordKey(sideConsAddr []byte, sideHeight int64) []byte {
-	return append(append(SlashRecordKey, sideConsAddr...), []byte(strconv.FormatInt(sideHeight, 16))...)
+func GetSlashRecordKey(consAddr []byte, infractionType byte, infractionHeight int64) []byte {
+	return append(GetSlashRecordsByAddrAndTypeIndexKey(consAddr, infractionType), []byte(strconv.FormatInt(infractionHeight, 16))...)
+}
+
+func GetSlashRecordsByAddrAndTypeIndexKey(sideConsAddr []byte, infractionType byte) []byte {
+	return append(GetSlashRecordsByAddrIndexKey(sideConsAddr), []byte{infractionType}...)
+}
+
+func GetSlashRecordsByAddrIndexKey(sideConsAddr []byte) []byte {
+	return append(SlashRecordKey, sideConsAddr...)
 }

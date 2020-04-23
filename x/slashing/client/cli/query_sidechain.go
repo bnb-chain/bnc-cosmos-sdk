@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -13,7 +15,7 @@ import (
 )
 
 // GetCmdQuerySideChainSigningInfo implements the command to query signing info.
-func GetCmdQuerySideChainSigningInfo(storeName string, sideChainPrefixStoreName string, cdc *codec.Codec) *cobra.Command {
+func GetCmdQuerySideChainSigningInfo(storeName string, cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "bsc-signing-info [validator-sideConsAddr]",
 		Short: "Query a validator's signing information",
@@ -25,7 +27,7 @@ func GetCmdQuerySideChainSigningInfo(storeName string, sideChainPrefixStoreName 
 			}
 
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			sideChainStorePrefix, err := getSideChainStorePrefix(cliCtx, sideChainPrefixStoreName)
+			_, sideChainStorePrefix, err := getSideChainConfig(cliCtx)
 			if err != nil {
 				return err
 			}
@@ -58,21 +60,174 @@ func GetCmdQuerySideChainSigningInfo(storeName string, sideChainPrefixStoreName 
 			return nil
 		},
 	}
-
+	cmd.Flags().String(FlagSideChainId, "", "chain-id of the side chain the validator belongs to")
 	return cmd
 }
 
-func getSideChainStorePrefix(cliCtx context.CLIContext, storeName string) ([]byte, error) {
-	sideChainId, err := getSideChainId()
-	if err != nil {
-		return nil, err
+// GetCmdQuerySideChainSlashRecord implements the command to query slash Record
+func GetCmdQuerySideChainSlashRecord(storeName string, cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "bsc-slash-record [validator-sideConsAddr]",
+		Short: "Query a validator's slash records",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			sideConsAddr, err := sdk.HexDecode(args[0])
+			if err != nil {
+				return err
+			}
+
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			_, sideChainStorePrefix, err := getSideChainConfig(cliCtx)
+			if err != nil {
+				return err
+			}
+			infractionType := viper.GetString(FlagInfractionType)
+			resType, err := convertInfractionType(infractionType)
+			if err != nil {
+				return err
+			}
+			height := viper.GetInt64(FlagInfractionHeight)
+			key := append(sideChainStorePrefix, slashing.GetSlashRecordKey(sideConsAddr, resType, height)...)
+			res, err := cliCtx.QueryStore(key, storeName)
+			if err != nil {
+				return err
+			}
+
+			slashRecord := new(slashing.SlashRecord)
+			cdc.MustUnmarshalBinaryLengthPrefixed(res, slashRecord)
+
+			switch viper.Get(cli.OutputFlag) {
+
+			case "text":
+				human, err := slashRecord.HumanReadableString()
+				if err != nil {
+					return err
+				}
+				fmt.Println(human)
+
+			case "json":
+				// parse out the signing info
+				output, err := codec.MarshalJSONIndent(cdc, slashRecord)
+				if err != nil {
+					return err
+				}
+				fmt.Println(string(output))
+			}
+			return nil
+		},
+	}
+	cmd.Flags().String(FlagInfractionType, "", "infraction type, 'DoubleSign;Downtime'")
+	cmd.Flags().Int64(FlagInfractionHeight, 0, "infraction height")
+	cmd.Flags().String(FlagSideChainId, "", "chain-id of the side chain the validator belongs to")
+	cmd.MarkFlagRequired(FlagInfractionType)
+	cmd.MarkFlagRequired(FlagInfractionHeight)
+	return cmd
+}
+
+// GetCmdQuerySideChainSlashRecords implements the command to query slash Records
+func GetCmdQuerySideChainSlashRecords(cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "bsc-slash-record [validator-sideConsAddr]",
+		Short: "Query a validator's slash records",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			sideConsAddr, err := sdk.HexDecode(args[0])
+			if err != nil {
+				return err
+			}
+
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			sideChainId, _, err := getSideChainConfig(cliCtx)
+			if err != nil {
+				return err
+			}
+
+			infractionType := viper.GetString(FlagInfractionType)
+			var response []byte
+			if len(infractionType) == 0 {
+				params := slashing.QueryConsAddrParams{
+					BaseParams: slashing.NewBaseParams(sideChainId),
+					ConsAddr:   sideConsAddr,
+				}
+
+				bz, err := json.Marshal(params)
+				if err != nil {
+					return err
+				}
+				response, err = cliCtx.QueryWithData("custom/slashing/consAddrSlashRecords", bz)
+				if err != nil {
+					return err
+				}
+			} else {
+				params := slashing.QueryConsAddrTypeParams{
+					BaseParams: slashing.NewBaseParams(sideChainId),
+					ConsAddr:   sideConsAddr,
+				}
+				infractionType := viper.GetString(FlagInfractionType)
+				resType, err := convertInfractionType(infractionType)
+				if err != nil {
+					return err
+				}
+				params.InfractionType = resType
+				bz, err := json.Marshal(params)
+				if err != nil {
+					return err
+				}
+				response, err = cliCtx.QueryWithData("custom/slashing/consAddrTypeSlashRecords", bz)
+				if err != nil {
+					return err
+				}
+			}
+
+			switch viper.Get(cli.OutputFlag) {
+			case "text":
+				var slashRecords []slashing.SlashRecord
+				if err = cdc.UnmarshalJSON(response, &slashRecords); err != nil {
+					return err
+				}
+				for _, sr := range slashRecords {
+					resp, err := sr.HumanReadableString()
+					if err != nil {
+						return err
+					}
+					fmt.Println(resp)
+				}
+			case "json":
+				fmt.Println(string(response))
+				return nil
+			}
+			return nil
+		},
 	}
 
-	res, err := cliCtx.QueryStore(sidechain.GetSideChainStorePrefixKey(sideChainId), storeName)
-	if err != nil {
-		return nil, err
-	} else if len(res) == 0 {
-		return nil, fmt.Errorf("Invalid side-chain-id %s ", sideChainId)
+	cmd.Flags().String(FlagInfractionType, "", "infraction type, 'DoubleSign;Downtime'")
+	cmd.Flags().String(FlagSideChainId, "", "chain-id of the side chain the validator belongs to")
+	return cmd
+}
+
+func getSideChainConfig(cliCtx context.CLIContext) (sideChainId string, prefix []byte, error error) {
+	sideChainId, error = getSideChainId()
+	if error != nil {
+		return sideChainId, nil, error
 	}
-	return res, err
+
+	prefix, error = cliCtx.QueryStore(sidechain.GetSideChainStorePrefixKey(sideChainId), scStoreKey)
+	if error != nil {
+		return sideChainId, nil, error
+	} else if len(prefix) == 0 {
+		return sideChainId, nil, fmt.Errorf("Invalid side-chain-id %s ", sideChainId)
+	}
+	return sideChainId, prefix, error
+}
+
+func convertInfractionType(infractionTypeS string) (byte, error) {
+	var res byte
+	if infractionTypeS == "DoubleSign" {
+		res = slashing.DoubleSign
+	} else if infractionTypeS == "Downtime" {
+		res = slashing.Downtime
+	} else {
+		return -1, errors.New("unknown infraction type")
+	}
+	return res, nil
 }

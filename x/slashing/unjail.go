@@ -6,21 +6,21 @@ func (k Keeper) Unjail(ctx sdk.Context, validatorAddr sdk.ValAddress) sdk.Error 
 
 	validator := k.validatorSet.Validator(ctx, validatorAddr)
 	if validator == nil {
-		return ErrNoValidatorForAddress(k.codespace)
+		return ErrNoValidatorForAddress(k.Codespace)
 	}
 
 	// cannot be unjailed if no self-delegation exists
 	selfDel := k.validatorSet.Delegation(ctx, sdk.AccAddress(validator.GetFeeAddr()), validatorAddr)
 	if selfDel == nil {
-		return ErrMissingSelfDelegation(k.codespace)
+		return ErrMissingSelfDelegation(k.Codespace)
 	}
 
 	if validator.TokensFromShares(selfDel.GetShares()).RawInt() < validator.GetMinSelfDelegation() {
-		return ErrSelfDelegationTooLowToUnjail(k.codespace)
+		return ErrSelfDelegationTooLowToUnjail(k.Codespace)
 	}
 
 	if !validator.GetJailed() {
-		return ErrValidatorNotJailed(k.codespace)
+		return ErrValidatorNotJailed(k.Codespace)
 	}
 
 	var consAddr []byte
@@ -33,7 +33,7 @@ func (k Keeper) Unjail(ctx sdk.Context, validatorAddr sdk.ValAddress) sdk.Error 
 	if found {
 		// cannot be unjailed until out of jail
 		if ctx.BlockHeader().Time.Before(info.JailedUntil) {
-			return ErrValidatorJailed(k.codespace)
+			return ErrValidatorJailed(k.Codespace)
 		}
 	}
 

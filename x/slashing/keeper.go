@@ -23,9 +23,9 @@ type Keeper struct {
 	paramspace   params.Subspace
 
 	// codespace
-	codespace sdk.CodespaceType
+	Codespace sdk.CodespaceType
 
-	scKeeper *sidechain.Keeper
+	ScKeeper *sidechain.Keeper
 }
 
 // NewKeeper creates a slashing keeper
@@ -35,13 +35,13 @@ func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, vs sdk.ValidatorSet, paramspa
 		cdc:          cdc,
 		validatorSet: vs,
 		paramspace:   paramspace.WithTypeTable(ParamTypeTable()),
-		codespace:    codespace,
+		Codespace:    codespace,
 	}
 	return keeper
 }
 
 func (k *Keeper) SetSideChain(scKeeper *sidechain.Keeper) {
-	k.scKeeper = scKeeper
+	k.ScKeeper = scKeeper
 }
 
 // handle a validator signing two blocks at the same height
