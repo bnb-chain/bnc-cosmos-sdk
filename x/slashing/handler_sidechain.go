@@ -29,7 +29,7 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 	}
 
 	//verify evidence age
-	if k.getSlashRecord(ctx, sideConsAddr.Bytes(), msg.Headers[0].Number.Int64()) != nil {
+	if k.getSlashRecord(ctx, sideConsAddr.Bytes(), msg.Headers[0].Number) != nil {
 		return ErrEvidenceHasBeenHandled(k.codespace).Result()
 	}
 
@@ -46,7 +46,7 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 		return ErrFailedToSlash(k.codespace, slashErr.Error()).Result()
 	}
 
-	k.setSlashRecord(ctx, sideConsAddr.Bytes(), msg.Headers[0].Number.Int64())
+	k.setSlashRecord(ctx, sideConsAddr.Bytes(), msg.Headers[0].Number)
 
 	// Set or updated validator jail duration
 	signInfo, found := k.getValidatorSigningInfo(ctx, sideConsAddr.Bytes())

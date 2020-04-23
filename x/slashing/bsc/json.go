@@ -137,6 +137,10 @@ func UnmarshalFixedUnprefixedText(typname string, input, out []byte) error {
 // marshaled without error.
 type Big big.Int
 
+// Override Amino binary serialization by proxying to protobuf.
+func (b Big) MarshalAmino() ([]byte, error)   { return b.MarshalText() }
+func (b *Big) UnmarshalAmino(bz []byte) error { return b.UnmarshalText(bz) }
+
 // MarshalText implements encoding.TextMarshaler
 func (b Big) MarshalText() ([]byte, error) {
 	return []byte(HexEncodeBig((*big.Int)(&b))), nil
