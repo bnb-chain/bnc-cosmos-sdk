@@ -3,12 +3,11 @@ package bsc
 import (
 	"encoding/json"
 	"errors"
-	"io"
-	"math/big"
-
 	"github.com/cosmos/cosmos-sdk/x/slashing/bsc/rlp"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
 	"golang.org/x/crypto/sha3"
+	"io"
+	"math/big"
 )
 
 type Header struct {
@@ -19,8 +18,8 @@ type Header struct {
 	TxHash      Hash       `json:"transactionsRoot" gencodec:"required"`
 	ReceiptHash Hash       `json:"receiptsRoot"     gencodec:"required"`
 	Bloom       Bloom      `json:"logsBloom"        gencodec:"required"`
-	Difficulty  *big.Int   `json:"difficulty"       gencodec:"required"`
-	Number      *big.Int   `json:"number"           gencodec:"required"`
+	Difficulty  int64      `json:"difficulty"       gencodec:"required"`
+	Number      int64      `json:"number"           gencodec:"required"`
 	GasLimit    uint64     `json:"gasLimit"         gencodec:"required"`
 	GasUsed     uint64     `json:"gasUsed"          gencodec:"required"`
 	Time        uint64     `json:"timestamp"        gencodec:"required"`
@@ -56,8 +55,8 @@ func (h Header) MarshalJSON() ([]byte, error) {
 	enc.TxHash = h.TxHash
 	enc.ReceiptHash = h.ReceiptHash
 	enc.Bloom = h.Bloom
-	enc.Difficulty = (*Big)(h.Difficulty)
-	enc.Number = (*Big)(h.Number)
+	enc.Difficulty = (*Big)(big.NewInt(h.Difficulty))
+	enc.Number = (*Big)(big.NewInt(h.Number))
 	enc.GasLimit = Uint64(h.GasLimit)
 	enc.GasUsed = Uint64(h.GasUsed)
 	enc.Time = Uint64(h.Time)
@@ -121,11 +120,11 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 	if dec.Difficulty == nil {
 		return errors.New("missing required field 'difficulty' for Header")
 	}
-	h.Difficulty = (*big.Int)(dec.Difficulty)
+	h.Difficulty = dec.Difficulty.ToInt().Int64()
 	if dec.Number == nil {
 		return errors.New("missing required field 'number' for Header")
 	}
-	h.Number = (*big.Int)(dec.Number)
+	h.Number = dec.Number.ToInt().Int64()
 	if dec.GasLimit == nil {
 		return errors.New("missing required field 'gasLimit' for Header")
 	}
@@ -200,8 +199,8 @@ func encodeSigHeader(w io.Writer, header *Header) {
 		header.TxHash,
 		header.ReceiptHash,
 		header.Bloom,
-		header.Difficulty,
-		header.Number,
+		big.NewInt(header.Difficulty),
+		big.NewInt(header.Number),
 		header.GasLimit,
 		header.GasUsed,
 		header.Time,

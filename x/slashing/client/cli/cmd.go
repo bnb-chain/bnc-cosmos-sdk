@@ -6,6 +6,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var scStoreKey = "sc"
+var slashingStoreName = "slashing"
+
 func AddCommands(root *cobra.Command, cdc *codec.Codec) {
 	slashingCmd := &cobra.Command{
 		Use:   "slashing",
@@ -20,7 +23,10 @@ func AddCommands(root *cobra.Command, cdc *codec.Codec) {
 
 	slashingCmd.AddCommand(
 		client.GetCommands(
-			GetCmdQuerySideChainSigningInfo("slashing", "stake", cdc),
+			GetCmdQuerySideChainSigningInfo(slashingStoreName, cdc),
+			GetCmdQuerySideChainSlashRecord(slashingStoreName, cdc),
+			GetCmdQuerySideChainSlashRecords(cdc),
+			GetCmdQueryAllSideSlashRecords(slashingStoreName, cdc),
 		)...)
 
 	root.AddCommand(slashingCmd)

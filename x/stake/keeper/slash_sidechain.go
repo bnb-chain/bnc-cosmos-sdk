@@ -17,9 +17,9 @@ func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr
 	}
 
 	// add store prefix to ctx for side chain use
-	ctx = ctx.WithSideChainKeyPrefix(storePrefix)
+	sideCtx := ctx.WithSideChainKeyPrefix(storePrefix)
 
-	validator, found := k.GetValidatorBySideConsAddr(ctx, sideConsAddr)
+	validator, found := k.GetValidatorBySideConsAddr(sideCtx, sideConsAddr)
 	if !found {
 		// If not found, the validator must have been overslashed and removed - so we don't need to do anything
 		// NOTE:  Correctness dependent on invariant that unbonding delegations / redelegations must also have been completely
@@ -36,17 +36,17 @@ func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr
 		return errors.New(fmt.Sprintf("should not be slashing unbonded validator: %s", validator.GetOperator()))
 	}
 
-	bondDenom := k.BondDenom(ctx)
+	bondDenom := k.BondDenom(sideCtx)
 
 	if !validator.Jailed {
-		k.JailSideChain(ctx, sideConsAddr)
+		k.JailSideChain(sideCtx, sideConsAddr)
 	}
 
-	selfDelegation, found := k.GetDelegation(ctx, validator.FeeAddr, validator.OperatorAddr)
+	selfDelegation, found := k.GetDelegation(sideCtx, validator.FeeAddr, validator.OperatorAddr)
 	remainingSlashAmount := slashAmount
 	if found {
 		slashSelfDelegationShares := sdk.MinDec(slashAmount, selfDelegation.Shares)
-		_, err := k.unbond(ctx, selfDelegation.DelegatorAddr, validator.OperatorAddr, slashSelfDelegationShares)
+		_, err := k.unbond(sideCtx, selfDelegation.DelegatorAddr, validator.OperatorAddr, slashSelfDelegationShares)
 		if err != nil {
 			return errors.New(fmt.Sprintf("error unbonding delegator: %v", err))
 		}
@@ -54,11 +54,11 @@ func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr
 	}
 
 	if !remainingSlashAmount.IsZero() {
-		ubd, found := k.GetUnbondingDelegation(ctx, validator.FeeAddr, validator.OperatorAddr)
+		ubd, found := k.GetUnbondingDelegation(sideCtx, validator.FeeAddr, validator.OperatorAddr)
 		if found {
 			slashUnBondingAmount := sdk.MinInt64(remainingSlashAmount.RawInt(), ubd.Balance.Amount)
 			ubd.Balance.Amount = ubd.Balance.Amount - slashUnBondingAmount
-			k.SetUnbondingDelegation(ctx, ubd)
+			k.SetUnbondingDelegation(sideCtx, ubd)
 			remainingSlashAmount = remainingSlashAmount.Sub(sdk.NewDec(slashUnBondingAmount))
 		}
 	}
@@ -66,7 +66,7 @@ func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr
 	slashedAmt := slashAmount.Sub(remainingSlashAmount)
 	submitterReward = sdk.MinDec(submitterReward, slashedAmt)
 	remainingReward := slashedAmt.Sub(submitterReward)
-	if _, err := k.bankKeeper.SendCoins(ctx, DelegationAccAddr, submitter, sdk.Coins{sdk.NewCoin(bondDenom, submitterReward.RawInt())}); err != nil {
+	if _, err := k.bankKeeper.SendCoins(sideCtx, DelegationAccAddr, submitter, sdk.Coins{sdk.NewCoin(bondDenom, submitterReward.RawInt())}); err != nil {
 		return err
 	}
 	// allocate remaining rewards to other validators
@@ -74,7 +74,7 @@ func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr
 	if !found {
 		return errors.New("can not found breathe block height of current day")
 	}
-	validators, found := k.GetValidatorsByHeight(ctx, height)
+	validators, found := k.GetValidatorsByHeight(sideCtx, height)
 	if !found {
 		return errors.New("can not found validators of current day")
 	}
@@ -97,7 +97,7 @@ func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr
 		shouldCarry, shouldNotCarry, _ := allocate(sharers, remainingReward, totalShares, 0)
 		rewards := append(shouldCarry, shouldNotCarry...)
 		for _, eachReward := range rewards {
-			if _, err := k.bankKeeper.SendCoins(ctx, DelegationAccAddr, eachReward.AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, eachReward.Reward)}); err != nil {
+			if _, err := k.bankKeeper.SendCoins(sideCtx, DelegationAccAddr, eachReward.AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, eachReward.Reward)}); err != nil {
 				return err
 			}
 		}
@@ -111,7 +111,7 @@ func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr
 			DistAddr: validator.DistributionAddr,
 			Power:    validator.GetPower().RawInt(),
 		}
-		if _, err := k.SaveJailedValidatorToIbc(ctx, sideChainId, ibcValidator); err != nil {
+		if _, err := k.SaveJailedValidatorToIbc(sideCtx, sideChainId, ibcValidator); err != nil {
 			return errors.New(err.Error())
 		}
 	}

@@ -150,7 +150,7 @@ func (msg MsgBscSubmitEvidence) ValidateBasic() sdk.Error {
 	if err := headerEmptyCheck(msg.Headers[1]); err != nil {
 		return err
 	}
-	if msg.Headers[0].Number.Cmp(msg.Headers[1].Number) != 0 {
+	if msg.Headers[0].Number != msg.Headers[1].Number {
 		return ErrInvalidEvidence(DefaultCodespace, "The numbers of two block headers are not the same")
 	}
 	if msg.Headers[0].ParentHash.Cmp(msg.Headers[1].ParentHash) != 0 {
@@ -172,11 +172,11 @@ func (msg MsgBscSubmitEvidence) ValidateBasic() sdk.Error {
 
 func headerEmptyCheck(header bsc.Header) sdk.Error {
 
-	if header.Number == nil {
-		return ErrInvalidEvidence(DefaultCodespace, "header number can not be empty")
+	if header.Number == 0 {
+		return ErrInvalidEvidence(DefaultCodespace, "header number can not be zero ")
 	}
-	if header.Difficulty == nil {
-		return ErrInvalidEvidence(DefaultCodespace, "header difficulty can not be empty")
+	if header.Difficulty == 0 {
+		return ErrInvalidEvidence(DefaultCodespace, "header difficulty can not be zero")
 	}
 	if header.Extra == nil {
 		return ErrInvalidEvidence(DefaultCodespace, "header extra can not be empty")
