@@ -40,7 +40,7 @@ func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, vs sdk.ValidatorSet, paramspa
 	return keeper
 }
 
-func (k Keeper) SetSideChain(scKeeper *sidechain.Keeper) {
+func (k *Keeper) SetSideChain(scKeeper *sidechain.Keeper) {
 	k.scKeeper = scKeeper
 }
 
