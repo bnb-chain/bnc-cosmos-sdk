@@ -1,15 +1,13 @@
 package slashing
 
 import (
-	"encoding/hex"
-	"errors"
+	"encoding/binary"
 	"fmt"
-	cryptoAmino "github.com/tendermint/tendermint/crypto/encoding/amino"
-	"strconv"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	cryptoAmino "github.com/tendermint/tendermint/crypto/encoding/amino"
 )
 
 const (
@@ -46,7 +44,8 @@ func (r SlashRecord) HumanReadableString() (string, error) {
 			return "", err
 		}
 	} else {
-		consAddr = hex.EncodeToString(r.ConsAddr)
+
+		consAddr = sdk.HexEncode(r.ConsAddr)
 	}
 
 	resp := "SlashRecord \n"
@@ -104,10 +103,8 @@ func UnmarshalSlashRecord(cdc *codec.Codec, key []byte, value []byte) (SlashReco
 	consAddr := keys[:sdk.AddrLen]
 	infractionType := keys[sdk.AddrLen : sdk.AddrLen+1]
 	infractionHeightBz := keys[sdk.AddrLen+1:]
-	infractionHeight, err := strconv.ParseInt(string(infractionHeightBz), 16, 64)
-	if err != nil {
-		return SlashRecord{}, errors.New("invalid infraction height")
-	}
+
+	infractionHeight := int64(binary.BigEndian.Uint64(infractionHeightBz))
 	return SlashRecord{
 		ConsAddr:         consAddr,
 		InfractionType:   infractionType[0],

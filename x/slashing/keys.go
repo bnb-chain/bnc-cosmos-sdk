@@ -2,7 +2,6 @@ package slashing
 
 import (
 	"encoding/binary"
-	"strconv"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	stake "github.com/cosmos/cosmos-sdk/x/stake/types"
@@ -52,7 +51,9 @@ func getAddrPubkeyRelationKey(address []byte) []byte {
 }
 
 func GetSlashRecordKey(consAddr []byte, infractionType byte, infractionHeight int64) []byte {
-	return append(GetSlashRecordsByAddrAndTypeIndexKey(consAddr, infractionType), []byte(strconv.FormatInt(infractionHeight, 16))...)
+	heightBz := make([]byte, 8)
+	binary.BigEndian.PutUint64(heightBz, uint64(infractionHeight))
+	return append(GetSlashRecordsByAddrAndTypeIndexKey(consAddr, infractionType), heightBz...)
 }
 
 func GetSlashRecordsByAddrAndTypeIndexKey(sideConsAddr []byte, infractionType byte) []byte {

@@ -26,6 +26,7 @@ func AddCommands(root *cobra.Command, cdc *codec.Codec) {
 			GetCmdQuerySideChainSigningInfo(slashingStoreName, cdc),
 			GetCmdQuerySideChainSlashRecord(slashingStoreName, cdc),
 			GetCmdQuerySideChainSlashRecords(cdc),
+			GetCmdQueryAllSideSlashRecords(slashingStoreName, cdc),
 		)...)
 
 	root.AddCommand(slashingCmd)

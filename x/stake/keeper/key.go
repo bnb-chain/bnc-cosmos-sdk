@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"encoding/binary"
-	"strconv"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -138,8 +137,9 @@ func getValidatorPowerRankNew(validator types.Validator) []byte {
 }
 
 func GetValidatorHeightKey(height int64) []byte {
-	bz := []byte(strconv.FormatInt(height, 16))
-	return append(ValidatorsByHeightKey, bz...)
+	heightBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(heightBytes, uint64(height))
+	return append(ValidatorsByHeightKey, heightBytes...)
 }
 
 // gets the prefix for all unbonding delegations from a delegator
@@ -178,7 +178,8 @@ func GetDelegationsKeyByVal(valAddr sdk.ValAddress) []byte {
 // gets the prefix for an array of simplified delegation for particular validator and height
 // VALUE: []stake/types.SimplifiedDelegation
 func GetSimplifiedDelegationsKey(height int64, valAddr sdk.ValAddress) []byte {
-	heightBytes := []byte(strconv.FormatInt(height, 16))
+	heightBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(heightBytes, uint64(height))
 	return append(append(SimplifiedDelegationsKey, heightBytes...), valAddr.Bytes()...)
 }
 

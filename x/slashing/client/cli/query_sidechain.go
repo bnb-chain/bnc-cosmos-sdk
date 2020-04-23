@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -17,7 +18,7 @@ import (
 // GetCmdQuerySideChainSigningInfo implements the command to query signing info.
 func GetCmdQuerySideChainSigningInfo(storeName string, cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "bsc-signing-info [validator-sideConsAddr]",
+		Use:   "side-signing-info [validator-sideConsAddr]",
 		Short: "Query a validator's signing information",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -64,14 +65,70 @@ func GetCmdQuerySideChainSigningInfo(storeName string, cdc *codec.Codec) *cobra.
 	return cmd
 }
 
+func GetCmdQueryAllSideSlashRecords(storeName string, cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "side-all-slash-histories",
+		Short: "Query all slash histories on side chain",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			_, sideChainStorePrefix, err := getSideChainConfig(cliCtx)
+			if err != nil {
+				return err
+			}
+
+			key := append(sideChainStorePrefix, slashing.SlashRecordKey...)
+			resKVs, err := cliCtx.QuerySubspace(key, storeName)
+			if err != nil {
+				return err
+			}
+
+			var slashRecords []slashing.SlashRecord
+			for _, kv := range resKVs {
+				k := kv.Key[len(sideChainStorePrefix):] // remove side chain prefix bytes
+				sr := slashing.MustUnmarshalSlashRecord(cdc, k, kv.Value)
+				slashRecords = append(slashRecords, sr)
+			}
+
+			switch viper.Get(cli.OutputFlag) {
+			case "text":
+				for _, sr := range slashRecords {
+					resp, err := sr.HumanReadableString()
+					if err != nil {
+						return err
+					}
+					fmt.Println(resp)
+				}
+			case "json":
+				output, err := codec.MarshalJSONIndent(cdc, slashRecords)
+				if err != nil {
+					return err
+				}
+				fmt.Println(string(output))
+				return nil
+			}
+
+			return nil
+		},
+	}
+
+	cmd.Flags().String(FlagSideChainId, "", "chain-id of the side chain the validator belongs to")
+	return cmd
+}
+
 // GetCmdQuerySideChainSlashRecord implements the command to query slash Record
 func GetCmdQuerySideChainSlashRecord(storeName string, cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "bsc-slash-record [validator-sideConsAddr]",
-		Short: "Query a validator's slash records",
+		Use:   "side-slash-history [validator-sideConsAddr]",
+		Short: "Query a validator's slash history",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			sideConsAddr, err := sdk.HexDecode(args[0])
+			if err != nil {
+				return err
+			}
+
+			infractionType := viper.GetString(FlagInfractionType)
+			resType, err := convertInfractionType(infractionType)
 			if err != nil {
 				return err
 			}
@@ -81,12 +138,8 @@ func GetCmdQuerySideChainSlashRecord(storeName string, cdc *codec.Codec) *cobra.
 			if err != nil {
 				return err
 			}
-			infractionType := viper.GetString(FlagInfractionType)
-			resType, err := convertInfractionType(infractionType)
-			if err != nil {
-				return err
-			}
 			height := viper.GetInt64(FlagInfractionHeight)
+
 			key := append(sideChainStorePrefix, slashing.GetSlashRecordKey(sideConsAddr, resType, height)...)
 			res, err := cliCtx.QueryStore(key, storeName)
 			if err != nil {
@@ -127,8 +180,8 @@ func GetCmdQuerySideChainSlashRecord(storeName string, cdc *codec.Codec) *cobra.
 // GetCmdQuerySideChainSlashRecords implements the command to query slash Records
 func GetCmdQuerySideChainSlashRecords(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "bsc-slash-record [validator-sideConsAddr]",
-		Short: "Query a validator's slash records",
+		Use:   "side-slash-histories [validator-sideConsAddr]",
+		Short: "Query a validator's slash histories",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			sideConsAddr, err := sdk.HexDecode(args[0])
@@ -154,7 +207,7 @@ func GetCmdQuerySideChainSlashRecords(cdc *codec.Codec) *cobra.Command {
 				if err != nil {
 					return err
 				}
-				response, err = cliCtx.QueryWithData("custom/slashing/consAddrSlashRecords", bz)
+				response, err = cliCtx.QueryWithData("custom/slashing/consAddrSlashHistories", bz)
 				if err != nil {
 					return err
 				}
@@ -173,7 +226,7 @@ func GetCmdQuerySideChainSlashRecords(cdc *codec.Codec) *cobra.Command {
 				if err != nil {
 					return err
 				}
-				response, err = cliCtx.QueryWithData("custom/slashing/consAddrTypeSlashRecords", bz)
+				response, err = cliCtx.QueryWithData("custom/slashing/consAddrTypeSlashHistories", bz)
 				if err != nil {
 					return err
 				}
