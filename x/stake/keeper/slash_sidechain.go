@@ -11,14 +11,6 @@ import (
 func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr []byte, slashAmount sdk.Dec, submitterReward sdk.Dec, submitter sdk.AccAddress) error {
 	logger := ctx.Logger().With("module", "x/stake")
 
-	storePrefix := k.ScKeeper.GetSideChainStorePrefix(ctx, sideChainId)
-	if storePrefix == nil {
-		return errors.New("invalid side chain id")
-	}
-
-	// add store prefix to ctx for side chain use
-	ctx = ctx.WithSideChainKeyPrefix(storePrefix)
-
 	validator, found := k.GetValidatorBySideConsAddr(ctx, sideConsAddr)
 	if !found {
 		// If not found, the validator must have been overslashed and removed - so we don't need to do anything
