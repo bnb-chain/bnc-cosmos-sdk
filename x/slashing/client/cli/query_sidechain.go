@@ -38,6 +38,8 @@ func GetCmdQuerySideChainSigningInfo(storeName string, cdc *codec.Codec) *cobra.
 			res, err := cliCtx.QueryStore(key, storeName)
 			if err != nil {
 				return err
+			} else if len(res) == 0 {
+				return fmt.Errorf("No signing info found with sideConsAddr %s ", args[0])
 			}
 
 			signingInfo := new(slashing.ValidatorSigningInfo)
@@ -80,6 +82,8 @@ func GetCmdQueryAllSideSlashRecords(storeName string, cdc *codec.Codec) *cobra.C
 			resKVs, err := cliCtx.QuerySubspace(key, storeName)
 			if err != nil {
 				return err
+			} else if len(resKVs) == 0 {
+				return fmt.Errorf("No slash histories found ")
 			}
 
 			var slashRecords []slashing.SlashRecord
@@ -144,6 +148,8 @@ func GetCmdQuerySideChainSlashRecord(storeName string, cdc *codec.Codec) *cobra.
 			res, err := cliCtx.QueryStore(key, storeName)
 			if err != nil {
 				return err
+			} else if len(res) == 0 {
+				return fmt.Errorf("no slash history found with sideConsAddr %s ", args[0])
 			}
 
 			slashRecord := new(slashing.SlashRecord)
@@ -230,6 +236,10 @@ func GetCmdQuerySideChainSlashRecords(cdc *codec.Codec) *cobra.Command {
 				if err != nil {
 					return err
 				}
+			}
+
+			if len(response) == 0 {
+				return fmt.Errorf("no slash history found with sideConsAddr = %s\n", args[0])
 			}
 
 			switch viper.Get(cli.OutputFlag) {

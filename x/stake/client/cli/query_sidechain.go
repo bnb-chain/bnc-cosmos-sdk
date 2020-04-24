@@ -103,6 +103,8 @@ func GetCmdQuerySideChainDelegation(storeName string, cdc *codec.Codec) *cobra.C
 			res, err := cliCtx.QueryStore(key, storeName)
 			if err != nil {
 				return err
+			} else if len(res) == 0 {
+				return fmt.Errorf("No delegation found ")
 			}
 
 			// parse out the delegation
@@ -160,6 +162,8 @@ func GetCmdQuerySideChainDelegations(storeName string, cdc *codec.Codec) *cobra.
 			resKVs, err := cliCtx.QuerySubspace(key, storeName)
 			if err != nil {
 				return err
+			} else if len(resKVs) == 0 {
+				return fmt.Errorf("No delegation found with delegator-addr %s ", args[0])
 			}
 
 			// parse out the validators
@@ -229,6 +233,8 @@ func GetCmdQuerySideChainUnbondingDelegation(storeName string, cdc *codec.Codec)
 			res, err := cliCtx.QueryStore(key, storeName)
 			if err != nil {
 				return err
+			} else if len(res) == 0 {
+				return fmt.Errorf("No unbonding-delegation found ")
 			}
 
 			// parse out the unbonding delegation
@@ -286,6 +292,8 @@ func GetCmdQuerySideChainUnbondingDelegations(storeName string, cdc *codec.Codec
 			resKVs, err := cliCtx.QuerySubspace(key, storeName)
 			if err != nil {
 				return err
+			} else if len(resKVs) == 0 {
+				return fmt.Errorf("No unbonding-delegations found with delegator %s ", args[0])
 			}
 
 			// parse out the validators
@@ -359,6 +367,8 @@ func GetCmdQuerySideChainRedelegation(storeName string, cdc *codec.Codec) *cobra
 			res, err := cliCtx.QueryStore(key, storeName)
 			if err != nil {
 				return err
+			} else if len(res) == 0 {
+				return fmt.Errorf("No redelegation found ")
 			}
 
 			// parse out the unbonding delegation
@@ -415,6 +425,8 @@ func GetCmdQuerySideChainRedelegations(storeName string, cdc *codec.Codec) *cobr
 			resKVs, err := cliCtx.QuerySubspace(key, storeName)
 			if err != nil {
 				return err
+			} else if len(resKVs) == 0 {
+				return fmt.Errorf("No redelegations found ")
 			}
 
 			// parse out the validators
@@ -484,6 +496,8 @@ func GetCmdQuerySideChainUnbondingDelegationsByValidator(cdc *codec.Codec) *cobr
 			response, err := cliCtx.QueryWithData("custom/stake/validatorUnbondingDelegations", bz)
 			if err != nil {
 				return err
+			} else if len(response) == 0 {
+				return fmt.Errorf("No unbounding delegations found with operator address %s ", args[0])
 			}
 
 			switch viper.Get(cli.OutputFlag) {
@@ -539,6 +553,8 @@ func GetCmdQuerySideChainReDelegationsByValidator(cdc *codec.Codec) *cobra.Comma
 			response, err := cliCtx.QueryWithData("custom/stake/validatorRedelegations", bz)
 			if err != nil {
 				return err
+			} else if len(response) == 0 {
+				return fmt.Errorf("No re-delegations found with operator address %s ", args[0])
 			}
 
 			switch viper.Get(cli.OutputFlag) {
@@ -582,6 +598,8 @@ func GetCmdQuerySideChainPool(storeName string, cdc *codec.Codec) *cobra.Command
 			res, err := cliCtx.QueryStore(key, storeName)
 			if err != nil {
 				return err
+			} else if len(res) == 0 {
+				return fmt.Errorf("No pool found ")
 			}
 
 			pool := types.MustUnmarshalPool(cdc, res)
@@ -645,6 +663,8 @@ func GetCmdQuerySideChainTopValidators(cdc *codec.Codec) *cobra.Command {
 			response, err := cliCtx.QueryWithData("custom/stake/topValidators", bz)
 			if err != nil {
 				return err
+			} else if len(response) == 0 {
+				return fmt.Errorf("No validators found ")
 			}
 
 			switch viper.Get(cli.OutputFlag) {
@@ -702,6 +722,8 @@ func GetCmdQuerySideAllValidatorsCount(cdc *codec.Codec) *cobra.Command {
 			response, err := cliCtx.QueryWithData(path, bz)
 			if err != nil {
 				return err
+			} else if len(response) == 0 {
+				response = []byte{}
 			}
 
 			fmt.Println(string(response))

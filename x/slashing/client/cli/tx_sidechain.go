@@ -88,9 +88,9 @@ func GetCmdBscSubmitEvidence(cdc *codec.Codec) *cobra.Command {
 // GetCmdSideChainUnjail implements the create unjail validator command.
 func GetCmdSideChainUnjail(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "bsc-unjail",
+		Use:   "side-unjail",
 		Args:  cobra.NoArgs,
-		Short: "unjail bsc validator previously jailed",
+		Short: "unjail side validator previously jailed",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			txBldr := authtxb.NewTxBuilderFromCLI().WithCodec(cdc)
 			cliCtx := context.NewCLIContext().

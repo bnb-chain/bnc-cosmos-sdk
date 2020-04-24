@@ -29,12 +29,15 @@ func (k Keeper) Unjail(ctx sdk.Context, validatorAddr sdk.ValAddress) sdk.Error 
 	} else {
 		consAddr = validator.GetConsAddr().Bytes()
 	}
+
 	info, found := k.getValidatorSigningInfo(ctx, consAddr)
-	if found {
-		// cannot be unjailed until out of jail
-		if ctx.BlockHeader().Time.Before(info.JailedUntil) {
-			return ErrValidatorJailed(k.Codespace)
-		}
+	if !found {
+		return ErrNoValidatorForAddress(k.Codespace)
+	}
+
+	// cannot be unjailed until out of jail
+	if ctx.BlockHeader().Time.Before(info.JailedUntil) {
+		return ErrValidatorJailed(k.Codespace)
 	}
 
 	// unjail the validator
