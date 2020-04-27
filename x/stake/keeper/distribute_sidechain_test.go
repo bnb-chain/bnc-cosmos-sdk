@@ -12,6 +12,7 @@ import (
 
 func TestDistribute(t *testing.T) {
 	ctx, am, k := CreateTestInput(t, false, 0)
+	k.addrPool = new(sdk.Pool)
 	bondDenom := k.BondDenom(ctx)
 
 	height := int64(1000)
@@ -31,6 +32,7 @@ func TestDistribute(t *testing.T) {
 	delegators := make([][]sdk.AccAddress, 21)
 	rewards := make([]int64, 21)
 	rand.Seed(time.Now().UnixNano())
+	var totalDelNum int
 	for i := 0; i < 21; i++ {
 		valPubKey := PKs[i]
 		valAddr := sdk.ValAddress(valPubKey.Address().Bytes())
@@ -40,6 +42,7 @@ func TestDistribute(t *testing.T) {
 		var totalShares int64
 		simDels := make([]types.SimplifiedDelegation, delNum)
 		delsForVal := make([]sdk.AccAddress, 0)
+		totalDelNum += delNum
 		for j := 0; j < delNum; j++ {
 			delAddr := CreateTestAddr()
 			if j == 0 {
@@ -96,5 +99,7 @@ func TestDistribute(t *testing.T) {
 
 	_, found := k.GetValidatorsByHeight(ctx, height)
 	require.False(t, found)
+
+	require.EqualValues(t, len(k.addrPool.TxRelatedAddrs()), totalDelNum+21) // add 21 distribution addresses
 
 }
