@@ -201,7 +201,6 @@ func (k Keeper) bondValidator(ctx sdk.Context, validator types.Validator) types.
 
 	k.SetValidatorByPowerIndex(ctx, validator)
 
-	fmt.Println("k.hooks: ", k.hooks)
 	// call the bond hook if present
 	if k.hooks != nil {
 		if validator.IsSideChainValidator() {
@@ -209,8 +208,6 @@ func (k Keeper) bondValidator(ctx sdk.Context, validator types.Validator) types.
 		} else {
 			k.hooks.OnValidatorBonded(ctx, validator.ConsAddress(), validator.OperatorAddr)
 		}
-	} else {
-		fmt.Println("k.hooks not exist!!!!")
 	}
 
 	return validator

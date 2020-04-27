@@ -1,7 +1,6 @@
 package slashing
 
 import (
-	"fmt"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -31,7 +30,6 @@ func (k Keeper) onValidatorBonded(ctx sdk.Context, address sdk.ConsAddress, _ sd
 }
 
 func (k Keeper) onSideChainValidatorBonded(ctx sdk.Context, sideConsAddr []byte, _ sdk.ValAddress) {
-	fmt.Println("trigger onSideChainValidatorBonded!!!!!!!!!!, sideConsAddr: ", sdk.HexEncode(sideConsAddr))
 	// Update the signing info start height or create a new signing info
 	_, found := k.getValidatorSigningInfo(ctx, sideConsAddr)
 	if !found {

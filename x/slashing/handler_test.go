@@ -32,14 +32,17 @@ func TestCannotUnjailUnlessJailed(t *testing.T) {
 }
 
 func TestJailedValidatorDelegations(t *testing.T) {
-	ctx, _, stakeKeeper, _, slashingKeeper := createTestInput(t, DefaultParams())
+	slashParams := DefaultParams()
+	slashParams.TooLowDelUnbondDuration = 0
+
+	ctx, _, stakeKeeper, _, slashingKeeper := createTestInput(t, slashParams)
 
 	stakeParams := stakeKeeper.GetParams(ctx)
 	stakeParams.UnbondingTime = 0
 	stakeKeeper.SetParams(ctx, stakeParams)
 
 	// create a validator
-	amount := int64(10)
+	amount := int64(10000)
 	valPubKey, bondAmount := pks[0], amount
 	valAddr, consAddr := addrs[1], sdk.ConsAddress(addrs[0])
 

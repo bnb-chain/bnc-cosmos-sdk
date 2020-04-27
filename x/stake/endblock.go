@@ -61,10 +61,8 @@ func storeValidatorsWithHeight(ctx sdk.Context, validators []types.Validator, k 
 	for _, validator := range validators {
 		simplifiedDelegations := k.GetSimplifiedDelegationsByValidator(ctx, validator.OperatorAddr)
 		k.SetSimplifiedDelegations(ctx, ctx.BlockHeight(), validator.OperatorAddr, simplifiedDelegations)
-		k.Logger(ctx).Info(fmt.Sprintf("[%d]staking EndBreatheBlock, SetSimplifiedDelegations, simplifiedDelegations count: %d", ctx.BlockHeight(), len(simplifiedDelegations)))
 	}
 	k.SetValidatorsByHeight(ctx, ctx.BlockHeight(), validators)
-	k.Logger(ctx).Info(fmt.Sprintf("[%d]staking EndBreatheBlock, storeValidatorsWithHeight, validators count: %d", ctx.BlockHeight(), len(validators)))
 }
 
 func handleValidatorAndDelegations(ctx sdk.Context, k keeper.Keeper) ([]types.Validator, []abci.ValidatorUpdate, []types.UnbondingDelegation, sdk.Events) {
