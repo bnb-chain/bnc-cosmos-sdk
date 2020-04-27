@@ -114,7 +114,7 @@ func GetCmdSideChainUnjail(cdc *codec.Codec) *cobra.Command {
 			return utils.CompleteAndBroadcastTxCli(txBldr, cliCtx, []sdk.Msg{msg})
 		},
 	}
-
+	cmd.Flags().String(FlagSideChainId, "", "chain-id of the side chain the validator belongs to")
 	return cmd
 }
 
