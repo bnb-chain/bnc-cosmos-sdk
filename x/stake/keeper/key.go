@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"encoding/binary"
+	"strconv"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -25,6 +26,7 @@ var (
 	ValidatorsKey             = []byte{0x21} // prefix for each key to a validator
 	ValidatorsByConsAddrKey   = []byte{0x22} // prefix for each key to a validator index, by pubkey
 	ValidatorsByPowerIndexKey = []byte{0x23} // prefix for each key to a validator index, sorted by power
+	ValidatorsByHeightKey     = []byte{0x24} // prefix for each key to a validator index, by height
 
 	DelegationKey                    = []byte{0x31} // key for a delegation
 	UnbondingDelegationKey           = []byte{0x32} // key for an unbonding-delegation
@@ -32,6 +34,8 @@ var (
 	RedelegationKey                  = []byte{0x34} // key for a redelegation
 	RedelegationByValSrcIndexKey     = []byte{0x35} // prefix for each key for an redelegation, by source validator operator
 	RedelegationByValDstIndexKey     = []byte{0x36} // prefix for each key for an redelegation, by destination validator operator
+	DelegationKeyByVal               = []byte{0x37} // prefix for each key fro a delegation, by validator operator and delegator
+	SimplifiedDelegationsKey         = []byte{0x38} // prefix for each key for an simplifiedDelegations, by height and validator operator
 
 	UnbondingQueueKey    = []byte{0x41} // prefix for the timestamps in unbonding queue
 	RedelegationQueueKey = []byte{0x42} // prefix for the timestamps in redelegations queue
@@ -40,7 +44,9 @@ var (
 	SideChainStorePrefixByIdKey = []byte{0x51} // prefix for each key to a side chain store prefix, by side chain id
 )
 
-const maxDigitsForAccount = 12 // ~220,000,000 atoms created at launch
+const (
+	maxDigitsForAccount = 12 // ~220,000,000 atoms created at launch
+)
 
 // gets the key for the validator with address
 // VALUE: stake/types.Validator
@@ -128,6 +134,12 @@ func getValidatorPowerRankNew(validator types.Validator) []byte {
 	return key
 }
 
+func GetValidatorHeightKey(height int64) []byte {
+	bz := make([]byte, 8)
+	binary.BigEndian.PutUint64(bz, uint64(height))
+	return append(ValidatorsByHeightKey, bz...)
+}
+
 // gets the prefix for all unbonding delegations from a delegator
 func GetValidatorQueueTimeKey(timestamp time.Time) []byte {
 	bz := sdk.FormatTimeBytes(timestamp)
@@ -145,6 +157,27 @@ func GetDelegationKey(delAddr sdk.AccAddress, valAddr sdk.ValAddress) []byte {
 // gets the prefix for a delegator for all validators
 func GetDelegationsKey(delAddr sdk.AccAddress) []byte {
 	return append(DelegationKey, delAddr.Bytes()...)
+}
+
+//______________________________________________________________________________
+
+// gets the key for validator bond with delegator
+func GetDelegationKeyByValIndexKey(valAddr sdk.ValAddress, delAddr sdk.AccAddress) []byte {
+	return append(GetDelegationsKeyByVal(valAddr), delAddr.Bytes()...)
+}
+
+// gets the prefix for a validator for all delegator
+func GetDelegationsKeyByVal(valAddr sdk.ValAddress) []byte {
+	return append(DelegationKeyByVal, valAddr.Bytes()...)
+}
+
+//______________________________________________________________________________
+
+// gets the prefix for an array of simplified delegation for particular validator and height
+// VALUE: []stake/types.SimplifiedDelegation
+func GetSimplifiedDelegationsKey(height int64, valAddr sdk.ValAddress) []byte {
+	heightBytes := []byte(strconv.FormatInt(height, 16))
+	return append(append(SimplifiedDelegationsKey, heightBytes...), valAddr.Bytes()...)
 }
 
 //______________________________________________________________________________

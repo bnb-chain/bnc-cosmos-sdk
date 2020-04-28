@@ -31,6 +31,9 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 			}
 			events = events.AppendEvents(scEvents)
 			// TODO: need to add UBDs for side chains to the return value
+
+			storeValidatorsWithHeight(sideChainCtx, newVals, k)
+			k.Distribute(sideChainCtx)
 		}
 	}
 	ctx.EventManager().EmitEvents(events)
@@ -52,6 +55,14 @@ func saveSideChainValidatorsToIBC(ctx sdk.Context, sideChainId string, newVals [
 		k.Logger(ctx).Error("save validators to ibc package failed: " + err.Error())
 		return
 	}
+}
+
+func storeValidatorsWithHeight(ctx sdk.Context, validators []types.Validator, k keeper.Keeper) {
+	for _, validator := range validators {
+		simplifiedDelegations := k.GetSimplifiedDelegationsByValidator(ctx, validator.OperatorAddr)
+		k.SetSimplifiedDelegations(ctx, ctx.BlockHeight(), validator.OperatorAddr, simplifiedDelegations)
+	}
+	k.SetValidatorsByHeight(ctx, ctx.BlockHeight(), validators)
 }
 
 func handleValidatorAndDelegations(ctx sdk.Context, k keeper.Keeper) ([]types.Validator, []abci.ValidatorUpdate, []types.UnbondingDelegation, sdk.Events) {

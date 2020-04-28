@@ -304,3 +304,21 @@ func TestValidatorSetInitialCommission(t *testing.T) {
 		}
 	}
 }
+
+func TestMarshalValidator(t *testing.T) {
+	validator := NewValidator(addr1, pk1, Description{})
+	validator.Tokens = sdk.NewDec(100)
+	validator.DelegatorShares = sdk.NewDec(100)
+	validator.SideConsAddr = randAddr(t, 20)
+	bz := MustMarshalValidator(MsgCdc, validator)
+	getVal, err := UnmarshalValidator(MsgCdc, bz)
+	require.Nil(t, err)
+	require.EqualValues(t, validator.FeeAddr, getVal.FeeAddr)
+	require.EqualValues(t, validator.OperatorAddr, getVal.OperatorAddr)
+	require.EqualValues(t, validator.ConsPubKey, getVal.ConsPubKey)
+	require.EqualValues(t, validator.Tokens, getVal.Tokens)
+	require.EqualValues(t, validator.DelegatorShares, getVal.DelegatorShares)
+	require.EqualValues(t, validator.Jailed, getVal.Jailed)
+	require.EqualValues(t, validator.Status, getVal.Status)
+	require.EqualValues(t, validator.SideConsAddr, getVal.SideConsAddr)
+}

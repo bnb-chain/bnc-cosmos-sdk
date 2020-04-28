@@ -38,3 +38,21 @@ func MulQuoDec(a, b, c Dec) (Dec, error) {
 	}
 	return NewDec(r / c.RawInt()), nil
 }
+
+func MulBigInt(a, b *big.Int) *big.Int {
+	if a == nil || b == nil {
+		panic("arguments can not be nil")
+	}
+	var bi big.Int
+	bi.Mul(a, b)
+	return &bi
+}
+
+func QuoBigInt(a, b *big.Int) *big.Int {
+	if a == nil || b == nil {
+		panic("arguments can not be nil")
+	}
+	var bi big.Int
+	bi.Quo(a, b)
+	return &bi
+}

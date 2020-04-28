@@ -41,6 +41,25 @@ type delegationValue struct {
 	Height int64
 }
 
+//________________________________________________________________
+
+type SimplifiedDelegation struct {
+	DelegatorAddr sdk.AccAddress `json:"delegator_addr"`
+	Shares        sdk.Dec        `json:"shares"`
+}
+
+func MustMarshalSimplifiedDelegations(cdc *codec.Codec, simDels []SimplifiedDelegation) []byte {
+	return cdc.MustMarshalBinaryLengthPrefixed(simDels)
+}
+
+func MustUnmarshalSimplifiedDelegations(cdc *codec.Codec, value []byte) (simDels []SimplifiedDelegation) {
+	err := cdc.UnmarshalBinaryLengthPrefixed(value, &simDels)
+	if err != nil {
+		panic(err)
+	}
+	return simDels
+}
+
 // return the delegation without fields contained within the key for the store
 func MustMarshalDelegation(cdc *codec.Codec, delegation Delegation) []byte {
 	val := delegationValue{
@@ -83,6 +102,30 @@ func UnmarshalDelegation(cdc *codec.Codec, key, value []byte) (delegation Delega
 		Shares:        storeValue.Shares,
 		Height:        storeValue.Height,
 	}, nil
+}
+
+func MustUnmarshalDelegationValAsKey(cdc *codec.Codec, key, value []byte) Delegation {
+	delegation, err := UnmarshalDelegationValAsKey(cdc, key, value)
+	if err != nil {
+		panic(err)
+	}
+	return delegation
+}
+
+// return the delegation without fields contained within the key for the store.
+// Validator and delegator position in the key need to be exchanged
+func UnmarshalDelegationValAsKey(cdc *codec.Codec, key, value []byte) (realDelegation Delegation, err error) {
+	delegation, err := UnmarshalDelegation(cdc, key, value)
+	if err != nil {
+		return
+	}
+
+	realDelegation.DelegatorAddr = delegation.ValidatorAddr.Bytes()
+	realDelegation.ValidatorAddr = delegation.DelegatorAddr.Bytes()
+	realDelegation.Shares = delegation.Shares
+	realDelegation.Height = delegation.Height
+
+	return realDelegation, nil
 }
 
 // nolint

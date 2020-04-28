@@ -57,6 +57,20 @@ func (k Keeper) GetDelegatorDelegations(ctx sdk.Context, delegator sdk.AccAddres
 	return delegations[:i] // trim if the array length < maxRetrieve
 }
 
+// return all delegations simplified from a validator
+func (k Keeper) GetSimplifiedDelegationsByValidator(ctx sdk.Context, validator sdk.ValAddress) (simDelegations []types.SimplifiedDelegation) {
+	store := ctx.KVStore(k.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, GetDelegationsKeyByVal(validator))
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		delegation := types.MustUnmarshalDelegationValAsKey(k.cdc, iterator.Key(), iterator.Value())
+		simDel := types.SimplifiedDelegation{DelegatorAddr: delegation.DelegatorAddr, Shares: delegation.Shares}
+		simDelegations = append(simDelegations, simDel)
+	}
+	return simDelegations
+}
+
 // set the delegation
 func (k Keeper) SetDelegation(ctx sdk.Context, delegation types.Delegation) {
 	store := ctx.KVStore(k.storeKey)
@@ -64,11 +78,47 @@ func (k Keeper) SetDelegation(ctx sdk.Context, delegation types.Delegation) {
 	store.Set(GetDelegationKey(delegation.DelegatorAddr, delegation.ValidatorAddr), b)
 }
 
+// set the delegation indexed by validator operator and delegator
+func (k Keeper) SetDelegationByVal(ctx sdk.Context, delegation types.Delegation) {
+	store := ctx.KVStore(k.storeKey)
+	b := types.MustMarshalDelegation(k.cdc, delegation)
+	store.Set(GetDelegationKeyByValIndexKey(delegation.ValidatorAddr, delegation.DelegatorAddr), b)
+}
+
 // remove a delegation from store
 func (k Keeper) RemoveDelegation(ctx sdk.Context, delegation types.Delegation) {
 	k.OnDelegationRemoved(ctx, delegation.DelegatorAddr, delegation.ValidatorAddr)
 	store := ctx.KVStore(k.storeKey)
 	store.Delete(GetDelegationKey(delegation.DelegatorAddr, delegation.ValidatorAddr))
+}
+
+// remove a delegation stored within key grouped in order of validator and delegator
+func (k Keeper) RemoveDelegationByVal(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) {
+	store := ctx.KVStore(k.storeKey)
+	store.Delete(GetDelegationKeyByValIndexKey(valAddr, delAddr))
+}
+
+//_____________________________________________________________________________________
+
+func (k Keeper) SetSimplifiedDelegations(ctx sdk.Context, height int64, validator sdk.ValAddress, simDels []types.SimplifiedDelegation) {
+	store := ctx.KVStore(k.storeKey)
+	bz := types.MustMarshalSimplifiedDelegations(k.cdc, simDels)
+	store.Set(GetSimplifiedDelegationsKey(height, validator), bz)
+}
+
+func (k Keeper) GetSimplifiedDelegations(ctx sdk.Context, height int64, validator sdk.ValAddress) (simDels []types.SimplifiedDelegation, found bool) {
+	store := ctx.KVStore(k.storeKey)
+	bz := store.Get(GetSimplifiedDelegationsKey(height, validator))
+	if bz == nil {
+		return simDels, false
+	}
+	simDels = types.MustUnmarshalSimplifiedDelegations(k.cdc, bz)
+	return simDels, true
+}
+
+func (k Keeper) RemoveSimplifiedDelegations(ctx sdk.Context, height int64, validator sdk.ValAddress) {
+	store := ctx.KVStore(k.storeKey)
+	store.Delete(GetSimplifiedDelegationsKey(height, validator))
 }
 
 //_____________________________________________________________________________________
@@ -344,6 +394,15 @@ func (k Keeper) DequeueAllMatureRedelegationQueue(ctx sdk.Context, currTime time
 }
 
 //_____________________________________________________________________________________
+
+func (k Keeper) SyncDelegationByValDel(ctx sdk.Context, valAddr sdk.ValAddress, delAddr sdk.AccAddress) {
+	delegation, found := k.GetDelegation(ctx, delAddr, valAddr)
+	if !found {
+		k.RemoveDelegationByVal(ctx, delAddr, valAddr)
+		return
+	}
+	k.SetDelegationByVal(ctx, delegation)
+}
 
 // Perform a delegation, set/update everything necessary within the store.
 func (k Keeper) Delegate(ctx sdk.Context, delAddr sdk.AccAddress, bondAmt sdk.Coin,
