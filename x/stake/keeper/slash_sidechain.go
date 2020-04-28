@@ -69,12 +69,9 @@ func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr
 	if _, err := k.bankKeeper.SendCoins(sideCtx, DelegationAccAddr, submitter, sdk.Coins{sdk.NewCoin(bondDenom, submitterReward.RawInt())}); err != nil {
 		return err
 	}
+
 	// allocate remaining rewards to other validators
-	height, found := k.GetBreatheBlockHeight(ctx, 1)
-	if !found {
-		return errors.New("can not found breathe block height of current day")
-	}
-	validators, found := k.GetValidatorsByHeight(sideCtx, height)
+	validators,_,found := k.GetHeightValidatorsByIndex(sideCtx,1)
 	if !found {
 		return errors.New("can not found validators of current day")
 	}
@@ -94,10 +91,9 @@ func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr
 		}
 
 		sharers, totalShares := convertValidators2Shares(validators)
-		shouldCarry, shouldNotCarry, _ := allocate(sharers, remainingReward, totalShares, 0)
-		rewards := append(shouldCarry, shouldNotCarry...)
-		for _, eachReward := range rewards {
-			if _, err := k.bankKeeper.SendCoins(sideCtx, DelegationAccAddr, eachReward.AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, eachReward.Reward)}); err != nil {
+		rewards := allocate(sharers, remainingReward, totalShares)
+		for i := range rewards {
+			if _, err := k.bankKeeper.SendCoins(sideCtx, DelegationAccAddr, rewards[i].AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, rewards[i].Amount)}); err != nil {
 				return err
 			}
 		}
