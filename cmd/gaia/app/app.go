@@ -223,7 +223,7 @@ func (app *GaiaApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) ab
 // nolint: unparam
 func (app *GaiaApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
 	ctx = ctx.WithEventManager(sdk.NewEventManager())
-	tags, _, _ := gov.EndBlocker(ctx, app.govKeeper)
+	gov.EndBlocker(ctx, app.govKeeper)
 	validatorUpdates, _ := stake.EndBlocker(ctx, app.stakeKeeper)
 	ibc.EndBlocker(ctx, app.ibcKeeper)
 
@@ -232,7 +232,7 @@ func (app *GaiaApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.R
 
 	return abci.ResponseEndBlock{
 		ValidatorUpdates: validatorUpdates,
-		Events:           append(tags.ToEvents(), ctx.EventManager().ABCIEvents()...),
+		Events:           ctx.EventManager().ABCIEvents(),
 	}
 }
 

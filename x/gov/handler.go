@@ -2,9 +2,12 @@ package gov
 
 import (
 	"fmt"
+	"strconv"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/gov/events"
 	"github.com/cosmos/cosmos-sdk/x/gov/tags"
+	"github.com/cosmos/cosmos-sdk/x/sidechain"
 )
 
 // Handle all "gov" type messages.
@@ -17,6 +20,12 @@ func NewHandler(keeper Keeper) sdk.Handler {
 			return handleMsgSubmitProposal(ctx, keeper, msg)
 		case MsgVote:
 			return handleMsgVote(ctx, keeper, msg)
+		case MsgSideChainDeposit:
+			return handleMsgSideChainDeposit(ctx, keeper, msg)
+		case MsgSideChainSubmitProposal:
+			return handleMsgSideChainSubmitProposal(ctx, keeper, msg)
+		case MsgSideChainVote:
+			return handleMsgSideChainVote(ctx, keeper, msg)
 		default:
 			errMsg := "Unrecognized gov msg type"
 			return sdk.ErrUnknownRequest(errMsg).Result()
@@ -110,14 +119,41 @@ func handleMsgVote(ctx sdk.Context, keeper Keeper, msg MsgVote) sdk.Result {
 	}
 }
 
-// Called every block, process inflation, update validator set
-func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags, refundProposals, notRefundProposals []int64) {
+type SimpleProposal struct {
+	Id      int64
+	ChainID string
+}
+
+func EndBlocker(baseCtx sdk.Context, keeper Keeper) (refundProposals, notRefundProposals []SimpleProposal) {
+	events := sdk.EmptyEvents()
+	refundProposals = make([]SimpleProposal, 0)
+	notRefundProposals = make([]SimpleProposal, 0)
+	chainIDs := []string{sidechain.NativeChainIDHolder}
+	contexts := []sdk.Context{baseCtx}
+	if sdk.IsUpgrade(sdk.LaunchBscUpgrade) && keeper.ScKeeper != nil {
+		tmpSideIDs, storePrefixes := keeper.ScKeeper.GetAllSideChainPrefixes(baseCtx)
+		chainIDs = append(chainIDs, tmpSideIDs...)
+		for i := range storePrefixes {
+			contexts = append(contexts, baseCtx.WithSideChainKeyPrefix(storePrefixes[i]))
+		}
+	}
+	for i := 0; i < len(chainIDs); i++ {
+		resEvents, refund, noRefund := settleProposals(contexts[i], keeper, chainIDs[i])
+		events = events.AppendEvents(resEvents)
+		refundProposals = append(refundProposals, refund...)
+		notRefundProposals = append(notRefundProposals, noRefund...)
+	}
+	baseCtx.EventManager().EmitEvents(events)
+	return
+}
+
+func settleProposals(ctx sdk.Context, keeper Keeper, chainId string) (resEvents sdk.Events, refundProposals, notRefundProposals []SimpleProposal) {
 
 	logger := ctx.Logger().With("module", "x/gov")
 
-	resTags = sdk.NewTags()
-	refundProposals = make([]int64, 0)
-	notRefundProposals = make([]int64, 0)
+	resEvents = sdk.EmptyEvents()
+	refundProposals = make([]SimpleProposal, 0)
+	notRefundProposals = make([]SimpleProposal, 0)
 
 	// Delete proposals that haven't met minDeposit
 	for ShouldPopInactiveProposalQueue(ctx, keeper) {
@@ -125,18 +161,18 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags, refundProposa
 		if inactiveProposal.GetStatus() != StatusDepositPeriod {
 			continue
 		}
-
-		proposalIDBytes := keeper.cdc.MustMarshalBinaryBare(inactiveProposal.GetProposalID())
-
 		// distribute deposits to proposer
 		keeper.DistributeDeposits(ctx, inactiveProposal.GetProposalID())
 
 		keeper.DeleteProposal(ctx, inactiveProposal)
 
-		notRefundProposals = append(notRefundProposals, inactiveProposal.GetProposalID())
-
-		resTags.AppendTag(tags.Action, tags.ActionProposalDropped)
-		resTags.AppendTag(tags.ProposalID, proposalIDBytes)
+		notRefundProposals = append(notRefundProposals, SimpleProposal{inactiveProposal.GetProposalID(), chainId})
+		event := sdk.NewEvent(events.EventTypeProposalDropped, sdk.NewAttribute(events.ProposalID,
+			strconv.FormatInt(inactiveProposal.GetProposalID(), 10)))
+		if chainId != sidechain.NativeChainIDHolder {
+			event.AppendAttributes(sdk.NewAttribute(events.SideChainID, chainId))
+		}
+		resEvents = resEvents.AppendEvent(event)
 
 		logger.Info(
 			fmt.Sprintf("proposal %d (%s) didn't meet minimum deposit of %v (had only %v); distribute to validator",
@@ -159,26 +195,25 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags, refundProposa
 		}
 
 		passes, refundDeposits, tallyResults := Tally(ctx, keeper, activeProposal)
-		proposalIDBytes := keeper.cdc.MustMarshalBinaryBare(activeProposal.GetProposalID())
-		var action []byte
+		var action string
 		if passes {
 			activeProposal.SetStatus(StatusPassed)
-			action = tags.ActionProposalPassed
+			action = events.EventTypeProposalPassed
 
 			// refund deposits
 			keeper.RefundDeposits(ctx, activeProposal.GetProposalID())
-			refundProposals = append(refundProposals, activeProposal.GetProposalID())
+			refundProposals = append(refundProposals, SimpleProposal{activeProposal.GetProposalID(), chainId})
 		} else {
 			activeProposal.SetStatus(StatusRejected)
-			action = tags.ActionProposalRejected
+			action = events.EventTypeProposalRejected
 
 			// if votes reached quorum and not all votes are abstain, distribute deposits to validator, else refund deposits
 			if refundDeposits {
 				keeper.RefundDeposits(ctx, activeProposal.GetProposalID())
-				refundProposals = append(refundProposals, activeProposal.GetProposalID())
+				refundProposals = append(refundProposals, SimpleProposal{activeProposal.GetProposalID(), chainId})
 			} else {
 				keeper.DistributeDeposits(ctx, activeProposal.GetProposalID())
-				notRefundProposals = append(notRefundProposals, activeProposal.GetProposalID())
+				notRefundProposals = append(notRefundProposals, SimpleProposal{activeProposal.GetProposalID(), chainId})
 			}
 		}
 
@@ -187,9 +222,12 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags, refundProposa
 
 		logger.Info(fmt.Sprintf("proposal %d (%s) tallied; passed: %v",
 			activeProposal.GetProposalID(), activeProposal.GetTitle(), passes))
-
-		resTags.AppendTag(tags.Action, action)
-		resTags.AppendTag(tags.ProposalID, proposalIDBytes)
+		event := sdk.NewEvent(action, sdk.NewAttribute(events.ProposalID,
+			strconv.FormatInt(activeProposal.GetProposalID(), 10)))
+		if chainId != sidechain.NativeChainIDHolder {
+			event.AppendAttributes(sdk.NewAttribute(events.SideChainID, chainId))
+		}
+		resEvents = resEvents.AppendEvent(event)
 	}
 
 	return

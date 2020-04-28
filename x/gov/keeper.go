@@ -2,6 +2,7 @@ package gov
 
 import (
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/x/sidechain"
 	"time"
 
 	"github.com/tendermint/tendermint/crypto"
@@ -22,6 +23,7 @@ var (
 	ParamStoreKeyDepositParams = []byte("depositparams")
 	ParamStoreKeyTallyParams   = []byte("tallyparams")
 
+	// Will hold deposit of both BC chain and side chain.
 	DepositedCoinsAccAddr = sdk.AccAddress(crypto.AddressHash([]byte("BinanceChainDepositedCoins")))
 )
 
@@ -64,6 +66,9 @@ type Keeper struct {
 
 	// shared memory for block level state
 	pool *sdk.Pool
+
+	// if you want to enable side chains, you need call `SetupForSideChain`
+	ScKeeper *sidechain.Keeper
 }
 
 // NewKeeper returns a governance keeper. It handles:
@@ -84,6 +89,10 @@ func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, paramsKeeper params.Keeper, p
 		codespace:    codespace,
 		pool:         pool,
 	}
+}
+
+func (keeper *Keeper) SetupForSideChain(scKeeper *sidechain.Keeper) {
+	keeper.ScKeeper = scKeeper
 }
 
 // AddHooks add hooks for gov keeper

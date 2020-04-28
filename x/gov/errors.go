@@ -24,6 +24,7 @@ const (
 	CodeInvalidProposalStatus   sdk.CodeType = 11
 	CodeInvalidProposal         sdk.CodeType = 12
 	CodeInvalidVotingPeriod     sdk.CodeType = 13
+	CodeInvalidSideChainId      sdk.CodeType = 14
 )
 
 //----------------------------------------
@@ -75,4 +76,8 @@ func ErrInvalidGenesis(codespace sdk.CodespaceType, msg string) sdk.Error {
 
 func ErrInvalidVotingPeriod(codespace sdk.CodespaceType, votingPeriod time.Duration) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidVotingPeriod, fmt.Sprintf("Voting period '%d' should larger than 0 and less than %s", votingPeriod, MaxVotingPeriod))
+}
+
+func ErrInvalidSideChainId(codespace sdk.CodespaceType, msg string) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidSideChainId, fmt.Sprintf("Invalid side chain id: %s", msg))
 }

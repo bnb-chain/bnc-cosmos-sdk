@@ -60,9 +60,9 @@ func getMockApp(t *testing.T, numGenAccs int) (*mock.App, bank.BaseKeeper, gov.K
 // gov and stake endblocker
 func getEndBlocker(keeper gov.Keeper) sdk.EndBlocker {
 	return func(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
-		tags, _, _ := gov.EndBlocker(ctx, keeper)
+		gov.EndBlocker(ctx, keeper)
 		return abci.ResponseEndBlock{
-			Events: tags.ToEvents(),
+			Events: ctx.EventManager().ABCIEvents(),
 		}
 	}
 }
