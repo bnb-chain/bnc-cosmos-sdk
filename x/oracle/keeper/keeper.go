@@ -35,6 +35,10 @@ var (
 	ParamStoreKeyProphecyParams = []byte("prophecyParams")
 )
 
+type ParamHub interface {
+	SubscribeParamChange(u func([]sdk.Context, []interface{}), g func(sdk.Context, interface{}), l func(sdk.Context, interface{}))
+}
+
 func ParamTypeTable() params.TypeTable {
 	return params.NewTypeTable(
 		ParamStoreKeyProphecyParams, types.ProphecyParams{},
@@ -222,4 +226,24 @@ func (k Keeper) processCompletion(ctx sdk.Context, prophecy types.Prophecy) type
 		prophecy.Status.Text = types.FailedStatusText
 	}
 	return prophecy
+}
+
+func (k *Keeper) SubscribeParamChange(hub ParamHub) {
+	hub.SubscribeParamChange(
+		func(contexts []sdk.Context, changes []interface{}) {
+			if len(contexts) != len(changes) {
+				panic(fmt.Sprintf("the length of context %d do not match changes %d", len(contexts), len(changes)))
+			}
+			for idx, c := range changes {
+				switch change := c.(type) {
+				case types.ProphecyParams:
+					k.SetProphecyParams(contexts[idx], change)
+				default:
+					contexts[idx].Logger().Debug("skip unknown param change")
+				}
+			}
+		},
+		nil,
+		nil,
+	)
 }

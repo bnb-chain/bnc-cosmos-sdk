@@ -2,14 +2,16 @@ package gov
 
 //nolint
 const (
-	SideProposalTypeParametersChange      ProposalKind = 0x81
-	SideProposalTypeCrossParametersChange ProposalKind = 0x82
+	// side chain params change
+	ProposalTypeSCParamsChange      ProposalKind = 0x81
+	// cross side chain param change
+	ProposalTypeCSCParamsChange ProposalKind = 0x82
 )
 
 // is defined SideProposalType?
 func validSideProposalType(pt ProposalKind) bool {
-	if pt == SideProposalTypeParametersChange ||
-		pt == SideProposalTypeCrossParametersChange {
+	if pt == ProposalTypeSCParamsChange ||
+		pt == ProposalTypeCSCParamsChange {
 		return true
 	}
 	return false

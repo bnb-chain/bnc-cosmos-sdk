@@ -32,6 +32,10 @@ type Keeper struct {
 	ScKeeper  *sidechain.Keeper
 }
 
+type ParamHub interface {
+	SubscribeParamChange(u func([]sdk.Context, []interface{}), g func(sdk.Context, interface{}), l func(sdk.Context, interface{}))
+}
+
 func NewKeeper(cdc *codec.Codec, key, tkey sdk.StoreKey, ck bank.Keeper, addrPool *sdk.Pool,
 	paramstore params.Subspace, codespace sdk.CodespaceType) Keeper {
 	keeper := Keeper{
@@ -171,4 +175,24 @@ func (k Keeper) SetIntraTxCounter(ctx sdk.Context, counter int16) {
 	store := ctx.KVStore(k.storeKey)
 	bz := k.cdc.MustMarshalBinaryLengthPrefixed(counter)
 	store.Set(IntraTxCounterKey, bz)
+}
+
+func (k *Keeper) SubscribeParamChange(hub ParamHub) {
+	hub.SubscribeParamChange(
+		func(contexts []sdk.Context, changes []interface{}) {
+			if len(contexts) != len(changes) {
+				panic(fmt.Sprintf("the length of context %d do not match changes %d", len(contexts), len(changes)))
+			}
+			for idx, c := range changes {
+				switch change := c.(type) {
+				case types.Params:
+					k.SetParams(contexts[idx], change)
+				default:
+					contexts[idx].Logger().Debug("skip unknown param change")
+				}
+			}
+		},
+		nil,
+		nil,
+	)
 }

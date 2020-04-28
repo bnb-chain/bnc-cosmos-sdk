@@ -301,12 +301,12 @@ func (keeper Keeper) GetTallyParams(ctx sdk.Context) TallyParams {
 }
 
 // nolint: errcheck
-func (keeper Keeper) setDepositParams(ctx sdk.Context, depositParams DepositParams) {
+func (keeper Keeper) SetDepositParams(ctx sdk.Context, depositParams DepositParams) {
 	keeper.paramSpace.Set(ctx, ParamStoreKeyDepositParams, &depositParams)
 }
 
 // nolint: errcheck
-func (keeper Keeper) setTallyParams(ctx sdk.Context, tallyParams TallyParams) {
+func (keeper Keeper) SetTallyParams(ctx sdk.Context, tallyParams TallyParams) {
 	keeper.paramSpace.Set(ctx, ParamStoreKeyTallyParams, &tallyParams)
 }
 

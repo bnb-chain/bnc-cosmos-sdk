@@ -149,7 +149,7 @@ type MsgSideChainVote struct {
 	SideChainId string `json:"side_chain_id"`
 }
 
-func NewSideChainVote(voter sdk.AccAddress, proposalID int64, option VoteOption, sideChainId string) MsgSideChainVote {
+func NewMsgSideChainVote(voter sdk.AccAddress, proposalID int64, option VoteOption, sideChainId string) MsgSideChainVote {
 	subMsg := NewMsgVote(voter, proposalID, option)
 	return MsgSideChainVote{
 		MsgVote:     subMsg,
