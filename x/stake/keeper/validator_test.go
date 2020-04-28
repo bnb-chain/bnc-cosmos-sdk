@@ -89,6 +89,19 @@ func TestSetGetValidatorsByHeight(t *testing.T) {
 	for index, val := range getValidators {
 		require.Equal(t, validators[index].OperatorAddr, val.OperatorAddr)
 	}
+
+	keeper.SetValidatorsByHeight(ctx, 1001, make([]types.Validator, 0))
+	keeper.SetValidatorsByHeight(ctx, 1002, make([]types.Validator, 0))
+
+	getVals, getHeight, found := keeper.GetHeightValidatorsByIndex(ctx, 3)
+	require.True(t, found)
+	require.EqualValues(t, 1000, getHeight)
+	require.EqualValues(t, len(validators), len(getVals))
+
+	_, getHeight, found = keeper.GetHeightValidatorsByIndex(ctx, 1)
+	require.True(t, found)
+	require.EqualValues(t, 1002, getHeight)
+
 }
 
 func TestExistValidatorsWithHeight(t *testing.T) {

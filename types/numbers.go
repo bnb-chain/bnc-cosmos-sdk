@@ -39,57 +39,20 @@ func MulQuoDec(a, b, c Dec) (Dec, error) {
 	return NewDec(r / c.RawInt()), nil
 }
 
-// calculate a * b / c, getting the extra decimal digital as result of extraDecimalValue. For example:
-// 0.00000003 * 2 / 0.00000004 = 0.000000015,
-// assume that decimal place number of Dec is 8, and the extraDecimalPlace was given 1, then
-// we take the 8th decimal place value '1' as afterRoundDown, and extra decimal value(9th) '5' as extraDecimalValue
-func MulQuoDecWithExtraDecimal(a, b, c Dec, extraDecimalPlace int) (afterRoundDown int64, extraDecimalValue int) {
-	extra := int64(Pow(10, extraDecimalPlace))
-	product, ok := Mul64(a.RawInt(), b.RawInt())
-	if !ok { // int64 exceed
-		return mulQuoBig64WithExtraDecimal(big.NewInt(a.RawInt()), big.NewInt(b.RawInt()), big.NewInt(c.RawInt()), big.NewInt(extra))
-	} else {
-		if product, ok = Mul64(product, extra); !ok {
-			return mulQuoBig64WithExtraDecimal(big.NewInt(a.RawInt()), big.NewInt(b.RawInt()), big.NewInt(c.RawInt()), big.NewInt(extra))
-		}
-		resultOfAddDecimalPlace := product / c.RawInt()
-		afterRoundDown = resultOfAddDecimalPlace / extra
-		extraDecimalValue = int(resultOfAddDecimalPlace % extra)
-		return afterRoundDown, extraDecimalValue
+func MulBigInt(a, b *big.Int) *big.Int {
+	if a == nil || b == nil {
+		panic("arguments can not be nil")
 	}
-}
-
-func mulQuoBig64WithExtraDecimal(a, b, c, extra *big.Int) (afterRoundDown int64, extraDecimalValue int) {
-	product := MulBigInt64(MulBigInt64(a, b), extra)
-	result := QuoBigInt64(product, c)
-
-	expectedDecimalValueBig := &big.Int{}
-	afterRoundDownBig, expectedDecimalValueBig := result.QuoRem(result, extra, expectedDecimalValueBig)
-	afterRoundDown = afterRoundDownBig.Int64()
-	extraDecimalValue = int(expectedDecimalValueBig.Int64())
-	return afterRoundDown, extraDecimalValue
-}
-
-func MulBigInt64(a, b *big.Int) *big.Int {
 	var bi big.Int
 	bi.Mul(a, b)
 	return &bi
 }
 
-func QuoBigInt64(x, y *big.Int) *big.Int {
-	var bi big.Int
-	bi.Quo(x, y)
-	return &bi
-}
-
-func Pow(x, n int) int {
-	ret := 1
-	for n != 0 {
-		if n%2 != 0 {
-			ret = ret * x
-		}
-		n /= 2
-		x = x * x
+func QuoBigInt(a, b *big.Int) *big.Int {
+	if a == nil || b == nil {
+		panic("arguments can not be nil")
 	}
-	return ret
+	var bi big.Int
+	bi.Quo(a, b)
+	return &bi
 }

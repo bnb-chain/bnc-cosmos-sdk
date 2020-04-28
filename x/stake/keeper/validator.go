@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"container/list"
+	"encoding/binary"
 	"fmt"
 	"time"
 
@@ -100,9 +101,26 @@ func (k Keeper) GetValidatorsByHeight(ctx sdk.Context, height int64) (validators
 	return validators, true
 }
 
+func (k Keeper) GetHeightValidatorsByIndex(ctx sdk.Context, indexCountBackwards int) ([]types.Validator, int64, bool) {
+	store := ctx.KVStore(k.storeKey)
+	iterator := sdk.KVStoreReversePrefixIterator(store, ValidatorsByHeightKey)
+	defer iterator.Close()
+
+	index := 1
+	for ; iterator.Valid(); iterator.Next() {
+		if index == indexCountBackwards {
+			key := iterator.Key()
+			validators := types.MustUnmarshalValidators(k.cdc, iterator.Value())
+			return validators, int64(binary.BigEndian.Uint64(key[len(ValidatorsByHeightKey):])), true
+		}
+		index++
+	}
+	return nil, 0, false
+}
+
 func (k Keeper) ExistValidatorsWithHeight(ctx sdk.Context, height int64) bool {
 	store := ctx.KVStore(k.storeKey)
-	return store.Get(GetValidatorHeightKey(height)) != nil
+	return store.Has(GetValidatorHeightKey(height))
 }
 
 //___________________________________________________________________________

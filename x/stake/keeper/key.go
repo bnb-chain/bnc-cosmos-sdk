@@ -34,7 +34,7 @@ var (
 	RedelegationKey                  = []byte{0x34} // key for a redelegation
 	RedelegationByValSrcIndexKey     = []byte{0x35} // prefix for each key for an redelegation, by source validator operator
 	RedelegationByValDstIndexKey     = []byte{0x36} // prefix for each key for an redelegation, by destination validator operator
-	DelegationKeyByValDel            = []byte{0x37} // prefix for each key fro a delegation, by validator operator and delegator
+	DelegationKeyByVal               = []byte{0x37} // prefix for each key fro a delegation, by validator operator and delegator
 	SimplifiedDelegationsKey         = []byte{0x38} // prefix for each key for an simplifiedDelegations, by height and validator operator
 
 	UnbondingQueueKey    = []byte{0x41} // prefix for the timestamps in unbonding queue
@@ -42,13 +42,10 @@ var (
 	ValidatorQueueKey    = []byte{0x43} // prefix for the timestamps in validator queue
 
 	SideChainStorePrefixByIdKey = []byte{0x51} // prefix for each key to a side chain store prefix, by side chain id
-
-	BreatheBlockHeightKey = []byte{0x61} // prefix for each key for a breathe block height, by time
 )
 
 const (
-	maxDigitsForAccount       = 12 // ~220,000,000 atoms created at launch
-	SecondsPerDay       int64 = 86400
+	maxDigitsForAccount = 12 // ~220,000,000 atoms created at launch
 )
 
 // gets the key for the validator with address
@@ -138,7 +135,8 @@ func getValidatorPowerRankNew(validator types.Validator) []byte {
 }
 
 func GetValidatorHeightKey(height int64) []byte {
-	bz := []byte(strconv.FormatInt(height, 16))
+	bz := make([]byte, 8)
+	binary.BigEndian.PutUint64(bz, uint64(height))
 	return append(ValidatorsByHeightKey, bz...)
 }
 
@@ -164,13 +162,13 @@ func GetDelegationsKey(delAddr sdk.AccAddress) []byte {
 //______________________________________________________________________________
 
 // gets the key for validator bond with delegator
-func GetDelegationKeyByValDelIndexKey(valAddr sdk.ValAddress, delAddr sdk.AccAddress) []byte {
+func GetDelegationKeyByValIndexKey(valAddr sdk.ValAddress, delAddr sdk.AccAddress) []byte {
 	return append(GetDelegationsKeyByVal(valAddr), delAddr.Bytes()...)
 }
 
 // gets the prefix for a validator for all delegator
 func GetDelegationsKeyByVal(valAddr sdk.ValAddress) []byte {
-	return append(DelegationKeyByValDel, valAddr.Bytes()...)
+	return append(DelegationKeyByVal, valAddr.Bytes()...)
 }
 
 //______________________________________________________________________________
@@ -324,10 +322,4 @@ func GetREDsByDelToValDstIndexKey(delAddr sdk.AccAddress, valDstAddr sdk.ValAddr
 	return append(
 		GetREDsToValDstIndexKey(valDstAddr),
 		delAddr.Bytes()...)
-}
-
-//____________________________________________________________________________________________
-
-func GetBreatheBlockHeightKey(blockTime time.Time) []byte {
-	return append(BreatheBlockHeightKey, sdk.Int642Bytes(blockTime.Unix()/SecondsPerDay)...)
 }

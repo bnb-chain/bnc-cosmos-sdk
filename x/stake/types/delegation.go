@@ -104,8 +104,8 @@ func UnmarshalDelegation(cdc *codec.Codec, key, value []byte) (delegation Delega
 	}, nil
 }
 
-func MustUnmarshalDelegationValDelAsKey(cdc *codec.Codec, key, value []byte) Delegation {
-	delegation, err := UnmarshalDelegationValDelAsKey(cdc,key,value)
+func MustUnmarshalDelegationValAsKey(cdc *codec.Codec, key, value []byte) Delegation {
+	delegation, err := UnmarshalDelegationValAsKey(cdc, key, value)
 	if err != nil {
 		panic(err)
 	}
@@ -114,8 +114,9 @@ func MustUnmarshalDelegationValDelAsKey(cdc *codec.Codec, key, value []byte) Del
 
 // return the delegation without fields contained within the key for the store.
 // Validator and delegator position in the key need to be exchanged
-func UnmarshalDelegationValDelAsKey(cdc *codec.Codec, key, value []byte) (realDelegation Delegation, err error) {
-	delegation, err := UnmarshalDelegation(cdc,key,value); if err != nil {
+func UnmarshalDelegationValAsKey(cdc *codec.Codec, key, value []byte) (realDelegation Delegation, err error) {
+	delegation, err := UnmarshalDelegation(cdc, key, value)
+	if err != nil {
 		return
 	}
 

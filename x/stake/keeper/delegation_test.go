@@ -136,52 +136,30 @@ func TestSimplifiedDelegations(t *testing.T) {
 
 	ctx, _, keeper := CreateTestInput(t, false, 0)
 
-	simDel1:= types.SimplifiedDelegation{
+	simDel1 := types.SimplifiedDelegation{
 		DelegatorAddr: addrDels[0],
 		Shares:        sdk.NewDecWithoutFra(9),
 	}
 
-	simDel2:= types.SimplifiedDelegation{
+	simDel2 := types.SimplifiedDelegation{
 		DelegatorAddr: addrDels[1],
 		Shares:        sdk.NewDecWithoutFra(9),
 	}
 
-	simdels := []types.SimplifiedDelegation{simDel1,simDel2}
+	simdels := []types.SimplifiedDelegation{simDel1, simDel2}
 
-	keeper.SetSimplifiedDelegations(ctx,height,addrVals[0],simdels)
+	keeper.SetSimplifiedDelegations(ctx, height, addrVals[0], simdels)
 
-	getSimDels,found := keeper.GetSimplifiedDelegations(ctx,height,addrVals[0])
-	require.True(t,found)
-	for index,simdel := range getSimDels{
-		require.Equal(t,simdels[index].DelegatorAddr,simdel.DelegatorAddr)
-		require.Equal(t,simdels[index].Shares,simdel.Shares)
-	}
-
-	keeper.RemoveSimplifiedDelegations(ctx,height,addrVals[0])
-	_,found = keeper.GetSimplifiedDelegations(ctx,height,addrVals[0])
-	require.False(t,found)
-}
-
-func TestDelegationByValDel(t *testing.T) {
-	ctx, _, keeper := CreateTestInput(t, false, 0)
-	valAddr := addrVals[0]
-	delAddr := addrDels[0]
-
-	delegation := types.Delegation{
-		DelegatorAddr: delAddr,
-		ValidatorAddr: valAddr,
-		Shares:        sdk.NewDecWithoutFra(9),
-	}
-
-	keeper.SetDelegation(ctx, delegation)
-
-	keeper.SyncDelegationByValDel(ctx, valAddr, delAddr)
-
-	resDel,found := keeper.GetDelegationByValDel(ctx, valAddr, delAddr)
+	getSimDels, found := keeper.GetSimplifiedDelegations(ctx, height, addrVals[0])
 	require.True(t, found)
-	require.Equal(t, valAddr, resDel.ValidatorAddr)
-	require.Equal(t, delAddr, resDel.DelegatorAddr)
-	require.Equal(t, sdk.NewDecWithoutFra(9), resDel.Shares)
+	for index, simdel := range getSimDels {
+		require.Equal(t, simdels[index].DelegatorAddr, simdel.DelegatorAddr)
+		require.Equal(t, simdels[index].Shares, simdel.Shares)
+	}
+
+	keeper.RemoveSimplifiedDelegations(ctx, height, addrVals[0])
+	_, found = keeper.GetSimplifiedDelegations(ctx, height, addrVals[0])
+	require.False(t, found)
 }
 
 // tests Get/Set/Remove UnbondingDelegation

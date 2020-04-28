@@ -17,10 +17,6 @@ func TestDistribute(t *testing.T) {
 	height := int64(1000)
 	height2 := int64(2000)
 	height3 := int64(3000)
-	now := time.Now()
-	k.SetBreatheBlockHeight(ctx, height, now.Add(-2*24*time.Hour))
-	k.SetBreatheBlockHeight(ctx, height2, now.Add(-24*time.Hour))
-	k.SetBreatheBlockHeight(ctx, height3, now)
 
 	minDelShares := 1
 	maxDelShares := 100000
@@ -77,10 +73,10 @@ func TestDistribute(t *testing.T) {
 		am.SetAccount(ctx, distrAcc)
 	}
 	k.SetValidatorsByHeight(ctx, height, validators)
+	k.SetValidatorsByHeight(ctx, height2, make([]types.Validator, 0))
+	k.SetValidatorsByHeight(ctx, height3, make([]types.Validator, 0))
 
-	targetHeight,found := k.GetBreatheBlockHeight(ctx,3)
-	require.True(t, found)
-	k.Distribute(ctx, targetHeight)
+	k.Distribute(ctx)
 
 	for i, validator := range validators {
 		_, found := k.GetSimplifiedDelegations(ctx, height, validator.OperatorAddr)
@@ -97,7 +93,8 @@ func TestDistribute(t *testing.T) {
 		}
 		require.Equal(t, rewards[i], amountOfAllAccount)
 	}
-	_, found = k.GetValidatorsByHeight(ctx, height)
+
+	_, found := k.GetValidatorsByHeight(ctx, height)
 	require.False(t, found)
 
 }
