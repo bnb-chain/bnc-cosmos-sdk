@@ -56,7 +56,8 @@ func (h Hooks) ExecuteClaim(ctx sdk.Context, finalClaim string) (sdk.Tags, sdk.E
 		return sdk.EmptyTags(), ErrInvalidSideChainId(DefaultCodespace)
 	}
 
-	age := sideCtx.BlockHeader().Time.Unix() - slashClaim.SideTimestamp
+	header := sideCtx.BlockHeader()
+	age := header.Time.Unix() - slashClaim.SideTimestamp
 	if age > int64(h.k.MaxEvidenceAge(sideCtx).Seconds()) {
 		return sdk.EmptyTags(), ErrExpiredEvidence(h.k.Codespace)
 	}
@@ -71,13 +72,13 @@ func (h Hooks) ExecuteClaim(ctx sdk.Context, finalClaim string) (sdk.Tags, sdk.E
 		return sdk.EmptyTags(), ErrFailedToSlash(h.k.Codespace, err.Error())
 	}
 
-	jailUtil := sideCtx.BlockHeader().Time.Add(h.k.DowntimeUnbondDuration(sideCtx))
+	jailUtil := header.Time.Add(h.k.DowntimeUnbondDuration(sideCtx))
 
 	sr := SlashRecord{
 		ConsAddr:         slashClaim.SideConsAddr,
 		InfractionType:   Downtime,
 		InfractionHeight: slashClaim.SideHeight,
-		SlashHeight:      sideCtx.BlockHeight(),
+		SlashHeight:      header.Height,
 		JailUntil:        jailUtil,
 		SlashAmt:         slashedAmt,
 		SideChainId:      slashClaim.SideChainId,
