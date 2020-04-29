@@ -66,13 +66,26 @@ func (h Hooks) ExecuteClaim(ctx sdk.Context, finalClaim string) (sdk.Tags, sdk.E
 		return sdk.EmptyTags(), ErrDuplicateDowntimeClaim(h.k.Codespace)
 	}
 
-	downtimeClaimFee := h.k.DowntimeSlashFee(sideCtx)
+
 	slashAmt := h.k.DowntimeSlashAmount(sideCtx)
-	slashedAmt, feeCoinAdd, err := h.k.validatorSet.SlashSideChain(ctx, slashClaim.SideChainId, slashClaim.SideConsAddr, sdk.NewDec(slashAmt), sdk.ZeroDec(), nil, sdk.NewDec(downtimeClaimFee))
+	slashedAmt, err := h.k.validatorSet.SlashSideChain(ctx, slashClaim.SideChainId, slashClaim.SideConsAddr, sdk.NewDec(slashAmt))
 	if err != nil {
 		return sdk.EmptyTags(), ErrFailedToSlash(h.k.Codespace, err.Error())
 	}
-	fees.Pool.AddAndCommitFee("side_downtime_slash", sdk.NewFee(sdk.Coins{feeCoinAdd}, sdk.FeeForAll))
+
+	downtimeClaimFee := h.k.DowntimeSlashFee(sideCtx)
+	downtimeClaimFeeReal := sdk.MinInt64(downtimeClaimFee, slashedAmt.RawInt())
+	if downtimeClaimFeeReal > 0 {
+		feeCoinAdd := sdk.NewCoin(h.k.validatorSet.BondDenom(sideCtx),downtimeClaimFeeReal)
+		fees.Pool.AddAndCommitFee("side_downtime_slash", sdk.NewFee(sdk.Coins{feeCoinAdd}, sdk.FeeForAll))
+	}
+
+	remainingReward := slashedAmt.RawInt() - downtimeClaimFeeReal
+	if remainingReward > 0 {
+		if err := h.k.validatorSet.AllocateSlashAmtToValidators(sideCtx, slashClaim.SideConsAddr, sdk.NewDec(remainingReward)); err != nil {
+			return sdk.EmptyTags(),ErrFailedToSlash(h.k.Codespace, err.Error())
+		}
+	}
 
 	jailUtil := header.Time.Add(h.k.DowntimeUnbondDuration(sideCtx))
 	sr := SlashRecord{

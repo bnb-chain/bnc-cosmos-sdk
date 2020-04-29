@@ -2,6 +2,7 @@ package slashing
 
 import (
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/sidechain"
 	"time"
 
@@ -25,17 +26,19 @@ type Keeper struct {
 	// codespace
 	Codespace sdk.CodespaceType
 
-	ScKeeper *sidechain.Keeper
+	BankKeeper bank.Keeper
+	ScKeeper   *sidechain.Keeper
 }
 
 // NewKeeper creates a slashing keeper
-func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, vs sdk.ValidatorSet, paramspace params.Subspace, codespace sdk.CodespaceType) Keeper {
+func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, vs sdk.ValidatorSet, paramspace params.Subspace, codespace sdk.CodespaceType, bk bank.Keeper) Keeper {
 	keeper := Keeper{
 		storeKey:     key,
 		cdc:          cdc,
 		validatorSet: vs,
 		paramspace:   paramspace.WithTypeTable(ParamTypeTable()),
 		Codespace:    codespace,
+		BankKeeper:   bk,
 	}
 	return keeper
 }

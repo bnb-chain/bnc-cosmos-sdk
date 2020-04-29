@@ -42,14 +42,30 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 	}
 
 	slashAmount := k.DoubleSignSlashAmount(sideCtx)
-	submitterReward := k.SubmitterReward(sideCtx)
-	slashedAmount, _, slashErr := k.validatorSet.SlashSideChain(ctx, sideChainId, sideConsAddr.Bytes(), sdk.NewDec(slashAmount), sdk.NewDec(submitterReward), msg.Submitter, sdk.ZeroDec())
+	slashedAmount, slashErr := k.validatorSet.SlashSideChain(ctx, sideChainId, sideConsAddr.Bytes(), sdk.NewDec(slashAmount))
 	if slashErr != nil {
 		return ErrFailedToSlash(k.Codespace, slashErr.Error()).Result()
 	}
 
-	jailUtil := header.Time.Add(k.DoubleSignUnbondDuration(sideCtx))
+	submitterReward := k.SubmitterReward(sideCtx)
+	submitterRewardReal := sdk.MinInt64(slashedAmount.RawInt(), submitterReward)
+	submitterRewardCoin := sdk.NewCoin(k.validatorSet.BondDenom(sideCtx), submitterRewardReal)
 
+	if submitterRewardReal > 0 {
+		submitterBalance := k.BankKeeper.GetCoins(ctx,msg.Submitter)
+		if err := k.BankKeeper.SetCoins(ctx, msg.Submitter, submitterBalance.Plus(sdk.Coins{submitterRewardCoin})); err != nil {
+			return ErrFailedToSlash(k.Codespace, err.Error()).Result()
+		}
+	}
+
+	remainingReward := slashedAmount.RawInt() - submitterRewardReal
+	if remainingReward > 0 {
+		if err := k.validatorSet.AllocateSlashAmtToValidators(sideCtx, sideConsAddr.Bytes(), sdk.NewDec(remainingReward)); err != nil {
+			return ErrFailedToSlash(k.Codespace, err.Error()).Result()
+		}
+	}
+
+	jailUtil := header.Time.Add(k.DoubleSignUnbondDuration(sideCtx))
 	sr := SlashRecord{
 		ConsAddr:         sideConsAddr.Bytes(),
 		InfractionType:   DoubleSign,

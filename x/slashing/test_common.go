@@ -106,7 +106,7 @@ func createTestInput(t *testing.T, defaults Params) (sdk.Context, bank.Keeper, s
 	}
 	require.Nil(t, err)
 	paramstore := paramsKeeper.Subspace(DefaultParamspace)
-	keeper := NewKeeper(cdc, keySlashing, sk, paramstore, DefaultCodespace)
+	keeper := NewKeeper(cdc, keySlashing, sk, paramstore, DefaultCodespace,ck)
 	sk = sk.WithHooks(keeper.Hooks())
 
 	require.NotPanics(t, func() {
@@ -179,7 +179,7 @@ func createSideTestInput(t *testing.T, defaults Params) (sdk.Context, sdk.Contex
 	}
 	require.Nil(t, err)
 	paramstore := paramsKeeper.Subspace(DefaultParamspace)
-	keeper := NewKeeper(cdc, keySlashing, sk, paramstore, DefaultCodespace)
+	keeper := NewKeeper(cdc, keySlashing, sk, paramstore, DefaultCodespace,ck)
 	sk = sk.WithHooks(keeper.Hooks())
 	keeper.SetSideChain(&scKeeper)
 	keeper.SetParams(sideCtx, defaults)

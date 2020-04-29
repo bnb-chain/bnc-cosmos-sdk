@@ -42,7 +42,7 @@ func getMockApp(t *testing.T) (*mock.App, stake.Keeper, Keeper) {
 	paramsKeeper := params.NewKeeper(mapp.Cdc, keyParams, tkeyParams)
 	stakeKeeper := stake.NewKeeper(mapp.Cdc, keyStake, tkeyStake, bankKeeper,nil, paramsKeeper.Subspace(stake.DefaultParamspace), mapp.RegisterCodespace(stake.DefaultCodespace))
 	stakeKeeper.SetupForSideChain(&scKeeper, &ibcKeeper)
-	keeper := NewKeeper(mapp.Cdc, keySlashing, stakeKeeper, paramsKeeper.Subspace(DefaultParamspace), mapp.RegisterCodespace(DefaultCodespace))
+	keeper := NewKeeper(mapp.Cdc, keySlashing, stakeKeeper, paramsKeeper.Subspace(DefaultParamspace), mapp.RegisterCodespace(DefaultCodespace),bankKeeper)
 	mapp.Router().AddRoute("stake", stake.NewStakeHandler(stakeKeeper))
 	mapp.Router().AddRoute("slashing", NewHandler(keeper))
 
