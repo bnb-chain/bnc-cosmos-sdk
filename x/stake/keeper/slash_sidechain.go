@@ -1,6 +1,8 @@
 package keeper
 
 import (
+	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 
@@ -8,12 +10,12 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
 
-func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr []byte, slashAmount sdk.Dec, submitterReward sdk.Dec, submitter sdk.AccAddress) error {
+func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr []byte, slashAmount sdk.Dec) (sdk.Dec, error) {
 	logger := ctx.Logger().With("module", "x/stake")
 
 	storePrefix := k.ScKeeper.GetSideChainStorePrefix(ctx, sideChainId)
 	if storePrefix == nil {
-		return errors.New("invalid side chain id")
+		return sdk.ZeroDec(), errors.New("invalid side chain id")
 	}
 
 	// add store prefix to ctx for side chain use
@@ -27,16 +29,14 @@ func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr
 		// Log the slash attempt for future reference (maybe we should tag it too)
 		logger.Error(fmt.Sprintf(
 			"WARNING: Ignored attempt to slash a nonexistent validator with address %s, we recommend you investigate immediately",
-			sideConsAddr))
-		return nil
+			sdk.HexEncode(sideConsAddr)))
+		return sdk.ZeroDec(), nil
 	}
 
 	// should not be slashing unbonded
 	if validator.Status == sdk.Unbonded {
-		return errors.New(fmt.Sprintf("should not be slashing unbonded validator: %s", validator.GetOperator()))
+		return sdk.ZeroDec(), errors.New(fmt.Sprintf("should not be slashing unbonded validator: %s", validator.GetOperator()))
 	}
-
-	bondDenom := k.BondDenom(sideCtx)
 
 	if !validator.Jailed {
 		k.JailSideChain(sideCtx, sideConsAddr)
@@ -48,7 +48,7 @@ func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr
 		slashSelfDelegationShares := sdk.MinDec(slashAmount, selfDelegation.Shares)
 		_, err := k.unbond(sideCtx, selfDelegation.DelegatorAddr, validator.OperatorAddr, slashSelfDelegationShares)
 		if err != nil {
-			return errors.New(fmt.Sprintf("error unbonding delegator: %v", err))
+			return sdk.ZeroDec(), errors.New(fmt.Sprintf("error unbonding delegator: %v", err))
 		}
 		remainingSlashAmount = remainingSlashAmount.Sub(slashSelfDelegationShares)
 	}
@@ -64,40 +64,12 @@ func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr
 	}
 
 	slashedAmt := slashAmount.Sub(remainingSlashAmount)
-	submitterReward = sdk.MinDec(submitterReward, slashedAmt)
-	remainingReward := slashedAmt.Sub(submitterReward)
-	if _, err := k.bankKeeper.SendCoins(sideCtx, DelegationAccAddr, submitter, sdk.Coins{sdk.NewCoin(bondDenom, submitterReward.RawInt())}); err != nil {
-		return err
-	}
 
-	// allocate remaining rewards to other validators
-	validators,_,found := k.GetHeightValidatorsByIndex(sideCtx,1)
-	if !found {
-		return errors.New("can not found validators of current day")
-	}
-
-	if !remainingReward.IsZero() {
-
-		// remove bad validator if it exists in the eligible validators for current day
-		for i := 0; i < len(validators); i++ {
-			if validators[i].OperatorAddr.Equals(validator.OperatorAddr) {
-				if i == len(validators)-1 {
-					validators = validators[:i]
-				} else {
-					validators = append(validators[:i], validators[i+1:]...)
-				}
-				break
-			}
-		}
-
-		sharers, totalShares := convertValidators2Shares(validators)
-		rewards := allocate(sharers, remainingReward, totalShares)
-		for i := range rewards {
-			if _, err := k.bankKeeper.SendCoins(sideCtx, DelegationAccAddr, rewards[i].AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, rewards[i].Amount)}); err != nil {
-				return err
-			}
-		}
-
+	bondDenom := k.BondDenom(ctx)
+	delegationAccBalance := k.bankKeeper.GetCoins(ctx, DelegationAccAddr)
+	slashedCoin := sdk.NewCoin(bondDenom, slashedAmt.RawInt())
+	if err := k.bankKeeper.SetCoins(sideCtx, DelegationAccAddr, delegationAccBalance.Minus(sdk.Coins{slashedCoin})); err != nil {
+		return slashedAmt, err
 	}
 
 	if validator.Status == sdk.Bonded {
@@ -108,11 +80,11 @@ func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr
 			Power:    validator.GetPower().RawInt(),
 		}
 		if _, err := k.SaveJailedValidatorToIbc(sideCtx, sideChainId, ibcValidator); err != nil {
-			return errors.New(err.Error())
+			return sdk.ZeroDec(), errors.New(err.Error())
 		}
 	}
 
-	return nil
+	return slashedAmt, nil
 
 }
 
@@ -120,7 +92,7 @@ func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr
 func (k Keeper) JailSideChain(ctx sdk.Context, consAddr []byte) {
 	validator := k.mustGetValidatorBySideConsAddr(ctx, consAddr)
 	k.jailValidator(ctx, validator)
-	k.Logger(ctx).Info(fmt.Sprintf("validator %s jailed", consAddr))
+	k.Logger(ctx).Info(fmt.Sprintf("validator %s jailed", hex.EncodeToString(consAddr)))
 	// TODO Return event(s), blocked on https://github.com/tendermint/tendermint/pull/1803
 	return
 }
@@ -129,7 +101,7 @@ func (k Keeper) JailSideChain(ctx sdk.Context, consAddr []byte) {
 func (k Keeper) UnjailSideChain(ctx sdk.Context, consAddr []byte) {
 	validator := k.mustGetValidatorBySideConsAddr(ctx, consAddr)
 	k.unjailValidator(ctx, validator)
-	k.Logger(ctx).Info(fmt.Sprintf("validator %s unjailed", consAddr))
+	k.Logger(ctx).Info(fmt.Sprintf("validator %s unjailed", hex.EncodeToString(consAddr)))
 	// TODO Return event(s), blocked on https://github.com/tendermint/tendermint/pull/1803
 	return
 }
@@ -141,4 +113,33 @@ func convertValidators2Shares(validators []types.Validator) (sharers []Sharer, t
 		totalShares = totalShares.Add(val.DelegatorShares)
 	}
 	return sharers, totalShares
+}
+
+func (k Keeper) AllocateSlashAmtToValidators(ctx sdk.Context, slashedConsAddr []byte, amount sdk.Dec) error {
+	// allocate remaining rewards to other validators
+	validators, _, found := k.GetHeightValidatorsByIndex(ctx, 1)
+	if !found {
+		return errors.New("can not found validators of current day")
+	}
+	// remove bad validator if it exists in the eligible validators for current day
+	for i := 0; i < len(validators); i++ {
+		if bytes.Compare(validators[i].SideConsAddr, slashedConsAddr) == 0 {
+			if i == len(validators)-1 {
+				validators = validators[:i]
+			} else {
+				validators = append(validators[:i], validators[i+1:]...)
+			}
+			break
+		}
+	}
+
+	bondDenom := k.BondDenom(ctx)
+	sharers, totalShares := convertValidators2Shares(validators)
+	rewards := allocate(sharers, amount, totalShares)
+	for i := range rewards {
+		if _, err := k.bankKeeper.SendCoins(ctx, DelegationAccAddr, rewards[i].AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, rewards[i].Amount)}); err != nil {
+			return err
+		}
+	}
+	return nil
 }

@@ -29,6 +29,7 @@ func GetCmdQuerySideChainSigningInfo(storeName string, cdc *codec.Codec) *cobra.
 
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			_, sideChainStorePrefix, err := getSideChainConfig(cliCtx)
+
 			if err != nil {
 				return err
 			}

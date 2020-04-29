@@ -106,7 +106,7 @@ func createTestInput(t *testing.T, defaults Params) (sdk.Context, bank.Keeper, s
 	}
 	require.Nil(t, err)
 	paramstore := paramsKeeper.Subspace(DefaultParamspace)
-	keeper := NewKeeper(cdc, keySlashing, sk, paramstore, DefaultCodespace)
+	keeper := NewKeeper(cdc, keySlashing, sk, paramstore, DefaultCodespace,ck)
 	sk = sk.WithHooks(keeper.Hooks())
 
 	require.NotPanics(t, func() {
@@ -139,7 +139,7 @@ func createSideTestInput(t *testing.T, defaults Params) (sdk.Context, sdk.Contex
 
 	err := ms.LoadLatestVersion()
 	require.Nil(t, err)
-	ctx := sdk.NewContext(ms, abci.Header{Time: time.Unix(0, 0)}, sdk.RunTxModeDeliver, log.NewTMLogger(os.Stdout))
+	ctx := sdk.NewContext(ms, abci.Header{Time: time.Now()}, sdk.RunTxModeDeliver, log.NewTMLogger(os.Stdout))
 	cdc := createTestCodec()
 	accountKeeper := auth.NewAccountKeeper(cdc, keyAcc, auth.ProtoBaseAccount)
 	accountCache := getAccountCache(cdc, ms, keyAcc)
@@ -179,7 +179,7 @@ func createSideTestInput(t *testing.T, defaults Params) (sdk.Context, sdk.Contex
 	}
 	require.Nil(t, err)
 	paramstore := paramsKeeper.Subspace(DefaultParamspace)
-	keeper := NewKeeper(cdc, keySlashing, sk, paramstore, DefaultCodespace)
+	keeper := NewKeeper(cdc, keySlashing, sk, paramstore, DefaultCodespace,ck)
 	sk = sk.WithHooks(keeper.Hooks())
 	keeper.SetSideChain(&scKeeper)
 	keeper.SetParams(sideCtx, defaults)

@@ -17,6 +17,7 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 		sideCtx = scCtx
 	}
 
+	header := sideCtx.BlockHeader()
 	sideConsAddr, err := msg.Headers[0].ExtractSignerFromHeader()
 	if err != nil {
 		return ErrInvalidEvidence(DefaultCodespace, fmt.Sprintf("Failed to extract signer from block header, %s", err.Error())).Result()
@@ -35,27 +36,43 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 
 	//verify evidence age
 	evidenceTime := int64(sdk.Min(msg.Headers[0].Time, msg.Headers[1].Time))
-	age := sideCtx.BlockHeader().Time.Sub(time.Unix(evidenceTime, 0))
+	age := header.Time.Sub(time.Unix(evidenceTime, 0))
 	if age > k.MaxEvidenceAge(sideCtx) {
 		return ErrExpiredEvidence(k.Codespace).Result()
 	}
 
-	slashAmount := k.SlashAmount(sideCtx)
-	submitterReward := k.SubmitterReward(sideCtx)
-	slashErr := k.validatorSet.SlashSideChain(ctx, sideChainId, sideConsAddr.Bytes(), sdk.NewDec(slashAmount), sdk.NewDec(submitterReward), msg.Submitter)
+	slashAmount := k.DoubleSignSlashAmount(sideCtx)
+	slashedAmount, slashErr := k.validatorSet.SlashSideChain(ctx, sideChainId, sideConsAddr.Bytes(), sdk.NewDec(slashAmount))
 	if slashErr != nil {
 		return ErrFailedToSlash(k.Codespace, slashErr.Error()).Result()
 	}
 
-	jailUtil := sideCtx.BlockHeader().Time.Add(k.DoubleSignUnbondDuration(sideCtx))
+	submitterReward := k.SubmitterReward(sideCtx)
+	submitterRewardReal := sdk.MinInt64(slashedAmount.RawInt(), submitterReward)
+	submitterRewardCoin := sdk.NewCoin(k.validatorSet.BondDenom(sideCtx), submitterRewardReal)
 
+	if submitterRewardReal > 0 {
+		submitterBalance := k.BankKeeper.GetCoins(ctx,msg.Submitter)
+		if err := k.BankKeeper.SetCoins(ctx, msg.Submitter, submitterBalance.Plus(sdk.Coins{submitterRewardCoin})); err != nil {
+			return ErrFailedToSlash(k.Codespace, err.Error()).Result()
+		}
+	}
+
+	remainingReward := slashedAmount.RawInt() - submitterRewardReal
+	if remainingReward > 0 {
+		if err := k.validatorSet.AllocateSlashAmtToValidators(sideCtx, sideConsAddr.Bytes(), sdk.NewDec(remainingReward)); err != nil {
+			return ErrFailedToSlash(k.Codespace, err.Error()).Result()
+		}
+	}
+
+	jailUtil := header.Time.Add(k.DoubleSignUnbondDuration(sideCtx))
 	sr := SlashRecord{
 		ConsAddr:         sideConsAddr.Bytes(),
 		InfractionType:   DoubleSign,
 		InfractionHeight: msg.Headers[0].Number,
-		SlashHeight:      sideCtx.BlockHeight(),
+		SlashHeight:      header.Height,
 		JailUntil:        jailUtil,
-		SlashAmt:         sdk.NewDec(slashAmount),
+		SlashAmt:         slashedAmount,
 		SideChainId:      sideChainId,
 	}
 	k.setSlashRecord(sideCtx, sr)
