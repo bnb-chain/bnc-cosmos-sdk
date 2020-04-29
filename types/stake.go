@@ -50,7 +50,6 @@ type Validator interface {
 	GetDelegatorShares() Dec         // Total out standing delegator shares
 	GetBondHeight() int64            // height in which the validator became active
 	GetSideChainConsAddr() []byte    // validation consensus address on side chain
-	GetMinSelfDelegation() int64     // validator minimum self delegation
 	IsSideChainValidator() bool      // if it belongs to side chain
 }
 
@@ -87,13 +86,14 @@ type ValidatorSet interface {
 
 	// functions for side chain
 	ValidatorBySideChainConsAddr(Context, []byte) Validator
-	JailSideChain(Context, []byte)
 	UnjailSideChain(Context, []byte)
 	SlashSideChain(ctx Context, sideChainId string, sideConsAddr []byte, slashAmount Dec) (slashedAmount Dec, err error)
-	BondDenom(ctx Context) string
 
 	// allocate remaining slashed amount to validators who are going to be distributed next time
 	AllocateSlashAmtToValidators(ctx Context, slashedConsAddr []byte, amount Dec) error
+
+	MinSelfDelegation(ctx Context) int64 // validator minimum self delegation
+	BondDenom(ctx Context) string
 }
 
 //_______________________________________________________________________________

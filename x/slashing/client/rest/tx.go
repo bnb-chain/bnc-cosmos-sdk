@@ -3,7 +3,6 @@ package rest
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/cosmos/cosmos-sdk/x/slashing/bsc"
 	"io/ioutil"
 	"net/http"
 
@@ -14,7 +13,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 	"github.com/cosmos/cosmos-sdk/x/slashing"
-
+	"github.com/cosmos/cosmos-sdk/x/slashing/bsc"
 	"github.com/gorilla/mux"
 )
 

@@ -1,6 +1,8 @@
 package slashing
 
-import sdk "github.com/cosmos/cosmos-sdk/types"
+import (
+	sdk "github.com/cosmos/cosmos-sdk/types"
+)
 
 func (k Keeper) Unjail(ctx sdk.Context, validatorAddr sdk.ValAddress) sdk.Error {
 
@@ -15,7 +17,7 @@ func (k Keeper) Unjail(ctx sdk.Context, validatorAddr sdk.ValAddress) sdk.Error 
 		return ErrMissingSelfDelegation(k.Codespace)
 	}
 
-	if validator.TokensFromShares(selfDel.GetShares()).RawInt() < validator.GetMinSelfDelegation() {
+	if validator.TokensFromShares(selfDel.GetShares()).RawInt() < k.validatorSet.MinSelfDelegation(ctx) {
 		return ErrSelfDelegationTooLowToUnjail(k.Codespace)
 	}
 

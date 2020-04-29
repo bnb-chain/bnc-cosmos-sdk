@@ -63,17 +63,18 @@ func (k Keeper) onSelfDelDropBelowMin(ctx sdk.Context, valAddress sdk.ValAddress
 		consAddr = validator.GetConsAddr().Bytes()
 	}
 
+	header := ctx.BlockHeader()
 	signingInfo, found := k.getValidatorSigningInfo(ctx, consAddr)
 	if !found {
 		signingInfo := ValidatorSigningInfo{
-			StartHeight:         ctx.BlockHeight(),
+			StartHeight:         header.Height,
 			IndexOffset:         0,
-			JailedUntil:         ctx.BlockHeader().Time.Add(k.TooLowDelUnbondDuration(ctx)),
+			JailedUntil:         header.Time.Add(k.TooLowDelUnbondDuration(ctx)),
 			MissedBlocksCounter: 0,
 		}
 		k.setValidatorSigningInfo(ctx, consAddr, signingInfo)
 	} else {
-		signingInfo.JailedUntil = ctx.BlockHeader().Time.Add(k.TooLowDelUnbondDuration(ctx))
+		signingInfo.JailedUntil = header.Time.Add(k.TooLowDelUnbondDuration(ctx))
 		k.setValidatorSigningInfo(ctx, consAddr, signingInfo)
 	}
 }

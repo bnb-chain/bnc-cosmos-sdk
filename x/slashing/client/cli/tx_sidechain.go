@@ -73,10 +73,6 @@ func GetCmdBscSubmitEvidence(cdc *codec.Codec) *cobra.Command {
 
 			msg := slashing.NewMsgBscSubmitEvidence(from, headers)
 
-			if cliCtx.GenerateOnly {
-				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg})
-			}
-
 			return utils.GenerateOrBroadcastMsgs(txBldr, cliCtx, []sdk.Msg{msg})
 		},
 	}
@@ -108,10 +104,8 @@ func GetCmdSideChainUnjail(cdc *codec.Codec) *cobra.Command {
 			}
 
 			msg := slashing.NewMsgSideChainUnjail(sdk.ValAddress(valAddr), sideChainId)
-			if cliCtx.GenerateOnly {
-				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg})
-			}
-			return utils.CompleteAndBroadcastTxCli(txBldr, cliCtx, []sdk.Msg{msg})
+
+			return utils.GenerateOrBroadcastMsgs(txBldr, cliCtx, []sdk.Msg{msg})
 		},
 	}
 	cmd.Flags().String(FlagSideChainId, "", "chain-id of the side chain the validator belongs to")

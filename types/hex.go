@@ -40,7 +40,7 @@ func HexEncode(b []byte) string {
 // Decode decodes a hex string with 0x prefix.
 func HexDecode(input string) ([]byte, error) {
 	if !Has0xPrefix(input) {
-		return nil, errors.New("hex string without 0x prefix")
+		return nil, errors.New("hex string must have 0x prefix")
 	}
 	return hex.DecodeString(input[2:])
 }

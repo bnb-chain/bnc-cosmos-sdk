@@ -554,7 +554,6 @@ func (v Validator) GetCommission() sdk.Dec       { return v.Commission.Rate }
 func (v Validator) GetDelegatorShares() sdk.Dec  { return v.DelegatorShares }
 func (v Validator) GetBondHeight() int64         { return v.BondHeight }
 func (v Validator) GetSideChainConsAddr() []byte { return v.SideConsAddr }
-func (v Validator) GetMinSelfDelegation() int64  { return DefaultMinSelfDelegation }
 func (v Validator) IsSideChainValidator() bool   { return len(v.SideChainId) != 0 }
 
 func (v Validator) IsSelfDelegator(address sdk.AccAddress) bool { return v.FeeAddr.Equals(address) }

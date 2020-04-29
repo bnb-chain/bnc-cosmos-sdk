@@ -18,7 +18,7 @@ func (k Keeper) SaveValidatorSetToIbc(ctx sdk.Context, sideChainId string, ibcVa
 		return 0, sdk.ErrInternal(err.Error())
 	}
 	// prepend a flag 0x00
-	bz = append([]byte{0x00}, bz...)
+	bz = addPrefix(byte(0x00), bz)
 	return k.ibcKeeper.CreateIBCPackage(ctx, sideChainId, IbcChannelName, bz)
 }
 
@@ -28,11 +28,11 @@ func (k Keeper) SaveJailedValidatorToIbc(ctx sdk.Context, sideChainId string, ib
 		k.Logger(ctx).Error("serialize failed: " + err.Error())
 		return 0, sdk.ErrInternal(err.Error())
 	}
-	newBz := addPrefix(byte(0x01),bz)
+	newBz := addPrefix(byte(0x01), bz)
 	return k.ibcKeeper.CreateIBCPackage(ctx, sideChainId, IbcChannelName, newBz)
 }
 
-func addPrefix(prefix byte,bz []byte) []byte {
+func addPrefix(prefix byte, bz []byte) []byte {
 	newBz := make([]byte, len(bz)+1)
 	newBz[0] = prefix
 	copy(newBz[1:], bz)

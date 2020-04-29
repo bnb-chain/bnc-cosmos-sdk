@@ -28,10 +28,9 @@ func handleMsgCreateSideChainValidator(ctx sdk.Context, msg MsgCreateSideChainVa
 		return ErrValidatorSideConsAddrExist(k.Codespace()).Result()
 	}
 
-	// TODO: get MinSelfDelegation from the params
-	if msg.Delegation.Amount < types.DefaultMinSelfDelegation {
+	if msg.Delegation.Amount < k.MinSelfDelegation(ctx) {
 		return ErrBadDelegationAmount(DefaultCodespace,
-			fmt.Sprintf("self delegation must not be less than %d", types.DefaultMinSelfDelegation)).Result()
+			fmt.Sprintf("self delegation must not be less than %d", k.MinSelfDelegation(ctx))).Result()
 	}
 	if msg.Delegation.Denom != k.GetParams(ctx).BondDenom {
 		return ErrBadDenom(k.Codespace()).Result()
@@ -138,7 +137,6 @@ func handleMsgSideChainDelegate(ctx sdk.Context, msg MsgSideChainDelegate, k kee
 	if validator.Jailed && !bytes.Equal(validator.FeeAddr, msg.DelegatorAddr) {
 		return ErrValidatorJailed(k.Codespace()).Result()
 	}
-
 
 	_, err := k.DelegateForSideChain(ctx, msg.DelegatorAddr, msg.Delegation, validator, true)
 

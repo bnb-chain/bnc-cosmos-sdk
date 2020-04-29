@@ -13,10 +13,10 @@ var cdc = codec.New()
 
 // name to identify transaction types
 const (
-	MsgRoute                       = "slashing"
-	TypeMsgUnjail                  = "unjail"
-	TypeMsgSideChainUnjail         = "side_chain_unjail"
-	TypeMsgSubmitSideChainEvidence = "submit_side_chain_evidence"
+	MsgRoute                 = "slashing"
+	TypeMsgUnjail            = "unjail"
+	TypeMsgSideChainUnjail   = "side_chain_unjail"
+	TypeMsgBscSubmitEvidence = "bsc_submit_evidence"
 
 	MaxSideChainIdLength = 20
 )
@@ -90,10 +90,7 @@ func (msg MsgSideChainUnjail) GetSigners() []sdk.AccAddress {
 
 // get the bytes for the message signer to sign on
 func (msg MsgSideChainUnjail) GetSignBytes() []byte {
-	b, err := cdc.MarshalJSON(msg)
-	if err != nil {
-		panic(err)
-	}
+	b := MsgCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(b)
 }
 
@@ -103,7 +100,7 @@ func (msg MsgSideChainUnjail) ValidateBasic() sdk.Error {
 		return ErrBadValidatorAddr(DefaultCodespace)
 	}
 	if len(msg.SideChainId) == 0 || len(msg.SideChainId) > MaxSideChainIdLength {
-		return ErrInvalidInput(DefaultCodespace, "side chain id must be included and max length is 20 bytes")
+		return ErrInvalidInput(DefaultCodespace, fmt.Sprintf("side chain id must be included and max length is %d bytes", MaxSideChainIdLength))
 	}
 	return nil
 }
@@ -134,7 +131,7 @@ func (MsgBscSubmitEvidence) Route() string {
 }
 
 func (MsgBscSubmitEvidence) Type() string {
-	return TypeMsgSubmitSideChainEvidence
+	return TypeMsgBscSubmitEvidence
 }
 
 func (msg MsgBscSubmitEvidence) ValidateBasic() sdk.Error {

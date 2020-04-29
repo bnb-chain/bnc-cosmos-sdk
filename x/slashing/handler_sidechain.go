@@ -10,14 +10,12 @@ import (
 
 func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Keeper) sdk.Result {
 	sideChainId := k.BscSideChainId(ctx)
-	var sideCtx sdk.Context
-	if scCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, sideChainId); err != nil {
+	sideCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, sideChainId)
+	if err != nil {
 		return ErrInvalidSideChainId(DefaultCodespace).Result()
-	} else {
-		sideCtx = scCtx
 	}
 
-	header := sideCtx.BlockHeader()
+	header := ctx.BlockHeader()
 	sideConsAddr, err := msg.Headers[0].ExtractSignerFromHeader()
 	if err != nil {
 		return ErrInvalidEvidence(DefaultCodespace, fmt.Sprintf("Failed to extract signer from block header, %s", err.Error())).Result()
@@ -35,8 +33,11 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 	}
 
 	//verify evidence age
-	evidenceTime := int64(sdk.Min(msg.Headers[0].Time, msg.Headers[1].Time))
-	age := header.Time.Sub(time.Unix(evidenceTime, 0))
+	evidenceTime := msg.Headers[0].Time
+	if msg.Headers[0].Time < msg.Headers[1].Time {
+		evidenceTime = msg.Headers[1].Time
+	}
+	age := sideCtx.BlockHeader().Time.Sub(time.Unix(int64(evidenceTime), 0))
 	if age > k.MaxEvidenceAge(sideCtx) {
 		return ErrExpiredEvidence(k.Codespace).Result()
 	}
@@ -52,7 +53,7 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 	submitterRewardCoin := sdk.NewCoin(k.validatorSet.BondDenom(sideCtx), submitterRewardReal)
 
 	if submitterRewardReal > 0 {
-		submitterBalance := k.BankKeeper.GetCoins(ctx,msg.Submitter)
+		submitterBalance := k.BankKeeper.GetCoins(ctx, msg.Submitter)
 		if err := k.BankKeeper.SetCoins(ctx, msg.Submitter, submitterBalance.Plus(sdk.Coins{submitterRewardCoin})); err != nil {
 			return ErrFailedToSlash(k.Codespace, err.Error()).Result()
 		}
@@ -89,17 +90,17 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 }
 
 func handleMsgSideChainUnjail(ctx sdk.Context, msg MsgSideChainUnjail, k Keeper) sdk.Result {
-	if scCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, msg.SideChainId); err != nil {
+
+	scCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, msg.SideChainId)
+	if err != nil {
 		return ErrInvalidSideChainId(DefaultCodespace).Result()
-	} else {
-		ctx = scCtx
 	}
 
-	if err := k.Unjail(ctx, msg.ValidatorAddr); err != nil {
+	if err := k.Unjail(scCtx, msg.ValidatorAddr); err != nil {
 		return err.Result()
 	}
 
-	tags := sdk.NewTags("action", []byte("unjail"), "validator", []byte(msg.ValidatorAddr.String()))
+	tags := sdk.NewTags("sideChainId", []byte(msg.SideChainId), "validator", []byte(msg.ValidatorAddr.String()))
 
 	return sdk.Result{
 		Tags: tags,

@@ -127,6 +127,18 @@ func (k Keeper) GetHeightValidatorsByIndex(ctx sdk.Context, indexCountBackwards 
 	return nil, 0, false
 }
 
+func (k Keeper) GetEarliestValidatorsWithHeight(ctx sdk.Context) ([]types.Validator, bool) {
+	store := ctx.KVStore(k.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, ValidatorsByHeightKey)
+	defer iterator.Close()
+
+	for iterator.Valid() {
+		validators := types.MustUnmarshalValidators(k.cdc, iterator.Value())
+		return validators, true
+	}
+	return nil, false
+}
+
 func (k Keeper) ExistValidatorsWithHeight(ctx sdk.Context, height int64) bool {
 	store := ctx.KVStore(k.storeKey)
 	return store.Has(GetValidatorHeightKey(height))

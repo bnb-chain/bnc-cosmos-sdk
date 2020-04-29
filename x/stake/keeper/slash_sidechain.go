@@ -13,13 +13,10 @@ import (
 func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr []byte, slashAmount sdk.Dec) (sdk.Dec, error) {
 	logger := ctx.Logger().With("module", "x/stake")
 
-	storePrefix := k.ScKeeper.GetSideChainStorePrefix(ctx, sideChainId)
-	if storePrefix == nil {
+	sideCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, sideChainId)
+	if err != nil {
 		return sdk.ZeroDec(), errors.New("invalid side chain id")
 	}
-
-	// add store prefix to ctx for side chain use
-	sideCtx := ctx.WithSideChainKeyPrefix(storePrefix)
 
 	validator, found := k.GetValidatorBySideConsAddr(sideCtx, sideConsAddr)
 	if !found {
@@ -34,7 +31,7 @@ func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr
 	}
 
 	// should not be slashing unbonded
-	if validator.Status == sdk.Unbonded {
+	if validator.IsUnbonded() {
 		return sdk.ZeroDec(), errors.New(fmt.Sprintf("should not be slashing unbonded validator: %s", validator.GetOperator()))
 	}
 
@@ -45,15 +42,20 @@ func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr
 	selfDelegation, found := k.GetDelegation(sideCtx, validator.FeeAddr, validator.OperatorAddr)
 	remainingSlashAmount := slashAmount
 	if found {
-		slashSelfDelegationShares := sdk.MinDec(slashAmount, selfDelegation.Shares)
-		_, err := k.unbond(sideCtx, selfDelegation.DelegatorAddr, validator.OperatorAddr, slashSelfDelegationShares)
+		slashShares, err := validator.SharesFromTokens(slashAmount)
+		if err != nil {
+			return sdk.ZeroDec(), err
+		}
+		slashSelfDelegationShares := sdk.MinDec(slashShares, selfDelegation.Shares)
+		_, err = k.unbond(sideCtx, selfDelegation.DelegatorAddr, validator.OperatorAddr, slashSelfDelegationShares)
 		if err != nil {
 			return sdk.ZeroDec(), errors.New(fmt.Sprintf("error unbonding delegator: %v", err))
 		}
-		remainingSlashAmount = remainingSlashAmount.Sub(slashSelfDelegationShares)
+		slashSelfDelegationAmount := validator.TokensFromShares(slashSelfDelegationShares)
+		remainingSlashAmount = remainingSlashAmount.Sub(slashSelfDelegationAmount)
 	}
 
-	if !remainingSlashAmount.IsZero() {
+	if remainingSlashAmount.RawInt() > 0 {
 		ubd, found := k.GetUnbondingDelegation(sideCtx, validator.FeeAddr, validator.OperatorAddr)
 		if found {
 			slashUnBondingAmount := sdk.MinInt64(remainingSlashAmount.RawInt(), ubd.Balance.Amount)
@@ -72,7 +74,7 @@ func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr
 		return slashedAmt, err
 	}
 
-	if validator.Status == sdk.Bonded {
+	if validator.IsBonded() {
 		ibcValidator := types.IbcValidator{
 			ConsAddr: validator.SideConsAddr,
 			FeeAddr:  validator.SideFeeAddr,
@@ -116,12 +118,12 @@ func convertValidators2Shares(validators []types.Validator) (sharers []Sharer, t
 }
 
 func (k Keeper) AllocateSlashAmtToValidators(ctx sdk.Context, slashedConsAddr []byte, amount sdk.Dec) error {
-	// allocate remaining rewards to other validators
-	validators, _, found := k.GetHeightValidatorsByIndex(ctx, 1)
+	// allocate remaining rewards to validators who are going to be distributed next time.
+	validators, found := k.GetEarliestValidatorsWithHeight(ctx)
 	if !found {
-		return errors.New("can not found validators of current day")
+		return errors.New("can not found validators to allocated")
 	}
-	// remove bad validator if it exists in the eligible validators for current day
+	// remove bad validator if it exists in the eligible validators
 	for i := 0; i < len(validators); i++ {
 		if bytes.Compare(validators[i].SideConsAddr, slashedConsAddr) == 0 {
 			if i == len(validators)-1 {
@@ -136,10 +138,17 @@ func (k Keeper) AllocateSlashAmtToValidators(ctx sdk.Context, slashedConsAddr []
 	bondDenom := k.BondDenom(ctx)
 	sharers, totalShares := convertValidators2Shares(validators)
 	rewards := allocate(sharers, amount, totalShares)
+
+	changedAddrs := make([]sdk.AccAddress, len(rewards)+1)
 	for i := range rewards {
 		if _, err := k.bankKeeper.SendCoins(ctx, DelegationAccAddr, rewards[i].AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, rewards[i].Amount)}); err != nil {
 			return err
 		}
+		changedAddrs[i] = rewards[i].AccAddr
+	}
+	changedAddrs[len(rewards)] = DelegationAccAddr
+	if k.addrPool != nil {
+		k.addrPool.AddAddrs(changedAddrs)
 	}
 	return nil
 }
