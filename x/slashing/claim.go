@@ -16,9 +16,10 @@ const (
 var _ sdk.ClaimHooks = Hooks{}
 
 type SideDowntimeSlashClaim struct {
-	SideConsAddr []byte
-	SideHeight   int64
-	SideChainId  string
+	SideConsAddr  []byte `json:"side_cons_addr"`
+	SideHeight    int64  `json:"side_height"`
+	SideChainId   string `json:"side_chain_id"`
+	SideTimestamp int64  `json:"side_timestamp"`
 }
 
 // implement Claim hooks
@@ -36,6 +37,10 @@ func (h Hooks) CheckClaim(ctx sdk.Context, claim string) sdk.Error {
 	if slashClaim.SideHeight <= 0 {
 		return ErrInvalidClaim(h.k.Codespace, "side height must be positive")
 	}
+
+	if slashClaim.SideTimestamp <= 0 {
+		return ErrInvalidClaim(h.k.Codespace, "invalid side timestamp")
+	}
 	return nil
 }
 
@@ -49,6 +54,11 @@ func (h Hooks) ExecuteClaim(ctx sdk.Context, finalClaim string) (sdk.Tags, sdk.E
 	sideCtx, err := h.k.ScKeeper.PrepareCtxForSideChain(ctx, slashClaim.SideChainId)
 	if err != nil {
 		return sdk.EmptyTags(), ErrInvalidSideChainId(DefaultCodespace)
+	}
+
+	age := sideCtx.BlockHeader().Time.Unix() - slashClaim.SideTimestamp
+	if age > int64(h.k.MaxEvidenceAge(sideCtx).Seconds()) {
+		return sdk.EmptyTags(), ErrExpiredEvidence(h.k.Codespace)
 	}
 
 	if h.k.hasSlashRecord(sideCtx, slashClaim.SideConsAddr, Downtime, slashClaim.SideHeight) {

@@ -3,6 +3,7 @@ package slashing
 import (
 	"encoding/json"
 	"testing"
+	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/gov"
@@ -13,6 +14,7 @@ import (
 func TestSideChainSlashDowntime(t *testing.T) {
 
 	slashingParams := DefaultParams()
+	slashingParams.MaxEvidenceAge = 12 * 60 * 60 * time.Second
 	ctx, sideCtx, _, stakeKeeper, _, keeper := createSideTestInput(t, slashingParams)
 	hooks := keeper.Hooks()
 
@@ -29,10 +31,12 @@ func TestSideChainSlashDowntime(t *testing.T) {
 
 	sideHeight := int64(100)
 	sideChainId := "bsc"
+	sideTimestamp := ctx.BlockHeader().Time.Add(- 6 * 60 * 60 * time.Second)
 	claim := SideDowntimeSlashClaim{
 		SideConsAddr: sideConsAddr,
 		SideHeight:   sideHeight,
 		SideChainId:  sideChainId,
+		SideTimestamp: sideTimestamp.Unix(),
 	}
 
 	jsonClaim, err := json.Marshal(claim)
@@ -85,6 +89,17 @@ func TestSideChainSlashDowntime(t *testing.T) {
 	sdkErr = hooks.CheckClaim(ctx, string(jsonClaim))
 	require.NotNil(t, sdkErr)
 
+	claim.SideConsAddr = sideConsAddr
+	claim.SideTimestamp = ctx.BlockHeader().Time.Add(-24 * 60 * 60 * time.Second).Unix()
+	jsonClaim, err = json.Marshal(claim)
+	require.Nil(t, err)
+	sdkErr = hooks.CheckClaim(ctx, string(jsonClaim))
+	require.Nil(t, sdkErr)
+	_, sdkErr = hooks.ExecuteClaim(ctx, string(jsonClaim))
+	require.NotNil(t,sdkErr,"Exepcted get err, but got nil")
+	require.EqualValues(t, CodeExpiredEvidence, sdkErr.Code(), "Expected got 201 err code, but got err: %v", sdkErr)
+
+	claim.SideTimestamp = ctx.BlockHeader().Time.Add(-6 * 60 * 60 * time.Second).Unix()
 	claim.SideConsAddr = sideConsAddr
 	claim.SideChainId = "bcc"
 	jsonClaim, err = json.Marshal(claim)

@@ -139,7 +139,7 @@ func createSideTestInput(t *testing.T, defaults Params) (sdk.Context, sdk.Contex
 
 	err := ms.LoadLatestVersion()
 	require.Nil(t, err)
-	ctx := sdk.NewContext(ms, abci.Header{Time: time.Unix(0, 0)}, sdk.RunTxModeDeliver, log.NewTMLogger(os.Stdout))
+	ctx := sdk.NewContext(ms, abci.Header{Time: time.Now()}, sdk.RunTxModeDeliver, log.NewTMLogger(os.Stdout))
 	cdc := createTestCodec()
 	accountKeeper := auth.NewAccountKeeper(cdc, keyAcc, auth.ProtoBaseAccount)
 	accountCache := getAccountCache(cdc, ms, keyAcc)
