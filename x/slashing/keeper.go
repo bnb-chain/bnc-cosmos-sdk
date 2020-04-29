@@ -47,7 +47,7 @@ func (k *Keeper) SetSideChain(scKeeper *sidechain.Keeper) {
 }
 
 func (k Keeper) ClaimRegister(oracleKeeper sdk.OracleKeeper) error {
-	if err := oracleKeeper.RegisterClaimType(ClaimTypeDowntimeSlash, ClaimNameDowntimeSlash, k.Hooks()); err != nil {
+	if err := oracleKeeper.RegisterClaimType(ClaimTypeDowntimeSlash, ClaimNameDowntimeSlash, k.ClaimHooks()); err != nil {
 		return err
 	}
 	return nil

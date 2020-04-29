@@ -73,6 +73,6 @@ func TestSideChainSlashDoubleSign(t *testing.T) {
 
 	slashRecord, found := keeper.getSlashRecord(sideCtx, sideConsAddr1, DoubleSign, 1)
 	require.True(t, found)
-	require.EqualValues(t, realSlashAmt, slashRecord.SlashAmt.RawInt())
+	require.EqualValues(t, realSlashAmt, slashRecord.SlashAmt)
 	require.EqualValues(t, ctx.BlockHeader().Time.Add(slashParams.DoubleSignUnbondDuration).Unix(), slashRecord.JailUntil.Unix())
 }

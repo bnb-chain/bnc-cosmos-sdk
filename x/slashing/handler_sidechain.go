@@ -73,7 +73,7 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 		InfractionHeight: msg.Headers[0].Number,
 		SlashHeight:      header.Height,
 		JailUntil:        jailUtil,
-		SlashAmt:         slashedAmount,
+		SlashAmt:         slashedAmount.RawInt(),
 		SideChainId:      sideChainId,
 	}
 	k.setSlashRecord(sideCtx, sr)

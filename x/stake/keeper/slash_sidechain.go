@@ -70,10 +70,12 @@ func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr
 	bondDenom := k.BondDenom(ctx)
 	delegationAccBalance := k.bankKeeper.GetCoins(ctx, DelegationAccAddr)
 	slashedCoin := sdk.NewCoin(bondDenom, slashedAmt.RawInt())
-	if err := k.bankKeeper.SetCoins(sideCtx, DelegationAccAddr, delegationAccBalance.Minus(sdk.Coins{slashedCoin})); err != nil {
+	if err := k.bankKeeper.SetCoins(ctx, DelegationAccAddr, delegationAccBalance.Minus(sdk.Coins{slashedCoin})); err != nil {
 		return slashedAmt, err
 	}
-
+	if k.addrPool != nil {
+		k.addrPool.AddAddrs([]sdk.AccAddress{DelegationAccAddr})
+	}
 	if validator.IsBonded() {
 		ibcValidator := types.IbcValidator{
 			ConsAddr: validator.SideConsAddr,
@@ -139,14 +141,16 @@ func (k Keeper) AllocateSlashAmtToValidators(ctx sdk.Context, slashedConsAddr []
 	sharers, totalShares := convertValidators2Shares(validators)
 	rewards := allocate(sharers, amount, totalShares)
 
-	changedAddrs := make([]sdk.AccAddress, len(rewards)+1)
+	changedAddrs := make([]sdk.AccAddress, len(rewards))
 	for i := range rewards {
-		if _, err := k.bankKeeper.SendCoins(ctx, DelegationAccAddr, rewards[i].AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, rewards[i].Amount)}); err != nil {
+		accBalance := k.bankKeeper.GetCoins(ctx, rewards[i].AccAddr)
+		rewardCoin := sdk.Coins{sdk.NewCoin(bondDenom, rewards[i].Amount)}
+		accBalance.Plus(rewardCoin)
+		if err := k.bankKeeper.SetCoins(ctx, rewards[i].AccAddr, accBalance.Plus(rewardCoin)); err != nil {
 			return err
 		}
 		changedAddrs[i] = rewards[i].AccAddr
 	}
-	changedAddrs[len(rewards)] = DelegationAccAddr
 	if k.addrPool != nil {
 		k.addrPool.AddAddrs(changedAddrs)
 	}

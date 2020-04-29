@@ -21,7 +21,7 @@ type SlashRecord struct {
 	InfractionHeight int64
 	SlashHeight      int64
 	JailUntil        time.Time
-	SlashAmt         sdk.Dec
+	SlashAmt         int64
 	SideChainId      string
 }
 
@@ -54,7 +54,7 @@ func (r SlashRecord) HumanReadableString() (string, error) {
 	resp += fmt.Sprintf("Infraction Height: %d\n", r.InfractionHeight)
 	resp += fmt.Sprintf("Slash Height: %d\n", r.SlashHeight)
 	resp += fmt.Sprintf("Jail Until: %v\n", r.JailUntil)
-	resp += fmt.Sprintf("Slash Amount: %s\n", r.SlashAmt)
+	resp += fmt.Sprintf("Slash Amount: %d\n", r.SlashAmt)
 	if len(r.SideChainId) != 0 {
 		resp += fmt.Sprintf("Side Chain id: %s\n", r.SideChainId)
 	}
@@ -64,7 +64,7 @@ func (r SlashRecord) HumanReadableString() (string, error) {
 type slashRecordValue struct {
 	SlashHeight int64
 	JailUntil   time.Time
-	SlashAmt    sdk.Dec
+	SlashAmt    int64
 	SideChainId string
 }
 

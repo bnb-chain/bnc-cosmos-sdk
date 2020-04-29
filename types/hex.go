@@ -45,6 +45,7 @@ func HexDecode(input string) ([]byte, error) {
 	return hex.DecodeString(input[2:])
 }
 
+// has0xPrefix validates str begins with '0x' or '0X'.
 func Has0xPrefix(input string) bool {
 	return len(input) >= 2 && input[0] == '0' && (input[1] == 'x' || input[1] == 'X')
 }

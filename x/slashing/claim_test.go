@@ -17,7 +17,7 @@ func TestSideChainSlashDowntime(t *testing.T) {
 	slashingParams := DefaultParams()
 	slashingParams.MaxEvidenceAge = 12 * 60 * 60 * time.Second
 	ctx, sideCtx, _, stakeKeeper, _, keeper := createSideTestInput(t, slashingParams)
-	hooks := keeper.Hooks()
+	hooks := keeper.ClaimHooks()
 
 	// create a validator
 	bondAmount := int64(10000e8)
@@ -59,7 +59,7 @@ func TestSideChainSlashDowntime(t *testing.T) {
 	require.True(t, found)
 	require.EqualValues(t, sideHeight, slashRecord.InfractionHeight)
 	require.EqualValues(t, sideChainId, slashRecord.SideChainId)
-	require.EqualValues(t, realSlashAmt, slashRecord.SlashAmt.RawInt())
+	require.EqualValues(t, realSlashAmt, slashRecord.SlashAmt)
 	require.EqualValues(t, ctx.BlockHeader().Time.Add(slashingParams.DowntimeUnbondDuration).Unix(), slashRecord.JailUntil.Unix())
 
 	validator, found := stakeKeeper.GetValidatorBySideConsAddr(sideCtx, sideConsAddr)

@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,7 +20,7 @@ func TestSetGetSlashRecord(t *testing.T) {
 		InfractionHeight: iHeight,
 		SlashHeight:      sHeight,
 		JailUntil:        jailUtil,
-		SlashAmt:         sdk.NewDecWithoutFra(100),
+		SlashAmt:         100e8,
 	}
 	keeper.setSlashRecord(ctx, sr)
 
