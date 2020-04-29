@@ -2,6 +2,7 @@ package slashing
 
 import (
 	"encoding/json"
+	"math"
 	"testing"
 	"time"
 
@@ -17,12 +18,13 @@ func TestSideChainSlashDoubleSign(t *testing.T) {
 	slashParams := DefaultParams()
 	slashParams.DoubleSignUnbondDuration = 5 * time.Second
 	slashParams.DoubleSignSlashAmount = 15000e8
+	slashParams.MaxEvidenceAge = math.MaxInt64
 	ctx, sideCtx, bankKeeper, stakeKeeper, _, keeper := createSideTestInput(t, slashParams)
 
 	// create a validator
 	bondAmount := int64(10000e8)
-	realSlashAmt := sdk.MinInt64(slashParams.DoubleSignSlashAmount,bondAmount)
-	realSubmitterReward := sdk.MinInt64(slashParams.SubmitterReward,bondAmount)
+	realSlashAmt := sdk.MinInt64(slashParams.DoubleSignSlashAmount, bondAmount)
+	realSubmitterReward := sdk.MinInt64(slashParams.SubmitterReward, bondAmount)
 
 	valAddr1 := addrs[0]
 
@@ -66,8 +68,8 @@ func TestSideChainSlashDoubleSign(t *testing.T) {
 	require.True(t, found)
 	balance := bankKeeper.GetCoins(ctx, validator2.DistributionAddr).AmountOf("steak")
 	submitterBalance := bankKeeper.GetCoins(ctx, submitter).AmountOf("steak")
-	require.EqualValues(t, initCoins + realSubmitterReward, submitterBalance)
-	require.EqualValues(t, realSlashAmt - realSubmitterReward, balance)
+	require.EqualValues(t, initCoins+realSubmitterReward, submitterBalance)
+	require.EqualValues(t, realSlashAmt-realSubmitterReward, balance)
 
 	slashRecord, found := keeper.getSlashRecord(sideCtx, sideConsAddr1, DoubleSign, 1)
 	require.True(t, found)

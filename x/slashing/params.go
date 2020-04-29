@@ -25,6 +25,7 @@ var (
 	KeyDoubleSignSlashAmount    = []byte("DoubleSignSlashAmount")
 	KeyDowntimeSlashAmount      = []byte("DowntimeSlashAmount")
 	KeySubmitterReward          = []byte("SubmitterReward")
+	KeyDowntimeSlashFee         = []byte("DowntimeSlashFee")
 	KeyBscSideChainId           = []byte("BscSideChainId")
 )
 
@@ -46,6 +47,7 @@ type Params struct {
 	DoubleSignSlashAmount    int64         `json:"double_sign_slash_amount"`
 	DowntimeSlashAmount      int64         `json:"downtime_slash_amount"`
 	SubmitterReward          int64         `json:"submitter_reward"`
+	DowntimeSlashFee         int64         `json:"downtime_slash_fee"`
 	BscSideChainId           string        `json:"bsc_side_chain_id"`
 }
 
@@ -63,6 +65,7 @@ func (p *Params) KeyValuePairs() params.KeyValuePairs {
 		{KeyDoubleSignSlashAmount, &p.DoubleSignSlashAmount},
 		{KeyDowntimeSlashAmount, &p.DowntimeSlashAmount},
 		{KeySubmitterReward, &p.SubmitterReward},
+		{KeyDowntimeSlashFee, &p.DowntimeSlashFee},
 		{KeyBscSideChainId, &p.BscSideChainId},
 	}
 }
@@ -97,6 +100,8 @@ func DefaultParams() Params {
 		DowntimeSlashAmount: 50e8,
 
 		SubmitterReward: 10e8,
+
+		DowntimeSlashFee: 10e8,
 
 		BscSideChainId: "bsc",
 	}
@@ -164,6 +169,11 @@ func (k Keeper) DowntimeSlashAmount(ctx sdk.Context) (slashAmt int64) {
 
 func (k Keeper) SubmitterReward(ctx sdk.Context) (submitterReward int64) {
 	k.paramspace.Get(ctx, KeySubmitterReward, &submitterReward)
+	return
+}
+
+func (k Keeper) DowntimeSlashFee(ctx sdk.Context) (downtimeSlashFee int64) {
+	k.paramspace.Get(ctx, KeyDowntimeSlashFee, &downtimeSlashFee)
 	return
 }
 

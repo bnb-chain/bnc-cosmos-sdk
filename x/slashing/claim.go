@@ -3,8 +3,8 @@ package slashing
 import (
 	"encoding/json"
 	"fmt"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/fees"
 )
 
 const (
@@ -66,14 +66,15 @@ func (h Hooks) ExecuteClaim(ctx sdk.Context, finalClaim string) (sdk.Tags, sdk.E
 		return sdk.EmptyTags(), ErrDuplicateDowntimeClaim(h.k.Codespace)
 	}
 
+	downtimeClaimFee := h.k.DowntimeSlashFee(sideCtx)
 	slashAmt := h.k.DowntimeSlashAmount(sideCtx)
-	slashedAmt, err := h.k.validatorSet.SlashSideChain(ctx, slashClaim.SideChainId, slashClaim.SideConsAddr, sdk.NewDec(slashAmt), sdk.ZeroDec(), nil)
+	slashedAmt, feeCoinAdd, err := h.k.validatorSet.SlashSideChain(ctx, slashClaim.SideChainId, slashClaim.SideConsAddr, sdk.NewDec(slashAmt), sdk.ZeroDec(), nil, sdk.NewDec(downtimeClaimFee))
 	if err != nil {
 		return sdk.EmptyTags(), ErrFailedToSlash(h.k.Codespace, err.Error())
 	}
+	fees.Pool.AddAndCommitFee("side_downtime_slash", sdk.NewFee(sdk.Coins{feeCoinAdd}, sdk.FeeForAll))
 
 	jailUtil := header.Time.Add(h.k.DowntimeUnbondDuration(sideCtx))
-
 	sr := SlashRecord{
 		ConsAddr:         slashClaim.SideConsAddr,
 		InfractionType:   Downtime,

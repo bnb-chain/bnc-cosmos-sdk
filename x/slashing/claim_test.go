@@ -2,6 +2,7 @@ package slashing
 
 import (
 	"encoding/json"
+	"github.com/cosmos/cosmos-sdk/types/fees"
 	"testing"
 	"time"
 
@@ -21,6 +22,7 @@ func TestSideChainSlashDowntime(t *testing.T) {
 	// create a validator
 	bondAmount := int64(10000e8)
 	realSlashAmt := sdk.MinInt64(slashingParams.DowntimeSlashAmount, bondAmount)
+	realPoolFeeAdd := sdk.MinInt64(realSlashAmt, slashingParams.DowntimeSlashFee)
 	valAddr := addrs[0]
 	sideConsAddr, sideFeeAddr := createSideAddr(20), createSideAddr(20)
 	msgCreateVal := newTestMsgCreateSideValidator(valAddr, sideConsAddr, sideFeeAddr, bondAmount)
@@ -31,11 +33,11 @@ func TestSideChainSlashDowntime(t *testing.T) {
 
 	sideHeight := int64(100)
 	sideChainId := "bsc"
-	sideTimestamp := ctx.BlockHeader().Time.Add(- 6 * 60 * 60 * time.Second)
+	sideTimestamp := ctx.BlockHeader().Time.Add(-6 * 60 * 60 * time.Second)
 	claim := SideDowntimeSlashClaim{
-		SideConsAddr: sideConsAddr,
-		SideHeight:   sideHeight,
-		SideChainId:  sideChainId,
+		SideConsAddr:  sideConsAddr,
+		SideHeight:    sideHeight,
+		SideChainId:   sideChainId,
 		SideTimestamp: sideTimestamp.Unix(),
 	}
 
@@ -47,6 +49,7 @@ func TestSideChainSlashDowntime(t *testing.T) {
 
 	_, sdkErr = hooks.ExecuteClaim(ctx, string(jsonClaim))
 	require.Nil(t, sdkErr, "Expected nil, but got : %v", sdkErr)
+	require.EqualValues(t, realPoolFeeAdd, fees.Pool.BlockFees().Tokens.AmountOf("steak"))
 
 	info, found := keeper.getValidatorSigningInfo(sideCtx, sideConsAddr)
 	require.True(t, found)
@@ -96,7 +99,7 @@ func TestSideChainSlashDowntime(t *testing.T) {
 	sdkErr = hooks.CheckClaim(ctx, string(jsonClaim))
 	require.Nil(t, sdkErr)
 	_, sdkErr = hooks.ExecuteClaim(ctx, string(jsonClaim))
-	require.NotNil(t,sdkErr,"Exepcted get err, but got nil")
+	require.NotNil(t, sdkErr, "Exepcted get err, but got nil")
 	require.EqualValues(t, CodeExpiredEvidence, sdkErr.Code(), "Expected got 201 err code, but got err: %v", sdkErr)
 
 	claim.SideTimestamp = ctx.BlockHeader().Time.Add(-6 * 60 * 60 * time.Second).Unix()
