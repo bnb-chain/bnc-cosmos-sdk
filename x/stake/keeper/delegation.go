@@ -637,10 +637,7 @@ func (k Keeper) ValidateUnbondAmount(
 	}
 
 	amountDec := sdk.NewDecFromInt(amt)
-	shares, err = validator.SharesFromTokens(amountDec)
-	if err != nil {
-		return shares, err
-	}
+	shares = validator.SharesFromTokens(amountDec)
 
 	// todo need to handle it if the DelegatorShareExRate is not 1
 	if shares.GT(del.GetShares()) {

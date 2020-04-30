@@ -407,6 +407,9 @@ func (v Validator) UpdateStatus(pool Pool, NewStatus sdk.BondStatus) (Validator,
 
 // calculate the token worth of provided shares
 func (v Validator) TokensFromShares(shares sdk.Dec) sdk.Dec {
+	if v.DelegatorShares.IsZero() {
+		return sdk.ZeroDec()
+	}
 	result, err := sdk.MulQuoDec(shares, v.Tokens, v.DelegatorShares)
 	if err != nil {
 		panic(err)
@@ -416,15 +419,15 @@ func (v Validator) TokensFromShares(shares sdk.Dec) sdk.Dec {
 
 // SharesFromTokens returns the shares of a delegation given a bond amount. It
 // returns an error if the validator has no tokens.
-func (v Validator) SharesFromTokens(amt sdk.Dec) (sdk.Dec, sdk.Error) {
+func (v Validator) SharesFromTokens(amt sdk.Dec) sdk.Dec {
 	if v.Tokens.IsZero() {
-		return sdk.ZeroDec(), ErrNotEnoughDelegationAmount(DefaultCodespace)
+		return sdk.ZeroDec()
 	}
 	result, err := sdk.MulQuoDec(v.DelegatorShares, amt, v.Tokens)
 	if err != nil {
 		panic(err)
 	}
-	return result, nil
+	return result
 }
 
 // removes tokens from a validator
@@ -465,10 +468,7 @@ func (v Validator) AddTokensFromDel(pool Pool, amount int64) (Validator, Pool, s
 		// the first delegation to a validator sets the exchange rate to one
 		issuedShares = amountDec
 	} else {
-		shares, err := v.SharesFromTokens(amountDec)
-		if err != nil {
-			panic(err)
-		}
+		shares := v.SharesFromTokens(amountDec)
 		issuedShares = shares
 	}
 	v.Tokens = v.Tokens.Add(amountDec)
