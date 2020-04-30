@@ -6,6 +6,7 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/fees"
 )
 
 func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Keeper) sdk.Result {
@@ -48,9 +49,10 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 		return ErrFailedToSlash(k.Codespace, slashErr.Error()).Result()
 	}
 
+	bondDenom := k.validatorSet.BondDenom(sideCtx)
 	submitterReward := k.SubmitterReward(sideCtx)
 	submitterRewardReal := sdk.MinInt64(slashedAmount.RawInt(), submitterReward)
-	submitterRewardCoin := sdk.NewCoin(k.validatorSet.BondDenom(sideCtx), submitterRewardReal)
+	submitterRewardCoin := sdk.NewCoin(bondDenom, submitterRewardReal)
 
 	if submitterRewardReal > 0 {
 		submitterBalance := k.BankKeeper.GetCoins(ctx, msg.Submitter)
@@ -61,7 +63,12 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 
 	remainingReward := slashedAmount.RawInt() - submitterRewardReal
 	if remainingReward > 0 {
-		if err := k.validatorSet.AllocateSlashAmtToValidators(sideCtx, sideConsAddr.Bytes(), sdk.NewDec(remainingReward)); err != nil {
+		found, err := k.validatorSet.AllocateSlashAmtToValidators(sideCtx, sideConsAddr.Bytes(), sdk.NewDec(remainingReward))
+		if !found { // if the related validators are not found, the amount will be added to fee pool
+			remainingCoin := sdk.NewCoin(bondDenom, remainingReward)
+			fees.Pool.AddAndCommitFee("side_double_sign_slash", sdk.NewFee(sdk.Coins{remainingCoin}, sdk.FeeForAll))
+		}
+		if err != nil {
 			return ErrFailedToSlash(k.Codespace, err.Error()).Result()
 		}
 	}

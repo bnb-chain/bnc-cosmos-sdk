@@ -25,7 +25,9 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 		for i := range storePrefixes {
 			sideChainCtx := ctx.WithSideChainKeyPrefix(storePrefixes[i])
 			newVals, _, _, scEvents := handleValidatorAndDelegations(sideChainCtx, k)
-			saveSideChainValidatorsToIBC(ctx, sideChainIds[i], newVals, k)
+			if k.ExistHeightValidators(sideChainCtx) { // will not send ibc package if no snapshot of validators stored ever
+				saveSideChainValidatorsToIBC(ctx, sideChainIds[i], newVals, k)
+			}
 			for j := range scEvents {
 				scEvents[j] = scEvents[j].AppendAttributes(sdk.NewAttribute(types.AttributeKeySideChainId, sideChainIds[i]))
 			}

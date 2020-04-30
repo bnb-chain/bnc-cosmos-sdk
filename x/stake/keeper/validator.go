@@ -144,6 +144,11 @@ func (k Keeper) ExistValidatorsWithHeight(ctx sdk.Context, height int64) bool {
 	return store.Has(GetValidatorHeightKey(height))
 }
 
+func (k Keeper) ExistHeightValidators(ctx sdk.Context) bool {
+	store := ctx.KVStore(k.storeKey)
+	return store.Has(ValidatorsByHeightKey)
+}
+
 //___________________________________________________________________________
 
 // set the main record holding validator details
