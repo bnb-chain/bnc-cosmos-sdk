@@ -498,6 +498,7 @@ func (k Keeper) BeginUnbonding(ctx sdk.Context,
 		return types.UnbondingDelegation{}, types.ErrExistingUnbondingDelegation(k.Codespace())
 	}
 
+	// TODO need to handle it if the DelegatorShareExRate is not 1
 	returnAmount, err := k.unbond(ctx, delAddr, valAddr, sharesAmount)
 	if err != nil {
 		return types.UnbondingDelegation{}, err
@@ -566,6 +567,7 @@ func (k Keeper) BeginRedelegation(ctx sdk.Context, delAddr sdk.AccAddress,
 		return types.Redelegation{}, types.ErrTransitiveRedelegation(k.Codespace())
 	}
 
+	// TODO need to handle it if the DelegatorShareExRate is not 1
 	returnAmount, err := k.unbond(ctx, delAddr, valSrcAddr, sharesAmount)
 	if err != nil {
 		return types.Redelegation{}, err
@@ -639,7 +641,11 @@ func (k Keeper) ValidateUnbondAmount(
 	if err != nil {
 		return shares, err
 	}
-	// if the shares are greater than the delegation shares, we just unbond all shares.
-	shares = sdk.MinDec(shares, del.GetShares())
+
+	// todo need to handle it if the DelegatorShareExRate is not 1
+	if shares.GT(del.GetShares()) {
+		return shares, types.ErrNotEnoughDelegationAmount(k.Codespace())
+	}
+
 	return shares, nil
 }

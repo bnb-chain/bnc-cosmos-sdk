@@ -418,7 +418,7 @@ func (v Validator) TokensFromShares(shares sdk.Dec) sdk.Dec {
 // returns an error if the validator has no tokens.
 func (v Validator) SharesFromTokens(amt sdk.Dec) (sdk.Dec, sdk.Error) {
 	if v.Tokens.IsZero() {
-		return sdk.ZeroDec(), ErrInsufficientShares(DefaultCodespace)
+		return sdk.ZeroDec(), ErrNotEnoughDelegationAmount(DefaultCodespace)
 	}
 	result, err := sdk.MulQuoDec(v.DelegatorShares, amt, v.Tokens)
 	if err != nil {
@@ -465,7 +465,7 @@ func (v Validator) AddTokensFromDel(pool Pool, amount int64) (Validator, Pool, s
 		// the first delegation to a validator sets the exchange rate to one
 		issuedShares = amountDec
 	} else {
-		shares,err := v.SharesFromTokens(amountDec)
+		shares, err := v.SharesFromTokens(amountDec)
 		if err != nil {
 			panic(err)
 		}
