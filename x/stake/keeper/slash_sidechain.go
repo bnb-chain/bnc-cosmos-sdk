@@ -42,17 +42,15 @@ func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr
 	selfDelegation, found := k.GetDelegation(sideCtx, validator.FeeAddr, validator.OperatorAddr)
 	remainingSlashAmount := slashAmount
 	if found {
-		slashShares, err := validator.SharesFromTokens(slashAmount)
-		if err != nil {
-			return sdk.ZeroDec(), err
-		}
+		slashShares := validator.SharesFromTokens(slashAmount)
 		slashSelfDelegationShares := sdk.MinDec(slashShares, selfDelegation.Shares)
-		_, err = k.unbond(sideCtx, selfDelegation.DelegatorAddr, validator.OperatorAddr, slashSelfDelegationShares)
-		if err != nil {
-			return sdk.ZeroDec(), errors.New(fmt.Sprintf("error unbonding delegator: %v", err))
+		if slashSelfDelegationShares.RawInt() > 0  {
+			unbondAmount, err := k.unbond(sideCtx, selfDelegation.DelegatorAddr, validator.OperatorAddr, slashSelfDelegationShares)
+			if err != nil {
+				return sdk.ZeroDec(), errors.New(fmt.Sprintf("error unbonding delegator: %v", err))
+			}
+			remainingSlashAmount = remainingSlashAmount.Sub(unbondAmount)
 		}
-		slashSelfDelegationAmount := validator.TokensFromShares(slashSelfDelegationShares)
-		remainingSlashAmount = remainingSlashAmount.Sub(slashSelfDelegationAmount)
 	}
 
 	if remainingSlashAmount.RawInt() > 0 {
