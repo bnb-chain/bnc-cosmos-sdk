@@ -90,7 +90,7 @@ type ValidatorSet interface {
 	SlashSideChain(ctx Context, sideChainId string, sideConsAddr []byte, slashAmount Dec) (slashedAmount Dec, err error)
 
 	// allocate remaining slashed amount to validators who are going to be distributed next time
-	AllocateSlashAmtToValidators(ctx Context, slashedConsAddr []byte, amount Dec) error
+	AllocateSlashAmtToValidators(ctx Context, slashedConsAddr []byte, amount Dec) (bool, error)
 
 	MinSelfDelegation(ctx Context) int64 // validator minimum self delegation
 	BondDenom(ctx Context) string

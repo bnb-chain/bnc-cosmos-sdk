@@ -44,7 +44,7 @@ func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr
 	if found {
 		slashShares := validator.SharesFromTokens(slashAmount)
 		slashSelfDelegationShares := sdk.MinDec(slashShares, selfDelegation.Shares)
-		if slashSelfDelegationShares.RawInt() > 0  {
+		if slashSelfDelegationShares.RawInt() > 0 {
 			unbondAmount, err := k.unbond(sideCtx, selfDelegation.DelegatorAddr, validator.OperatorAddr, slashSelfDelegationShares)
 			if err != nil {
 				return sdk.ZeroDec(), errors.New(fmt.Sprintf("error unbonding delegator: %v", err))
@@ -117,11 +117,11 @@ func convertValidators2Shares(validators []types.Validator) (sharers []Sharer, t
 	return sharers, totalShares
 }
 
-func (k Keeper) AllocateSlashAmtToValidators(ctx sdk.Context, slashedConsAddr []byte, amount sdk.Dec) error {
+func (k Keeper) AllocateSlashAmtToValidators(ctx sdk.Context, slashedConsAddr []byte, amount sdk.Dec) (bool, error) {
 	// allocate remaining rewards to validators who are going to be distributed next time.
 	validators, found := k.GetEarliestValidatorsWithHeight(ctx)
 	if !found {
-		return errors.New("can not found validators to allocated")
+		return found, nil
 	}
 	// remove bad validator if it exists in the eligible validators
 	for i := 0; i < len(validators); i++ {
@@ -145,12 +145,12 @@ func (k Keeper) AllocateSlashAmtToValidators(ctx sdk.Context, slashedConsAddr []
 		rewardCoin := sdk.Coins{sdk.NewCoin(bondDenom, rewards[i].Amount)}
 		accBalance.Plus(rewardCoin)
 		if err := k.bankKeeper.SetCoins(ctx, rewards[i].AccAddr, accBalance.Plus(rewardCoin)); err != nil {
-			return err
+			return found, err
 		}
 		changedAddrs[i] = rewards[i].AccAddr
 	}
 	if k.addrPool != nil {
 		k.addrPool.AddAddrs(changedAddrs)
 	}
-	return nil
+	return found, nil
 }
