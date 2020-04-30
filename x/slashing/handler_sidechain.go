@@ -3,10 +3,10 @@ package slashing
 import (
 	"bytes"
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/types/fees"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/fees"
 )
 
 func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Keeper) sdk.Result {
@@ -64,7 +64,7 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 	remainingReward := slashedAmount.RawInt() - submitterRewardReal
 	if remainingReward > 0 {
 		found, err := k.validatorSet.AllocateSlashAmtToValidators(sideCtx, sideConsAddr.Bytes(), sdk.NewDec(remainingReward))
-		if !found {
+		if !found { // if the related validators are not found, the amount will be added to fee pool
 			remainingCoin := sdk.NewCoin(bondDenom, remainingReward)
 			fees.Pool.AddAndCommitFee("side_double_sign_slash", sdk.NewFee(sdk.Coins{remainingCoin}, sdk.FeeForAll))
 		}
