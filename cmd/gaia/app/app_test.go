@@ -93,6 +93,7 @@ func NewMockGaiaApp(logger log.Logger, db dbm.DB, traceStore io.Writer, baseAppO
 		app.keySlashing,
 		app.stakeKeeper, app.paramsKeeper.Subspace(slashing.DefaultParamspace),
 		app.RegisterCodespace(slashing.DefaultCodespace),
+		app.bankKeeper,
 	)
 	app.govKeeper = gov.NewKeeper(
 		app.cdc,
@@ -111,7 +112,7 @@ func NewMockGaiaApp(logger log.Logger, db dbm.DB, traceStore io.Writer, baseAppO
 		AddRoute("bank", bank.NewHandler(app.bankKeeper)).
 		AddRoute("stake", stake.NewHandler(app.stakeKeeper, app.govKeeper)).
 		AddRoute("distr", distr.NewHandler(app.distrKeeper)).
-		AddRoute("slashing", slashing.NewHandler(app.slashingKeeper)).
+		AddRoute("slashing", slashing.NewSlashingHandler(app.slashingKeeper)).
 		AddRoute("gov", gov.NewHandler(app.govKeeper))
 
 	app.QueryRouter().

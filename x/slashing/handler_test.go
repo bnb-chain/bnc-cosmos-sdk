@@ -11,7 +11,7 @@ import (
 func TestCannotUnjailUnlessJailed(t *testing.T) {
 	// initial setup
 	ctx, ck, sk, _, keeper := createTestInput(t, DefaultParams())
-	slh := NewHandler(keeper)
+	slh := NewSlashingHandler(keeper)
 	amtInt := sdk.NewDecWithoutFra(100).RawInt()
 	addr, val, amt := addrs[0], pks[0], amtInt
 	msg := NewTestMsgCreateValidator(addr, val, amt)
@@ -71,7 +71,7 @@ func TestJailedValidatorDelegations(t *testing.T) {
 	require.True(t, validator.GetJailed())
 
 	// verify the validator cannot unjail itself
-	got = NewHandler(slashingKeeper)(ctx, NewMsgUnjail(valAddr))
+	got = NewSlashingHandler(slashingKeeper)(ctx, NewMsgUnjail(valAddr))
 	require.False(t, got.IsOK(), "expected jailed validator to not be able to unjail, got: %v", got)
 
 	// self-delegate to validator
@@ -80,11 +80,11 @@ func TestJailedValidatorDelegations(t *testing.T) {
 	require.True(t, got.IsOK(), "expected delegation to not be ok, got %v", got)
 
 	// verify the validator cannot unjail itself
-	got = NewHandler(slashingKeeper)(ctx, NewMsgUnjail(valAddr))
+	got = NewSlashingHandler(slashingKeeper)(ctx, NewMsgUnjail(valAddr))
 	require.False(t, got.IsOK(), "expected jailed validator to not be able to unjail, got: %v", got)
 
 	ctx = ctx.WithBlockTime(ctx.BlockHeader().Time.Add(slashParams.TooLowDelUnbondDuration))
 	// verify the validator can now unjail itself
-	got = NewHandler(slashingKeeper)(ctx, NewMsgUnjail(valAddr))
+	got = NewSlashingHandler(slashingKeeper)(ctx, NewMsgUnjail(valAddr))
 	require.True(t, got.IsOK(), "expected jailed validator to be able to unjail, got: %v", got)
 }

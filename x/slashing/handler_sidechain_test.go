@@ -52,7 +52,7 @@ func TestSideChainSlashDoubleSign(t *testing.T) {
 	require.Nil(t, err)
 
 	msgSubmitEvidence := NewMsgBscSubmitEvidence(submitter, headers)
-	got := NewSlashingHandler(keeper)(ctx, msgSubmitEvidence)
+	got := NewHandler(keeper)(ctx, msgSubmitEvidence)
 	require.True(t, got.IsOK(), "expected submit evidence msg to be ok, got: %v", got)
 
 	// check bad validator state
