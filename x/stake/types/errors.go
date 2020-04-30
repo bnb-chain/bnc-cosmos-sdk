@@ -120,7 +120,7 @@ func ErrBadDelegationAddr(codespace sdk.CodespaceType) sdk.Error {
 }
 
 func ErrBadDelegationAmount(codespace sdk.CodespaceType, msg string) sdk.Error {
-	return sdk.NewError(codespace, CodeInvalidDelegation, "invalid amount: " + msg)
+	return sdk.NewError(codespace, CodeInvalidDelegation, "invalid amount: "+msg)
 }
 
 func ErrNoDelegation(codespace sdk.CodespaceType) sdk.Error {
@@ -141,6 +141,10 @@ func ErrInsufficientShares(codespace sdk.CodespaceType) sdk.Error {
 
 func ErrDelegationValidatorEmpty(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidDelegation, "cannot delegate to an empty validator")
+}
+
+func ErrNotEnoughDelegationAmount(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidDelegation, "not enough delegation amount")
 }
 
 func ErrNotEnoughDelegationShares(codespace sdk.CodespaceType, shares string) sdk.Error {

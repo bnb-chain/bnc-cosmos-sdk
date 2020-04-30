@@ -557,19 +557,13 @@ func (k Keeper) BeginUnbonding(ctx sdk.Context,
 		return types.UnbondingDelegation{}, types.ErrExistingUnbondingDelegation(k.Codespace())
 	}
 
+	// TODO need to handle it if the DelegatorShareExRate is not 1
 	returnAmount, err := k.unbond(ctx, delAddr, valAddr, sharesAmount)
 	if err != nil {
 		return types.UnbondingDelegation{}, err
 	}
 
-	rounded := returnAmount.TruncateInt()
-	balance := sdk.NewCoin(k.BondDenom(ctx), rounded)
-	change := returnAmount.Sub(sdk.NewDecFromInt(rounded))
-
-	// for now, change is just burned
-	pool := k.GetPool(ctx)
-	pool.LooseTokens = pool.LooseTokens.Sub(change)
-	k.SetPool(ctx, pool)
+	balance := sdk.NewCoin(k.BondDenom(ctx), returnAmount.RawInt())
 
 	completionTime := ctx.BlockHeader().Time.Add(k.UnbondingTime(ctx))
 	ubd := types.UnbondingDelegation{
@@ -632,19 +626,13 @@ func (k Keeper) BeginRedelegation(ctx sdk.Context, delAddr sdk.AccAddress,
 		return types.Redelegation{}, types.ErrTransitiveRedelegation(k.Codespace())
 	}
 
+	// TODO need to handle it if the DelegatorShareExRate is not 1
 	returnAmount, err := k.unbond(ctx, delAddr, valSrcAddr, sharesAmount)
 	if err != nil {
 		return types.Redelegation{}, err
 	}
 
-	rounded := returnAmount.TruncateInt()
-	returnCoin := sdk.NewCoin(k.BondDenom(ctx), rounded)
-	change := returnAmount.Sub(sdk.NewDecFromInt(rounded))
-
-	// for now, change is just burned
-	pool := k.GetPool(ctx)
-	pool.LooseTokens = pool.LooseTokens.Sub(change)
-	k.SetPool(ctx, pool)
+	returnCoin := sdk.NewCoin(k.BondDenom(ctx), returnAmount.RawInt())
 
 	sharesCreated, err := k.Delegate(ctx, delAddr, returnCoin, dstValidator, false)
 	if err != nil {
@@ -708,11 +696,12 @@ func (k Keeper) ValidateUnbondAmount(
 	}
 
 	amountDec := sdk.NewDecFromInt(amt)
-	shares, err = validator.SharesFromTokens(amountDec)
-	if err != nil {
-		return shares, err
+	shares = validator.SharesFromTokens(amountDec)
+
+	// todo need to handle it if the DelegatorShareExRate is not 1
+	if shares.GT(del.GetShares()) {
+		return shares, types.ErrNotEnoughDelegationAmount(k.Codespace())
 	}
-	// if the shares are greater than the delegation shares, we just unbond all shares.
-	shares = sdk.MinDec(shares, del.GetShares())
+
 	return shares, nil
 }

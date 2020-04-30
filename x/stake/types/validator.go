@@ -429,6 +429,9 @@ func (v Validator) UpdateStatus(pool Pool, NewStatus sdk.BondStatus) (Validator,
 
 // calculate the token worth of provided shares
 func (v Validator) TokensFromShares(shares sdk.Dec) sdk.Dec {
+	if v.DelegatorShares.IsZero() {
+		return sdk.ZeroDec()
+	}
 	result, err := sdk.MulQuoDec(shares, v.Tokens, v.DelegatorShares)
 	if err != nil {
 		panic(err)
@@ -438,15 +441,15 @@ func (v Validator) TokensFromShares(shares sdk.Dec) sdk.Dec {
 
 // SharesFromTokens returns the shares of a delegation given a bond amount. It
 // returns an error if the validator has no tokens.
-func (v Validator) SharesFromTokens(amt sdk.Dec) (sdk.Dec, sdk.Error) {
+func (v Validator) SharesFromTokens(amt sdk.Dec) sdk.Dec {
 	if v.Tokens.IsZero() {
-		return sdk.ZeroDec(), ErrInsufficientShares(DefaultCodespace)
+		return sdk.ZeroDec()
 	}
 	result, err := sdk.MulQuoDec(v.DelegatorShares, amt, v.Tokens)
 	if err != nil {
 		panic(err)
 	}
-	return result, nil
+	return result
 }
 
 // removes tokens from a validator
@@ -476,15 +479,21 @@ func (v Validator) SetInitialCommission(commission Commission) (Validator, sdk.E
 func (v Validator) AddTokensFromDel(pool Pool, amount int64) (Validator, Pool, sdk.Dec) {
 
 	// bondedShare/delegatedShare
-	exRate := v.DelegatorShareExRate()
 	amountDec := sdk.NewDecFromInt(amount)
 
 	if v.Status == sdk.Bonded {
 		pool = pool.looseTokensToBonded(amountDec)
 	}
 
+	var issuedShares sdk.Dec
+	if v.DelegatorShares.IsZero() {
+		// the first delegation to a validator sets the exchange rate to one
+		issuedShares = amountDec
+	} else {
+		shares := v.SharesFromTokens(amountDec)
+		issuedShares = shares
+	}
 	v.Tokens = v.Tokens.Add(amountDec)
-	issuedShares := amountDec.Quo(exRate)
 	v.DelegatorShares = v.DelegatorShares.Add(issuedShares)
 
 	return v, pool, issuedShares
@@ -492,9 +501,19 @@ func (v Validator) AddTokensFromDel(pool Pool, amount int64) (Validator, Pool, s
 
 // RemoveDelShares removes delegator shares from a validator.
 func (v Validator) RemoveDelShares(pool Pool, delShares sdk.Dec) (Validator, Pool, sdk.Dec) {
-	issuedTokens := v.DelegatorShareExRate().Mul(delShares)
-	v.Tokens = v.Tokens.Sub(issuedTokens)
-	v.DelegatorShares = v.DelegatorShares.Sub(delShares)
+	remainingShares := v.DelegatorShares.Sub(delShares)
+
+	var issuedTokens sdk.Dec
+	if remainingShares.IsZero() {
+		// last delegation share gets any trimmings
+		issuedTokens = v.Tokens
+		v.Tokens = sdk.ZeroDec()
+	} else {
+		issuedTokens = v.TokensFromShares(delShares)
+		v.Tokens = v.Tokens.Sub(issuedTokens)
+	}
+
+	v.DelegatorShares = remainingShares
 
 	if v.Status == sdk.Bonded {
 		pool = pool.bondedTokensToLoose(issuedTokens)
