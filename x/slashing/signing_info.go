@@ -8,9 +8,9 @@ import (
 )
 
 // Stored by *validator* address (not operator address)
-func (k Keeper) getValidatorSigningInfo(ctx sdk.Context, address sdk.ConsAddress) (info ValidatorSigningInfo, found bool) {
+func (k Keeper) getValidatorSigningInfo(ctx sdk.Context, consAddr []byte) (info ValidatorSigningInfo, found bool) {
 	store := ctx.KVStore(k.storeKey)
-	bz := store.Get(GetValidatorSigningInfoKey(address))
+	bz := store.Get(GetValidatorSigningInfoKey(consAddr))
 	if bz == nil {
 		found = false
 		return
@@ -21,10 +21,10 @@ func (k Keeper) getValidatorSigningInfo(ctx sdk.Context, address sdk.ConsAddress
 }
 
 // Stored by *validator* address (not operator address)
-func (k Keeper) setValidatorSigningInfo(ctx sdk.Context, address sdk.ConsAddress, info ValidatorSigningInfo) {
+func (k Keeper) setValidatorSigningInfo(ctx sdk.Context, consAddr []byte, info ValidatorSigningInfo) {
 	store := ctx.KVStore(k.storeKey)
 	bz := k.cdc.MustMarshalBinaryLengthPrefixed(info)
-	store.Set(GetValidatorSigningInfoKey(address), bz)
+	store.Set(GetValidatorSigningInfoKey(consAddr), bz)
 }
 
 // Stored by *validator* address (not operator address)

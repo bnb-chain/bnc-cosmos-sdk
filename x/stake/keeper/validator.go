@@ -91,6 +91,15 @@ func (k Keeper) GetValidatorBySideConsAddr(ctx sdk.Context, sideConsAddr []byte)
 	return k.GetValidator(ctx, opAddr)
 }
 
+func (k Keeper) mustGetValidatorBySideConsAddr(ctx sdk.Context, sideConsAddr []byte) types.Validator {
+	store := ctx.KVStore(k.storeKey)
+	opAddr := store.Get(GetValidatorBySideConsAddrKey(sideConsAddr))
+	if opAddr == nil {
+		panic(fmt.Errorf("validator with consensus-Address %s not found", sideConsAddr))
+	}
+	return k.mustGetValidator(ctx, opAddr)
+}
+
 func (k Keeper) GetValidatorsByHeight(ctx sdk.Context, height int64) (validators []types.Validator, found bool) {
 	store := ctx.KVStore(k.storeKey)
 	bz := store.Get(GetValidatorHeightKey(height))
@@ -116,6 +125,18 @@ func (k Keeper) GetHeightValidatorsByIndex(ctx sdk.Context, indexCountBackwards 
 		index++
 	}
 	return nil, 0, false
+}
+
+func (k Keeper) GetEarliestValidatorsWithHeight(ctx sdk.Context) ([]types.Validator, bool) {
+	store := ctx.KVStore(k.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, ValidatorsByHeightKey)
+	defer iterator.Close()
+
+	for iterator.Valid() {
+		validators := types.MustUnmarshalValidators(k.cdc, iterator.Value())
+		return validators, true
+	}
+	return nil, false
 }
 
 func (k Keeper) ExistValidatorsWithHeight(ctx sdk.Context, height int64) bool {

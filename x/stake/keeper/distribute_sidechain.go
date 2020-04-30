@@ -2,14 +2,12 @@ package keeper
 
 import (
 	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
 
-const (
-	numberOfDecimalPlace = 8
-	threshold            = 5
-)
+const threshold = 5
 
 func (k Keeper) Distribute(ctx sdk.Context) {
 
@@ -47,10 +45,17 @@ func (k Keeper) Distribute(ctx sdk.Context) {
 			}
 		}
 		// assign rewards to delegator
-		for _, reward := range rewards {
-			if _, _, err := k.bankKeeper.AddCoins(ctx, reward.AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, reward.Amount)}); err != nil {
+		changedAddrs := make([]sdk.AccAddress, len(rewards) + 1)
+		for i := range rewards {
+			if _, _, err := k.bankKeeper.AddCoins(ctx, rewards[i].AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, rewards[i].Amount)}); err != nil {
 				panic(err)
 			}
+			changedAddrs[i] = rewards[i].AccAddr
+		}
+
+		changedAddrs[len(rewards)] = validator.DistributionAddr
+		if k.addrPool != nil {
+			k.addrPool.AddAddrs(changedAddrs)
 		}
 	}
 	removeValidatorsAndDelegationsAtHeight(height, k, ctx, validators)

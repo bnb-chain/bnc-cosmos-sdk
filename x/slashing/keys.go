@@ -13,11 +13,12 @@ var (
 	ValidatorMissedBlockBitArrayKey = []byte{0x02} // Prefix for missed block bit array
 	ValidatorSlashingPeriodKey      = []byte{0x03} // Prefix for slashing period
 	AddrPubkeyRelationKey           = []byte{0x04} // Prefix for address-pubkey relation
+	SlashRecordKey                  = []byte{0x05} // Prefix for slash record
 )
 
 // stored by *Tendermint* address (not operator address)
-func GetValidatorSigningInfoKey(v sdk.ConsAddress) []byte {
-	return append(ValidatorSigningInfoKey, v.Bytes()...)
+func GetValidatorSigningInfoKey(consAddr []byte) []byte {
+	return append(ValidatorSigningInfoKey, consAddr...)
 }
 
 // stored by *Tendermint* address (not operator address)
@@ -47,4 +48,18 @@ func GetValidatorSlashingPeriodKey(v sdk.ConsAddress, startHeight int64) []byte 
 
 func getAddrPubkeyRelationKey(address []byte) []byte {
 	return append(AddrPubkeyRelationKey, address...)
+}
+
+func GetSlashRecordKey(consAddr []byte, infractionType byte, infractionHeight int64) []byte {
+	heightBz := make([]byte, 8)
+	binary.BigEndian.PutUint64(heightBz, uint64(infractionHeight))
+	return append(GetSlashRecordsByAddrAndTypeIndexKey(consAddr, infractionType), heightBz...)
+}
+
+func GetSlashRecordsByAddrAndTypeIndexKey(sideConsAddr []byte, infractionType byte) []byte {
+	return append(GetSlashRecordsByAddrIndexKey(sideConsAddr), []byte{infractionType}...)
+}
+
+func GetSlashRecordsByAddrIndexKey(sideConsAddr []byte) []byte {
+	return append(SlashRecordKey, sideConsAddr...)
 }

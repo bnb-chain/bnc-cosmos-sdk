@@ -4,14 +4,15 @@ import (
 	"fmt"
 	"time"
 
-	tmtypes "github.com/tendermint/tendermint/types"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/params"
+	"github.com/cosmos/cosmos-sdk/x/sidechain"
 	stake "github.com/cosmos/cosmos-sdk/x/stake/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
+	tmtypes "github.com/tendermint/tendermint/types"
 )
 
 // Keeper of the slashing store
@@ -22,19 +23,34 @@ type Keeper struct {
 	paramspace   params.Subspace
 
 	// codespace
-	codespace sdk.CodespaceType
+	Codespace sdk.CodespaceType
+
+	BankKeeper bank.Keeper
+	ScKeeper   *sidechain.Keeper
 }
 
 // NewKeeper creates a slashing keeper
-func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, vs sdk.ValidatorSet, paramspace params.Subspace, codespace sdk.CodespaceType) Keeper {
+func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, vs sdk.ValidatorSet, paramspace params.Subspace, codespace sdk.CodespaceType, bk bank.Keeper) Keeper {
 	keeper := Keeper{
 		storeKey:     key,
 		cdc:          cdc,
 		validatorSet: vs,
 		paramspace:   paramspace.WithTypeTable(ParamTypeTable()),
-		codespace:    codespace,
+		Codespace:    codespace,
+		BankKeeper:   bk,
 	}
 	return keeper
+}
+
+func (k *Keeper) SetSideChain(scKeeper *sidechain.Keeper) {
+	k.ScKeeper = scKeeper
+}
+
+func (k Keeper) ClaimRegister(oracleKeeper sdk.OracleKeeper) error {
+	if err := oracleKeeper.RegisterClaimType(ClaimTypeDowntimeSlash, ClaimNameDowntimeSlash, k.ClaimHooks()); err != nil {
+		return err
+	}
+	return nil
 }
 
 // handle a validator signing two blocks at the same height

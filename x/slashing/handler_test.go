@@ -2,13 +2,10 @@ package slashing
 
 import (
 	"fmt"
-	"testing"
-	"time"
-
-	"github.com/stretchr/testify/require"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/stake"
+	"github.com/stretchr/testify/require"
+	"testing"
 )
 
 func TestCannotUnjailUnlessJailed(t *testing.T) {
@@ -32,36 +29,29 @@ func TestCannotUnjailUnlessJailed(t *testing.T) {
 }
 
 func TestJailedValidatorDelegations(t *testing.T) {
-	ctx, _, stakeKeeper, _, slashingKeeper := createTestInput(t, DefaultParams())
+	slashParams := DefaultParams()
+
+	ctx, _, stakeKeeper, _, slashingKeeper := createTestInput(t, slashParams)
 
 	stakeParams := stakeKeeper.GetParams(ctx)
 	stakeParams.UnbondingTime = 0
 	stakeKeeper.SetParams(ctx, stakeParams)
 
 	// create a validator
-	amount := int64(10)
+	amount := int64(stakeParams.MinSelfDelegation)
 	valPubKey, bondAmount := pks[0], amount
-	valAddr, consAddr := addrs[1], sdk.ConsAddress(addrs[0])
+	valAddr, _ := addrs[1], sdk.ConsAddress(addrs[0])
 
-	msgCreateVal := NewTestMsgCreateValidator(valAddr, valPubKey, sdk.NewDecWithoutFra(bondAmount).RawInt())
+	msgCreateVal := NewTestMsgCreateValidator(valAddr, valPubKey, sdk.NewDec(bondAmount).RawInt())
 	got := stake.NewStakeHandler(stakeKeeper)(ctx, msgCreateVal)
 	require.True(t, got.IsOK(), "expected create validator msg to be ok, got: %v", got)
 
 	// end block
 	stake.EndBlocker(ctx, stakeKeeper)
 
-	// set dummy signing info
-	newInfo := ValidatorSigningInfo{
-		StartHeight:         int64(0),
-		IndexOffset:         int64(0),
-		JailedUntil:         time.Unix(0, 0),
-		MissedBlocksCounter: int64(0),
-	}
-	slashingKeeper.setValidatorSigningInfo(ctx, consAddr, newInfo)
-
 	// delegate tokens to the validator
 	delAddr := sdk.AccAddress(addrs[2])
-	msgDelegate := newTestMsgDelegate(delAddr, valAddr, sdk.NewDecWithoutFra(bondAmount).RawInt())
+	msgDelegate := newTestMsgDelegate(delAddr, valAddr, sdk.NewDec(bondAmount).RawInt())
 	got = stake.NewStakeHandler(stakeKeeper)(ctx, msgDelegate)
 	require.True(t, got.IsOK(), "expected delegation to be ok, got %v", got)
 
@@ -85,10 +75,15 @@ func TestJailedValidatorDelegations(t *testing.T) {
 	require.False(t, got.IsOK(), "expected jailed validator to not be able to unjail, got: %v", got)
 
 	// self-delegate to validator
-	msgSelfDelegate := newTestMsgDelegate(sdk.AccAddress(valAddr), valAddr, sdk.NewDecWithoutFra(bondAmount).RawInt())
+	msgSelfDelegate := newTestMsgDelegate(sdk.AccAddress(valAddr), valAddr, sdk.NewDec(bondAmount).RawInt())
 	got = stake.NewStakeHandler(stakeKeeper)(ctx, msgSelfDelegate)
 	require.True(t, got.IsOK(), "expected delegation to not be ok, got %v", got)
 
+	// verify the validator cannot unjail itself
+	got = NewHandler(slashingKeeper)(ctx, NewMsgUnjail(valAddr))
+	require.False(t, got.IsOK(), "expected jailed validator to not be able to unjail, got: %v", got)
+
+	ctx = ctx.WithBlockTime(ctx.BlockHeader().Time.Add(slashParams.TooLowDelUnbondDuration))
 	// verify the validator can now unjail itself
 	got = NewHandler(slashingKeeper)(ctx, NewMsgUnjail(valAddr))
 	require.True(t, got.IsOK(), "expected jailed validator to be able to unjail, got: %v", got)
