@@ -81,7 +81,7 @@ func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr
 			DistAddr: validator.DistributionAddr,
 			Power:    validator.GetPower().RawInt(),
 		}
-		if _, err := k.SaveJailedValidatorToIbc(sideCtx, sideChainId, ibcValidator); err != nil {
+		if _, err := k.SaveJailedValidatorToIbc(ctx, sideChainId, ibcValidator); err != nil {
 			return sdk.ZeroDec(), errors.New(err.Error())
 		}
 	}
