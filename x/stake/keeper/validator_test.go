@@ -109,8 +109,11 @@ func TestExistValidatorsWithHeight(t *testing.T) {
 	valPubKey := PKs[0]
 	valAddr := sdk.ValAddress(valPubKey.Address().Bytes())
 	validator := types.NewValidator(valAddr, valPubKey, types.Description{})
+
+	require.False(t, keeper.ExistHeightValidators(ctx))
 	keeper.SetValidatorsByHeight(ctx, 1000, []types.Validator{validator})
 
+	require.True(t, keeper.ExistHeightValidators(ctx))
 	require.True(t, keeper.ExistValidatorsWithHeight(ctx, 1000))
 	require.False(t, keeper.ExistValidatorsWithHeight(ctx, 1001))
 
