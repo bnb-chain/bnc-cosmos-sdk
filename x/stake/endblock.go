@@ -60,11 +60,12 @@ func saveSideChainValidatorsToIBC(ctx sdk.Context, sideChainId string, newVals [
 }
 
 func storeValidatorsWithHeight(ctx sdk.Context, validators []types.Validator, k keeper.Keeper) {
+	blockHeight := ctx.BlockHeight()
 	for _, validator := range validators {
 		simplifiedDelegations := k.GetSimplifiedDelegationsByValidator(ctx, validator.OperatorAddr)
-		k.SetSimplifiedDelegations(ctx, ctx.BlockHeight(), validator.OperatorAddr, simplifiedDelegations)
+		k.SetSimplifiedDelegations(ctx, blockHeight, validator.OperatorAddr, simplifiedDelegations)
 	}
-	k.SetValidatorsByHeight(ctx, ctx.BlockHeight(), validators)
+	k.SetValidatorsByHeight(ctx, blockHeight, validators)
 }
 
 func handleValidatorAndDelegations(ctx sdk.Context, k keeper.Keeper) ([]types.Validator, []abci.ValidatorUpdate, []types.UnbondingDelegation, sdk.Events) {

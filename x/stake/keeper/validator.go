@@ -146,7 +146,9 @@ func (k Keeper) ExistValidatorsWithHeight(ctx sdk.Context, height int64) bool {
 
 func (k Keeper) ExistHeightValidators(ctx sdk.Context) bool {
 	store := ctx.KVStore(k.storeKey)
-	return store.Has(ValidatorsByHeightKey)
+	iterator := sdk.KVStorePrefixIterator(store, ValidatorsByHeightKey)
+	defer iterator.Close()
+	return iterator.Valid()
 }
 
 //___________________________________________________________________________
