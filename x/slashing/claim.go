@@ -84,7 +84,7 @@ func (h ClaimHooks) ExecuteClaim(ctx sdk.Context, finalClaim string) (sdk.Tags, 
 	downtimeClaimFee := h.k.DowntimeSlashFee(sideCtx)
 	downtimeClaimFeeReal := sdk.MinInt64(downtimeClaimFee, slashedAmt.RawInt())
 	bondDenom := h.k.validatorSet.BondDenom(sideCtx)
-	if downtimeClaimFeeReal > 0 {
+	if downtimeClaimFeeReal > 0 && ctx.IsDeliverTx() {
 		feeCoinAdd := sdk.NewCoin(bondDenom, downtimeClaimFeeReal)
 		fees.Pool.AddAndCommitFee("side_downtime_slash", sdk.NewFee(sdk.Coins{feeCoinAdd}, sdk.FeeForAll))
 	}
@@ -95,8 +95,8 @@ func (h ClaimHooks) ExecuteClaim(ctx sdk.Context, finalClaim string) (sdk.Tags, 
 		if err != nil {
 			return sdk.EmptyTags(), ErrFailedToSlash(h.k.Codespace, err.Error())
 		}
-		remainingCoin := sdk.NewCoin(bondDenom, remaining)
-		if !found {
+		if !found && ctx.IsDeliverTx() {
+			remainingCoin := sdk.NewCoin(bondDenom, remaining)
 			fees.Pool.AddAndCommitFee("side_downtime_slash_remaining", sdk.NewFee(sdk.Coins{remainingCoin}, sdk.FeeForAll))
 		}
 	}
