@@ -34,7 +34,7 @@ type IbcValidatorSet []IbcValidator
 func (vs IbcValidatorSet) Serialize() ([]byte, error) {
 	vsLen := len(vs)
 	if vsLen == 0 {
-		return nil, errors.New("empty validator set")
+		return []byte{}, nil
 	}
 
 	v0 := vs[0]
