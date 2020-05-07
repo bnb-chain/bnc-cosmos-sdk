@@ -71,7 +71,7 @@ func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr
 	if err := k.bankKeeper.SetCoins(ctx, DelegationAccAddr, delegationAccBalance.Minus(sdk.Coins{slashedCoin})); err != nil {
 		return slashedAmt, err
 	}
-	if k.addrPool != nil {
+	if ctx.IsDeliverTx() && k.addrPool != nil {
 		k.addrPool.AddAddrs([]sdk.AccAddress{DelegationAccAddr})
 	}
 	if validator.IsBonded() {
@@ -153,7 +153,7 @@ func (k Keeper) AllocateSlashAmtToValidators(ctx sdk.Context, slashedConsAddr []
 		}
 		changedAddrs[i] = rewards[i].AccAddr
 	}
-	if k.addrPool != nil {
+	if ctx.IsDeliverTx() && k.addrPool != nil {
 		k.addrPool.AddAddrs(changedAddrs)
 	}
 	return found, nil
