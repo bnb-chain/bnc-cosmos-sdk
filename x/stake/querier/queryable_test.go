@@ -270,11 +270,13 @@ func TestQueryDelegation(t *testing.T) {
 	//res, err = queryDelegation(ctx, cdc, query, keeper)
 	require.Nil(t, err)
 
-	var delegationRes types.Delegation
+	var delegationRes types.DelegationResponse
 	errRes = cdc.UnmarshalJSON(res, &delegationRes)
 	require.Nil(t, errRes)
 
-	require.Equal(t, delegation, delegationRes)
+	require.EqualValues(t, delegation.Shares, delegationRes.Shares)
+	require.EqualValues(t, delegation.DelegatorAddr, delegationRes.DelegatorAddr)
+	require.EqualValues(t, delegation.ValidatorAddr, delegationRes.ValidatorAddr)
 
 	// Query Delegator Delegations
 
@@ -287,11 +289,13 @@ func TestQueryDelegation(t *testing.T) {
 	//res, err = queryDelegatorDelegations(ctx, cdc, query, keeper)
 	require.Nil(t, err)
 
-	var delegatorDelegations []types.Delegation
+	var delegatorDelegations []types.DelegationResponse
 	errRes = cdc.UnmarshalJSON(res, &delegatorDelegations)
 	require.Nil(t, errRes)
 	require.Len(t, delegatorDelegations, 1)
-	require.Equal(t, delegation, delegatorDelegations[0])
+	require.EqualValues(t, delegation.Shares, delegatorDelegations[0].Shares)
+	require.EqualValues(t, delegation.DelegatorAddr, delegatorDelegations[0].DelegatorAddr)
+	require.EqualValues(t, delegation.ValidatorAddr, delegatorDelegations[0].ValidatorAddr)
 
 	// error unknown request
 	query.Data = bz[:len(bz)-1]

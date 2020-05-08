@@ -2,10 +2,12 @@ package querier
 
 import (
 	"encoding/json"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	keep "github.com/cosmos/cosmos-sdk/x/stake/keeper"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
+
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
@@ -269,8 +271,12 @@ func queryValidatorRedelegations(ctx sdk.Context, cdc *codec.Codec, params *Quer
 
 func queryDelegatorDelegations(ctx sdk.Context, cdc *codec.Codec, params *QueryDelegatorParams, k keep.Keeper) (res []byte, err sdk.Error) {
 	delegations := k.GetAllDelegatorDelegations(ctx, params.DelegatorAddr)
+	delResponses, err := delegationsToDelegationResponses(ctx, k, delegations)
+	if err != nil {
+		return res, err
+	}
 
-	res, errRes := codec.MarshalJSONIndent(cdc, delegations)
+	res, errRes := codec.MarshalJSONIndent(cdc, delResponses)
 	if errRes != nil {
 		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("could not marshal result to JSON", errRes.Error()))
 	}
@@ -328,7 +334,12 @@ func queryDelegation(ctx sdk.Context, cdc *codec.Codec, params *QueryBondsParams
 		return []byte{}, types.ErrNoDelegation(types.DefaultCodespace)
 	}
 
-	res, errRes := codec.MarshalJSONIndent(cdc, delegation)
+	delResponse, err := delegationToDelegationResponse(ctx, k, delegation)
+	if err != nil {
+		return res, err
+	}
+
+	res, errRes := codec.MarshalJSONIndent(cdc, delResponse)
 	if errRes != nil {
 		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("could not marshal result to JSON", errRes.Error()))
 	}
@@ -416,4 +427,38 @@ func prepareSideChainCtx(ctx sdk.Context, k keep.Keeper, sideChainId string) (sd
 		return sdk.Context{}, types.ErrInvalidSideChainId(k.Codespace())
 	}
 	return scCtx, nil
+}
+
+//______________________________________________________
+// util
+
+func delegationToDelegationResponse(ctx sdk.Context, k keep.Keeper, del types.Delegation) (types.DelegationResponse, sdk.Error) {
+	val, found := k.GetValidator(ctx, del.ValidatorAddr)
+	if !found {
+		return types.DelegationResponse{}, types.ErrNoValidatorFound(k.Codespace())
+	}
+
+	return types.NewDelegationResp(
+		del.DelegatorAddr,
+		del.ValidatorAddr,
+		del.Shares,
+		sdk.NewCoin(k.BondDenom(ctx), val.TokensFromShares(del.Shares).RawInt()),
+	), nil
+}
+
+func delegationsToDelegationResponses(
+	ctx sdk.Context, k keep.Keeper, delegations []types.Delegation,
+) ([]types.DelegationResponse, sdk.Error) {
+
+	resp := make([]types.DelegationResponse, len(delegations))
+	for i, del := range delegations {
+		delResp, err := delegationToDelegationResponse(ctx, k, del)
+		if err != nil {
+			return nil, err
+		}
+
+		resp[i] = delResp
+	}
+
+	return resp, nil
 }

@@ -93,41 +93,43 @@ func GetCmdQuerySideChainDelegation(storeName string, cdc *codec.Codec) *cobra.C
 			}
 
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			_, sideChainStorePrefix, err := getSideChainConfig(cliCtx)
+			sideChainId, _, err := getSideChainConfig(cliCtx)
 			if err != nil {
 				return err
 			}
 
-			delegationKey := stake.GetDelegationKey(delAddr, valAddr)
-			key := append(sideChainStorePrefix, delegationKey...)
-			res, err := cliCtx.QueryStore(key, storeName)
+			params := stake.QueryBondsParams{
+				DelegatorAddr: delAddr,
+				ValidatorAddr: valAddr,
+				BaseParams:    stake.NewBaseParams(sideChainId),
+			}
+
+			bz, err := json.Marshal(params)
 			if err != nil {
 				return err
-			} else if len(res) == 0 {
+			}
+
+			response, err := cliCtx.QueryWithData("custom/stake/delegation", bz)
+			if err != nil {
+				return err
+			} else if len(response) == 0 {
 				return fmt.Errorf("No delegation found ")
-			}
-
-			// parse out the delegation
-			delegation, err := types.UnmarshalDelegation(cdc, delegationKey, res)
-			if err != nil {
-				return err
 			}
 
 			switch viper.Get(cli.OutputFlag) {
 			case "text":
-				resp, err := delegation.HumanReadableString()
+				var delResponse types.DelegationResponse
+				if err := cdc.UnmarshalJSON(response, &delResponse); err != nil {
+					return err
+				}
+				resp, err := delResponse.HumanReadableString()
 				if err != nil {
 					return err
 				}
 
 				fmt.Println(resp)
 			case "json":
-				output, err := codec.MarshalJSONIndent(cdc, delegation)
-				if err != nil {
-					return err
-				}
-
-				fmt.Println(string(output))
+				fmt.Println(string(response))
 				return nil
 			}
 
@@ -153,31 +155,36 @@ func GetCmdQuerySideChainDelegations(storeName string, cdc *codec.Codec) *cobra.
 			}
 
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			_, sideChainStorePrefix, err := getSideChainConfig(cliCtx)
+			sideChainId, _, err := getSideChainConfig(cliCtx)
 			if err != nil {
 				return err
 			}
 
-			key := append(sideChainStorePrefix, stake.GetDelegationsKey(delegatorAddr)...)
-			resKVs, err := cliCtx.QuerySubspace(key, storeName)
+			params := stake.QueryDelegatorParams{
+				DelegatorAddr: delegatorAddr,
+				BaseParams:    stake.NewBaseParams(sideChainId),
+			}
+
+			bz, err := json.Marshal(params)
 			if err != nil {
 				return err
-			} else if len(resKVs) == 0 {
+			}
+
+			response, err := cliCtx.QueryWithData("custom/stake/delegatorDelegations", bz)
+			if err != nil {
+				return err
+			} else if len(response) == 0 {
 				return fmt.Errorf("No delegation found with delegator-addr %s ", args[0])
-			}
-
-			// parse out the validators
-			var delegations []stake.Delegation
-			for _, kv := range resKVs {
-				k := kv.Key[len(sideChainStorePrefix):] // remove side chain prefix bytes
-				delegation := types.MustUnmarshalDelegation(cdc, k, kv.Value)
-				delegations = append(delegations, delegation)
 			}
 
 			switch viper.Get(cli.OutputFlag) {
 			case "text":
-				for _, delegation := range delegations {
-					resp, err := delegation.HumanReadableString()
+				var delegationResponses []types.DelegationResponse
+				if err := cdc.UnmarshalJSON(response, &delegationResponses); err != nil {
+					return err
+				}
+				for _, dr := range delegationResponses {
+					resp, err := dr.HumanReadableString()
 					if err != nil {
 						return err
 					}
@@ -185,12 +192,7 @@ func GetCmdQuerySideChainDelegations(storeName string, cdc *codec.Codec) *cobra.
 					fmt.Println()
 				}
 			case "json":
-				output, err := codec.MarshalJSONIndent(cdc, delegations)
-				if err != nil {
-					return err
-				}
-
-				fmt.Println(string(output))
+				fmt.Println(string(response))
 				return nil
 			}
 

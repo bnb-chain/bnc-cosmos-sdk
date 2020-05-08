@@ -33,7 +33,7 @@ type Delegation struct {
 	DelegatorAddr sdk.AccAddress `json:"delegator_addr"`
 	ValidatorAddr sdk.ValAddress `json:"validator_addr"`
 	Shares        sdk.Dec        `json:"shares"`
-	Height        int64          `json:"height"` // Last height bond updated
+	Height        int64          `json:"-"` // Last height bond updated
 }
 
 type delegationValue struct {
@@ -334,8 +334,38 @@ func (d Redelegation) HumanReadableString() (string, error) {
 	resp += fmt.Sprintf("Creation height: %v\n", d.CreationHeight)
 	resp += fmt.Sprintf("Min time to unbond (unix): %v\n", d.MinTime)
 	resp += fmt.Sprintf("Source shares: %s\n", d.SharesSrc.String())
-	resp += fmt.Sprintf("Destination shares: %s", d.SharesDst.String())
+	resp += fmt.Sprintf("Destination shares: %s\n", d.SharesDst.String())
+	resp += fmt.Sprintf("Balance: %s", d.Balance.String())
 
 	return resp, nil
 
+}
+
+// ----------------------------------------------------------------------------
+// Client Types
+
+// DelegationResponse is equivalent to Delegation except that it contains a balance
+// in addition to shares which is more suitable for client responses.
+type DelegationResponse struct {
+	Delegation
+	Balance sdk.Coin `json:"balance"`
+}
+
+// NewDelegationResp creates a new DelegationResponse instance
+func NewDelegationResp(
+	delegatorAddr sdk.AccAddress, validatorAddr sdk.ValAddress, shares sdk.Dec, balance sdk.Coin,
+) DelegationResponse {
+	return DelegationResponse{
+		Delegation: Delegation{DelegatorAddr: delegatorAddr, ValidatorAddr: validatorAddr, Shares: shares},
+		Balance:    balance,
+	}
+}
+
+func (dr DelegationResponse) HumanReadableString() (string, error) {
+	resp := "Delegation \n"
+	resp += fmt.Sprintf("Delegator: %s\n", dr.DelegatorAddr)
+	resp += fmt.Sprintf("Validator: %s\n", dr.ValidatorAddr)
+	resp += fmt.Sprintf("Balance: %s", dr.Balance.String())
+
+	return resp, nil
 }
