@@ -33,7 +33,7 @@ type Delegation struct {
 	DelegatorAddr sdk.AccAddress `json:"delegator_addr"`
 	ValidatorAddr sdk.ValAddress `json:"validator_addr"`
 	Shares        sdk.Dec        `json:"shares"`
-	Height        int64          `json:"height"` // Last height bond updated
+	Height        int64          `json:"-"` // Last height bond updated
 }
 
 type delegationValue struct {
