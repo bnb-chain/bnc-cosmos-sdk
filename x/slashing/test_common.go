@@ -243,6 +243,15 @@ func newTestMsgCreateSideValidator(address sdk.ValAddress, sideConsAddr, sideFee
 	}
 }
 
+func newTestMsgSideUnDelegate(delAddr sdk.AccAddress, valAddr sdk.ValAddress, amount int64) stake.MsgSideChainUndelegate {
+	return stake.MsgSideChainUndelegate{
+		DelegatorAddr: delAddr,
+		ValidatorAddr: valAddr,
+		Amount:    sdk.NewCoin("steak", amount),
+		SideChainId: "bsc",
+	}
+}
+
 func createSideAddr(length int) []byte {
 	bz := make([]byte, length)
 	_, _ = rand.Read(bz)
