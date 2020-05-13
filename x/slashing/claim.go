@@ -53,32 +53,35 @@ func (h ClaimHooks) CheckClaim(ctx sdk.Context, claim string) sdk.Error {
 	return nil
 }
 
-func (h ClaimHooks) ExecuteClaim(ctx sdk.Context, finalClaim string) (sdk.Tags, sdk.Error) {
+func (h ClaimHooks) ExecuteClaim(ctx sdk.Context, finalClaim string) (sdk.ClaimResult, sdk.Error) {
 	var slashClaim SideDowntimeSlashClaim
 	err := json.Unmarshal([]byte(finalClaim), &slashClaim)
 	if err != nil {
-		return sdk.EmptyTags(), ErrInvalidClaim(h.k.Codespace, fmt.Sprintf("unmarshal side downtime slash claim error, claim=%s", finalClaim))
+		return sdk.ClaimResult{}, ErrInvalidClaim(h.k.Codespace, fmt.Sprintf("unmarshal side downtime slash claim error, claim=%s", finalClaim))
 	}
 
 	sideCtx, err := h.k.ScKeeper.PrepareCtxForSideChain(ctx, slashClaim.SideChainId)
 	if err != nil {
-		return sdk.EmptyTags(), ErrInvalidSideChainId(DefaultCodespace)
+		return sdk.ClaimResult{}, ErrInvalidSideChainId(DefaultCodespace)
 	}
 
 	header := sideCtx.BlockHeader()
 	age := header.Time.Unix() - slashClaim.SideTimestamp
 	if age > int64(h.k.MaxEvidenceAge(sideCtx).Seconds()) {
-		return sdk.EmptyTags(), ErrExpiredEvidence(h.k.Codespace)
+		return sdk.ClaimResult{
+			Code: int(CodeExpiredEvidence),
+			Msg: "The given evidences are expired",
+		}, nil
 	}
 
 	if h.k.hasSlashRecord(sideCtx, slashClaim.SideConsAddr, Downtime, slashClaim.SideHeight) {
-		return sdk.EmptyTags(), ErrDuplicateDowntimeClaim(h.k.Codespace)
+		return sdk.ClaimResult{}, ErrDuplicateDowntimeClaim(h.k.Codespace)
 	}
 
 	slashAmt := h.k.DowntimeSlashAmount(sideCtx)
 	slashedAmt, err := h.k.validatorSet.SlashSideChain(ctx, slashClaim.SideChainId, slashClaim.SideConsAddr, sdk.NewDec(slashAmt))
 	if err != nil {
-		return sdk.EmptyTags(), ErrFailedToSlash(h.k.Codespace, err.Error())
+		return sdk.ClaimResult{}, ErrFailedToSlash(h.k.Codespace, err.Error())
 	}
 
 	downtimeClaimFee := h.k.DowntimeSlashFee(sideCtx)
@@ -93,7 +96,7 @@ func (h ClaimHooks) ExecuteClaim(ctx sdk.Context, finalClaim string) (sdk.Tags, 
 	if remaining > 0 {
 		found, err := h.k.validatorSet.AllocateSlashAmtToValidators(sideCtx, slashClaim.SideConsAddr, sdk.NewDec(remaining))
 		if err != nil {
-			return sdk.EmptyTags(), ErrFailedToSlash(h.k.Codespace, err.Error())
+			return sdk.ClaimResult{}, ErrFailedToSlash(h.k.Codespace, err.Error())
 		}
 		if !found && ctx.IsDeliverTx() {
 			remainingCoin := sdk.NewCoin(bondDenom, remaining)
@@ -116,10 +119,10 @@ func (h ClaimHooks) ExecuteClaim(ctx sdk.Context, finalClaim string) (sdk.Tags, 
 	// Set or updated validator jail duration
 	signInfo, found := h.k.getValidatorSigningInfo(sideCtx, slashClaim.SideConsAddr)
 	if !found {
-		return sdk.EmptyTags(), sdk.ErrInternal(fmt.Sprintf("Expected signing info for validator %s but not found", sdk.HexEncode(slashClaim.SideConsAddr)))
+		return sdk.ClaimResult{}, sdk.ErrInternal(fmt.Sprintf("Expected signing info for validator %s but not found", sdk.HexEncode(slashClaim.SideConsAddr)))
 	}
 	signInfo.JailedUntil = jailUtil
 	h.k.setValidatorSigningInfo(sideCtx, slashClaim.SideConsAddr, signInfo)
 
-	return sdk.EmptyTags(), nil
+	return sdk.ClaimResult{}, nil
 }
