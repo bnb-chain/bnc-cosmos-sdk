@@ -47,7 +47,7 @@ func (k Keeper) MinSelfDelegation(ctx sdk.Context) (res int64) {
 }
 
 func (k Keeper) MinDelegationChange(ctx sdk.Context) (res int64) {
-	k.paramstore.Get(ctx, types.KeyMinDelegationChange, &res)
+	k.paramstore.GetIfExists(ctx, types.KeyMinDelegationChange, &res)
 	return
 }
 

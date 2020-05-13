@@ -707,12 +707,12 @@ func (k Keeper) ValidateUnbondAmount(
 		}
 	}
 
-	amountDec := sdk.NewDecFromInt(amt)
-	shares = validator.SharesFromTokens(amountDec)
-
-	if shares.GT(del.GetShares()) {
+	if amt > remainingTokens {
 		return shares, types.ErrNotEnoughDelegationAmount(k.Codespace())
 	}
+
+	amountDec := sdk.NewDecFromInt(amt)
+	shares = validator.SharesFromTokens(amountDec)
 
 	return shares, nil
 }

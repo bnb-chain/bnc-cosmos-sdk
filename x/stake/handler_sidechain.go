@@ -123,7 +123,7 @@ func handleMsgSideChainDelegate(ctx sdk.Context, msg MsgSideChainDelegate, k kee
 
 	// we need this lower limit to prevent too many delegation records.
 	minDelegationChange := k.MinDelegationChange(ctx)
-	if msg.Delegation.Amount < k.MinDelegationChange(ctx) {
+	if msg.Delegation.Amount < minDelegationChange {
 		return ErrBadDelegationAmount(DefaultCodespace, fmt.Sprintf("delegation must not be less than %d", minDelegationChange)).Result()
 	}
 
