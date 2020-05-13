@@ -2,7 +2,6 @@ package bsc
 
 import (
 	"encoding/hex"
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -25,7 +24,7 @@ func TestHeader_UnmarshalJSON(t *testing.T) {
         "sha3Uncles":"0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
         "size":"0xd73c",
         "stateRoot":"0xa20ff6190c7d8a7993a50a3d60bdeca460c19128ba363413f5bff57670ddccb1",
-        "timestamp":"0x5e79a8781",
+        "timestamp":"0x5e79a878",
         "totalDifficulty":"0x365",
 		"transactionsRoot":"0x8f192c648a6d9035adbf72a55cab5652e3c0d7549c378be45bd3d5248d4b3ac5"
 		}`
@@ -34,11 +33,9 @@ func TestHeader_UnmarshalJSON(t *testing.T) {
 
 	signature, err := h.GetSignature()
 	require.NoError(t, err)
-	fmt.Println(hex.EncodeToString(signature))
-//	require.Equal(t, "5b28385ac3a02a84c391c5d90b3aa0a62365136d80892c5e6158797b394f436c70c697f8d44d6dcfa49d4871897d2ff132356496f066d0adf28ddb3b7099ff5d00", hex.EncodeToString(signature))
+	require.Equal(t, "5b28385ac3a02a84c391c5d90b3aa0a62365136d80892c5e6158797b394f436c70c697f8d44d6dcfa49d4871897d2ff132356496f066d0adf28ddb3b7099ff5d00", hex.EncodeToString(signature))
 
 	signer, err := h.ExtractSignerFromHeader()
 	require.NoError(t, err)
-	fmt.Println(signer.String())
-//	require.Equal(t, "0xB12fA6F899a16C156B67dBcb124d3733E72A164E", signer.String())
+	require.Equal(t, "0xB12fA6F899a16C156B67dBcb124d3733E72A164E", signer.String())
 }
