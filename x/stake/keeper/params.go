@@ -46,12 +46,18 @@ func (k Keeper) MinSelfDelegation(ctx sdk.Context) (res int64) {
 	return
 }
 
+func (k Keeper) MinDelegationChange(ctx sdk.Context) (res int64) {
+	k.paramstore.Get(ctx, types.KeyMinDelegationChange, &res)
+	return
+}
+
 // Get all parameteras as types.Params
 func (k Keeper) GetParams(ctx sdk.Context) (res types.Params) {
 	res.UnbondingTime = k.UnbondingTime(ctx)
 	res.MaxValidators = k.MaxValidators(ctx)
 	res.BondDenom = k.BondDenom(ctx)
 	res.MinSelfDelegation = k.MinSelfDelegation(ctx)
+	res.MinDelegationChange = k.MinDelegationChange(ctx)
 	return
 }
 

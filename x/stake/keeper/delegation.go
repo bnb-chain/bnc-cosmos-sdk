@@ -695,10 +695,21 @@ func (k Keeper) ValidateUnbondAmount(
 		return shares, types.ErrNoDelegation(k.Codespace())
 	}
 
+	remainingTokens := validator.TokensFromShares(del.GetShares()).RawInt()
+	minDelegationChange := k.MinDelegationChange(ctx)
+	// todo need to handle it if the DelegatorShareExRate is not 1
+	if amt < minDelegationChange {
+		if remainingTokens >= minDelegationChange {
+			return shares, types.ErrBadDelegationAmount(k.Codespace(), fmt.Sprintf("amount must not be less than %d", minDelegationChange))
+		}
+		if amt != remainingTokens {
+			return shares, types.ErrBadDelegationAmount(k.Codespace(), fmt.Sprintf("amount must be equal to %d", remainingTokens))
+		}
+	}
+
 	amountDec := sdk.NewDecFromInt(amt)
 	shares = validator.SharesFromTokens(amountDec)
 
-	// todo need to handle it if the DelegatorShareExRate is not 1
 	if shares.GT(del.GetShares()) {
 		return shares, types.ErrNotEnoughDelegationAmount(k.Codespace())
 	}

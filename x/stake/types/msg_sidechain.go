@@ -242,10 +242,6 @@ func (msg MsgSideChainDelegate) ValidateBasic() sdk.Error {
 	if len(msg.ValidatorAddr) != sdk.AddrLen {
 		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected validator address length is %d, actual length is %d", sdk.AddrLen, len(msg.ValidatorAddr)))
 	}
-	// we need this lower limit to prevent too many delegation records.
-	if msg.Delegation.Amount < 1e8 {
-		return ErrBadDelegationAmount(DefaultCodespace, "delegation must not be less than 1e8")
-	}
 	if len(msg.SideChainId) == 0 || len(msg.SideChainId) > MaxSideChainIdLength {
 		return sdk.NewError(DefaultCodespace, CodeInvalidInput, "side chain id must be included and max length is 20 bytes")
 	}
@@ -308,9 +304,6 @@ func (msg MsgSideChainRedelegate) ValidateBasic() sdk.Error {
 	}
 	if bytes.Equal(msg.ValidatorSrcAddr, msg.ValidatorDstAddr) {
 		return ErrSelfRedelegation(DefaultCodespace)
-	}
-	if msg.Amount.Amount < 1e8 {
-		return ErrBadDelegationAmount(DefaultCodespace, "redelegation amount must not be less than 1e8 ")
 	}
 	if len(msg.SideChainId) == 0 || len(msg.SideChainId) > MaxSideChainIdLength {
 		return sdk.NewError(DefaultCodespace, CodeInvalidInput, "side chain id must be included and max length is 20 bytes")
