@@ -61,7 +61,7 @@ func handleClaimMsg(ctx sdk.Context, oracleKeeper Keeper, msg ClaimMsg) sdk.Resu
 		return sdk.Result{}
 	}
 
-	tags, sdkErr := claimHooks.ExecuteClaim(ctx, prophecy.Status.FinalClaim)
+	result, sdkErr := claimHooks.ExecuteClaim(ctx, prophecy.Status.FinalClaim)
 	if sdkErr != nil {
 		return sdkErr.Result()
 	}
@@ -70,10 +70,12 @@ func handleClaimMsg(ctx sdk.Context, oracleKeeper Keeper, msg ClaimMsg) sdk.Resu
 	oracleKeeper.DeleteProphecy(ctx, prophecy.ID)
 
 	resultTags := sdk.NewTags(
-		claimTypeName, []byte(strconv.FormatInt(msg.Sequence, 10)),
+		types.ClaimResultCode, []byte(strconv.FormatInt(int64(result.Code), 10)),
+		types.ClaimResultMsg, []byte(result.Msg),
 	)
-	if tags != nil {
-		resultTags = resultTags.AppendTags(tags)
+
+	if result.Tags != nil {
+		resultTags = resultTags.AppendTags(result.Tags)
 	}
 
 	// increase claim type sequence
