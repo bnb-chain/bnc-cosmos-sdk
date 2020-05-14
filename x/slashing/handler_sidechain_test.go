@@ -2,15 +2,16 @@ package slashing
 
 import (
 	"encoding/json"
-	"github.com/cosmos/cosmos-sdk/types/fees"
 	"math"
 	"testing"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/fees"
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/slashing/bsc"
 	"github.com/cosmos/cosmos-sdk/x/stake"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -38,14 +39,14 @@ func TestSideChainSlashDoubleSign(t *testing.T) {
 
 	ctx = ctx.WithBlockHeight(200)
 	ValAddr1 := addrs[1]
-	sideConsAddr1,sideFeeAddr1 := createSideAddr(20),createSideAddr(20)
+	sideConsAddr1, sideFeeAddr1 := createSideAddr(20), createSideAddr(20)
 	msgCreateVal1 := newTestMsgCreateSideValidator(ValAddr1, sideConsAddr1, sideFeeAddr1, bondAmount)
 	got1 := stake.NewHandler(stakeKeeper, gov.Keeper{})(ctx, msgCreateVal1)
 	require.True(t, got1.IsOK(), "expected create validator msg to be ok, got: %v", got1)
 	// end block
 	stake.EndBreatheBlock(ctx, stakeKeeper)
-	stakingPoolBalance := bankKeeper.GetCoins(ctx,stake.DelegationAccAddr).AmountOf("steak")
-	require.EqualValues(t, bondAmount * 2, stakingPoolBalance)
+	stakingPoolBalance := bankKeeper.GetCoins(ctx, stake.DelegationAccAddr).AmountOf("steak")
+	require.EqualValues(t, bondAmount*2, stakingPoolBalance)
 
 	ctx = ctx.WithBlockHeight(300)
 	headers := make([]bsc.Header, 0)
@@ -57,16 +58,16 @@ func TestSideChainSlashDoubleSign(t *testing.T) {
 	got = NewHandler(keeper)(ctx, msgSubmitEvidence)
 	require.True(t, got.IsOK(), "expected submit evidence msg to be ok, got: %v", got)
 
-	mValidator,found := stakeKeeper.GetValidator(sideCtx,mValAddr)
+	mValidator, found := stakeKeeper.GetValidator(sideCtx, mValAddr)
 	require.True(t, found)
 	require.True(t, mValidator.Jailed)
-	require.EqualValues(t, bondAmount - slashParams.DoubleSignSlashAmount, mValidator.Tokens.RawInt())
-	require.EqualValues(t, bondAmount - slashParams.DoubleSignSlashAmount, mValidator.DelegatorShares.RawInt())
+	require.EqualValues(t, bondAmount-slashParams.DoubleSignSlashAmount, mValidator.Tokens.RawInt())
+	require.EqualValues(t, bondAmount-slashParams.DoubleSignSlashAmount, mValidator.DelegatorShares.RawInt())
 
 	submitterBalance := bankKeeper.GetCoins(ctx, submitter).AmountOf("steak")
-	require.EqualValues(t, initCoins + slashParams.SubmitterReward, submitterBalance)
+	require.EqualValues(t, initCoins+slashParams.SubmitterReward, submitterBalance)
 
-	require.EqualValues(t,slashParams.DoubleSignSlashAmount - slashParams.SubmitterReward, fees.Pool.BlockFees().Tokens.AmountOf("steak"))
+	require.EqualValues(t, slashParams.DoubleSignSlashAmount-slashParams.SubmitterReward, fees.Pool.BlockFees().Tokens.AmountOf("steak"))
 
 	slashRecord, found := keeper.getSlashRecord(sideCtx, mSideConsAddr, DoubleSign, 1)
 	require.True(t, found)
@@ -74,7 +75,7 @@ func TestSideChainSlashDoubleSign(t *testing.T) {
 	require.EqualValues(t, ctx.BlockHeader().Time.Add(slashParams.DoubleSignUnbondDuration).Unix(), slashRecord.JailUntil.Unix())
 
 	expectedStakingPoolBalance := stakingPoolBalance - slashParams.DoubleSignSlashAmount
-	stakingPoolBalance = bankKeeper.GetCoins(ctx,stake.DelegationAccAddr).AmountOf("steak")
+	stakingPoolBalance = bankKeeper.GetCoins(ctx, stake.DelegationAccAddr).AmountOf("steak")
 	require.EqualValues(t, expectedStakingPoolBalance, stakingPoolBalance)
 	// end block
 	stake.EndBreatheBlock(ctx, stakeKeeper)
@@ -94,10 +95,10 @@ func TestSideChainSlashDoubleSign(t *testing.T) {
 
 	// check balance
 	expectedStakingPoolBalance = stakingPoolBalance - realSlashedAmt
-	stakingPoolBalance = bankKeeper.GetCoins(ctx,stake.DelegationAccAddr).AmountOf("steak")
+	stakingPoolBalance = bankKeeper.GetCoins(ctx, stake.DelegationAccAddr).AmountOf("steak")
 	require.EqualValues(t, expectedStakingPoolBalance, stakingPoolBalance)
 
-	mValidator,found = stakeKeeper.GetValidator(sideCtx,mValAddr)
+	mValidator, found = stakeKeeper.GetValidator(sideCtx, mValAddr)
 	require.True(t, found)
 	require.True(t, mValidator.Jailed)
 	require.EqualValues(t, expectedAfterValTokensLeft, mValidator.Tokens.RawInt())
@@ -106,11 +107,11 @@ func TestSideChainSlashDoubleSign(t *testing.T) {
 	submitterBalance = bankKeeper.GetCoins(ctx, submitter).AmountOf("steak")
 	require.EqualValues(t, expectedAfterSubmitterBalance, submitterBalance)
 
-	validator1,found := stakeKeeper.GetValidator(sideCtx, ValAddr1)
-	require.True(t,found)
+	validator1, found := stakeKeeper.GetValidator(sideCtx, ValAddr1)
+	require.True(t, found)
 	distributionAddr1 := validator1.DistributionAddr
 	distributionAddr1Balance := bankKeeper.GetCoins(ctx, distributionAddr1).AmountOf("steak")
-	require.EqualValues(t, realSlashedAmt - realSubmitterReward, distributionAddr1Balance)
+	require.EqualValues(t, realSlashedAmt-realSubmitterReward, distributionAddr1Balance)
 
 	slashRecord, found = keeper.getSlashRecord(sideCtx, mSideConsAddr, DoubleSign, 2)
 	require.True(t, found)
@@ -141,10 +142,10 @@ func TestSideChainSlashDoubleSignUBD(t *testing.T) {
 	stake.EndBreatheBlock(ctx, stakeKeeper)
 
 	ctx = ctx.WithBlockHeight(150)
-	msgUnDelegate := newTestMsgSideUnDelegate(sdk.AccAddress(mValAddr),mValAddr, 5000e8)
+	msgUnDelegate := newTestMsgSideUnDelegate(sdk.AccAddress(mValAddr), mValAddr, 5000e8)
 	got = stake.NewHandler(stakeKeeper, gov.Keeper{})(ctx, msgUnDelegate)
 	require.True(t, got.IsOK(), "expected unDelegate msg to be ok, got: %v", got)
-	ubd,found := stakeKeeper.GetUnbondingDelegation(sideCtx, sdk.AccAddress(mValAddr), mValAddr)
+	ubd, found := stakeKeeper.GetUnbondingDelegation(sideCtx, sdk.AccAddress(mValAddr), mValAddr)
 	require.True(t, found)
 	require.EqualValues(t, 5000e8, ubd.Balance.Amount)
 
@@ -162,24 +163,22 @@ func TestSideChainSlashDoubleSignUBD(t *testing.T) {
 	got = NewHandler(keeper)(ctx, msgSubmitEvidence)
 	require.True(t, got.IsOK(), "expected submit evidence msg to be ok, got: %v", got)
 
-	mValidator,found := stakeKeeper.GetValidator(sideCtx,mValAddr)
+	mValidator, found := stakeKeeper.GetValidator(sideCtx, mValAddr)
 	require.True(t, found)
 	require.True(t, mValidator.Jailed)
 	require.EqualValues(t, 0, mValidator.Tokens.RawInt())
 	require.EqualValues(t, 0, mValidator.DelegatorShares.RawInt())
 
-	ubd,found = stakeKeeper.GetUnbondingDelegation(sideCtx, sdk.AccAddress(mValAddr), mValAddr)
+	ubd, found = stakeKeeper.GetUnbondingDelegation(sideCtx, sdk.AccAddress(mValAddr), mValAddr)
 	require.True(t, found)
 	require.EqualValues(t, 4000e8, ubd.Balance.Amount)
 
 	submitterBalance := bankKeeper.GetCoins(ctx, submitter).AmountOf("steak")
-	require.EqualValues(t, initCoins + slashParams.SubmitterReward, submitterBalance)
+	require.EqualValues(t, initCoins+slashParams.SubmitterReward, submitterBalance)
 
-	require.EqualValues(t,slashParams.DoubleSignSlashAmount - slashParams.SubmitterReward, fees.Pool.BlockFees().Tokens.AmountOf("steak"))
+	require.EqualValues(t, slashParams.DoubleSignSlashAmount-slashParams.SubmitterReward, fees.Pool.BlockFees().Tokens.AmountOf("steak"))
 
-	stakingPoolBalance := bankKeeper.GetCoins(ctx,stake.DelegationAccAddr).AmountOf("steak")
+	stakingPoolBalance := bankKeeper.GetCoins(ctx, stake.DelegationAccAddr).AmountOf("steak")
 	require.EqualValues(t, 4000e8, stakingPoolBalance)
 
 }
-
-
