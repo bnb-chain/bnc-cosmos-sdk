@@ -26,7 +26,6 @@ var (
 	KeyDowntimeSlashAmount      = []byte("DowntimeSlashAmount")
 	KeySubmitterReward          = []byte("SubmitterReward")
 	KeyDowntimeSlashFee         = []byte("DowntimeSlashFee")
-	KeyBscSideChainId           = []byte("BscSideChainId")
 )
 
 // ParamTypeTable for slashing module
@@ -48,7 +47,6 @@ type Params struct {
 	DowntimeSlashAmount      int64         `json:"downtime_slash_amount"`
 	SubmitterReward          int64         `json:"submitter_reward"`
 	DowntimeSlashFee         int64         `json:"downtime_slash_fee"`
-	BscSideChainId           string        `json:"bsc_side_chain_id"`
 }
 
 // Implements params.ParamStruct
@@ -66,7 +64,6 @@ func (p *Params) KeyValuePairs() params.KeyValuePairs {
 		{KeyDowntimeSlashAmount, &p.DowntimeSlashAmount},
 		{KeySubmitterReward, &p.SubmitterReward},
 		{KeyDowntimeSlashFee, &p.DowntimeSlashFee},
-		{KeyBscSideChainId, &p.BscSideChainId},
 	}
 }
 
@@ -102,8 +99,6 @@ func DefaultParams() Params {
 		SubmitterReward: 10e8,
 
 		DowntimeSlashFee: 10e8,
-
-		BscSideChainId: "bsc",
 	}
 }
 
@@ -174,11 +169,6 @@ func (k Keeper) SubmitterReward(ctx sdk.Context) (submitterReward int64) {
 
 func (k Keeper) DowntimeSlashFee(ctx sdk.Context) (downtimeSlashFee int64) {
 	k.paramspace.Get(ctx, KeyDowntimeSlashFee, &downtimeSlashFee)
-	return
-}
-
-func (k Keeper) BscSideChainId(ctx sdk.Context) (sideChainId string) {
-	k.paramspace.Get(ctx, KeyBscSideChainId, &sideChainId)
 	return
 }
 

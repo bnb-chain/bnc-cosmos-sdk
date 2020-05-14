@@ -10,7 +10,7 @@ import (
 )
 
 func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Keeper) sdk.Result {
-	sideChainId := k.BscSideChainId(ctx)
+	sideChainId := k.ScKeeper.BscSideChainId(ctx)
 	sideCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, sideChainId)
 	if err != nil {
 		return ErrInvalidSideChainId(DefaultCodespace).Result()
