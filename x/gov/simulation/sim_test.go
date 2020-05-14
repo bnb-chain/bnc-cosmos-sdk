@@ -35,7 +35,7 @@ func TestGovWithRandomMessages(t *testing.T) {
 	keyIbc := sdk.NewKVStoreKey("ibc")
 	keySideChain := sdk.NewKVStoreKey("sc")
 	ibcKeeper := ibc.NewKeeper(keyIbc, ibc.DefaultCodespace)
-	scKeeper := sidechain.NewKeeper(keySideChain)
+	scKeeper := sidechain.NewKeeper(keySideChain, paramKeeper.Subspace(sidechain.DefaultParamspace))
 	stakeKeeper := stake.NewKeeper(mapp.Cdc, stakeKey, stakeTKey, bankKeeper, nil, paramKeeper.Subspace(stake.DefaultParamspace), stake.DefaultCodespace)
 	stakeKeeper.SetupForSideChain(&scKeeper, &ibcKeeper)
 	govKey := sdk.NewKVStoreKey("gov")

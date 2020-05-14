@@ -124,10 +124,10 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initCoins int64) (sdk.Context
 
 	ck := bank.NewBaseKeeper(accountKeeper)
 	ibcKeeper := ibc.NewKeeper(keyIbc, ibc.DefaultCodespace)
-	scKeeper := sidechain.NewKeeper(keySideChain)
 
 	pk := params.NewKeeper(cdc, keyParams, tkeyParams)
-	keeper := NewKeeper(cdc, keyStake, tkeyStake, ck,nil, pk.Subspace(DefaultParamspace), types.DefaultCodespace)
+	scKeeper := sidechain.NewKeeper(keySideChain, pk.Subspace(sidechain.DefaultParamspace))
+	keeper := NewKeeper(cdc, keyStake, tkeyStake, ck, nil, pk.Subspace(DefaultParamspace), types.DefaultCodespace)
 	keeper.SetPool(ctx, types.InitialPool())
 	keeper.SetParams(ctx, types.DefaultParams())
 	keeper.SetupForSideChain(&scKeeper, &ibcKeeper)
@@ -261,8 +261,8 @@ func createTestAddrs(numAddrs int) []sdk.AccAddress {
 }
 
 func CreateTestAddr() sdk.AccAddress {
-	bz := make([]byte,20)
-	_,_ = rand.Read(bz)
+	bz := make([]byte, 20)
+	_, _ = rand.Read(bz)
 	return sdk.AccAddress(bz)
 }
 

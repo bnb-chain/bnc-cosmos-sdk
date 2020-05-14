@@ -2,17 +2,20 @@ package sidechain
 
 import (
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/x/params"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 type Keeper struct {
-	storeKey sdk.StoreKey
+	storeKey   sdk.StoreKey
+	paramspace params.Subspace
 }
 
-func NewKeeper(storeKey sdk.StoreKey) Keeper {
+func NewKeeper(storeKey sdk.StoreKey, paramspace params.Subspace) Keeper {
 	return Keeper{
-		storeKey: storeKey,
+		storeKey:   storeKey,
+		paramspace: paramspace.WithTypeTable(ParamTypeTable()),
 	}
 }
 
