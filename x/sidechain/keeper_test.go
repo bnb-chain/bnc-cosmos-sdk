@@ -1,16 +1,18 @@
 package sidechain
 
 import (
-	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/x/params"
 	"testing"
 
+	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/stretchr/testify/require"
+	"github.com/cosmos/cosmos-sdk/x/params"
+
 	abci "github.com/tendermint/tendermint/abci/types"
 	dbm "github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/libs/log"
+
+	"github.com/stretchr/testify/require"
 )
 
 func CreateTestInput(t *testing.T, isCheckTx bool) (sdk.Context, Keeper) {
