@@ -104,6 +104,8 @@ var (
 
 	NewQuerier    = querier.NewQuerier
 	NewBaseParams = querier.NewBaseParams
+
+	DelegationAccAddr = keeper.DelegationAccAddr
 )
 
 const (
