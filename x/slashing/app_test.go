@@ -101,8 +101,8 @@ func checkValidatorSigningInfo(t *testing.T, mapp *mock.App, keeper Keeper,
 func TestSlashingMsgs(t *testing.T) {
 	mapp, stakeKeeper, keeper := getMockApp(t)
 
-	genCoin := sdk.NewCoin("steak", sdk.NewDecWithoutFra(42).RawInt())
-	bondCoin := sdk.NewCoin("steak", sdk.NewDecWithoutFra(10).RawInt())
+	genCoin := sdk.NewCoin("steak", sdk.NewDecWithoutFra(42000).RawInt())
+	bondCoin := sdk.NewCoin("steak", sdk.NewDecWithoutFra(10000).RawInt())
 
 	acc1 := &auth.BaseAccount{
 		Address: addr1,
@@ -124,7 +124,7 @@ func TestSlashingMsgs(t *testing.T) {
 	validator := checkValidator(t, mapp, stakeKeeper, addr1, true)
 	require.Equal(t, sdk.ValAddress(addr1), validator.OperatorAddr)
 	require.Equal(t, sdk.Bonded, validator.Status)
-	require.True(sdk.DecEq(t, sdk.NewDecWithoutFra(10), validator.BondedTokens()))
+	require.True(sdk.DecEq(t, sdk.NewDecWithoutFra(10000), validator.BondedTokens()))
 	unjailMsg := MsgUnjail{ValidatorAddr: sdk.ValAddress(validator.ConsPubKey.Address())}
 
 	// no signing info yet

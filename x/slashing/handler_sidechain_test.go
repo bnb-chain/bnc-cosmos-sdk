@@ -54,6 +54,7 @@ func TestSideChainSlashDoubleSign(t *testing.T) {
 	err = json.Unmarshal([]byte(headersJson), &headers)
 	require.Nil(t, err)
 
+	feesInPoolBefore := fees.Pool.BlockFees().Tokens.AmountOf("steak")
 	msgSubmitEvidence := NewMsgBscSubmitEvidence(submitter, headers)
 	got = NewHandler(keeper)(ctx, msgSubmitEvidence)
 	require.True(t, got.IsOK(), "expected submit evidence msg to be ok, got: %v", got)
@@ -67,7 +68,7 @@ func TestSideChainSlashDoubleSign(t *testing.T) {
 	submitterBalance := bankKeeper.GetCoins(ctx, submitter).AmountOf("steak")
 	require.EqualValues(t, initCoins+slashParams.SubmitterReward, submitterBalance)
 
-	require.EqualValues(t, slashParams.DoubleSignSlashAmount-slashParams.SubmitterReward, fees.Pool.BlockFees().Tokens.AmountOf("steak"))
+	require.EqualValues(t, slashParams.DoubleSignSlashAmount-slashParams.SubmitterReward, fees.Pool.BlockFees().Tokens.AmountOf("steak")-feesInPoolBefore)
 
 	slashRecord, found := keeper.getSlashRecord(sideCtx, mSideConsAddr, DoubleSign, 1)
 	require.True(t, found)
@@ -159,6 +160,7 @@ func TestSideChainSlashDoubleSignUBD(t *testing.T) {
 	err = json.Unmarshal([]byte(headersJson), &headers)
 	require.Nil(t, err)
 
+	feesInPoolBefore := fees.Pool.BlockFees().Tokens.AmountOf("steak")
 	msgSubmitEvidence := NewMsgBscSubmitEvidence(submitter, headers)
 	got = NewHandler(keeper)(ctx, msgSubmitEvidence)
 	require.True(t, got.IsOK(), "expected submit evidence msg to be ok, got: %v", got)
@@ -176,7 +178,7 @@ func TestSideChainSlashDoubleSignUBD(t *testing.T) {
 	submitterBalance := bankKeeper.GetCoins(ctx, submitter).AmountOf("steak")
 	require.EqualValues(t, initCoins+slashParams.SubmitterReward, submitterBalance)
 
-	require.EqualValues(t, slashParams.DoubleSignSlashAmount-slashParams.SubmitterReward, fees.Pool.BlockFees().Tokens.AmountOf("steak"))
+	require.EqualValues(t, slashParams.DoubleSignSlashAmount-slashParams.SubmitterReward, fees.Pool.BlockFees().Tokens.AmountOf("steak")-feesInPoolBefore)
 
 	stakingPoolBalance := bankKeeper.GetCoins(ctx, stake.DelegationAccAddr).AmountOf("steak")
 	require.EqualValues(t, 4000e8, stakingPoolBalance)
