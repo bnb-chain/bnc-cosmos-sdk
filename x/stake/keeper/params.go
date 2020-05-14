@@ -42,7 +42,7 @@ func (k Keeper) BondDenom(ctx sdk.Context) (res string) {
 }
 
 func (k Keeper) MinSelfDelegation(ctx sdk.Context) (res int64) {
-	k.paramstore.Get(ctx, types.KeyMinSelfDelegation, &res)
+	k.paramstore.GetIfExists(ctx, types.KeyMinSelfDelegation, &res)
 	return
 }
 
@@ -61,7 +61,34 @@ func (k Keeper) GetParams(ctx sdk.Context) (res types.Params) {
 	return
 }
 
+// in order to be compatible with before
+type paramBeforeBscUpgrade struct {
+	UnbondingTime time.Duration `json:"unbonding_time"`
+
+	MaxValidators uint16 `json:"max_validators"` // maximum number of validators
+	BondDenom     string `json:"bond_denom"`     // bondable coin denomination
+}
+
+// Implements params.ParamSet
+func (p *paramBeforeBscUpgrade) KeyValuePairs() params.KeyValuePairs {
+	return params.KeyValuePairs{
+		{types.KeyUnbondingTime, &p.UnbondingTime},
+		{types.KeyMaxValidators, &p.MaxValidators},
+		{types.KeyBondDenom, &p.BondDenom},
+	}
+}
+
 // set the params
 func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
-	k.paramstore.SetParamSet(ctx, &params)
+	sdk.Upgrade(sdk.LaunchBscUpgrade, func() {
+		var pb paramBeforeBscUpgrade
+		pb.UnbondingTime = params.UnbondingTime
+		pb.MaxValidators = params.MaxValidators
+		pb.BondDenom = params.BondDenom
+
+		k.paramstore.SetParamSet(ctx, &pb)
+	}, nil, func() {
+		k.paramstore.SetParamSet(ctx, &params)
+	})
+
 }

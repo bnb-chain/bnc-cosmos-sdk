@@ -130,6 +130,9 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initCoins int64) (sdk.Context
 	keeper := NewKeeper(cdc, keyStake, tkeyStake, ck, nil, pk.Subspace(DefaultParamspace), types.DefaultCodespace)
 	keeper.SetPool(ctx, types.InitialPool())
 	keeper.SetParams(ctx, types.DefaultParams())
+	sdk.UpgradeMgr.AddUpgradeHeight(sdk.LaunchBscUpgrade, 1)
+	sdk.UpgradeMgr.Height = 1
+	keeper.SetParams(ctx, types.DefaultParams())
 	keeper.SetupForSideChain(&scKeeper, &ibcKeeper)
 
 	// fill all the addresses with some coins, set the loose pool tokens simultaneously
