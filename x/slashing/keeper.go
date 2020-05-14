@@ -7,7 +7,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/bank"
-	"github.com/cosmos/cosmos-sdk/x/params"
+	param "github.com/cosmos/cosmos-sdk/x/params"
 	"github.com/cosmos/cosmos-sdk/x/sidechain"
 	stake "github.com/cosmos/cosmos-sdk/x/stake/types"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -20,7 +20,7 @@ type Keeper struct {
 	storeKey     sdk.StoreKey
 	cdc          *codec.Codec
 	validatorSet sdk.ValidatorSet
-	paramspace   params.Subspace
+	paramspace   param.Subspace
 
 	// codespace
 	Codespace sdk.CodespaceType
@@ -30,7 +30,7 @@ type Keeper struct {
 }
 
 // NewKeeper creates a slashing keeper
-func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, vs sdk.ValidatorSet, paramspace params.Subspace, codespace sdk.CodespaceType, bk bank.Keeper) Keeper {
+func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, vs sdk.ValidatorSet, paramspace param.Subspace, codespace sdk.CodespaceType, bk bank.Keeper) Keeper {
 	keeper := Keeper{
 		storeKey:     key,
 		cdc:          cdc,
@@ -40,6 +40,10 @@ func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, vs sdk.ValidatorSet, paramspa
 		BankKeeper:   bk,
 	}
 	return keeper
+}
+
+type ParamHub interface {
+	SubscribeParamChange(u func([]sdk.Context, []interface{}), g func(sdk.Context, interface{}), l func(sdk.Context, interface{}))
 }
 
 func (k *Keeper) SetSideChain(scKeeper *sidechain.Keeper) {
@@ -193,6 +197,31 @@ func (k Keeper) AddValidators(ctx sdk.Context, vals []abci.ValidatorUpdate) {
 		}
 		k.addPubkey(ctx, pubkey)
 	}
+}
+
+func (k *Keeper) SubscribeParamChange(hub ParamHub) {
+	hub.SubscribeParamChange(
+		func(contexts []sdk.Context, changes []interface{}) {
+			if len(contexts) != len(changes) {
+				panic(fmt.Sprintf("the length of context %d do not match changes %d", len(contexts), len(changes)))
+			}
+			for idx, c := range changes {
+				switch change := c.(type) {
+				case Params:
+					err := change.UpdateCheck()
+					if err != nil {
+						contexts[idx].Logger().Error("skip invalid param change", "err", err, "param", change)
+					} else {
+						k.SetParams(contexts[idx], change)
+					}
+				default:
+					contexts[idx].Logger().Debug("skip unknown param change")
+				}
+			}
+		},
+		nil,
+		nil,
+	)
 }
 
 // TODO: Make a method to remove the pubkey from the map when a validator is unbonded.

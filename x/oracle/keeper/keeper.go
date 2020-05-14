@@ -237,7 +237,12 @@ func (k *Keeper) SubscribeParamChange(hub ParamHub) {
 			for idx, c := range changes {
 				switch change := c.(type) {
 				case types.ProphecyParams:
-					k.SetProphecyParams(contexts[idx], change)
+					err := change.UpdateCheck()
+					if err != nil {
+						contexts[idx].Logger().Error("skip invalid param change", "err", err, "param", change)
+					} else {
+						k.SetProphecyParams(contexts[idx], change)
+					}
 				default:
 					contexts[idx].Logger().Debug("skip unknown param change")
 				}

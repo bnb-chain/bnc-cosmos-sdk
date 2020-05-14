@@ -15,6 +15,13 @@ type ProphecyParams struct {
 	ConsensusNeeded sdk.Dec `json:"ConsensusNeeded"` //  Minimum deposit for a proposal to enter voting period.
 }
 
+func (p ProphecyParams) UpdateCheck() error {
+	if p.ConsensusNeeded.IsNil() || p.ConsensusNeeded.GT(sdk.OneDec()) || p.ConsensusNeeded.LT(sdk.NewDecWithPrec(5, 1)) {
+		return fmt.Errorf("the value should be in range (0.5,1]")
+	}
+	return nil
+}
+
 // Prophecy is a struct that contains all the metadata of an oracle ritual.
 // Claims are indexed by the claim's validator bech32 address and by the claim's json value to allow
 // for constant lookup times for any validation/verifiation checks of duplicate claims

@@ -186,7 +186,16 @@ func (k *Keeper) SubscribeParamChange(hub ParamHub) {
 			for idx, c := range changes {
 				switch change := c.(type) {
 				case types.Params:
-					k.SetParams(contexts[idx], change)
+					// do double check
+					err := change.UpdateCheck()
+					if err != nil {
+						contexts[idx].Logger().Error("skip invalid param change", "err", err, "param", change)
+					} else {
+						res := k.GetParams(contexts[idx])
+						// ignore BondDenom update if have.
+						change.BondDenom = res.BondDenom
+						k.SetParams(contexts[idx], change)
+					}
 				default:
 					contexts[idx].Logger().Debug("skip unknown param change")
 				}

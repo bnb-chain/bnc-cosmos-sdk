@@ -49,6 +49,23 @@ type Params struct {
 	MinDelegationChange int64  `json:"min_delegation_change"` // the minimal delegation amount changed
 }
 
+func (p Params) UpdateCheck() error {
+	// the valid range is one hour to ten day.
+	if p.UnbondingTime > 10*24*time.Hour || p.UnbondingTime < time.Hour {
+		return fmt.Errorf("the UnbondingTime should in range [1 hour, 10 day]")
+	}
+	if p.MaxValidators < 1 || p.MaxValidators > 500 {
+		return fmt.Errorf("the max validator should in range [1,500]")
+	}
+	// BondDenom do not check here, it should be native token and do not support update so far.
+	// Leave the check in node repo.
+
+	if p.MinSelfDelegation > 1e14 || p.MinSelfDelegation < 1e8 {
+		return fmt.Errorf("the min_self_delegation should in range [1e8, 1e14]")
+	}
+	return nil
+}
+
 // Implements params.ParamSet
 func (p *Params) KeyValuePairs() params.KeyValuePairs {
 	return params.KeyValuePairs{
