@@ -78,6 +78,6 @@ func ErrInvalidVotingPeriod(codespace sdk.CodespaceType, votingPeriod time.Durat
 	return sdk.NewError(codespace, CodeInvalidVotingPeriod, fmt.Sprintf("Voting period '%d' should larger than 0 and less than %s", votingPeriod, MaxVotingPeriod))
 }
 
-func ErrInvalidSideChainId(codespace sdk.CodespaceType, msg string) sdk.Error {
-	return sdk.NewError(codespace, CodeInvalidSideChainId, fmt.Sprintf("Invalid side chain id: %s", msg))
+func ErrInvalidSideChainId(codespace sdk.CodespaceType, sideChain string) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidSideChainId, fmt.Sprintf("Invalid side chain id: %s", sideChain))
 }

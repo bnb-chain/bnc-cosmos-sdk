@@ -7,7 +7,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/oracle/types"
-	"github.com/cosmos/cosmos-sdk/x/params"
+	param "github.com/cosmos/cosmos-sdk/x/params"
+	"github.com/cosmos/cosmos-sdk/x/params/subspace"
 )
 
 // Keeper maintains the link to data storage and
@@ -17,7 +18,7 @@ type Keeper struct {
 	storeKey sdk.StoreKey
 
 	// The reference to the Paramstore to get and set gov specific params
-	paramSpace params.Subspace
+	paramSpace param.Subspace
 
 	stakeKeeper types.StakingKeeper
 
@@ -31,23 +32,17 @@ const (
 	DefaultParamSpace = "oracle"
 )
 
-var (
-	ParamStoreKeyProphecyParams = []byte("prophecyParams")
-)
-
 type ParamHub interface {
-	SubscribeParamChange(u func([]sdk.Context, []interface{}), g func(sdk.Context, interface{}), l func(sdk.Context, interface{}))
+	SubscribeParamChange(u func([]sdk.Context, []interface{}), s *subspace.ParamSpaceProto, g func(sdk.Context, interface{}), l func(sdk.Context, interface{}))
 }
 
-func ParamTypeTable() params.TypeTable {
-	return params.NewTypeTable(
-		ParamStoreKeyProphecyParams, types.ProphecyParams{},
-	)
+func ParamTypeTable() param.TypeTable {
+	return param.NewTypeTable().RegisterParamSet(&types.Params{})
 }
 
 // NewKeeper creates new instances of the oracle Keeper
 func NewKeeper(
-	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace params.Subspace, stakeKeeper types.StakingKeeper,
+	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace param.Subspace, stakeKeeper types.StakingKeeper,
 ) Keeper {
 	return Keeper{
 		cdc:             cdc,
@@ -60,14 +55,13 @@ func NewKeeper(
 	}
 }
 
-func (k Keeper) GetProphecyParams(ctx sdk.Context) types.ProphecyParams {
-	var depositParams types.ProphecyParams
-	k.paramSpace.Get(ctx, ParamStoreKeyProphecyParams, &depositParams)
-	return depositParams
+func (k Keeper) GetConsensusNeeded(ctx sdk.Context) (consensusNeeded sdk.Dec) {
+	k.paramSpace.Get(ctx, types.ParamStoreKeyProphecyParams, &consensusNeeded)
+	return
 }
 
-func (k Keeper) SetProphecyParams(ctx sdk.Context, params types.ProphecyParams) {
-	k.paramSpace.Set(ctx, ParamStoreKeyProphecyParams, &params)
+func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
+	k.paramSpace.SetParamSet(ctx, &params)
 }
 
 // GetProphecy gets the entire prophecy data struct for a given id
@@ -217,12 +211,12 @@ func (k Keeper) processCompletion(ctx sdk.Context, prophecy types.Prophecy) type
 
 	highestPossibleConsensusRatio := sdk.NewDec(highestPossibleClaimPower).Quo(sdk.NewDec(totalPower))
 
-	prophecyParams := k.GetProphecyParams(ctx)
+	consensusNeeded := k.GetConsensusNeeded(ctx)
 
-	if highestConsensusRatio.GTE(prophecyParams.ConsensusNeeded) {
+	if highestConsensusRatio.GTE(consensusNeeded) {
 		prophecy.Status.Text = types.SuccessStatusText
 		prophecy.Status.FinalClaim = highestClaim
-	} else if highestPossibleConsensusRatio.LT(prophecyParams.ConsensusNeeded) {
+	} else if highestPossibleConsensusRatio.LT(consensusNeeded) {
 		prophecy.Status.Text = types.FailedStatusText
 	}
 	return prophecy
@@ -236,18 +230,21 @@ func (k *Keeper) SubscribeParamChange(hub ParamHub) {
 			}
 			for idx, c := range changes {
 				switch change := c.(type) {
-				case types.ProphecyParams:
+				case types.Params:
 					err := change.UpdateCheck()
 					if err != nil {
 						contexts[idx].Logger().Error("skip invalid param change", "err", err, "param", change)
 					} else {
-						k.SetProphecyParams(contexts[idx], change)
+						k.SetParams(contexts[idx], change)
 					}
 				default:
 					contexts[idx].Logger().Debug("skip unknown param change")
 				}
 			}
 		},
+		&subspace.ParamSpaceProto{ParamSpace: k.paramSpace, Proto: func() subspace.ParamSet {
+			return  new(types.Params)
+		}},
 		nil,
 		nil,
 	)

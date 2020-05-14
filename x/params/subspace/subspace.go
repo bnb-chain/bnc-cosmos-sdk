@@ -195,3 +195,9 @@ func (ros ReadOnlySubspace) Modified(ctx sdk.Context, key []byte) bool {
 func (ros ReadOnlySubspace) Name() string {
 	return ros.s.Name()
 }
+
+type ParamSpaceProto struct {
+	ParamSpace Subspace
+
+	Proto func() ParamSet
+}

@@ -7,6 +7,6 @@ import (
 
 func RegisterUpgradeBeginBlocker(keeper Keeper) {
 	sdk.UpgradeMgr.RegisterBeginBlocker(sdk.LaunchBscUpgrade, func(ctx sdk.Context) {
-		keeper.SetProphecyParams(ctx, types.ProphecyParams{ConsensusNeeded: types.DefaultConsensusNeeded})
+		keeper.SetParams(ctx, types.Params{ConsensusNeeded: types.DefaultConsensusNeeded})
 	})
 }

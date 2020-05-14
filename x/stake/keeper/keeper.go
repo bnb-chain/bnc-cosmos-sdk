@@ -8,6 +8,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/ibc"
 	"github.com/cosmos/cosmos-sdk/x/params"
+	"github.com/cosmos/cosmos-sdk/x/params/subspace"
 	"github.com/cosmos/cosmos-sdk/x/sidechain"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 	"github.com/tendermint/tendermint/libs/log"
@@ -33,7 +34,7 @@ type Keeper struct {
 }
 
 type ParamHub interface {
-	SubscribeParamChange(u func([]sdk.Context, []interface{}), g func(sdk.Context, interface{}), l func(sdk.Context, interface{}))
+	SubscribeParamChange(u func([]sdk.Context, []interface{}), s *subspace.ParamSpaceProto, g func(sdk.Context, interface{}), l func(sdk.Context, interface{}))
 }
 
 func NewKeeper(cdc *codec.Codec, key, tkey sdk.StoreKey, ck bank.Keeper, addrPool *sdk.Pool,
@@ -201,6 +202,9 @@ func (k *Keeper) SubscribeParamChange(hub ParamHub) {
 				}
 			}
 		},
+		&subspace.ParamSpaceProto{ParamSpace: k.paramstore, Proto: func() subspace.ParamSet {
+			return new(types.Params)
+		}},
 		nil,
 		nil,
 	)

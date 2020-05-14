@@ -3,9 +3,9 @@ package types
 import (
 	"bytes"
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/x/sidechain"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/sidechain"
 )
 
 const (

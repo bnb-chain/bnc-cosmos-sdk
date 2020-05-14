@@ -38,7 +38,7 @@ func TestStakeWithRandomMessages(t *testing.T) {
 	feeCollectionKeeper := auth.NewFeeCollectionKeeper(mapp.Cdc, feeKey)
 	paramstore := params.NewKeeper(mapp.Cdc, paramsKey, paramsTKey)
 	ibcKeeper := ibc.NewKeeper(ibcKey, ibc.DefaultCodespace)
-	scKeeper := sidechain.NewKeeper(keySideChain)
+	scKeeper := sidechain.NewKeeper(keySideChain, paramstore.Subspace(sidechain.DefaultParamspace))
 	stakeKeeper := stake.NewKeeper(mapp.Cdc, stakeKey, stakeTKey, bankKeeper, nil, paramstore.Subspace(stake.DefaultParamspace), stake.DefaultCodespace)
 	stakeKeeper.SetupForSideChain(&scKeeper, &ibcKeeper)
 	distrKeeper := distribution.NewKeeper(mapp.Cdc, distrKey, paramstore.Subspace(distribution.DefaultParamspace), bankKeeper, stakeKeeper, feeCollectionKeeper, distribution.DefaultCodespace)

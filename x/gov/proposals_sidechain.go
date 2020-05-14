@@ -8,7 +8,6 @@ const (
 	ProposalTypeCSCParamsChange ProposalKind = 0x82
 )
 
-// is defined SideProposalType?
 func validSideProposalType(pt ProposalKind) bool {
 	if pt == ProposalTypeSCParamsChange ||
 		pt == ProposalTypeCSCParamsChange {

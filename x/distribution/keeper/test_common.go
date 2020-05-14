@@ -129,7 +129,8 @@ func CreateTestInputAdvanced(t *testing.T, isCheckTx bool, initCoins int64,
 
 	ck := bank.NewBaseKeeper(accountKeeper)
 	ibcKeeper := ibc.NewKeeper(keyIbc, ibc.DefaultCodespace)
-	scKeeper := sidechain.NewKeeper(keySideChain)
+	scKeeper := sidechain.NewKeeper(keySideChain, pk.Subspace(sidechain.DefaultParamspace))
+	scKeeper.SetParams(ctx, sidechain.DefaultParams())
 	sk := stake.NewKeeper(cdc, keyStake, tkeyStake, ck, nil, pk.Subspace(stake.DefaultParamspace), stake.DefaultCodespace)
 	sk.SetPool(ctx, stake.InitialPool())
 	sk.SetParams(ctx, stake.DefaultParams())

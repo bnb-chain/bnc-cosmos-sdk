@@ -2,7 +2,6 @@ package gov
 
 import (
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/x/sidechain"
 	"time"
 
 	"github.com/tendermint/tendermint/crypto"
@@ -11,6 +10,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/params"
+	"github.com/cosmos/cosmos-sdk/x/sidechain"
 )
 
 // Parameter store default namestore

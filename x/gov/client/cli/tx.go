@@ -3,7 +3,6 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/x/sidechain"
 	"io/ioutil"
 	"strings"
 	"time"
@@ -20,6 +19,7 @@ import (
 	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/gov/client"
+	"github.com/cosmos/cosmos-sdk/x/sidechain"
 )
 
 const (
@@ -102,7 +102,7 @@ $ CLI gov submit-proposal --title="Test Proposal" --description="My awesome prop
 				return errors.New(fmt.Sprintf("Proposal description is longer than max length of %d", gov.MaxDescriptionLength))
 			}
 
-			if proposal.SideChainId != sidechain.NativeChainIDHolder && len(proposal.SideChainId) > sidechain.MaxSideChainIdLength {
+			if proposal.SideChainId != sidechain.NativeChainID && len(proposal.SideChainId) > sidechain.MaxSideChainIdLength {
 				return errors.New(fmt.Sprintf("chain-id exceed the length limit %d", sidechain.MaxSideChainIdLength))
 			}
 
@@ -136,7 +136,7 @@ $ CLI gov submit-proposal --title="Test Proposal" --description="My awesome prop
 				return err
 			}
 			var msg sdk.Msg
-			if sideChainId == sidechain.NativeChainIDHolder {
+			if sideChainId == sidechain.NativeChainID {
 				msg = gov.NewMsgSubmitProposal(proposal.Title, proposal.Description, proposalType, fromAddr, amount, votingPeriod)
 			} else {
 				msg = gov.NewMsgSideChainSubmitProposal(proposal.Title, proposal.Description, proposalType, fromAddr, amount, votingPeriod, sideChainId)
@@ -224,7 +224,7 @@ func GetCmdDeposit(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 			var msg sdk.Msg
-			if sideChainId == sidechain.NativeChainIDHolder {
+			if sideChainId == sidechain.NativeChainID {
 				msg = gov.NewMsgDeposit(depositerAddr, proposalID, amount)
 			} else {
 				msg = gov.NewMsgSideChainDeposit(depositerAddr, proposalID, amount, sideChainId)
@@ -277,7 +277,7 @@ func GetCmdVote(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 			var msg sdk.Msg
-			if sideChainId == sidechain.NativeChainIDHolder {
+			if sideChainId == sidechain.NativeChainID {
 				msg = gov.NewMsgVote(voterAddr, proposalID, byteVoteOption)
 			} else {
 				msg = gov.NewMsgSideChainVote(voterAddr, proposalID, byteVoteOption, sideChainId)
@@ -290,10 +290,15 @@ func GetCmdVote(cdc *codec.Codec) *cobra.Command {
 			if cliCtx.GenerateOnly {
 				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg})
 			}
-
-			fmt.Printf("Vote[Voter:%s,ProposalID:%d,Option:%s]",
-				voterAddr.String(), proposalID, option,
-			)
+			if sideChainId == sidechain.NativeChainID {
+				fmt.Printf("Vote[Voter:%s,ProposalID:%d,Option:%s]",
+					voterAddr.String(), proposalID, option,
+				)
+			} else {
+				fmt.Printf("Vote[Voter:%s,ProposalID:%d,Option:%s, sideChainId:%s]",
+					voterAddr.String(), proposalID, option, sideChainId,
+				)
+			}
 
 			// Build and sign the transaction, then broadcast to a Tendermint
 			// node.

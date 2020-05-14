@@ -128,7 +128,7 @@ func EndBlocker(baseCtx sdk.Context, keeper Keeper) (refundProposals, notRefundP
 	events := sdk.EmptyEvents()
 	refundProposals = make([]SimpleProposal, 0)
 	notRefundProposals = make([]SimpleProposal, 0)
-	chainIDs := []string{sidechain.NativeChainIDHolder}
+	chainIDs := []string{sidechain.NativeChainID}
 	contexts := []sdk.Context{baseCtx}
 	if sdk.IsUpgrade(sdk.LaunchBscUpgrade) && keeper.ScKeeper != nil {
 		tmpSideIDs, storePrefixes := keeper.ScKeeper.GetAllSideChainPrefixes(baseCtx)
@@ -169,7 +169,7 @@ func settleProposals(ctx sdk.Context, keeper Keeper, chainId string) (resEvents 
 		notRefundProposals = append(notRefundProposals, SimpleProposal{inactiveProposal.GetProposalID(), chainId})
 		event := sdk.NewEvent(events.EventTypeProposalDropped, sdk.NewAttribute(events.ProposalID,
 			strconv.FormatInt(inactiveProposal.GetProposalID(), 10)))
-		if chainId != sidechain.NativeChainIDHolder {
+		if chainId != sidechain.NativeChainID {
 			event.AppendAttributes(sdk.NewAttribute(events.SideChainID, chainId))
 		}
 		resEvents = resEvents.AppendEvent(event)
@@ -224,7 +224,7 @@ func settleProposals(ctx sdk.Context, keeper Keeper, chainId string) (resEvents 
 			activeProposal.GetProposalID(), activeProposal.GetTitle(), passes))
 		event := sdk.NewEvent(action, sdk.NewAttribute(events.ProposalID,
 			strconv.FormatInt(activeProposal.GetProposalID(), 10)))
-		if chainId != sidechain.NativeChainIDHolder {
+		if chainId != sidechain.NativeChainID {
 			event.AppendAttributes(sdk.NewAttribute(events.SideChainID, chainId))
 		}
 		resEvents = resEvents.AppendEvent(event)

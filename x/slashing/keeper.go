@@ -8,6 +8,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	param "github.com/cosmos/cosmos-sdk/x/params"
+	"github.com/cosmos/cosmos-sdk/x/params/subspace"
 	"github.com/cosmos/cosmos-sdk/x/sidechain"
 	stake "github.com/cosmos/cosmos-sdk/x/stake/types"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -43,7 +44,7 @@ func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, vs sdk.ValidatorSet, paramspa
 }
 
 type ParamHub interface {
-	SubscribeParamChange(u func([]sdk.Context, []interface{}), g func(sdk.Context, interface{}), l func(sdk.Context, interface{}))
+	SubscribeParamChange(u func([]sdk.Context, []interface{}), s *subspace.ParamSpaceProto, g func(sdk.Context, interface{}), l func(sdk.Context, interface{}))
 }
 
 func (k *Keeper) SetSideChain(scKeeper *sidechain.Keeper) {
@@ -219,6 +220,9 @@ func (k *Keeper) SubscribeParamChange(hub ParamHub) {
 				}
 			}
 		},
+		&subspace.ParamSpaceProto{ParamSpace: k.paramspace, Proto: func() subspace.ParamSet {
+			return new(Params)
+		}},
 		nil,
 		nil,
 	)

@@ -260,6 +260,7 @@ const (
 	StatusVotingPeriod  ProposalStatus = 0x02
 	StatusPassed        ProposalStatus = 0x03
 	StatusRejected      ProposalStatus = 0x04
+	StatusExecuted      ProposalStatus = 0x05
 )
 
 // ProposalStatusToString turns a string into a ProposalStatus
@@ -273,6 +274,8 @@ func ProposalStatusFromString(str string) (ProposalStatus, error) {
 		return StatusPassed, nil
 	case "Rejected":
 		return StatusRejected, nil
+	case "Executed":
+		return StatusExecuted, nil
 	case "":
 		return StatusNil, nil
 	default:
@@ -285,7 +288,8 @@ func validProposalStatus(status ProposalStatus) bool {
 	if status == StatusDepositPeriod ||
 		status == StatusVotingPeriod ||
 		status == StatusPassed ||
-		status == StatusRejected {
+		status == StatusRejected ||
+		status == StatusExecuted{
 		return true
 	}
 	return false
@@ -334,6 +338,8 @@ func (status ProposalStatus) String() string {
 		return "Passed"
 	case StatusRejected:
 		return "Rejected"
+	case StatusExecuted:
+		return "Executed"
 	default:
 		return ""
 	}

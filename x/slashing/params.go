@@ -27,7 +27,6 @@ var (
 	KeyDowntimeSlashAmount      = []byte("DowntimeSlashAmount")
 	KeySubmitterReward          = []byte("SubmitterReward")
 	KeyDowntimeSlashFee         = []byte("DowntimeSlashFee")
-	KeyBscSideChainId           = []byte("BscSideChainId")
 )
 
 // ParamTypeTable for slashing module
@@ -49,45 +48,33 @@ type Params struct {
 	DowntimeSlashAmount      int64         `json:"downtime_slash_amount"`
 	SubmitterReward          int64         `json:"submitter_reward"`
 	DowntimeSlashFee         int64         `json:"downtime_slash_fee"`
-	BscSideChainId           string        `json:"bsc_side_chain_id"`
 }
 
 func (p Params) UpdateCheck() error {
-	if p.MaxEvidenceAge < 1*time.Second || p.MaxEvidenceAge > 24*time.Hour {
-		return fmt.Errorf("the max_evidence_age should be in range [1 second, 1 day]")
+	// no check for SignedBlocksWindow, MinSignedPerWindow, SlashFractionDoubleSign, SlashFractionDowntime
+	if p.MaxEvidenceAge < 1*time.Minute || p.MaxEvidenceAge > 100*24*time.Hour {
+		return fmt.Errorf("the max_evidence_age should be in range [1 minutes, 100 day]")
 	}
-	if p.SignedBlocksWindow < 1 || p.SignedBlocksWindow > 10000 {
-		return fmt.Errorf("the signed_blocks_window should be in range [1, 10000]")
+	if p.DoubleSignUnbondDuration < 1*time.Hour {
+		return fmt.Errorf("the double_sign_unbond_duration should be greate than 1 hour")
 	}
-	if p.MinSignedPerWindow.LT(sdk.NewDecWithPrec(1, 1)) || p.MinSignedPerWindow.GT(sdk.NewDecWithPrec(1, 1)) {
-		return fmt.Errorf("the min_signed_per_window should be in range [0.1, 0.9]")
+	if p.DowntimeUnbondDuration < 60*time.Second || p.DowntimeUnbondDuration > 100*24*time.Hour {
+		return fmt.Errorf("the downtime_unbond_duration should be in range [1 minutes, 100 day]")
 	}
-	if p.DoubleSignUnbondDuration < 60*time.Second || p.DoubleSignUnbondDuration > 24*time.Hour {
-		return fmt.Errorf("the double_sign_unbond_duration should be in range [1 minutes, 1 day]")
+	if p.TooLowDelUnbondDuration < 60*time.Second || p.TooLowDelUnbondDuration > 100*24*time.Hour {
+		return fmt.Errorf("the too_low_del_unbond_duration should be in range [1 minutes, 100 day]")
 	}
-	if p.DowntimeUnbondDuration < 60*time.Second || p.DowntimeUnbondDuration > 24*time.Hour {
-		return fmt.Errorf("the downtime_unbond_duration should be in range [1 minutes, 1 day]")
+	if p.DoubleSignSlashAmount < 1e8 {
+		return fmt.Errorf("the double_sign_slash_amount should be larger than 1e8")
 	}
-	if p.TooLowDelUnbondDuration < 60*time.Second || p.TooLowDelUnbondDuration > 24*time.Hour {
-		return fmt.Errorf("the too_low_del_unbond_duration should be in range [1 minutes, 1 day]")
+	if p.DowntimeSlashAmount < 1e8 || p.DowntimeSlashAmount > 10000e8 {
+		return fmt.Errorf("the downtime_slash_amount should be in range [1e8, 10000e8]")
 	}
-	if p.SlashFractionDoubleSign.LT(sdk.OneDec().Quo(sdk.NewDecWithoutFra(100))) || p.SlashFractionDoubleSign.GT(sdk.OneDec().Quo(sdk.NewDecWithoutFra(5))) {
-		return fmt.Errorf("the slash_fraction_double_sign should be in range [0.01, 0.2]")
+	if p.SubmitterReward < 1e7 || p.SubmitterReward > 1000e8 {
+		return fmt.Errorf("the submitter_reward should be in range [1e7, 1000e8]")
 	}
-	if p.SlashFractionDowntime.LT(sdk.OneDec().Quo(sdk.NewDecWithoutFra(1000))) || p.SlashFractionDowntime.GT(sdk.OneDec().Quo(sdk.NewDecWithoutFra(10))) {
-		return fmt.Errorf("the slash_fraction_downtime should be in range [0.001, 0.1]")
-	}
-	if p.DoubleSignSlashAmount < 1e8 || p.DoubleSignSlashAmount > 10000e8 {
-		return fmt.Errorf("the double_sign_slash_amount should be in range [1e8, 10000e8]")
-	}
-	if p.DowntimeSlashAmount < 1e8 || p.DowntimeSlashAmount > 1000e8 {
-		return fmt.Errorf("the downtime_slash_amount should be in range [1e8, 1000e8]")
-	}
-	if p.SubmitterReward < 1e7 || p.SubmitterReward > 100e8 {
-		return fmt.Errorf("the submitter_reward should be in range [1e7, 100e8]")
-	}
-	if p.DowntimeSlashFee < 1e8 || p.DowntimeSlashFee > 100e8 {
-		return fmt.Errorf("the downtime_slash_fee should be in range [1e8, 100e8]")
+	if p.DowntimeSlashFee < 1e8 || p.DowntimeSlashFee > 1000e8 {
+		return fmt.Errorf("the downtime_slash_fee should be in range [1e8, 1000e8]")
 	}
 	return nil
 }
@@ -107,7 +94,6 @@ func (p *Params) KeyValuePairs() params.KeyValuePairs {
 		{KeyDowntimeSlashAmount, &p.DowntimeSlashAmount},
 		{KeySubmitterReward, &p.SubmitterReward},
 		{KeyDowntimeSlashFee, &p.DowntimeSlashFee},
-		{KeyBscSideChainId, &p.BscSideChainId},
 	}
 }
 
@@ -143,8 +129,6 @@ func DefaultParams() Params {
 		SubmitterReward: 10e8,
 
 		DowntimeSlashFee: 10e8,
-
-		BscSideChainId: "bsc",
 	}
 }
 
@@ -215,11 +199,6 @@ func (k Keeper) SubmitterReward(ctx sdk.Context) (submitterReward int64) {
 
 func (k Keeper) DowntimeSlashFee(ctx sdk.Context) (downtimeSlashFee int64) {
 	k.paramspace.Get(ctx, KeyDowntimeSlashFee, &downtimeSlashFee)
-	return
-}
-
-func (k Keeper) BscSideChainId(ctx sdk.Context) (sideChainId string) {
-	k.paramspace.Get(ctx, KeyBscSideChainId, &sideChainId)
 	return
 }
 

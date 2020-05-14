@@ -14,6 +14,8 @@ const (
 	MsgTypeSideVote           = "side_vote"
 )
 
+var _, _, _ sdk.Msg = MsgSideChainSubmitProposal{}, MsgSideChainDeposit{}, MsgSideChainVote{}
+
 //-----------------------------------------------------------
 // MsgSideChainSubmitProposal
 type MsgSideChainSubmitProposal struct {
@@ -88,6 +90,7 @@ func (msg MsgSideChainSubmitProposal) GetSigners() []sdk.AccAddress {
 
 // Implements Msg. Identical to MsgSubmitProposal, keep here for code readability.
 func (msg MsgSideChainSubmitProposal) GetInvolvedAddresses() []sdk.AccAddress {
+	// Better include DepositedCoinsAccAddr, before further discussion, follow the old rule.
 	return msg.GetSigners()
 }
 
@@ -138,6 +141,7 @@ func (msg MsgSideChainDeposit) GetSigners() []sdk.AccAddress {
 
 // Implements Msg. Identical to MsgDeposit, keep here for code readability.
 func (msg MsgSideChainDeposit) GetInvolvedAddresses() []sdk.AccAddress {
+	// Better include DepositedCoinsAccAddr, before further discussion, follow the old rule.
 	return msg.GetSigners()
 }
 

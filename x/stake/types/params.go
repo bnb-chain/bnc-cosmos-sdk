@@ -50,9 +50,9 @@ type Params struct {
 }
 
 func (p Params) UpdateCheck() error {
-	// the valid range is one hour to ten day.
-	if p.UnbondingTime > 10*24*time.Hour || p.UnbondingTime < time.Hour {
-		return fmt.Errorf("the UnbondingTime should in range [1 hour, 10 day]")
+	// the valid range is 1 minute to 100 day.
+	if p.UnbondingTime > 100*24*time.Hour || p.UnbondingTime < time.Minute {
+		return fmt.Errorf("the UnbondingTime should in range [1 minutes, 100 day]")
 	}
 	if p.MaxValidators < 1 || p.MaxValidators > 500 {
 		return fmt.Errorf("the max validator should in range [1,500]")
@@ -60,8 +60,11 @@ func (p Params) UpdateCheck() error {
 	// BondDenom do not check here, it should be native token and do not support update so far.
 	// Leave the check in node repo.
 
-	if p.MinSelfDelegation > 1e14 || p.MinSelfDelegation < 1e8 {
-		return fmt.Errorf("the min_self_delegation should in range [1e8, 1e14]")
+	if p.MinSelfDelegation > 10000000e8 || p.MinSelfDelegation < 1e8 {
+		return fmt.Errorf("the min_self_delegation should in range [1e8, 10000000e8]")
+	}
+	if p.MinDelegationChange < 1e5 {
+		return fmt.Errorf("the min_delegation_change should no less than 1e5")
 	}
 	return nil
 }

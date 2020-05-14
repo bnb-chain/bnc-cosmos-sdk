@@ -89,7 +89,7 @@ func createTestInput(t *testing.T, defaults Params) (sdk.Context, bank.Keeper, s
 	ck := bank.NewBaseKeeper(accountKeeper)
 	paramsKeeper := params.NewKeeper(cdc, keyParams, tkeyParams)
 	ibcKeeper := ibc.NewKeeper(keyIbc, ibc.DefaultCodespace)
-	scKeeper := sidechain.NewKeeper(keySideChain)
+	scKeeper := sidechain.NewKeeper(keySideChain, paramsKeeper.Subspace(sidechain.DefaultParamspace))
 	sk := stake.NewKeeper(cdc, keyStake, tkeyStake, ck, nil, paramsKeeper.Subspace(stake.DefaultParamspace), stake.DefaultCodespace)
 	sk.SetupForSideChain(&scKeeper, &ibcKeeper)
 	genesis := stake.DefaultGenesisState()
@@ -106,7 +106,7 @@ func createTestInput(t *testing.T, defaults Params) (sdk.Context, bank.Keeper, s
 	}
 	require.Nil(t, err)
 	paramstore := paramsKeeper.Subspace(DefaultParamspace)
-	keeper := NewKeeper(cdc, keySlashing, sk, paramstore, DefaultCodespace,ck)
+	keeper := NewKeeper(cdc, keySlashing, sk, paramstore, DefaultCodespace, ck)
 	sk = sk.WithHooks(keeper.Hooks())
 
 	require.NotPanics(t, func() {
@@ -155,9 +155,10 @@ func createSideTestInput(t *testing.T, defaults Params) (sdk.Context, sdk.Contex
 	err = ibcKeeper.RegisterDestChain("bsc", sdk.IbcChainID(1))
 	require.Nil(t, err)
 
-	scKeeper := sidechain.NewKeeper(keySideChain)
+	scKeeper := sidechain.NewKeeper(keySideChain, paramsKeeper.Subspace(sidechain.DefaultParamspace))
 	bscStorePrefix := []byte{0x99}
 	scKeeper.SetSideChainIdAndStorePrefix(ctx, "bsc", bscStorePrefix)
+	scKeeper.SetParams(ctx, sidechain.DefaultParams())
 	sk := stake.NewKeeper(cdc, keyStake, tkeyStake, ck, nil, paramsKeeper.Subspace(stake.DefaultParamspace), stake.DefaultCodespace)
 	sk.SetupForSideChain(&scKeeper, &ibcKeeper)
 	genesis := stake.DefaultGenesisState()
@@ -179,7 +180,7 @@ func createSideTestInput(t *testing.T, defaults Params) (sdk.Context, sdk.Contex
 	}
 	require.Nil(t, err)
 	paramstore := paramsKeeper.Subspace(DefaultParamspace)
-	keeper := NewKeeper(cdc, keySlashing, sk, paramstore, DefaultCodespace,ck)
+	keeper := NewKeeper(cdc, keySlashing, sk, paramstore, DefaultCodespace, ck)
 	sk = sk.WithHooks(keeper.Hooks())
 	keeper.SetSideChain(&scKeeper)
 	keeper.SetParams(sideCtx, defaults)
@@ -240,6 +241,15 @@ func newTestMsgCreateSideValidator(address sdk.ValAddress, sideConsAddr, sideFee
 		SideChainId:   "bsc",
 		SideConsAddr:  sideConsAddr,
 		SideFeeAddr:   sideFeeAddr,
+	}
+}
+
+func newTestMsgSideUnDelegate(delAddr sdk.AccAddress, valAddr sdk.ValAddress, amount int64) stake.MsgSideChainUndelegate {
+	return stake.MsgSideChainUndelegate{
+		DelegatorAddr: delAddr,
+		ValidatorAddr: valAddr,
+		Amount:    sdk.NewCoin("steak", amount),
+		SideChainId: "bsc",
 	}
 }
 

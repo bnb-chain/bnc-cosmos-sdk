@@ -57,7 +57,7 @@ func TestCreateGetProphecy(t *testing.T) {
 	createValidators(t, stakeHandler, ctx, valAddrs, []int64{5, 5, 5})
 	stake.EndBlocker(ctx, sk)
 
-	keeper.SetProphecyParams(ctx, types.ProphecyParams{ConsensusNeeded: sdk.NewDecWithPrec(6, 1)})
+	keeper.SetParams(ctx, types.Params{ConsensusNeeded: sdk.NewDecWithPrec(6, 1)})
 
 	validator1 := valAddrs[0]
 	oracleClaim := types.NewClaim(TestID, validator1, TestString)
@@ -98,7 +98,7 @@ func TestBadMsgs(t *testing.T) {
 	}
 	createValidators(t, stakeHandler, ctx, valAddrs, []int64{5, 5, 5})
 	stake.EndBlocker(ctx, sk)
-	keeper.SetProphecyParams(ctx, types.ProphecyParams{ConsensusNeeded: sdk.NewDecWithPrec(6, 1)})
+	keeper.SetParams(ctx, types.Params{ConsensusNeeded: sdk.NewDecWithPrec(6, 1)})
 
 	validator1Pow3 := valAddrs[0]
 
@@ -129,7 +129,7 @@ func TestSuccessfulProphecy(t *testing.T) {
 	}
 	createValidators(t, stakeHandler, ctx, valAddrs, []int64{5, 5, 5})
 	stake.EndBlocker(ctx, sk)
-	keeper.SetProphecyParams(ctx, types.ProphecyParams{ConsensusNeeded: sdk.NewDecWithPrec(6, 1)})
+	keeper.SetParams(ctx, types.Params{ConsensusNeeded: sdk.NewDecWithPrec(6, 1)})
 
 	validator1Pow3 := valAddrs[0]
 	validator2Pow3 := valAddrs[1]
@@ -168,7 +168,7 @@ func TestSuccessfulProphecyWithDisagreement(t *testing.T) {
 	}
 	createValidators(t, stakeHandler, ctx, valAddrs, []int64{5, 5, 5})
 	stake.EndBlocker(ctx, sk)
-	keeper.SetProphecyParams(ctx, types.ProphecyParams{ConsensusNeeded: sdk.NewDecWithPrec(6, 1)})
+	keeper.SetParams(ctx, types.Params{ConsensusNeeded: sdk.NewDecWithPrec(6, 1)})
 
 	validator1Pow3 := valAddrs[0]
 	validator2Pow3 := valAddrs[1]
@@ -207,7 +207,7 @@ func TestFailedProphecy(t *testing.T) {
 	}
 	createValidators(t, stakeHandler, ctx, valAddrs, []int64{5, 5, 5})
 	stake.EndBlocker(ctx, sk)
-	keeper.SetProphecyParams(ctx, types.ProphecyParams{ConsensusNeeded: sdk.NewDecWithPrec(6, 1)})
+	keeper.SetParams(ctx, types.Params{ConsensusNeeded: sdk.NewDecWithPrec(6, 1)})
 
 	validator1Pow3 := valAddrs[0]
 	validator2Pow3 := valAddrs[1]
@@ -247,7 +247,7 @@ func TestPowerOverrule(t *testing.T) {
 	}
 	createValidators(t, stakeHandler, ctx, valAddrs, []int64{5, 20, 5})
 	stake.EndBlocker(ctx, sk)
-	keeper.SetProphecyParams(ctx, types.ProphecyParams{ConsensusNeeded: sdk.NewDecWithPrec(6, 1)})
+	keeper.SetParams(ctx, types.Params{ConsensusNeeded: sdk.NewDecWithPrec(6, 1)})
 
 	validator1Pow3 := valAddrs[0]
 	validator2Pow7 := valAddrs[1]
