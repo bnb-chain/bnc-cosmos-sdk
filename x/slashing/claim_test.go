@@ -22,7 +22,6 @@ func TestSideChainSlashDowntime(t *testing.T) {
 	// create a validator
 	bondAmount := int64(10000e8)
 	realSlashAmt := sdk.MinInt64(slashingParams.DowntimeSlashAmount, bondAmount)
-	realPoolFeeAdd := sdk.MinInt64(realSlashAmt, slashingParams.DowntimeSlashFee)
 	valAddr := addrs[0]
 	sideConsAddr, sideFeeAddr := createSideAddr(20), createSideAddr(20)
 	msgCreateVal := newTestMsgCreateSideValidator(valAddr, sideConsAddr, sideFeeAddr, bondAmount)
@@ -49,7 +48,6 @@ func TestSideChainSlashDowntime(t *testing.T) {
 
 	_, sdkErr = hooks.ExecuteClaim(ctx, string(jsonClaim))
 	require.Nil(t, sdkErr, "Expected nil, but got : %v", sdkErr)
-	require.EqualValues(t, realPoolFeeAdd, fees.Pool.BlockFees().Tokens.AmountOf("steak"))
 
 	info, found := keeper.getValidatorSigningInfo(sideCtx, sideConsAddr)
 	require.True(t, found)
@@ -98,9 +96,9 @@ func TestSideChainSlashDowntime(t *testing.T) {
 	require.Nil(t, err)
 	sdkErr = hooks.CheckClaim(ctx, string(jsonClaim))
 	require.Nil(t, sdkErr)
-	_, sdkErr = hooks.ExecuteClaim(ctx, string(jsonClaim))
-	require.NotNil(t, sdkErr, "Exepcted get err, but got nil")
-	require.EqualValues(t, CodeExpiredEvidence, sdkErr.Code(), "Expected got 201 err code, but got err: %v", sdkErr)
+	claimResult, sdkErr := hooks.ExecuteClaim(ctx, string(jsonClaim))
+	require.Nil(t, sdkErr)
+	require.EqualValues(t, CodeExpiredEvidence, claimResult.Code, "Expected got 201 err code, but got err: %v", sdkErr)
 
 	claim.SideTimestamp = ctx.BlockHeader().Time.Add(-6 * 60 * 60 * time.Second).Unix()
 	claim.SideConsAddr = sideConsAddr
@@ -171,6 +169,7 @@ func TestSlashDowntimeBalanceVerify(t *testing.T) {
 	sdkErr := hooks.CheckClaim(ctx, string(jsonClaim))
 	require.Nil(t, sdkErr)
 
+	feesInPoolBefore := fees.Pool.BlockFees().Tokens.AmountOf("steak")
 	_, sdkErr = hooks.ExecuteClaim(ctx, string(jsonClaim))
 	require.Nil(t, sdkErr)
 
@@ -184,7 +183,7 @@ func TestSlashDowntimeBalanceVerify(t *testing.T) {
 	require.True(t, found)
 	require.EqualValues(t, 2000e8, delegation.Shares.RawInt()) // slashed 8000e8 from validator2 delegation
 
-	require.EqualValues(t,5000e8, fees.Pool.BlockFees().Tokens.AmountOf("steak")) // add 5000e8 as DowntimeSlashFee to fee pool
+	require.EqualValues(t, 5000e8, fees.Pool.BlockFees().Tokens.AmountOf("steak")-feesInPoolBefore) // add 5000e8 as DowntimeSlashFee to fee pool
 
 	coins := bk.GetCoins(ctx, distributionAddr)
 	require.EqualValues(t, 3000e8, coins.AmountOf("steak")) // remaining amount(3000e8) allocated to
@@ -215,7 +214,7 @@ func TestSlashDowntimeBalanceVerify(t *testing.T) {
 	require.False(t, found)
 
 	realSlashedAmount := int64(2000e8)
-	require.EqualValues(t,slashingParams.DowntimeSlashFee + realSlashedAmount, fees.Pool.BlockFees().Tokens.AmountOf("steak"))
+	require.EqualValues(t, slashingParams.DowntimeSlashFee+realSlashedAmount, fees.Pool.BlockFees().Tokens.AmountOf("steak")-feesInPoolBefore)
 
 	coins = bk.GetCoins(ctx, distributionAddr)
 	require.EqualValues(t, 3000e8, coins.AmountOf("steak"))
@@ -223,5 +222,5 @@ func TestSlashDowntimeBalanceVerify(t *testing.T) {
 	// end block
 	stake.EndBreatheBlock(ctx, stakeKeeper)
 	_, found = stakeKeeper.GetValidator(sideCtx, valAddr2)
-	require.False(t,found)
+	require.False(t, found)
 }

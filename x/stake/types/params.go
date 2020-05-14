@@ -22,7 +22,7 @@ const (
 
 	// if the self delegation is below the MinSelfDelegation,
 	// the creation of validator would be rejected or the validator would be jailed.
-	defaultMinSelfDelegation int64 = 10000e8
+	defaultMinSelfDelegation int64 = 10e8
 
 	// defaultMinDelegationChanged represents the default minimal allowed amount for delegator to transfer their delegation tokens, including delegate, unDelegate, reDelegate
 	defaultMinDelegationChange int64 = 1e8
