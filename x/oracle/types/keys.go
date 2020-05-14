@@ -9,3 +9,8 @@ var claimTypeSequencePrefix = []byte("claimTypeSeq:")
 func GetClaimTypeSequence(claimType sdk.ClaimType) []byte {
 	return append(claimTypeSequencePrefix, byte(claimType))
 }
+
+const (
+	ClaimResultCode = "ClaimResultCode"
+	ClaimResultMsg  = "ClaimResultMsg"
+)
