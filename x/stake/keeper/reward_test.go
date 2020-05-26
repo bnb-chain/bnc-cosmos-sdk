@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"github.com/cosmos/cosmos-sdk/x/stake/types"
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -9,7 +10,7 @@ import (
 
 func TestAllocateReward(t *testing.T) {
 
-	simDels := make([]Sharer, 11)
+	simDels := make([]types.Sharer, 11)
 	// set 5% shares for the previous 10 delegator,
 	// set 50% shares for the last delegator
 	lastDelegator := CreateTestAddr()
@@ -20,7 +21,7 @@ func TestAllocateReward(t *testing.T) {
 			delAddr = lastDelegator
 			shares = sdk.NewDecWithoutFra(50)
 		}
-		simDel := Sharer{AccAddr: delAddr, Shares: shares}
+		simDel := types.Sharer{AccAddr: delAddr, Shares: shares}
 		simDels[i] = simDel
 	}
 	totalShares := int64(100e8)

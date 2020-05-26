@@ -9,7 +9,7 @@ import (
 
 const threshold = 5
 
-func (k Keeper) Distribute(ctx sdk.Context) {
+func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 
 	// The rewards collected yesterday is decided by the validators the day before yesterday.
 	// So this distribution is for the validators bonded 2 days ago
@@ -19,6 +19,7 @@ func (k Keeper) Distribute(ctx sdk.Context) {
 	}
 
 	bondDenom := k.BondDenom(ctx)
+	var toPublish []types.DistributionData
 	for _, validator := range validators {
 		distAccCoins := k.bankKeeper.GetCoins(ctx, validator.DistributionAddr)
 		totalReward := distAccCoins.AmountOf(bondDenom)
@@ -56,14 +57,36 @@ func (k Keeper) Distribute(ctx sdk.Context) {
 		if k.addrPool != nil {
 			k.addrPool.AddAddrs(changedAddrs)
 		}
+
+		if ctx.IsDeliverTx() && len(rewards) > 0 && k.PbsbServer != nil {
+			toPublish = append(toPublish, types.DistributionData{
+				Validator:     validator.GetOperator(),
+				SelfDelegator: validator.GetFeeAddr(),
+				ValShares:     validator.GetDelegatorShares(),
+				ValTokens:     validator.GetTokens(),
+				TotalReward:   totalRewardDec,
+				Commission:    commission,
+				Rewards:       rewards,
+			})
+
+		}
 	}
+
+	if ctx.IsDeliverTx() && len(toPublish) > 0 && k.PbsbServer != nil {
+		event := types.SideDistributionEvent{
+			SideChainId: sideChainId,
+			Data:        toPublish,
+		}
+		k.PbsbServer.Publish(event)
+	}
+
 	removeValidatorsAndDelegationsAtHeight(height, k, ctx, validators)
 }
 
-func simDelsToSharers(simDels []types.SimplifiedDelegation) []Sharer {
-	sharers := make([]Sharer, len(simDels))
+func simDelsToSharers(simDels []types.SimplifiedDelegation) []types.Sharer {
+	sharers := make([]types.Sharer, len(simDels))
 	for i, del := range simDels {
-		sharers[i] = Sharer{AccAddr: del.DelegatorAddr, Shares: del.Shares}
+		sharers[i] = types.Sharer{AccAddr: del.DelegatorAddr, Shares: del.Shares}
 	}
 	return sharers
 }

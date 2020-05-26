@@ -158,6 +158,15 @@ func (k Keeper) SetValidator(ctx sdk.Context, validator types.Validator) {
 	store := ctx.KVStore(k.storeKey)
 	bz := types.MustMarshalValidator(k.cdc, validator)
 	store.Set(GetValidatorKey(validator.OperatorAddr), bz)
+	// publish validator update
+	if k.PbsbServer != nil && ctx.IsDeliverTx() {
+		k.PbsbServer.Publish(types.ValidatorUpdateEvent{
+			StakeEvent: types.StakeEvent{
+				IsFromTx: ctx.Tx() != nil,
+			},
+			Validator: validator,
+		})
+	}
 }
 
 // validator index
@@ -278,6 +287,17 @@ func (k Keeper) RemoveValidator(ctx sdk.Context, address sdk.ValAddress) {
 		store.Delete(GetValidatorByConsAddrKey(sdk.ConsAddress(validator.ConsPubKey.Address())))
 	}
 	store.Delete(GetValidatorsByPowerIndexKey(validator))
+
+	// publish validator update
+	if k.PbsbServer != nil && ctx.IsDeliverTx() {
+		k.PbsbServer.Publish(types.ValidatorRemovedEvent{
+			StakeEvent: types.StakeEvent{
+				IsFromTx: ctx.Tx() != nil,
+			},
+			Operator:    validator.OperatorAddr,
+			SideChainId: validator.SideChainId,
+		})
+	}
 }
 
 // remove the validators stored with key of height

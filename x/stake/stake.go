@@ -37,6 +37,23 @@ type (
 	MsgSideChainDelegate        = types.MsgSideChainDelegate
 	MsgSideChainRedelegate      = types.MsgSideChainRedelegate
 	MsgSideChainUndelegate      = types.MsgSideChainUndelegate
+
+	SideDistributionEvent      = types.SideDistributionEvent
+	DistributionData           = types.DistributionData
+	SideCompletedUBDEvent      = types.SideCompletedUBDEvent
+	SideCompletedREDEvent      = types.SideCompletedREDEvent
+	ValidatorUpdateEvent       = types.ValidatorUpdateEvent
+	ValidatorRemovedEvent      = types.ValidatorRemovedEvent
+	DelegationUpdateEvent      = types.DelegationUpdateEvent
+	DelegationRemovedEvent     = types.DelegationRemovedEvent
+	SideDelegationRemovedEvent = types.SideDelegationRemovedEvent
+	SideDelegationUpdateEvent  = types.SideDelegationUpdateEvent
+	UBDUpdateEvent             = types.UBDUpdateEvent
+	SideUBDUpdateEvent         = types.SideUBDUpdateEvent
+	REDUpdateEvent             = types.REDUpdateEvent
+	SideREDUpdateEvent         = types.SideREDUpdateEvent
+	DVVTriplet                 = types.DVVTriplet
+	DVPair                     = types.DVPair
 )
 
 var (
@@ -122,6 +139,8 @@ const (
 	QueryDelegatorValidator            = querier.QueryDelegatorValidator
 	QueryPool                          = querier.QueryPool
 	QueryParameters                    = querier.QueryParameters
+
+	Topic = types.Topic
 )
 
 const (

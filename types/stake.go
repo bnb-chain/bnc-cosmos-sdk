@@ -87,7 +87,7 @@ type ValidatorSet interface {
 	// functions for side chain
 	ValidatorBySideChainConsAddr(Context, []byte) Validator
 	UnjailSideChain(Context, []byte)
-	SlashSideChain(ctx Context, sideChainId string, sideConsAddr []byte, slashAmount Dec) (slashedAmount Dec, err error)
+	SlashSideChain(ctx Context, sideChainId string, sideConsAddr []byte, slashAmount Dec) (validator Validator, slashedAmount Dec, err error)
 
 	// allocate remaining slashed amount to validators who are going to be distributed next time
 	AllocateSlashAmtToValidators(ctx Context, slashedConsAddr []byte, amount Dec) (bool, error)

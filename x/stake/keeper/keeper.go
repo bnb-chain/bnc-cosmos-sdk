@@ -5,6 +5,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/bsc/rlp"
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/pubsub"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/ibc"
@@ -33,6 +34,8 @@ type Keeper struct {
 	// if you want to enable side chains, you need call `SetupForSideChain`
 	ibcKeeper *ibc.Keeper
 	ScKeeper  *sidechain.Keeper
+
+	PbsbServer *pubsub.Server
 }
 
 func NewKeeper(cdc *codec.Codec, key, tkey sdk.StoreKey, ck bank.Keeper, addrPool *sdk.Pool,
@@ -65,6 +68,10 @@ func (k *Keeper) SetupForSideChain(scKeeper *sidechain.Keeper, ibcKeeper *ibc.Ke
 	k.ScKeeper = scKeeper
 	k.ibcKeeper = ibcKeeper
 	k.initIbc()
+}
+
+func (k *Keeper) SetPbsbServer(server *pubsub.Server) {
+	k.PbsbServer = server
 }
 
 // Logger returns a module-specific logger.

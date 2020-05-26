@@ -79,7 +79,7 @@ func TestDistribute(t *testing.T) {
 	k.SetValidatorsByHeight(ctx, height2, make([]types.Validator, 0))
 	k.SetValidatorsByHeight(ctx, height3, make([]types.Validator, 0))
 
-	k.Distribute(ctx)
+	k.Distribute(ctx, "")
 
 	for i, validator := range validators {
 		_, found := k.GetSimplifiedDelegations(ctx, height, validator.OperatorAddr)

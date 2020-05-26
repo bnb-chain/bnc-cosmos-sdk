@@ -53,7 +53,7 @@ func (k *Keeper) PrepareCtxForSideChain(ctx sdk.Context, sideChainId string) (sd
 		return sdk.Context{}, fmt.Errorf("invalid sideChainId: %s", sideChainId)
 	}
 	// add store prefix to ctx for side chain use
-	return ctx.WithSideChainKeyPrefix(storePrefix), nil
+	return ctx.WithSideChainKeyPrefix(storePrefix).WithSideChainId(sideChainId), nil
 }
 
 // TODO: to support multi side chains in the future. We will enable a registration mechanism and add these chain ids to db.

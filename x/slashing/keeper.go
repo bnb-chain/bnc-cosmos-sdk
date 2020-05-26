@@ -11,6 +11,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/bsc/rlp"
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/pubsub"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/fees"
 	"github.com/cosmos/cosmos-sdk/x/bank"
@@ -33,6 +34,8 @@ type Keeper struct {
 
 	BankKeeper bank.Keeper
 	ScKeeper   *sidechain.Keeper
+
+	PbsbServer *pubsub.Server
 }
 
 // NewKeeper creates a slashing keeper
@@ -53,11 +56,16 @@ func (k *Keeper) SetSideChain(scKeeper *sidechain.Keeper) {
 	k.initIbc()
 }
 
+
 func (k Keeper) initIbc() {
 	err := k.ScKeeper.RegisterChannel(ChannelName, ChannelId, &k)
 	if err != nil {
 		panic(fmt.Sprintf("register ibc channel failed, channel=%s, err=%s", ChannelName, err.Error()))
 	}
+}
+
+func (k *Keeper) SetPbsbServer(server *pubsub.Server) {
+	k.PbsbServer = server
 }
 
 // handle a validator signing two blocks at the same height
@@ -301,7 +309,7 @@ func (k *Keeper) executeSynPackage(ctx sdk.Context, pack *SideDowntimeSlashPacka
 	}
 
 	slashAmt := k.DowntimeSlashAmount(sideCtx)
-	slashedAmt, err := k.validatorSet.SlashSideChain(ctx, sideChainName, pack.SideConsAddr, sdk.NewDec(slashAmt))
+	validator, slashedAmt, err := k.validatorSet.SlashSideChain(ctx, sideChainName, pack.SideConsAddr, sdk.NewDec(slashAmt))
 	if err != nil {
 		return ErrFailedToSlash(k.Codespace, err.Error())
 	}
@@ -345,6 +353,19 @@ func (k *Keeper) executeSynPackage(ctx sdk.Context, pack *SideDowntimeSlashPacka
 	}
 	signInfo.JailedUntil = jailUtil
 	k.setValidatorSigningInfo(sideCtx, pack.SideConsAddr, signInfo)
+
+	if k.PbsbServer != nil {
+		event := SideSlashEvent{
+			Validator:        validator.GetOperator(),
+			InfractionType:   Downtime,
+			InfractionHeight: int64(pack.SideHeight),
+			SlashHeight:      header.Height,
+			JailUtil:         jailUtil,
+			SlashAmt:         slashedAmt.RawInt(),
+			SideChainId:      sideChainName,
+		}
+		k.PbsbServer.Publish(event)
+	}
 
 	return nil
 }
