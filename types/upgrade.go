@@ -5,6 +5,7 @@ import "fmt"
 var UpgradeMgr = NewUpgradeManager(UpgradeConfig{})
 
 const FixSignBytesOverflow = "FixSignBytesOverflow" // fix json unmarshal overflow when build SignBytes
+const BEP8 = "BEP8" // Mini-BEP2 token
 
 var MainNetConfig = UpgradeConfig{
 	HeightMap: map[string]int64{},
