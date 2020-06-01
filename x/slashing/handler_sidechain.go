@@ -93,6 +93,20 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 	signInfo.JailedUntil = jailUtil
 	k.setValidatorSigningInfo(sideCtx, sideConsAddr.Bytes(), signInfo)
 
+	if ctx.IsDeliverTx() && k.Publisher != nil {
+		event := SideSlashEvent{
+			SideConsAddr:     sideConsAddr.Bytes(),
+			InfractionType:   DoubleSign,
+			InfractionHeight: msg.Headers[0].Number,
+			SlashHeight:      header.Height,
+			JailUtil:         jailUtil,
+			SlashAmt:         slashedAmount.RawInt(),
+			SideChainId:      sideChainId,
+			Submitter:        msg.Submitter,
+			SubmitterReward:  submitterRewardReal,
+		}
+		k.Publisher.Publish(event)
+	}
 	return sdk.Result{}
 }
 

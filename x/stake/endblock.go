@@ -24,7 +24,7 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 		sideChainIds, storePrefixes := k.ScKeeper.GetAllSideChainPrefixes(ctx)
 		for i := range storePrefixes {
 			sideChainCtx := ctx.WithSideChainKeyPrefix(storePrefixes[i])
-			newVals, _, _, scEvents := handleValidatorAndDelegations(sideChainCtx, k)
+			newVals, _, completedUbds, scEvents := handleValidatorAndDelegations(sideChainCtx, k)
 			if k.ExistHeightValidators(sideChainCtx) { // will not send ibc package if no snapshot of validators stored ever
 				saveSideChainValidatorsToIBC(ctx, sideChainIds[i], newVals, k)
 			}
@@ -35,11 +35,23 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 			// TODO: need to add UBDs for side chains to the return value
 
 			storeValidatorsWithHeight(sideChainCtx, newVals, k)
-			k.Distribute(sideChainCtx)
+			k.Distribute(sideChainCtx, sideChainIds[i])
+
+			publishCompletedUBD(k, completedUbds, sideChainIds[i])
 		}
 	}
 	ctx.EventManager().EmitEvents(events)
 	return
+}
+
+func publishCompletedUBD(k keeper.Keeper, completedUbds []types.UnbondingDelegation, sideChainId string) {
+	if k.Publisher != nil && len(completedUbds) > 0 {
+		compUBDsEvent := types.SideCompletedUBDEvent{
+			CompUBDs:    completedUbds,
+			SideChainId: sideChainId,
+		}
+		k.Publisher.Publish(compUBDsEvent)
+	}
 }
 
 func saveSideChainValidatorsToIBC(ctx sdk.Context, sideChainId string, newVals []types.Validator, k keeper.Keeper) {
@@ -107,13 +119,13 @@ func handleMatureUnbondingDelegations(k keeper.Keeper, ctx sdk.Context) ([]types
 	matureUnbonds := k.DequeueAllMatureUnbondingQueue(ctx, ctx.BlockHeader().Time)
 	completed := make([]types.UnbondingDelegation, len(matureUnbonds))
 	events := make(sdk.Events, 0, len(matureUnbonds))
-	for _, dvPair := range matureUnbonds {
+	for i, dvPair := range matureUnbonds {
 		ubd, err := k.CompleteUnbonding(ctx, dvPair.DelegatorAddr, dvPair.ValidatorAddr)
 		if err != nil {
 			logger.Error(fmt.Sprintf("Failed to complete unbonding delegation: %s", err.Error()), "delegator_address", dvPair.DelegatorAddr.String(), "validator_address", dvPair.ValidatorAddr.String())
 			continue
 		}
-		completed = append(completed, ubd)
+		completed[i] = ubd
 		events = events.AppendEvent(sdk.NewEvent(
 			types.EventTypeCompleteUnbonding,
 			sdk.NewAttribute(types.AttributeKeyValidator, dvPair.ValidatorAddr.String()),

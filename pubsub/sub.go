@@ -4,21 +4,21 @@ import "sync"
 
 type ClientID string
 
-type subscriber struct {
+type Subscriber struct {
 	clientID ClientID
 	pub      *Publisher
 	handlers map[Topic]Handler
 	wg       *sync.WaitGroup
 }
 
-func (publisher *Publisher) NewSubscriber(clientID ClientID) (*subscriber, error) {
+func (publisher *Publisher) NewSubscriber(clientID ClientID) (*Subscriber, error) {
 	publisher.mtx.Lock()
 	defer publisher.mtx.Unlock()
 	_, ok := publisher.subscribers[clientID]
 	if ok {
 		return nil, ErrDuplicateClientID
 	}
-	sub := &subscriber{
+	sub := &Subscriber{
 		clientID: clientID,
 		pub:      publisher,
 		handlers: make(map[Topic]Handler),
@@ -28,7 +28,7 @@ func (publisher *Publisher) NewSubscriber(clientID ClientID) (*subscriber, error
 	return sub, nil
 }
 
-func (s *subscriber) Subscribe(topic Topic, handler Handler) error {
+func (s *Subscriber) Subscribe(topic Topic, handler Handler) error {
 	if handler == nil {
 		return ErrNilHandler
 	}
@@ -58,7 +58,7 @@ func (s *subscriber) Subscribe(topic Topic, handler Handler) error {
 	}
 }
 
-func (s *subscriber) Unsubscribe(topic Topic) error {
+func (s *Subscriber) Unsubscribe(topic Topic) error {
 	s.pub.mtx.RLock()
 	subscribers, ok := s.pub.subscribers[s.clientID]
 	if ok {
@@ -79,7 +79,7 @@ func (s *subscriber) Unsubscribe(topic Topic) error {
 	}
 }
 
-func (s *subscriber) UnsubscribeAll() error {
+func (s *Subscriber) UnsubscribeAll() error {
 	s.pub.mtx.RLock()
 	_, ok := s.pub.subscribers[s.clientID]
 	s.pub.mtx.RUnlock()
@@ -97,6 +97,6 @@ func (s *subscriber) UnsubscribeAll() error {
 	}
 }
 
-func (s *subscriber) Wait() {
+func (s *Subscriber) Wait() {
 	s.wg.Wait()
 }

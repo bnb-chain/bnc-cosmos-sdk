@@ -108,10 +108,10 @@ func (k Keeper) UnjailSideChain(ctx sdk.Context, consAddr []byte) {
 	return
 }
 
-func convertValidators2Shares(validators []types.Validator) (sharers []Sharer, totalShares sdk.Dec) {
-	sharers = make([]Sharer, len(validators))
+func convertValidators2Shares(validators []types.Validator) (sharers []types.Sharer, totalShares sdk.Dec) {
+	sharers = make([]types.Sharer, len(validators))
 	for i, val := range validators {
-		sharers[i] = Sharer{AccAddr: val.DistributionAddr, Shares: val.DelegatorShares}
+		sharers[i] = types.Sharer{AccAddr: val.DistributionAddr, Shares: val.DelegatorShares}
 		totalShares = totalShares.Add(val.DelegatorShares)
 	}
 	return sharers, totalShares

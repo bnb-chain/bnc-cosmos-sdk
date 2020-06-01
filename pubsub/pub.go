@@ -38,7 +38,7 @@ type cmd struct {
 
 	// subscribe, unsubscribe
 	topic      Topic
-	subscriber *subscriber
+	subscriber *Subscriber
 	clientID   ClientID
 
 	// publish
@@ -52,7 +52,7 @@ type Publisher struct {
 	cmds chan cmd
 
 	subscribers   map[ClientID]map[Topic]struct{}    // clientID -> topic -> empty struct
-	subscriptions map[Topic]map[ClientID]*subscriber // topic -> clientID -> subscriber
+	subscriptions map[Topic]map[ClientID]*Subscriber // topic -> clientID -> subscriber
 
 	// check if the subscriber has already been added before
 	// subscribing or unsubscribing
@@ -70,7 +70,7 @@ func NewPublisher(name string, logger log.Logger) *Publisher {
 }
 
 func (publisher *Publisher) OnStart() error {
-	publisher.subscriptions = make(map[Topic]map[ClientID]*subscriber)
+	publisher.subscriptions = make(map[Topic]map[ClientID]*Subscriber)
 	go publisher.loop()
 	return nil
 }
@@ -105,7 +105,7 @@ func (publisher *Publisher) loop() {
 		case sub:
 			// initialize subscription for this client per topic if needed
 			if _, ok := publisher.subscriptions[cmd.topic]; !ok {
-				publisher.subscriptions[cmd.topic] = make(map[ClientID]*subscriber)
+				publisher.subscriptions[cmd.topic] = make(map[ClientID]*Subscriber)
 			}
 			// create subscription
 			publisher.subscriptions[cmd.topic][cmd.clientID] = cmd.subscriber

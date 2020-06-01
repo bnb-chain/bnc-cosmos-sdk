@@ -2,6 +2,7 @@ package slashing
 
 import (
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/pubsub"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -27,6 +28,8 @@ type Keeper struct {
 
 	BankKeeper bank.Keeper
 	ScKeeper   *sidechain.Keeper
+
+	Publisher *pubsub.Publisher
 }
 
 // NewKeeper creates a slashing keeper
@@ -44,6 +47,10 @@ func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, vs sdk.ValidatorSet, paramspa
 
 func (k *Keeper) SetSideChain(scKeeper *sidechain.Keeper) {
 	k.ScKeeper = scKeeper
+}
+
+func (k *Keeper) SetPublisher(publisher *pubsub.Publisher) {
+	k.Publisher = publisher
 }
 
 func (k Keeper) ClaimRegister(oracleKeeper sdk.OracleKeeper) error {

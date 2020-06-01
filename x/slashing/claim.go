@@ -70,7 +70,7 @@ func (h ClaimHooks) ExecuteClaim(ctx sdk.Context, finalClaim string) (sdk.ClaimR
 	if age > int64(h.k.MaxEvidenceAge(sideCtx).Seconds()) {
 		return sdk.ClaimResult{
 			Code: int(CodeExpiredEvidence),
-			Msg: "The given evidences are expired",
+			Msg:  "The given evidences are expired",
 		}, nil
 	}
 
@@ -124,5 +124,17 @@ func (h ClaimHooks) ExecuteClaim(ctx sdk.Context, finalClaim string) (sdk.ClaimR
 	signInfo.JailedUntil = jailUtil
 	h.k.setValidatorSigningInfo(sideCtx, slashClaim.SideConsAddr, signInfo)
 
+	if h.k.Publisher != nil {
+		event := SideSlashEvent{
+			SideConsAddr:     slashClaim.SideConsAddr,
+			InfractionType:   Downtime,
+			InfractionHeight: slashClaim.SideHeight,
+			SlashHeight:      header.Height,
+			JailUtil:         jailUtil,
+			SlashAmt:         slashedAmt.RawInt(),
+			SideChainId:      slashClaim.SideChainId,
+		}
+		h.k.Publisher.Publish(event)
+	}
 	return sdk.ClaimResult{}, nil
 }

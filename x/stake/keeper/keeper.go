@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/pubsub"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -30,6 +31,8 @@ type Keeper struct {
 	// if you want to enable side chains, you need call `SetupForSideChain`
 	ibcKeeper *ibc.Keeper
 	ScKeeper  *sidechain.Keeper
+
+	Publisher *pubsub.Publisher
 }
 
 func NewKeeper(cdc *codec.Codec, key, tkey sdk.StoreKey, ck bank.Keeper, addrPool *sdk.Pool,
@@ -62,6 +65,10 @@ func (k *Keeper) SetupForSideChain(scKeeper *sidechain.Keeper, ibcKeeper *ibc.Ke
 	k.ScKeeper = scKeeper
 	k.ibcKeeper = ibcKeeper
 	k.initIbc()
+}
+
+func (k *Keeper) SetPublisher(publisher *pubsub.Publisher) {
+	k.Publisher = publisher
 }
 
 // Logger returns a module-specific logger.

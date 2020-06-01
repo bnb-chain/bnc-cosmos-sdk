@@ -37,6 +37,10 @@ type (
 	MsgSideChainDelegate        = types.MsgSideChainDelegate
 	MsgSideChainRedelegate      = types.MsgSideChainRedelegate
 	MsgSideChainUndelegate      = types.MsgSideChainUndelegate
+
+	SideDistributionEvent = types.SideDistributionEvent
+	DistributionData      = types.DistributionData
+	SideCompletedUBDEvent = types.SideCompletedUBDEvent
 )
 
 var (
@@ -122,6 +126,8 @@ const (
 	QueryDelegatorValidator            = querier.QueryDelegatorValidator
 	QueryPool                          = querier.QueryPool
 	QueryParameters                    = querier.QueryParameters
+
+	Topic = types.Topic
 )
 
 const (
