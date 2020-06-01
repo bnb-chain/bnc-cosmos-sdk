@@ -44,7 +44,7 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 	}
 
 	slashAmount := k.DoubleSignSlashAmount(sideCtx)
-	slashedAmount, slashErr := k.validatorSet.SlashSideChain(ctx, sideChainId, sideConsAddr.Bytes(), sdk.NewDec(slashAmount))
+	validator, slashedAmount, slashErr := k.validatorSet.SlashSideChain(ctx, sideChainId, sideConsAddr.Bytes(), sdk.NewDec(slashAmount))
 	if slashErr != nil {
 		return ErrFailedToSlash(k.Codespace, slashErr.Error()).Result()
 	}
@@ -95,7 +95,7 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 
 	if ctx.IsDeliverTx() && k.Publisher != nil {
 		event := SideSlashEvent{
-			SideConsAddr:     sideConsAddr.Bytes(),
+			Validator:        validator.GetOperator(),
 			InfractionType:   DoubleSign,
 			InfractionHeight: msg.Headers[0].Number,
 			SlashHeight:      header.Height,

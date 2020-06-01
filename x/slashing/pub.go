@@ -10,7 +10,7 @@ import (
 const Topic = pubsub.Topic("slashing")
 
 type SideSlashEvent struct {
-	SideConsAddr     []byte
+	Validator        sdk.ValAddress
 	InfractionType   byte
 	InfractionHeight int64
 	SlashHeight      int64

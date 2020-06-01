@@ -79,7 +79,7 @@ func (h ClaimHooks) ExecuteClaim(ctx sdk.Context, finalClaim string) (sdk.ClaimR
 	}
 
 	slashAmt := h.k.DowntimeSlashAmount(sideCtx)
-	slashedAmt, err := h.k.validatorSet.SlashSideChain(ctx, slashClaim.SideChainId, slashClaim.SideConsAddr, sdk.NewDec(slashAmt))
+	validator, slashedAmt, err := h.k.validatorSet.SlashSideChain(ctx, slashClaim.SideChainId, slashClaim.SideConsAddr, sdk.NewDec(slashAmt))
 	if err != nil {
 		return sdk.ClaimResult{}, ErrFailedToSlash(h.k.Codespace, err.Error())
 	}
@@ -126,7 +126,7 @@ func (h ClaimHooks) ExecuteClaim(ctx sdk.Context, finalClaim string) (sdk.ClaimR
 
 	if h.k.Publisher != nil {
 		event := SideSlashEvent{
-			SideConsAddr:     slashClaim.SideConsAddr,
+			Validator:        validator.GetOperator(),
 			InfractionType:   Downtime,
 			InfractionHeight: slashClaim.SideHeight,
 			SlashHeight:      header.Height,

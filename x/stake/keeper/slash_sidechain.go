@@ -10,12 +10,12 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
 
-func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr []byte, slashAmount sdk.Dec) (sdk.Dec, error) {
+func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr []byte, slashAmount sdk.Dec) (sdk.Validator, sdk.Dec, error) {
 	logger := ctx.Logger().With("module", "x/stake")
 
 	sideCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, sideChainId)
 	if err != nil {
-		return sdk.ZeroDec(), errors.New("invalid side chain id")
+		return nil, sdk.ZeroDec(), errors.New("invalid side chain id")
 	}
 
 	validator, found := k.GetValidatorBySideConsAddr(sideCtx, sideConsAddr)
@@ -27,12 +27,12 @@ func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr
 		logger.Error(fmt.Sprintf(
 			"WARNING: Ignored attempt to slash a nonexistent validator with address %s, we recommend you investigate immediately",
 			sdk.HexEncode(sideConsAddr)))
-		return sdk.ZeroDec(), nil
+		return nil, sdk.ZeroDec(), nil
 	}
 
 	// should not be slashing unbonded
 	if validator.IsUnbonded() {
-		return sdk.ZeroDec(), errors.New(fmt.Sprintf("should not be slashing unbonded validator: %s", validator.GetOperator()))
+		return nil, sdk.ZeroDec(), errors.New(fmt.Sprintf("should not be slashing unbonded validator: %s", validator.GetOperator()))
 	}
 
 	if !validator.Jailed {
@@ -47,7 +47,7 @@ func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr
 		if slashSelfDelegationShares.RawInt() > 0 {
 			unbondAmount, err := k.unbond(sideCtx, selfDelegation.DelegatorAddr, validator.OperatorAddr, slashSelfDelegationShares)
 			if err != nil {
-				return sdk.ZeroDec(), errors.New(fmt.Sprintf("error unbonding delegator: %v", err))
+				return nil, sdk.ZeroDec(), errors.New(fmt.Sprintf("error unbonding delegator: %v", err))
 			}
 			remainingSlashAmount = remainingSlashAmount.Sub(unbondAmount)
 		}
@@ -69,7 +69,7 @@ func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr
 	delegationAccBalance := k.bankKeeper.GetCoins(ctx, DelegationAccAddr)
 	slashedCoin := sdk.NewCoin(bondDenom, slashedAmt.RawInt())
 	if err := k.bankKeeper.SetCoins(ctx, DelegationAccAddr, delegationAccBalance.Minus(sdk.Coins{slashedCoin})); err != nil {
-		return slashedAmt, err
+		return nil, slashedAmt, err
 	}
 	if ctx.IsDeliverTx() && k.addrPool != nil {
 		k.addrPool.AddAddrs([]sdk.AccAddress{DelegationAccAddr})
@@ -82,11 +82,11 @@ func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr
 			Power:    validator.GetPower().RawInt(),
 		}
 		if _, err := k.SaveJailedValidatorToIbc(ctx, sideChainId, ibcValidator); err != nil {
-			return sdk.ZeroDec(), errors.New(err.Error())
+			return nil, sdk.ZeroDec(), errors.New(err.Error())
 		}
 	}
 
-	return slashedAmt, nil
+	return validator, slashedAmt, nil
 
 }
 
