@@ -43,8 +43,12 @@ func validateMiniTokenAmount(ctx sdk.Context, am auth.AccountKeeper, addr sdk.Ac
 	}
 
 	coins := getCoins(ctx, am, addr)
+	balance := coins.AmountOf(coin.Denom)
+	if balance < coin.Amount {
+		return sdk.ErrInsufficientCoins("not enough token to send")
+	}
 
-	useAllBalance := coins.AmountOf(coin.Denom) == coin.Amount
+	useAllBalance := balance == coin.Amount
 
 	if !useAllBalance {
 		return sdk.ErrInvalidCoins(fmt.Sprintf("transfer amount is too small, the min amount is %d or total account balance",
