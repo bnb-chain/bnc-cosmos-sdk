@@ -46,10 +46,12 @@ func (s *subscriber) Subscribe(topic Topic, handler Handler) error {
 
 	select {
 	case s.pub.cmds <- cmd{op: sub, topic: topic, subscriber: s, clientID: s.clientID}:
+		s.pub.mtx.Lock()
 		if _, ok := s.pub.subscribers[s.clientID]; !ok {
 			s.pub.subscribers[s.clientID] = make(map[Topic]struct{})
 		}
 		s.pub.subscribers[s.clientID][topic] = struct{}{}
+		s.pub.mtx.Unlock()
 		return nil
 	case <-s.pub.Quit():
 		return nil
@@ -68,7 +70,9 @@ func (s *subscriber) Unsubscribe(topic Topic) error {
 	}
 	select {
 	case s.pub.cmds <- cmd{op: unsub, clientID: s.clientID, topic: topic}:
+		s.pub.mtx.Lock()
 		delete(s.pub.subscribers[s.clientID], topic)
+		s.pub.mtx.Unlock()
 		return nil
 	case <-s.pub.Quit():
 		return nil
@@ -78,12 +82,15 @@ func (s *subscriber) Unsubscribe(topic Topic) error {
 func (s *subscriber) UnsubscribeAll() error {
 	s.pub.mtx.RLock()
 	_, ok := s.pub.subscribers[s.clientID]
+	s.pub.mtx.RUnlock()
 	if !ok {
 		return ErrSubscriptionNotFound
 	}
 	select {
 	case s.pub.cmds <- cmd{op: unsub, clientID: s.clientID}:
+		s.pub.mtx.Lock()
 		delete(s.pub.subscribers, s.clientID)
+		s.pub.mtx.RUnlock()
 		return nil
 	case <-s.pub.Quit():
 		return nil

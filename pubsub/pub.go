@@ -54,6 +54,8 @@ type Publisher struct {
 	subscribers   map[ClientID]map[Topic]struct{}    // clientID -> topic -> empty struct
 	subscriptions map[Topic]map[ClientID]*subscriber // topic -> clientID -> subscriber
 
+	// check if the subscriber has already been added before
+	// subscribing or unsubscribing
 	mtx sync.RWMutex
 }
 
@@ -89,7 +91,6 @@ func (publisher *Publisher) HasSubscribed(clientID ClientID, topic Topic) bool {
 }
 
 func (publisher *Publisher) loop() {
-loop:
 	for cmd := range publisher.cmds {
 		switch cmd.op {
 		case unsub:
@@ -100,7 +101,7 @@ loop:
 			}
 		case shutdown:
 			publisher.removeAll()
-			break loop
+			return
 		case sub:
 			// initialize subscription for this client per topic if needed
 			if _, ok := publisher.subscriptions[cmd.topic]; !ok {
@@ -115,12 +116,20 @@ loop:
 }
 
 func (publisher *Publisher) push(event Event) {
-	for _, subscriber := range publisher.subscriptions[event.GetTopic()] {
-		subscriber.wg.Add(1)
-		go func() {
-			subscriber.handlers[event.GetTopic()](event)
-			subscriber.wg.Done()
-		}()
+	for _, sub := range publisher.subscriptions[event.GetTopic()] {
+		sub.wg.Add(1)
+		go func(sub *subscriber) {
+			defer func() {
+				if err := recover(); err != nil {
+					publisher.Logger.Error("event handle err: ", err)
+				}
+				sub.wg.Done()
+			}()
+			handler, ok := sub.handlers[event.GetTopic()]
+			if ok {
+				handler(event)
+			}
+		}(sub)
 	}
 
 }
