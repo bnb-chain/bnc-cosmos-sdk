@@ -14,6 +14,7 @@ type Keeper interface {
 	SetCoins(ctx sdk.Context, addr sdk.AccAddress, amt sdk.Coins) sdk.Error
 	SubtractCoins(ctx sdk.Context, addr sdk.AccAddress, amt sdk.Coins) (sdk.Coins, sdk.Tags, sdk.Error)
 	AddCoins(ctx sdk.Context, addr sdk.AccAddress, amt sdk.Coins) (sdk.Coins, sdk.Tags, sdk.Error)
+	GetAccountKeeper() auth.AccountKeeper
 }
 
 var _ Keeper = (*BaseKeeper)(nil)
@@ -50,6 +51,10 @@ func (keeper BaseKeeper) SubtractCoins(
 ) (sdk.Coins, sdk.Tags, sdk.Error) {
 
 	return subtractCoins(ctx, keeper.am, addr, amt)
+}
+
+func (keeper BaseKeeper) GetAccountKeeper() auth.AccountKeeper {
+	return keeper.am
 }
 
 // AddCoins adds amt to the coins at the addr.

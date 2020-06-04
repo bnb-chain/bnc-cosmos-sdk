@@ -43,11 +43,6 @@ func (tx StdTx) GetMsgs() []sdk.Msg { return tx.Msgs }
 // in the order they appear in tx.GetMsgs().
 // Duplicate addresses will be omitted.
 func (tx StdTx) GetSigners() []sdk.AccAddress {
-	// shortcut for most cases
-	if len(tx.GetMsgs()) == 1 {
-		return tx.GetMsgs()[0].GetSigners()
-	}
-
 	seen := map[string]bool{}
 	var signers []sdk.AccAddress
 	for _, msg := range tx.GetMsgs() {
