@@ -436,7 +436,9 @@ func TestPoolParamsQuery(t *testing.T) {
 	var params stake.Params
 	err := cdc.UnmarshalJSON([]byte(body), &params)
 	require.Nil(t, err)
-	require.True(t, defaultParams.Equal(params))
+	require.EqualValues(t, defaultParams.UnbondingTime, params.UnbondingTime)
+	require.EqualValues(t, defaultParams.MaxValidators, params.MaxValidators)
+	require.EqualValues(t, defaultParams.BondDenom, params.BondDenom)
 
 	res, body = Request(t, port, "GET", "/stake/pool", nil)
 	require.Equal(t, http.StatusOK, res.StatusCode, body)

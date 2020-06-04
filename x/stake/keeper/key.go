@@ -25,6 +25,7 @@ var (
 	ValidatorsKey             = []byte{0x21} // prefix for each key to a validator
 	ValidatorsByConsAddrKey   = []byte{0x22} // prefix for each key to a validator index, by pubkey
 	ValidatorsByPowerIndexKey = []byte{0x23} // prefix for each key to a validator index, sorted by power
+	ValidatorsByHeightKey     = []byte{0x24} // prefix for each key to a validator index, by height
 
 	DelegationKey                    = []byte{0x31} // key for a delegation
 	UnbondingDelegationKey           = []byte{0x32} // key for an unbonding-delegation
@@ -32,13 +33,19 @@ var (
 	RedelegationKey                  = []byte{0x34} // key for a redelegation
 	RedelegationByValSrcIndexKey     = []byte{0x35} // prefix for each key for an redelegation, by source validator operator
 	RedelegationByValDstIndexKey     = []byte{0x36} // prefix for each key for an redelegation, by destination validator operator
+	DelegationKeyByVal               = []byte{0x37} // prefix for each key fro a delegation, by validator operator and delegator
+	SimplifiedDelegationsKey         = []byte{0x38} // prefix for each key for an simplifiedDelegations, by height and validator operator
 
 	UnbondingQueueKey    = []byte{0x41} // prefix for the timestamps in unbonding queue
 	RedelegationQueueKey = []byte{0x42} // prefix for the timestamps in redelegations queue
 	ValidatorQueueKey    = []byte{0x43} // prefix for the timestamps in validator queue
+
+	SideChainStorePrefixByIdKey = []byte{0x51} // prefix for each key to a side chain store prefix, by side chain id
 )
 
-const maxDigitsForAccount = 12 // ~220,000,000 atoms created at launch
+const (
+	maxDigitsForAccount = 12 // ~220,000,000 atoms created at launch
+)
 
 // gets the key for the validator with address
 // VALUE: stake/types.Validator
@@ -52,6 +59,13 @@ func GetValidatorByConsAddrKey(addr sdk.ConsAddress) []byte {
 	return append(ValidatorsByConsAddrKey, addr.Bytes()...)
 }
 
+// gets the key for the validator with sideConsAddr
+// VALUE: validator operator address ([]byte)
+// NOTE: here we reuse the `ValidatorsByConsAddrKey` as side chain validator does not need a main chain pubkey(consAddr).
+func GetValidatorBySideConsAddrKey(sideConsAddr []byte) []byte {
+	return append(ValidatorsByConsAddrKey, sideConsAddr...)
+}
+
 // Get the validator operator address from LastValidatorPowerKey
 func AddressFromLastValidatorPowerKey(key []byte) []byte {
 	return key[1:] // remove prefix bytes
@@ -61,9 +75,14 @@ func AddressFromLastValidatorPowerKey(key []byte) []byte {
 // Power index is the key used in the power-store, and represents the relative
 // power ranking of the validator.
 // VALUE: validator operator address ([]byte)
-func GetValidatorsByPowerIndexKey(validator types.Validator, pool types.Pool) []byte {
-	// NOTE the address doesn't need to be stored because counter bytes must always be different
-	return getValidatorPowerRank(validator)
+func GetValidatorsByPowerIndexKey(validator types.Validator) []byte {
+	var keyBytes []byte
+	sdk.Upgrade(sdk.LaunchBscUpgrade, func() {
+		keyBytes = getValidatorPowerRank(validator)
+	}, nil, func() {
+		keyBytes = getValidatorPowerRankNew(validator)
+	})
+	return keyBytes
 }
 
 // get the bonded validator index key for an operator address
@@ -75,11 +94,7 @@ func GetLastValidatorPowerKey(operator sdk.ValAddress) []byte {
 // NOTE the larger values are of higher value
 // nolint: unparam
 func getValidatorPowerRank(validator types.Validator) []byte {
-
-	potentialPower := validator.Tokens
-
-	// todo: deal with cases above 2**64, ref https://github.com/cosmos/cosmos-sdk/issues/2439#issuecomment-427167556
-	tendermintPower := potentialPower.RawInt()
+	tendermintPower := validator.Tokens.RawInt()
 	tendermintPowerBytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(tendermintPowerBytes[:], uint64(tendermintPower))
 
@@ -96,8 +111,32 @@ func getValidatorPowerRank(validator types.Validator) []byte {
 	binary.BigEndian.PutUint64(key[powerBytesLen+1:powerBytesLen+9], ^uint64(validator.BondHeight))
 	// include counterBytes, counter is inverted (first txns have priority)
 	binary.BigEndian.PutUint16(key[powerBytesLen+9:powerBytesLen+11], ^uint16(validator.BondIntraTxCounter))
-
 	return key
+}
+
+func getValidatorPowerRankNew(validator types.Validator) []byte {
+	power := validator.Tokens.RawInt()
+
+	prefixLen := len(ValidatorsByPowerIndexKey)
+	powerLen := 8
+	// key is of format prefix || powerbytes || addrBytes
+	key := make([]byte, prefixLen+powerLen+sdk.AddrLen)
+	copy(key[:prefixLen], ValidatorsByPowerIndexKey)
+	binary.BigEndian.PutUint64(key[prefixLen:prefixLen+powerLen], uint64(power))
+
+	operAddrInvr := make([]byte, len(validator.OperatorAddr))
+	copy(operAddrInvr, validator.OperatorAddr)
+	for i, b := range operAddrInvr {
+		operAddrInvr[i] = ^b
+	}
+	copy(key[prefixLen+powerLen:], operAddrInvr)
+	return key
+}
+
+func GetValidatorHeightKey(height int64) []byte {
+	bz := make([]byte, 8)
+	binary.BigEndian.PutUint64(bz, uint64(height))
+	return append(ValidatorsByHeightKey, bz...)
 }
 
 // gets the prefix for all unbonding delegations from a delegator
@@ -117,6 +156,28 @@ func GetDelegationKey(delAddr sdk.AccAddress, valAddr sdk.ValAddress) []byte {
 // gets the prefix for a delegator for all validators
 func GetDelegationsKey(delAddr sdk.AccAddress) []byte {
 	return append(DelegationKey, delAddr.Bytes()...)
+}
+
+//______________________________________________________________________________
+
+// gets the key for validator bond with delegator
+func GetDelegationKeyByValIndexKey(valAddr sdk.ValAddress, delAddr sdk.AccAddress) []byte {
+	return append(GetDelegationsKeyByVal(valAddr), delAddr.Bytes()...)
+}
+
+// gets the prefix for a validator for all delegator
+func GetDelegationsKeyByVal(valAddr sdk.ValAddress) []byte {
+	return append(DelegationKeyByVal, valAddr.Bytes()...)
+}
+
+//______________________________________________________________________________
+
+// gets the prefix for an array of simplified delegation for particular validator and height
+// VALUE: []stake/types.SimplifiedDelegation
+func GetSimplifiedDelegationsKey(height int64, valAddr sdk.ValAddress) []byte {
+	heightBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(heightBytes, uint64(height))
+	return append(append(SimplifiedDelegationsKey, heightBytes...), valAddr.Bytes()...)
 }
 
 //______________________________________________________________________________

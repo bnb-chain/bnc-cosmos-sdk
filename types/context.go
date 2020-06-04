@@ -46,6 +46,7 @@ func NewContext(ms MultiStore, header abci.Header, runTxMode RunTxMode, logger l
 	c = c.WithLogger(logger)
 	c = c.WithVoteInfos(nil)
 	c = c.WithRouterCallRecord(make(map[string]bool))
+	c = c.WithEventManager(NewEventManager())
 	return c
 }
 
@@ -71,7 +72,11 @@ func (c Context) Value(key interface{}) interface{} {
 
 // KVStore fetches a KVStore from the MultiStore.
 func (c Context) KVStore(key StoreKey) KVStore {
-	return c.MultiStore().GetKVStore(key)
+	kvStore := c.MultiStore().GetKVStore(key)
+	if prefix, ok := c.Value(contextKeySideChainKeyPrefix).([]byte); ok {
+		return kvStore.Prefix(prefix)
+	}
+	return kvStore
 }
 
 // TransientStore fetches a TransientStore from the MultiStore.
@@ -140,6 +145,8 @@ const (
 	contextKeyVoteInfos
 	contextKeyAccountCache
 	contextKeyRouterCallRecord
+	contextKeySideChainKeyPrefix
+	contextKeyEventManager
 )
 
 func (c Context) MultiStore() MultiStore {
@@ -189,6 +196,10 @@ func (c Context) AccountCache() AccountCache {
 
 func (c Context) RouterCallRecord() map[string]bool {
 	return c.Value(contextKeyRouterCallRecord).(map[string]bool)
+}
+
+func (c Context) EventManager() *EventManager {
+	return c.Value(contextKeyEventManager).(*EventManager)
 }
 
 func (c Context) WithMultiStore(ms MultiStore) Context { return c.withValue(contextKeyMultiStore, ms) }
@@ -247,6 +258,14 @@ func (c Context) WithAccountCache(cache AccountCache) Context {
 
 func (c Context) WithRouterCallRecord(record map[string]bool) Context {
 	return c.withValue(contextKeyRouterCallRecord, record)
+}
+
+func (c Context) WithSideChainKeyPrefix(prefix []byte) Context {
+	return c.withValue(contextKeySideChainKeyPrefix, prefix)
+}
+
+func (c Context) WithEventManager(em *EventManager) Context {
+	return c.withValue(contextKeyEventManager, em)
 }
 
 // Cache the multistore and return a new cached context. The cached context is

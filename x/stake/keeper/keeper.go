@@ -1,11 +1,16 @@
 package keeper
 
 import (
+	"fmt"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/bank"
+	"github.com/cosmos/cosmos-sdk/x/ibc"
 	"github.com/cosmos/cosmos-sdk/x/params"
+	"github.com/cosmos/cosmos-sdk/x/sidechain"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
+	"github.com/tendermint/tendermint/libs/log"
 )
 
 // keeper of the stake store
@@ -20,9 +25,15 @@ type Keeper struct {
 
 	// codespace
 	codespace sdk.CodespaceType
+
+	// the two keepers are optional,
+	// if you want to enable side chains, you need call `SetupForSideChain`
+	ibcKeeper *ibc.Keeper
+	ScKeeper  *sidechain.Keeper
 }
 
-func NewKeeper(cdc *codec.Codec, key, tkey sdk.StoreKey, ck bank.Keeper, addrPool *sdk.Pool, paramstore params.Subspace, codespace sdk.CodespaceType) Keeper {
+func NewKeeper(cdc *codec.Codec, key, tkey sdk.StoreKey, ck bank.Keeper, addrPool *sdk.Pool,
+	paramstore params.Subspace, codespace sdk.CodespaceType) Keeper {
 	keeper := Keeper{
 		storeKey:   key,
 		storeTKey:  tkey,
@@ -35,6 +46,27 @@ func NewKeeper(cdc *codec.Codec, key, tkey sdk.StoreKey, ck bank.Keeper, addrPoo
 	}
 
 	return keeper
+}
+
+func (k Keeper) initIbc() {
+	if k.ibcKeeper == nil {
+		return
+	}
+	err := k.ibcKeeper.RegisterChannel(IbcChannelName, IbcChannelId)
+	if err != nil {
+		panic(fmt.Sprintf("register ibc channel failed, channel=%s, err=%s", IbcChannelName, err.Error()))
+	}
+}
+
+func (k *Keeper) SetupForSideChain(scKeeper *sidechain.Keeper, ibcKeeper *ibc.Keeper) {
+	k.ScKeeper = scKeeper
+	k.ibcKeeper = ibcKeeper
+	k.initIbc()
+}
+
+// Logger returns a module-specific logger.
+func (k Keeper) Logger(ctx sdk.Context) log.Logger {
+	return ctx.Logger().With("module", "x/stake")
 }
 
 // Set the validator hooks

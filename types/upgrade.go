@@ -4,8 +4,11 @@ import "fmt"
 
 var UpgradeMgr = NewUpgradeManager(UpgradeConfig{})
 
-const FixSignBytesOverflow = "FixSignBytesOverflow" // fix json unmarshal overflow when build SignBytes
-const BEP8 = "BEP8" // Mini-BEP2 token
+const (
+	FixSignBytesOverflow = "FixSignBytesOverflow" // fix json unmarshal overflow when build SignBytes
+	BEP8                 = "BEP8"                 // Mini-BEP2 token
+	LaunchBscUpgrade     = "LaunchBscUpgrade"
+)
 
 var MainNetConfig = UpgradeConfig{
 	HeightMap: map[string]int64{},
@@ -177,7 +180,7 @@ func IsMsgTypeSupported(msgType string) bool {
 }
 
 func Upgrade(name string, before func(), in func(), after func()) {
-	// if no special logic for the UpgradeHeight, than apply the `after` logic
+	// if no special logic for the UpgradeHeight, apply the `after` logic
 	if in == nil {
 		in = after
 	}

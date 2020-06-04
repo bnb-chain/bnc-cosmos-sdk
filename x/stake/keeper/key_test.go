@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"encoding/hex"
-	"math/big"
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -26,23 +25,50 @@ func TestGetValidatorPowerRank(t *testing.T) {
 	val1 := types.NewValidator(valAddr1, pk1, emptyDesc)
 	val1.Tokens = sdk.NewDec(0)
 	val2, val3, val4 := val1, val1, val1
-	val2.Tokens = sdk.NewDecWithoutFra(1)
-	val3.Tokens = sdk.NewDecWithoutFra(10)
-	x := new(big.Int).Exp(big.NewInt(2), big.NewInt(20), big.NewInt(0))
-	val4.Tokens = sdk.NewDecWithoutFra(x.Int64())
+	val2.Tokens = sdk.NewDecFromInt(1)
+	val3.Tokens = sdk.NewDecFromInt(10)
+	val4.Tokens = sdk.NewDecFromInt(1<<20)
 
 	tests := []struct {
 		validator types.Validator
 		wantHex   string
 	}{
 		{val1, "230000000000000000ffffffffffffffffffff"},
-		{val2, "230000000005f5e100ffffffffffffffffffff"}, // "5f5e100" is	100000000 in base 10.
-		{val3, "23000000003b9aca00ffffffffffffffffffff"}, // "3b9aca00" is 1000000000 in base 10
-		{val4, "2300005f5e10000000ffffffffffffffffffff"}, // "5f5e10000000" is 2^20.e8 in base 10
+		{val2, "230000000000000001ffffffffffffffffffff"},
+		{val3, "23000000000000000affffffffffffffffffff"},
+		{val4, "230000000000100000ffffffffffffffffffff"},
 	}
 	for i, tt := range tests {
 		got := hex.EncodeToString(getValidatorPowerRank(tt.validator))
+		assert.Equal(t, tt.wantHex, got, "Keys did not match on test case %d", i)
+	}
+}
 
+func TestGetValidatorPowerRankNew(t *testing.T) {
+	valAddr1 := sdk.ValAddress(addr1)
+	valAddr2 := sdk.ValAddress(addr2)
+	emptyDesc := types.Description{}
+	val1 := types.NewValidator(valAddr1, pk1, emptyDesc)
+	val2 := types.NewValidator(valAddr2, pk2, emptyDesc)
+	val1.Tokens = sdk.NewDec(0)
+	val2.Tokens = sdk.NewDec(0)
+	val3, val4 := val1, val2
+	val3.Tokens = sdk.NewDecFromInt(1)
+	val4.Tokens = sdk.NewDecFromInt(1<<20)
+
+	t.Log(hex.EncodeToString(valAddr1))
+	t.Log(hex.EncodeToString(valAddr2))
+	tests := []struct {
+		validator types.Validator
+		wantHex   string
+	}{
+		{val1, "2300000000000000009c288ede7df62742fc3b7d0962045a8cef0f79f6"},
+		{val2, "230000000000000000a10c4a0da3ab6b92b57603f2f62d0ed99ebabf0d"},
+		{val3, "2300000000000000019c288ede7df62742fc3b7d0962045a8cef0f79f6"},
+		{val4, "230000000000100000a10c4a0da3ab6b92b57603f2f62d0ed99ebabf0d"},
+	}
+	for i, tt := range tests {
+		got := hex.EncodeToString(getValidatorPowerRankNew(tt.validator))
 		assert.Equal(t, tt.wantHex, got, "Keys did not match on test case %d", i)
 	}
 }

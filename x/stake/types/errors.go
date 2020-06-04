@@ -18,6 +18,7 @@ const (
 	CodeInvalidInput      CodeType = 103
 	CodeValidatorJailed   CodeType = 104
 	CodeInvalidProposal   CodeType = 105
+	CodeInvalidSideChain  CodeType = 106
 	CodeInvalidAddress    CodeType = sdk.CodeInvalidAddress
 	CodeUnauthorized      CodeType = sdk.CodeUnauthorized
 	CodeInternal          CodeType = sdk.CodeInternal
@@ -37,6 +38,10 @@ func ErrBadValidatorAddr(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidAddress, "validator address is invalid")
 }
 
+func ErrInvalidDelegator(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidDelegation, "delegator address is invalid")
+}
+
 func ErrNoValidatorFound(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidValidator, "validator does not exist for that address")
 }
@@ -49,12 +54,20 @@ func ErrValidatorPubKeyExists(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidValidator, "validator already exist for this pubkey, must use new validator pubkey")
 }
 
+func ErrValidatorSideConsAddrExists(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidValidator, "validator already exist for this sideConsAddr, must use new validator sideConsAddr")
+}
+
 func ErrValidatorJailed(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidValidator, "validator for this address is currently jailed")
 }
 
 func ErrBadRemoveValidator(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidValidator, "error removing validator")
+}
+
+func ErrEmptyMoniker(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidValidator, "moniker cannot be empty")
 }
 
 func ErrDescriptionLength(codespace sdk.CodespaceType, descriptor string, got, max int) sdk.Error {
@@ -106,8 +119,8 @@ func ErrBadDelegationAddr(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidInput, "unexpected address length for this (address, validator) pair")
 }
 
-func ErrBadDelegationAmount(codespace sdk.CodespaceType) sdk.Error {
-	return sdk.NewError(codespace, CodeInvalidDelegation, "amount must be > 0")
+func ErrBadDelegationAmount(codespace sdk.CodespaceType, msg string) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidDelegation, "invalid amount: "+msg)
 }
 
 func ErrNoDelegation(codespace sdk.CodespaceType) sdk.Error {
@@ -128,6 +141,10 @@ func ErrInsufficientShares(codespace sdk.CodespaceType) sdk.Error {
 
 func ErrDelegationValidatorEmpty(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidDelegation, "cannot delegate to an empty validator")
+}
+
+func ErrNotEnoughDelegationAmount(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidDelegation, "not enough delegation amount")
 }
 
 func ErrNotEnoughDelegationShares(codespace sdk.CodespaceType, shares string) sdk.Error {
@@ -164,8 +181,20 @@ func ErrNoRedelegation(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidDelegation, "no redelegation found")
 }
 
+func ErrBadRedelegationSrc(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidDelegation, "redelegation src validator not found")
+}
+
 func ErrBadRedelegationDst(codespace sdk.CodespaceType) sdk.Error {
-	return sdk.NewError(codespace, CodeInvalidDelegation, "redelegation validator not found")
+	return sdk.NewError(codespace, CodeInvalidDelegation, "redelegation dst validator not found")
+}
+
+func ErrSelfRedelegation(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidDelegation, "cannot redelegate to the same validator")
+}
+
+func ErrInvalidRedelegator(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidDelegation, "self-delegator cannot redelegate to other validators")
 }
 
 func ErrTransitiveRedelegation(codespace sdk.CodespaceType) sdk.Error {
@@ -192,4 +221,8 @@ func ErrMissingSignature(codespace sdk.CodespaceType) sdk.Error {
 
 func ErrInvalidProposal(codespace sdk.CodespaceType, reason string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidProposal, "invalid proposal: %s", reason)
+}
+
+func ErrInvalidSideChainId(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidSideChain, "invalid side chain id")
 }

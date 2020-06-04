@@ -65,6 +65,15 @@ func (k Keeper) ValidatorByConsAddr(ctx sdk.Context, addr sdk.ConsAddress) sdk.V
 	return val
 }
 
+// get the sdk.validator for a particular consensus address
+func (k Keeper) ValidatorBySideChainConsAddr(ctx sdk.Context, sideChainConsAddr []byte) sdk.Validator {
+	val, found := k.GetValidatorBySideConsAddr(ctx, sideChainConsAddr)
+	if !found {
+		return nil
+	}
+	return val
+}
+
 // total power from the bond (not last, but current)
 func (k Keeper) TotalPower(ctx sdk.Context) sdk.Dec {
 	pool := k.GetPool(ctx)

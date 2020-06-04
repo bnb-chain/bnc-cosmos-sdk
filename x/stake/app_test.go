@@ -3,13 +3,17 @@ package stake
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
+	abci "github.com/tendermint/tendermint/abci/types"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/bank"
+	"github.com/cosmos/cosmos-sdk/x/ibc"
 	"github.com/cosmos/cosmos-sdk/x/mock"
 	"github.com/cosmos/cosmos-sdk/x/params"
-	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/cosmos/cosmos-sdk/x/sidechain"
 )
 
 // getMockApp returns an initialized mock application for this module.
@@ -23,11 +27,15 @@ func getMockApp(t *testing.T) (*mock.App, Keeper) {
 	tkeyStake := sdk.NewTransientStoreKey("transient_stake")
 	keyParams := sdk.NewKVStoreKey("params")
 	tkeyParams := sdk.NewTransientStoreKey("transient_params")
+	keyIbc := sdk.NewKVStoreKey("ibc")
+	keySideChain := sdk.NewKVStoreKey("sc")
 
 	bankKeeper := bank.NewBaseKeeper(mApp.AccountKeeper)
 	pk := params.NewKeeper(mApp.Cdc, keyParams, tkeyParams)
-
+	ibcKeeper := ibc.NewKeeper(keyIbc, ibc.DefaultCodespace)
+	scKeeper := sidechain.NewKeeper(keySideChain, pk.Subspace(sidechain.DefaultParamspace))
 	keeper := NewKeeper(mApp.Cdc, keyStake, tkeyStake, bankKeeper, nil, pk.Subspace(DefaultParamspace), mApp.RegisterCodespace(DefaultCodespace))
+	keeper.SetupForSideChain(&scKeeper, &ibcKeeper)
 
 	mApp.Router().AddRoute("stake", NewStakeHandler(keeper))
 	mApp.SetEndBlocker(getEndBlocker(keeper))

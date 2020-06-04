@@ -23,8 +23,8 @@ import (
 // CONTRACT: Only validators with non-zero power or zero-power that were bonded
 // at the previous block height or were removed from the validator set entirely
 // are returned to Tendermint.
-func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []abci.ValidatorUpdate) {
-
+// CONTRACT: When handle the side chain validators, `updates` is not collected
+func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (newVals []types.Validator, updates []abci.ValidatorUpdate) {
 	store := ctx.KVStore(k.storeKey)
 	maxValidators := k.GetParams(ctx).MaxValidators
 	var totalPower int64
@@ -34,6 +34,7 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 	// (see LastValidatorPowerKey).
 	last := k.getLastValidatorsByAddr(ctx)
 
+	newVals = make([]types.Validator, 0, maxValidators)
 	// Iterate over validators, highest power to lowest.
 	iterator := sdk.KVStoreReversePrefixIterator(store, ValidatorsByPowerIndexKey)
 	defer iterator.Close()
@@ -67,6 +68,8 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 			panic("unexpected validator status")
 		}
 
+		newVals = append(newVals, validator)
+
 		// fetch the old power bytes
 		var operatorBytes [sdk.AddrLen]byte
 		copy(operatorBytes[:], operator[:])
@@ -77,8 +80,10 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 		newPowerBytes := k.cdc.MustMarshalBinaryLengthPrefixed(newPower)
 		// update the validator set if power has changed
 		if !found || !bytes.Equal(oldPowerBytes, newPowerBytes) {
-			updates = append(updates, validator.ABCIValidatorUpdate())
-
+			// Note: side chain validators do not have ConsPubKey, and we do not need to collect the updates as well.
+			if validator.ConsPubKey != nil {
+				updates = append(updates, validator.ABCIValidatorUpdate())
+			}
 			// set validator power on lookup index.
 			k.SetLastValidatorPower(ctx, operator, newPower)
 		}
@@ -112,7 +117,9 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 		k.DeleteLastValidatorPower(ctx, sdk.ValAddress(operator))
 
 		// update the validator set
-		updates = append(updates, validator.ABCIValidatorUpdateZero())
+		if validator.ConsPubKey != nil {
+			updates = append(updates, validator.ABCIValidatorUpdateZero())
+		}
 	}
 
 	// set total power on lookup index if there are any updates
@@ -120,7 +127,7 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 		k.SetLastTotalPower(ctx, totalPower)
 	}
 
-	return updates
+	return newVals, updates
 }
 
 // Validator state transitions
@@ -160,10 +167,9 @@ func (k Keeper) jailValidator(ctx sdk.Context, validator types.Validator) {
 		panic(fmt.Sprintf("cannot jail already jailed validator, validator: %v\n", validator))
 	}
 
-	pool := k.GetPool(ctx)
 	validator.Jailed = true
 	k.SetValidator(ctx, validator)
-	k.DeleteValidatorByPowerIndex(ctx, validator, pool)
+	k.DeleteValidatorByPowerIndex(ctx, validator)
 }
 
 // remove a validator from jail
@@ -172,10 +178,9 @@ func (k Keeper) unjailValidator(ctx sdk.Context, validator types.Validator) {
 		panic(fmt.Sprintf("cannot unjail already unjailed validator, validator: %v\n", validator))
 	}
 
-	pool := k.GetPool(ctx)
 	validator.Jailed = false
 	k.SetValidator(ctx, validator)
-	k.SetValidatorByPowerIndex(ctx, validator, pool)
+	k.SetValidatorByPowerIndex(ctx, validator)
 }
 
 // perform all the store operations for when a validator status becomes bonded
@@ -183,7 +188,7 @@ func (k Keeper) bondValidator(ctx sdk.Context, validator types.Validator) types.
 
 	pool := k.GetPool(ctx)
 
-	k.DeleteValidatorByPowerIndex(ctx, validator, pool)
+	k.DeleteValidatorByPowerIndex(ctx, validator)
 
 	validator.BondHeight = ctx.BlockHeight()
 
@@ -194,11 +199,15 @@ func (k Keeper) bondValidator(ctx sdk.Context, validator types.Validator) types.
 	// save the now bonded validator record to the three referenced stores
 	k.SetValidator(ctx, validator)
 
-	k.SetValidatorByPowerIndex(ctx, validator, pool)
+	k.SetValidatorByPowerIndex(ctx, validator)
 
 	// call the bond hook if present
 	if k.hooks != nil {
-		k.hooks.OnValidatorBonded(ctx, validator.ConsAddress(), validator.OperatorAddr)
+		if validator.IsSideChainValidator() {
+			k.hooks.OnSideChainValidatorBonded(ctx, validator.SideConsAddr, validator.OperatorAddr)
+		} else {
+			k.hooks.OnValidatorBonded(ctx, validator.ConsAddress(), validator.OperatorAddr)
+		}
 	}
 
 	return validator
@@ -210,7 +219,7 @@ func (k Keeper) beginUnbondingValidator(ctx sdk.Context, validator types.Validat
 	pool := k.GetPool(ctx)
 	params := k.GetParams(ctx)
 
-	k.DeleteValidatorByPowerIndex(ctx, validator, pool)
+	k.DeleteValidatorByPowerIndex(ctx, validator)
 
 	// sanity check
 	if validator.Status != sdk.Bonded {
@@ -227,14 +236,18 @@ func (k Keeper) beginUnbondingValidator(ctx sdk.Context, validator types.Validat
 	// save the now unbonded validator record
 	k.SetValidator(ctx, validator)
 
-	k.SetValidatorByPowerIndex(ctx, validator, pool)
+	k.SetValidatorByPowerIndex(ctx, validator)
 
 	// Adds to unbonding validator queue
 	k.InsertValidatorQueue(ctx, validator)
 
 	// call the unbond hook if present
 	if k.hooks != nil {
-		k.hooks.OnValidatorBeginUnbonding(ctx, validator.ConsAddress(), validator.OperatorAddr)
+		if validator.IsSideChainValidator() {
+			k.hooks.OnSideChainValidatorBeginUnbonding(ctx, validator.SideConsAddr, validator.OperatorAddr)
+		} else {
+			k.hooks.OnValidatorBeginUnbonding(ctx, validator.ConsAddress(), validator.OperatorAddr)
+		}
 	}
 
 	return validator

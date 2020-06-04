@@ -99,3 +99,41 @@ func (k Keeper) GetAllRedelegations(ctx sdk.Context, delegator sdk.AccAddress) (
 	}
 	return redelegations
 }
+
+func (k Keeper) GetTopValidatorsByPower(ctx sdk.Context, maxRetrieve int) []types.Validator {
+	store := ctx.KVStore(k.storeKey)
+	validators := make([]types.Validator, maxRetrieve)
+
+	iterator := sdk.KVStoreReversePrefixIterator(store, ValidatorsByPowerIndexKey)
+	defer iterator.Close()
+
+	i := 0
+	for ; iterator.Valid() && i < int(maxRetrieve); iterator.Next() {
+		address := iterator.Value()
+		validator := k.mustGetValidator(ctx, address)
+		validators[i] = validator
+		i++
+	}
+	return validators[:i] // trim
+
+}
+
+func (k Keeper) GetAllValidatorsCount(ctx sdk.Context) (count int64) {
+	store := ctx.KVStore(k.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, ValidatorsKey)
+	defer iterator.Close()
+	for ; iterator.Valid(); iterator.Next() {
+		count++
+	}
+	return count
+}
+
+func (k Keeper) GetAllUnJailValidatorsCount(ctx sdk.Context) (count int64) {
+	store := ctx.KVStore(k.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, ValidatorsByPowerIndexKey)
+	defer iterator.Close()
+	for ; iterator.Valid(); iterator.Next() {
+		count++
+	}
+	return count
+}

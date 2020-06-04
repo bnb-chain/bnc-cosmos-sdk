@@ -4,7 +4,6 @@ package stake
 import (
 	"github.com/cosmos/cosmos-sdk/x/stake/keeper"
 	"github.com/cosmos/cosmos-sdk/x/stake/querier"
-	"github.com/cosmos/cosmos-sdk/x/stake/tags"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
 
@@ -30,6 +29,14 @@ type (
 	QueryValidatorParams       = querier.QueryValidatorParams
 	QueryBondsParams           = querier.QueryBondsParams
 	CreateValidatorJsonMsg     = types.CreateValidatorJsonMsg
+	QueryTopValidatorsParams   = querier.QueryTopValidatorsParams
+	BaseParams                 = querier.BaseParams
+
+	MsgCreateSideChainValidator = types.MsgCreateSideChainValidator
+	MsgEditSideChainValidator   = types.MsgEditSideChainValidator
+	MsgSideChainDelegate        = types.MsgSideChainDelegate
+	MsgSideChainRedelegate      = types.MsgSideChainRedelegate
+	MsgSideChainUndelegate      = types.MsgSideChainUndelegate
 )
 
 var (
@@ -60,6 +67,7 @@ var (
 	GetREDsToValDstIndexKey      = keeper.GetREDsToValDstIndexKey
 	GetREDsByDelToValDstIndexKey = keeper.GetREDsByDelToValDstIndexKey
 	TestingUpdateValidator       = keeper.TestingUpdateValidator
+	MigratePowerRankKey          = keeper.MigratePowerRankKey
 
 	DefaultParamspace = keeper.DefaultParamspace
 	KeyUnbondingTime  = types.KeyUnbondingTime
@@ -70,6 +78,7 @@ var (
 	InitialPool             = types.InitialPool
 	NewValidator            = types.NewValidator
 	NewValidatorWithFeeAddr = types.NewValidatorWithFeeAddr
+	NewSideChainValidator   = types.NewSideChainValidator
 	NewDescription          = types.NewDescription
 	NewCommission           = types.NewCommission
 	NewCommissionMsg        = types.NewCommissionMsg
@@ -86,7 +95,17 @@ var (
 	NewMsgBeginUnbonding            = types.NewMsgBeginUnbonding
 	NewMsgBeginRedelegate           = types.NewMsgBeginRedelegate
 
-	NewQuerier = querier.NewQuerier
+	NewMsgCreateSideChainValidator           = types.NewMsgCreateSideChainValidator
+	NewMsgCreateSideChainValidatorOnBehalfOf = types.NewMsgCreateSideChainValidatorOnBehalfOf
+	NewMsgEditSideChainValidator             = types.NewMsgEditSideChainValidator
+	NewMsgSideChainDelegate                  = types.NewMsgSideChainDelegate
+	NewMsgSideChainRedelegate                = types.NewMsgSideChainRedelegate
+	NewMsgSideChainUndelegate                = types.NewMsgSideChainUndelegate
+
+	NewQuerier    = querier.NewQuerier
+	NewBaseParams = querier.NewBaseParams
+
+	DelegationAccAddr = keeper.DelegationAccAddr
 )
 
 const (
@@ -117,16 +136,18 @@ const (
 )
 
 var (
-	ErrNilValidatorAddr      = types.ErrNilValidatorAddr
-	ErrNoValidatorFound      = types.ErrNoValidatorFound
-	ErrValidatorOwnerExists  = types.ErrValidatorOwnerExists
-	ErrValidatorPubKeyExists = types.ErrValidatorPubKeyExists
-	ErrValidatorJailed       = types.ErrValidatorJailed
-	ErrInvalidProposal       = types.ErrInvalidProposal
-	ErrBadRemoveValidator    = types.ErrBadRemoveValidator
-	ErrDescriptionLength     = types.ErrDescriptionLength
-	ErrCommissionNegative    = types.ErrCommissionNegative
-	ErrCommissionHuge        = types.ErrCommissionHuge
+	ErrNilValidatorAddr           = types.ErrNilValidatorAddr
+	ErrNoValidatorFound           = types.ErrNoValidatorFound
+	ErrValidatorOwnerExists       = types.ErrValidatorOwnerExists
+	ErrValidatorPubKeyExists      = types.ErrValidatorPubKeyExists
+	ErrValidatorSideConsAddrExist = types.ErrValidatorSideConsAddrExists
+	ErrInvalidDelegator           = types.ErrInvalidDelegator
+	ErrValidatorJailed            = types.ErrValidatorJailed
+	ErrInvalidProposal            = types.ErrInvalidProposal
+	ErrBadRemoveValidator         = types.ErrBadRemoveValidator
+	ErrDescriptionLength          = types.ErrDescriptionLength
+	ErrCommissionNegative         = types.ErrCommissionNegative
+	ErrCommissionHuge             = types.ErrCommissionHuge
 
 	ErrNilDelegatorAddr          = types.ErrNilDelegatorAddr
 	ErrBadDenom                  = types.ErrBadDenom
@@ -140,29 +161,17 @@ var (
 	ErrBadSharesAmount           = types.ErrBadSharesAmount
 	ErrBadSharesPercent          = types.ErrBadSharesPercent
 
+	ErrInvalidSideChainId = types.ErrInvalidSideChainId
+
 	ErrNotMature             = types.ErrNotMature
 	ErrNoUnbondingDelegation = types.ErrNoUnbondingDelegation
 	ErrNoRedelegation        = types.ErrNoRedelegation
+	ErrBadRedelegationSrc    = types.ErrBadRedelegationSrc
 	ErrBadRedelegationDst    = types.ErrBadRedelegationDst
+	ErrSelfRedelegation      = types.ErrSelfRedelegation
+	ErrInvalidRedelegator    = types.ErrInvalidRedelegator
 
 	ErrBothShareMsgsGiven    = types.ErrBothShareMsgsGiven
 	ErrNeitherShareMsgsGiven = types.ErrNeitherShareMsgsGiven
 	ErrMissingSignature      = types.ErrMissingSignature
-)
-
-var (
-	ActionCreateValidator      = tags.ActionCreateValidator
-	ActionEditValidator        = tags.ActionEditValidator
-	ActionDelegate             = tags.ActionDelegate
-	ActionBeginUnbonding       = tags.ActionBeginUnbonding
-	ActionCompleteUnbonding    = tags.ActionCompleteUnbonding
-	ActionBeginRedelegation    = tags.ActionBeginRedelegation
-	ActionCompleteRedelegation = tags.ActionCompleteRedelegation
-
-	TagAction       = tags.Action
-	TagSrcValidator = tags.SrcValidator
-	TagDstValidator = tags.DstValidator
-	TagDelegator    = tags.Delegator
-	TagMoniker      = tags.Moniker
-	TagIdentity     = tags.Identity
 )

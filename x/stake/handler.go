@@ -10,7 +10,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/stake/keeper"
 	"github.com/cosmos/cosmos-sdk/x/stake/tags"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
-	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
@@ -30,6 +29,17 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 		//	return handleMsgBeginRedelegate(ctx, msg, k)
 		//case types.MsgBeginUnbonding:
 		//	return handleMsgBeginUnbonding(ctx, msg, k)
+		//case MsgSideChain
+		case types.MsgCreateSideChainValidator:
+			return handleMsgCreateSideChainValidator(ctx, msg, k)
+		case types.MsgEditSideChainValidator:
+			return handleMsgEditSideChainValidator(ctx, msg, k)
+		case types.MsgSideChainDelegate:
+			return handleMsgSideChainDelegate(ctx, msg, k)
+		case types.MsgSideChainRedelegate:
+			return handleMsgSideChainRedelegate(ctx, msg, k)
+		case types.MsgSideChainUndelegate:
+			return handleMsgSideChainUndelegate(ctx, msg, k)
 		default:
 			return sdk.ErrTxDecode("invalid message parse in staking module").Result()
 		}
@@ -56,55 +66,6 @@ func NewStakeHandler(k Keeper) sdk.Handler {
 	}
 }
 
-// Called every block, update validator set
-func EndBlocker(ctx sdk.Context, k keeper.Keeper) (ValidatorUpdates []abci.ValidatorUpdate, completedUnbondingDelegations []types.UnbondingDelegation) {
-	endBlockerTags := sdk.EmptyTags()
-	logger := ctx.Logger().With("module", "stake")
-
-	k.UnbondAllMatureValidatorQueue(ctx)
-
-	matureUnbonds := k.DequeueAllMatureUnbondingQueue(ctx, ctx.BlockHeader().Time)
-	for _, dvPair := range matureUnbonds {
-		ubd, found := k.GetUnbondingDelegation(ctx, dvPair.DelegatorAddr, dvPair.ValidatorAddr)
-		if !found {
-			logger.Error("Failed to get unbonding delegation", "delegator_address",dvPair.DelegatorAddr.String(), "validator_address", dvPair.ValidatorAddr.String())
-			continue
-		}
-		err := k.CompleteUnbonding(ctx, dvPair.DelegatorAddr, dvPair.ValidatorAddr)
-		if err != nil {
-			logger.Error(fmt.Sprintf("Failed to complete unbonding delegation: %s", err.Error()), "delegator_address",dvPair.DelegatorAddr.String(), "validator_address", dvPair.ValidatorAddr.String())
-			continue
-		}
-		completedUnbondingDelegations = append(completedUnbondingDelegations, ubd)
-		endBlockerTags.AppendTags(sdk.NewTags(
-			tags.Action, ActionCompleteUnbonding,
-			tags.Delegator, []byte(dvPair.DelegatorAddr.String()),
-			tags.SrcValidator, []byte(dvPair.ValidatorAddr.String()),
-		))
-	}
-
-	matureRedelegations := k.DequeueAllMatureRedelegationQueue(ctx, ctx.BlockHeader().Time)
-	for _, dvvTriplet := range matureRedelegations {
-		err := k.CompleteRedelegation(ctx, dvvTriplet.DelegatorAddr, dvvTriplet.ValidatorSrcAddr, dvvTriplet.ValidatorDstAddr)
-		if err != nil {
-			logger.Error(fmt.Sprintf("Failed to complete redelegation: %s", err.Error()), "delegator_address",dvvTriplet.DelegatorAddr.String(), "source_validator_address", dvvTriplet.ValidatorSrcAddr.String(), "source_validator_address", dvvTriplet.ValidatorDstAddr.String())
-			continue
-		}
-		endBlockerTags.AppendTags(sdk.NewTags(
-			tags.Action, tags.ActionCompleteRedelegation,
-			tags.Delegator, []byte(dvvTriplet.DelegatorAddr.String()),
-			tags.SrcValidator, []byte(dvvTriplet.ValidatorSrcAddr.String()),
-			tags.DstValidator, []byte(dvvTriplet.ValidatorDstAddr.String()),
-		))
-	}
-
-	// reset the intra-transaction counter
-	k.SetIntraTxCounter(ctx, 0)
-
-	// calculate validator set changes
-	ValidatorUpdates = k.ApplyAndReturnValidatorSetUpdates(ctx)
-	return
-}
 
 //_____________________________________________________________________
 
@@ -195,7 +156,6 @@ func handleMsgCreateValidator(ctx sdk.Context, msg MsgCreateValidator, k keeper.
 	}
 
 	tags := sdk.NewTags(
-		tags.Action, tags.ActionCreateValidator,
 		tags.DstValidator, []byte(msg.ValidatorAddr.String()),
 		tags.Moniker, []byte(msg.Description.Moniker),
 		tags.Identity, []byte(msg.Description.Identity),
@@ -312,7 +272,6 @@ func handleMsgEditValidator(ctx sdk.Context, msg types.MsgEditValidator, k keepe
 	k.SetValidator(ctx, validator)
 
 	tags := sdk.NewTags(
-		tags.Action, tags.ActionEditValidator,
 		tags.DstValidator, []byte(msg.ValidatorAddr.String()),
 		tags.Moniker, []byte(description.Moniker),
 		tags.Identity, []byte(description.Identity),
@@ -333,7 +292,14 @@ func handleMsgDelegate(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper) 
 		return ErrBadDenom(k.Codespace()).Result()
 	}
 
-	if validator.Jailed && !bytes.Equal(validator.OperatorAddr, msg.DelegatorAddr) {
+	if bytes.Equal(msg.DelegatorAddr.Bytes(), validator.OperatorAddr.Bytes()) {
+		// if validator uses a different self-delegator address, the operator address is not allowed to delegate to itself.
+		if !bytes.Equal(validator.OperatorAddr.Bytes(), validator.FeeAddr.Bytes()) {
+			return ErrInvalidDelegator(k.Codespace()).Result()
+		}
+	}
+
+	if validator.Jailed && !bytes.Equal(validator.FeeAddr, msg.DelegatorAddr) {
 		return ErrValidatorJailed(k.Codespace()).Result()
 	}
 
@@ -343,7 +309,6 @@ func handleMsgDelegate(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper) 
 	}
 
 	tags := sdk.NewTags(
-		tags.Action, tags.ActionDelegate,
 		tags.Delegator, []byte(msg.DelegatorAddr.String()),
 		tags.DstValidator, []byte(msg.ValidatorAddr.String()),
 	)
@@ -362,7 +327,6 @@ func handleMsgBeginUnbonding(ctx sdk.Context, msg types.MsgBeginUnbonding, k kee
 	finishTime := types.MsgCdc.MustMarshalBinaryLengthPrefixed(ubd.MinTime)
 
 	tags := sdk.NewTags(
-		tags.Action, tags.ActionBeginUnbonding,
 		tags.Delegator, []byte(msg.DelegatorAddr.String()),
 		tags.SrcValidator, []byte(msg.ValidatorAddr.String()),
 		tags.EndTime, finishTime,
@@ -380,7 +344,6 @@ func handleMsgBeginRedelegate(ctx sdk.Context, msg types.MsgBeginRedelegate, k k
 	finishTime := types.MsgCdc.MustMarshalBinaryLengthPrefixed(red.MinTime)
 
 	tags := sdk.NewTags(
-		tags.Action, tags.ActionBeginRedelegation,
 		tags.Delegator, []byte(msg.DelegatorAddr.String()),
 		tags.SrcValidator, []byte(msg.ValidatorSrcAddr.String()),
 		tags.DstValidator, []byte(msg.ValidatorDstAddr.String()),
