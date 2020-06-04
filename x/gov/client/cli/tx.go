@@ -163,7 +163,7 @@ $ CLI gov submit-proposal --title="Test Proposal" --description="My awesome prop
 	cmd.Flags().String(flagProposalType, "", "proposalType of proposal, types: text/parameter_change/software_upgrade")
 	cmd.Flags().String(flagDeposit, "", "deposit of proposal")
 	cmd.Flags().String(flagProposal, "", "proposal file path (if this path is given, other proposal flags are ignored)")
-	cmd.Flags().String(flagSideChainId, "", "the id of side chain, default is native chain")
+	cmd.Flags().String(flagSideChainId, sidechain.NativeChainID, "the id of side chain, default is native chain")
 	return cmd
 }
 
