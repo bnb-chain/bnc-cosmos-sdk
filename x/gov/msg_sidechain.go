@@ -19,15 +19,24 @@ var _, _, _ sdk.Msg = MsgSideChainSubmitProposal{}, MsgSideChainDeposit{}, MsgSi
 //-----------------------------------------------------------
 // MsgSideChainSubmitProposal
 type MsgSideChainSubmitProposal struct {
-	MsgSubmitProposal
-	SideChainId string `json:"side_chain_id"`
+	Title          string         `json:"title"`           //  Title of the proposal
+	Description    string         `json:"description"`     //  Description of the proposal
+	ProposalType   ProposalKind   `json:"proposal_type"`   //  Type of proposal. Initial set {PlainTextProposal, SoftwareUpgradeProposal}
+	Proposer       sdk.AccAddress `json:"proposer"`        //  Address of the proposer
+	InitialDeposit sdk.Coins      `json:"initial_deposit"` //  Initial deposit paid by sender. Must be strictly positive.
+	VotingPeriod   time.Duration  `json:"voting_period"`   //  Length of the voting period (s)
+	SideChainId    string         `json:"side_chain_id"`
 }
 
 func NewMsgSideChainSubmitProposal(title string, description string, proposalType ProposalKind, proposer sdk.AccAddress, initialDeposit sdk.Coins, votingPeriod time.Duration, sideChainId string) MsgSideChainSubmitProposal {
-	subMsg := NewMsgSubmitProposal(title, description, proposalType, proposer, initialDeposit, votingPeriod)
 	return MsgSideChainSubmitProposal{
-		MsgSubmitProposal: subMsg,
-		SideChainId:       sideChainId,
+		Title:          title,
+		Description:    description,
+		ProposalType:   proposalType,
+		Proposer:       proposer,
+		InitialDeposit: initialDeposit,
+		VotingPeriod:   votingPeriod,
+		SideChainId:    sideChainId,
 	}
 }
 
@@ -97,14 +106,17 @@ func (msg MsgSideChainSubmitProposal) GetInvolvedAddresses() []sdk.AccAddress {
 //-----------------------------------------------------------
 // MsgSideChainDeposit
 type MsgSideChainDeposit struct {
-	MsgDeposit
-	SideChainId string `json:"side_chain_id"`
+	ProposalID  int64          `json:"proposal_id"` // ID of the proposal
+	Depositer   sdk.AccAddress `json:"depositer"`   // Address of the depositer
+	Amount      sdk.Coins      `json:"amount"`      // Coins to add to the proposal's deposit
+	SideChainId string         `json:"side_chain_id"`
 }
 
 func NewMsgSideChainDeposit(depositer sdk.AccAddress, proposalID int64, amount sdk.Coins, sideChainId string) MsgSideChainDeposit {
-	subMsg := NewMsgDeposit(depositer, proposalID, amount)
 	return MsgSideChainDeposit{
-		MsgDeposit:  subMsg,
+		ProposalID:  proposalID,
+		Depositer:   depositer,
+		Amount:      amount,
 		SideChainId: sideChainId,
 	}
 }
@@ -118,7 +130,19 @@ func (msg MsgSideChainDeposit) ValidateBasic() sdk.Error {
 	if len(msg.SideChainId) == 0 || len(msg.SideChainId) > sidechain.MaxSideChainIdLength {
 		return ErrInvalidSideChainId(DefaultCodespace, msg.SideChainId)
 	}
-	return msg.MsgDeposit.ValidateBasic()
+	if len(msg.Depositer) != sdk.AddrLen {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("length of address(%s) should be %d", string(msg.Depositer), sdk.AddrLen))
+	}
+	if !msg.Amount.IsValid() {
+		return sdk.ErrInvalidCoins(msg.Amount.String())
+	}
+	if !msg.Amount.IsNotNegative() {
+		return sdk.ErrInvalidCoins(msg.Amount.String())
+	}
+	if msg.ProposalID < 0 {
+		return ErrUnknownProposal(DefaultCodespace, msg.ProposalID)
+	}
+	return nil
 }
 
 func (msg MsgSideChainDeposit) String() string {
@@ -149,14 +173,17 @@ func (msg MsgSideChainDeposit) GetInvolvedAddresses() []sdk.AccAddress {
 // MsgSideChainVote
 
 type MsgSideChainVote struct {
-	MsgVote
-	SideChainId string `json:"side_chain_id"`
+	ProposalID  int64          `json:"proposal_id"` // ID of the proposal
+	Voter       sdk.AccAddress `json:"voter"`       //  address of the voter
+	Option      VoteOption     `json:"option"`      //  option from OptionSet chosen by the voter
+	SideChainId string         `json:"side_chain_id"`
 }
 
 func NewMsgSideChainVote(voter sdk.AccAddress, proposalID int64, option VoteOption, sideChainId string) MsgSideChainVote {
-	subMsg := NewMsgVote(voter, proposalID, option)
 	return MsgSideChainVote{
-		MsgVote:     subMsg,
+		ProposalID:  proposalID,
+		Voter:       voter,
+		Option:      option,
 		SideChainId: sideChainId,
 	}
 }
@@ -169,7 +196,16 @@ func (msg MsgSideChainVote) ValidateBasic() sdk.Error {
 	if len(msg.SideChainId) == 0 || len(msg.SideChainId) > sidechain.MaxSideChainIdLength {
 		return ErrInvalidSideChainId(DefaultCodespace, msg.SideChainId)
 	}
-	return msg.MsgVote.ValidateBasic()
+	if len(msg.Voter) != sdk.AddrLen {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("length of address(%s) should be %d", string(msg.Voter), sdk.AddrLen))
+	}
+	if msg.ProposalID < 0 {
+		return ErrUnknownProposal(DefaultCodespace, msg.ProposalID)
+	}
+	if !validVoteOption(msg.Option) {
+		return ErrInvalidVote(DefaultCodespace, msg.Option)
+	}
+	return nil
 }
 
 func (msg MsgSideChainVote) String() string {

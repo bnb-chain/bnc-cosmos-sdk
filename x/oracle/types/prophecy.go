@@ -21,7 +21,7 @@ type Params struct {
 
 func (p Params) UpdateCheck() error {
 	if p.ConsensusNeeded.IsNil() || p.ConsensusNeeded.GT(sdk.OneDec()) || p.ConsensusNeeded.LT(sdk.NewDecWithPrec(5, 1)) {
-		return fmt.Errorf("the value should be in range [0.5,1]")
+		return fmt.Errorf("the value should be in range 0.5 to 1")
 	}
 	return nil
 }

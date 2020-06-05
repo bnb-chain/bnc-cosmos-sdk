@@ -218,6 +218,9 @@ func GetCmdDeposit(cdc *codec.Codec) *cobra.Command {
 
 			proposalID := viper.GetInt64(flagProposalID)
 			sideChainId := viper.GetString(flagSideChainId)
+			if len(sideChainId) > sidechain.MaxSideChainIdLength {
+				return fmt.Errorf("side-chain-id exceed the max length %d", sidechain.MaxSideChainIdLength)
+			}
 
 			amount, err := sdk.ParseCoins(viper.GetString(flagDeposit))
 			if err != nil {
@@ -247,7 +250,7 @@ func GetCmdDeposit(cdc *codec.Codec) *cobra.Command {
 
 	cmd.Flags().String(flagProposalID, "", "proposalID of proposal depositing on")
 	cmd.Flags().String(flagDeposit, "", "amount of deposit")
-	cmd.Flags().String(flagSideChainId, "", "the id of side chain, default is native chain")
+	cmd.Flags().String(flagSideChainId, sidechain.NativeChainID, "the id of side chain, default is native chain")
 
 	return cmd
 }
@@ -271,6 +274,10 @@ func GetCmdVote(cdc *codec.Codec) *cobra.Command {
 			proposalID := viper.GetInt64(flagProposalID)
 			option := viper.GetString(flagOption)
 			sideChainId := viper.GetString(flagSideChainId)
+
+			if len(sideChainId) > sidechain.MaxSideChainIdLength {
+				return fmt.Errorf("side-chain-id exceed the max length %d", sidechain.MaxSideChainIdLength)
+			}
 
 			byteVoteOption, err := gov.VoteOptionFromString(client.NormalizeVoteOption(option))
 			if err != nil {
@@ -308,7 +315,7 @@ func GetCmdVote(cdc *codec.Codec) *cobra.Command {
 
 	cmd.Flags().String(flagProposalID, "", "proposalID of proposal voting on")
 	cmd.Flags().String(flagOption, "", "vote option {yes, no, no_with_veto, abstain}")
-	cmd.Flags().String(flagSideChainId, "", "the id of side chain, default is native chain")
+	cmd.Flags().String(flagSideChainId, sidechain.NativeChainID, "the id of side chain, default is native chain")
 
 	return cmd
 }

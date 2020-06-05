@@ -11,7 +11,9 @@ func handleMsgSideChainSubmitProposal(ctx sdk.Context, keeper Keeper, msg MsgSid
 		return ErrInvalidSideChainId(keeper.codespace, msg.SideChainId).Result()
 	}
 
-	result := handleMsgSubmitProposal(ctx, keeper, msg.MsgSubmitProposal)
+	result := handleMsgSubmitProposal(ctx, keeper,
+		NewMsgSubmitProposal(msg.Title, msg.Description, msg.ProposalType, msg.Proposer, msg.InitialDeposit,
+			msg.VotingPeriod))
 	if result.IsOK() {
 		result.Tags = result.Tags.AppendTag(events.SideChainID, []byte(msg.SideChainId))
 	}
@@ -24,7 +26,7 @@ func handleMsgSideChainDeposit(ctx sdk.Context, keeper Keeper, msg MsgSideChainD
 		return ErrInvalidSideChainId(keeper.codespace, msg.SideChainId).Result()
 	}
 
-	result := handleMsgDeposit(ctx, keeper, msg.MsgDeposit)
+	result := handleMsgDeposit(ctx, keeper, NewMsgDeposit(msg.Depositer, msg.ProposalID, msg.Amount))
 	if result.IsOK() {
 		result.Tags = result.Tags.AppendTag(events.SideChainID, []byte(msg.SideChainId))
 	}
@@ -36,7 +38,7 @@ func handleMsgSideChainVote(ctx sdk.Context, keeper Keeper, msg MsgSideChainVote
 	if err != nil {
 		return ErrInvalidSideChainId(keeper.codespace, msg.SideChainId).Result()
 	}
-	result := handleMsgVote(ctx, keeper, msg.MsgVote)
+	result := handleMsgVote(ctx, keeper, NewMsgVote(msg.Voter, msg.ProposalID, msg.Option))
 	if result.IsOK() {
 		result.Tags = result.Tags.AppendTag(events.SideChainID, []byte(msg.SideChainId))
 	}
