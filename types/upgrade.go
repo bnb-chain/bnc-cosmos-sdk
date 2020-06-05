@@ -6,7 +6,8 @@ var UpgradeMgr = NewUpgradeManager(UpgradeConfig{})
 
 const (
 	FixSignBytesOverflow = "FixSignBytesOverflow" // fix json unmarshal overflow when build SignBytes
-	LaunchBscUpgrade = "LaunchBscUpgrade"
+	BEP8                 = "BEP8"                 // Mini-BEP2 token
+	LaunchBscUpgrade     = "LaunchBscUpgrade"
 )
 
 var MainNetConfig = UpgradeConfig{

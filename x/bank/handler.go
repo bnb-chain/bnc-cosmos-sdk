@@ -30,6 +30,15 @@ func handleMsgSend(ctx sdk.Context, k Keeper, msg MsgSend) sdk.Result {
 			return err.Result()
 		}
 	}
+
+	if sdk.IsUpgrade(sdk.BEP8) {
+		am := k.GetAccountKeeper()
+		for _, in := range msg.Inputs {
+			if err := checkAndValidateMiniTokenCoins(ctx, am, in.Address, in.Coins); err != nil {
+				return err.Result()
+			}
+		}
+	}
 	// NOTE: totalIn == totalOut should already have been checked
 	tags, err := k.InputOutputCoins(ctx, msg.Inputs, msg.Outputs)
 	if err != nil {

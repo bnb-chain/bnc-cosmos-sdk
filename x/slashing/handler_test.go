@@ -12,7 +12,7 @@ func TestCannotUnjailUnlessJailed(t *testing.T) {
 	// initial setup
 	ctx, ck, sk, _, keeper := createTestInput(t, DefaultParams())
 	slh := NewSlashingHandler(keeper)
-	amtInt := sdk.NewDecWithoutFra(100).RawInt()
+	amtInt := sdk.NewDecWithoutFra(10000).RawInt()
 	addr, val, amt := addrs[0], pks[0], amtInt
 	msg := NewTestMsgCreateValidator(addr, val, amt)
 	got := stake.NewStakeHandler(sk)(ctx, msg)
