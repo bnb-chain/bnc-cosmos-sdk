@@ -289,7 +289,7 @@ func validProposalStatus(status ProposalStatus) bool {
 		status == StatusVotingPeriod ||
 		status == StatusPassed ||
 		status == StatusRejected ||
-		status == StatusExecuted{
+		status == StatusExecuted {
 		return true
 	}
 	return false

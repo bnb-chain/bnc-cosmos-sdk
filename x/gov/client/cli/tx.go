@@ -102,7 +102,7 @@ $ CLI gov submit-proposal --title="Test Proposal" --description="My awesome prop
 				return errors.New(fmt.Sprintf("Proposal description is longer than max length of %d", gov.MaxDescriptionLength))
 			}
 
-			if proposal.SideChainId != sidechain.NativeChainID && len(proposal.SideChainId) > sidechain.MaxSideChainIdLength {
+			if proposal.SideChainId != gov.NativeChainID && len(proposal.SideChainId) > sidechain.MaxSideChainIdLength {
 				return errors.New(fmt.Sprintf("chain-id exceed the length limit %d", sidechain.MaxSideChainIdLength))
 			}
 
@@ -136,7 +136,7 @@ $ CLI gov submit-proposal --title="Test Proposal" --description="My awesome prop
 				return err
 			}
 			var msg sdk.Msg
-			if sideChainId == sidechain.NativeChainID {
+			if sideChainId == gov.NativeChainID {
 				msg = gov.NewMsgSubmitProposal(proposal.Title, proposal.Description, proposalType, fromAddr, amount, votingPeriod)
 			} else {
 				msg = gov.NewMsgSideChainSubmitProposal(proposal.Title, proposal.Description, proposalType, fromAddr, amount, votingPeriod, sideChainId)
@@ -163,7 +163,7 @@ $ CLI gov submit-proposal --title="Test Proposal" --description="My awesome prop
 	cmd.Flags().String(flagProposalType, "", "proposalType of proposal, types: text/parameter_change/software_upgrade")
 	cmd.Flags().String(flagDeposit, "", "deposit of proposal")
 	cmd.Flags().String(flagProposal, "", "proposal file path (if this path is given, other proposal flags are ignored)")
-	cmd.Flags().String(flagSideChainId, sidechain.NativeChainID, "the id of side chain, default is native chain")
+	cmd.Flags().String(flagSideChainId, gov.NativeChainID, "the id of side chain, default is native chain")
 	return cmd
 }
 
@@ -227,7 +227,7 @@ func GetCmdDeposit(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 			var msg sdk.Msg
-			if sideChainId == sidechain.NativeChainID {
+			if sideChainId == gov.NativeChainID {
 				msg = gov.NewMsgDeposit(depositerAddr, proposalID, amount)
 			} else {
 				msg = gov.NewMsgSideChainDeposit(depositerAddr, proposalID, amount, sideChainId)
@@ -250,7 +250,7 @@ func GetCmdDeposit(cdc *codec.Codec) *cobra.Command {
 
 	cmd.Flags().String(flagProposalID, "", "proposalID of proposal depositing on")
 	cmd.Flags().String(flagDeposit, "", "amount of deposit")
-	cmd.Flags().String(flagSideChainId, sidechain.NativeChainID, "the id of side chain, default is native chain")
+	cmd.Flags().String(flagSideChainId, gov.NativeChainID, "the id of side chain, default is native chain")
 
 	return cmd
 }
@@ -284,7 +284,7 @@ func GetCmdVote(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 			var msg sdk.Msg
-			if sideChainId == sidechain.NativeChainID {
+			if sideChainId == gov.NativeChainID {
 				msg = gov.NewMsgVote(voterAddr, proposalID, byteVoteOption)
 			} else {
 				msg = gov.NewMsgSideChainVote(voterAddr, proposalID, byteVoteOption, sideChainId)
@@ -297,7 +297,7 @@ func GetCmdVote(cdc *codec.Codec) *cobra.Command {
 			if cliCtx.GenerateOnly {
 				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg})
 			}
-			if sideChainId == sidechain.NativeChainID {
+			if sideChainId == gov.NativeChainID {
 				fmt.Printf("Vote[Voter:%s,ProposalID:%d,Option:%s]",
 					voterAddr.String(), proposalID, option,
 				)
@@ -315,7 +315,7 @@ func GetCmdVote(cdc *codec.Codec) *cobra.Command {
 
 	cmd.Flags().String(flagProposalID, "", "proposalID of proposal voting on")
 	cmd.Flags().String(flagOption, "", "vote option {yes, no, no_with_veto, abstain}")
-	cmd.Flags().String(flagSideChainId, sidechain.NativeChainID, "the id of side chain, default is native chain")
+	cmd.Flags().String(flagSideChainId, gov.NativeChainID, "the id of side chain, default is native chain")
 
 	return cmd
 }

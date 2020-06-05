@@ -3,7 +3,7 @@ package gov
 //nolint
 const (
 	// side chain params change
-	ProposalTypeSCParamsChange      ProposalKind = 0x81
+	ProposalTypeSCParamsChange ProposalKind = 0x81
 	// cross side chain param change
 	ProposalTypeCSCParamsChange ProposalKind = 0x82
 )

@@ -17,8 +17,6 @@ const (
 	QueryVotes     = "votes"
 	QueryVote      = "vote"
 	QueryTally     = "tally"
-
-	ParsedRequestKey = "ParsedRequest"
 )
 
 func NewQuerier(keeper Keeper) sdk.Querier {
@@ -30,49 +28,49 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			if err != nil {
 				return res, err
 			}
-			return queryProposals(ctx, path[1:], req, keeper)
+			return queryProposals(ctx, path[1:], req, p, keeper)
 		case QueryProposal:
 			p := new(QueryProposalParams)
 			ctx, err = RequestPrepare(ctx, keeper, req, p)
 			if err != nil {
 				return res, err
 			}
-			return queryProposal(ctx, path[1:], req, keeper)
+			return queryProposal(ctx, path[1:], req, p, keeper)
 		case QueryDeposits:
 			p := new(QueryDepositsParams)
 			ctx, err = RequestPrepare(ctx, keeper, req, p)
 			if err != nil {
 				return res, err
 			}
-			return queryDeposits(ctx, path[1:], req, keeper)
+			return queryDeposits(ctx, path[1:], req, p, keeper)
 		case QueryDeposit:
 			p := new(QueryDepositParams)
 			ctx, err = RequestPrepare(ctx, keeper, req, p)
 			if err != nil {
 				return res, err
 			}
-			return queryDeposit(ctx, path[1:], req, keeper)
+			return queryDeposit(ctx, path[1:], req, p, keeper)
 		case QueryVotes:
 			p := new(QueryVotesParams)
 			ctx, err = RequestPrepare(ctx, keeper, req, p)
 			if err != nil {
 				return res, err
 			}
-			return queryVotes(ctx, path[1:], req, keeper)
+			return queryVotes(ctx, path[1:], req, p, keeper)
 		case QueryVote:
 			p := new(QueryVoteParams)
 			ctx, err = RequestPrepare(ctx, keeper, req, p)
 			if err != nil {
 				return res, err
 			}
-			return queryVote(ctx, path[1:], req, keeper)
+			return queryVote(ctx, path[1:], req, p, keeper)
 		case QueryTally:
 			p := new(QueryTallyParams)
 			ctx, err = RequestPrepare(ctx, keeper, req, p)
 			if err != nil {
 				return res, err
 			}
-			return queryTally(ctx, path[1:], req, keeper)
+			return queryTally(ctx, path[1:], req, p, keeper)
 		default:
 			return nil, sdk.ErrUnknownRequest("unknown gov query endpoint")
 		}
@@ -86,16 +84,7 @@ type QueryProposalParams struct {
 }
 
 // nolint: unparam
-func queryProposal(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) (res []byte, err sdk.Error) {
-	iParam := ctx.Value(ParsedRequestKey)
-	if iParam == nil {
-		return nil, sdk.ErrUnknownRequest("missing request data")
-	}
-	params, ok := iParam.(*QueryProposalParams)
-	if !ok {
-		return nil, sdk.ErrUnknownRequest("incorrectly formatted request data")
-	}
-
+func queryProposal(ctx sdk.Context, path []string, req abci.RequestQuery, params *QueryProposalParams, keeper Keeper) (res []byte, err sdk.Error) {
 	proposal := keeper.GetProposal(ctx, params.ProposalID)
 	if proposal == nil {
 		return nil, ErrUnknownProposal(DefaultCodespace, params.ProposalID)
@@ -116,15 +105,7 @@ type QueryDepositParams struct {
 }
 
 // nolint: unparam
-func queryDeposit(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) (res []byte, err sdk.Error) {
-	iParam := ctx.Value(ParsedRequestKey)
-	if iParam == nil {
-		return nil, sdk.ErrUnknownRequest("missing request data")
-	}
-	params, ok := iParam.(*QueryDepositParams)
-	if !ok {
-		return nil, sdk.ErrUnknownRequest("incorrectly formatted request data")
-	}
+func queryDeposit(ctx sdk.Context, path []string, req abci.RequestQuery, params *QueryDepositParams, keeper Keeper) (res []byte, err sdk.Error) {
 
 	deposit, _ := keeper.GetDeposit(ctx, params.ProposalID, params.Depositer)
 	bz, err2 := codec.MarshalJSONIndent(keeper.cdc, deposit)
@@ -142,16 +123,7 @@ type QueryVoteParams struct {
 }
 
 // nolint: unparam
-func queryVote(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) (res []byte, err sdk.Error) {
-	iParam := ctx.Value(ParsedRequestKey)
-	if iParam == nil {
-		return nil, sdk.ErrUnknownRequest("missing request data")
-	}
-	params, ok := iParam.(*QueryVoteParams)
-	if !ok {
-		return nil, sdk.ErrUnknownRequest("incorrectly formatted request data")
-	}
-
+func queryVote(ctx sdk.Context, path []string, req abci.RequestQuery, params *QueryVoteParams, keeper Keeper) (res []byte, err sdk.Error) {
 	vote, _ := keeper.GetVote(ctx, params.ProposalID, params.Voter)
 	bz, err2 := codec.MarshalJSONIndent(keeper.cdc, vote)
 	if err2 != nil {
@@ -167,16 +139,7 @@ type QueryDepositsParams struct {
 }
 
 // nolint: unparam
-func queryDeposits(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) (res []byte, err sdk.Error) {
-	iParam := ctx.Value(ParsedRequestKey)
-	if iParam == nil {
-		return nil, sdk.ErrUnknownRequest("missing request data")
-	}
-	params, ok := iParam.(*QueryDepositsParams)
-	if !ok {
-		return nil, sdk.ErrUnknownRequest("incorrectly formatted request data")
-	}
-
+func queryDeposits(ctx sdk.Context, path []string, req abci.RequestQuery, params *QueryDepositsParams, keeper Keeper) (res []byte, err sdk.Error) {
 	var deposits []Deposit
 	depositsIterator := keeper.GetDeposits(ctx, params.ProposalID)
 	defer depositsIterator.Close()
@@ -200,15 +163,7 @@ type QueryVotesParams struct {
 }
 
 // nolint: unparam
-func queryVotes(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) (res []byte, err sdk.Error) {
-	iParam := ctx.Value(ParsedRequestKey)
-	if iParam == nil {
-		return nil, sdk.ErrUnknownRequest("missing request data")
-	}
-	params, ok := iParam.(*QueryVotesParams)
-	if !ok {
-		return nil, sdk.ErrUnknownRequest("incorrectly formatted request data")
-	}
+func queryVotes(ctx sdk.Context, path []string, req abci.RequestQuery, params *QueryVotesParams, keeper Keeper) (res []byte, err sdk.Error) {
 	var votes []Vote
 	votesIterator := keeper.GetVotes(ctx, params.ProposalID)
 	defer votesIterator.Close()
@@ -235,15 +190,7 @@ type QueryProposalsParams struct {
 }
 
 // nolint: unparam
-func queryProposals(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) (res []byte, err sdk.Error) {
-	iParam := ctx.Value(ParsedRequestKey)
-	if iParam == nil {
-		return nil, sdk.ErrUnknownRequest("missing request data")
-	}
-	params, ok := iParam.(*QueryProposalsParams)
-	if !ok {
-		return nil, sdk.ErrUnknownRequest("incorrectly formatted request data")
-	}
+func queryProposals(ctx sdk.Context, path []string, req abci.RequestQuery, params *QueryProposalsParams, keeper Keeper) (res []byte, err sdk.Error) {
 
 	proposals := keeper.GetProposalsFiltered(ctx, params.Voter, params.Depositer, params.ProposalStatus, params.NumLatestProposals)
 
@@ -261,15 +208,7 @@ type QueryTallyParams struct {
 }
 
 // nolint: unparam
-func queryTally(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) (res []byte, err sdk.Error) {
-	iParam := ctx.Value(ParsedRequestKey)
-	if iParam == nil {
-		return nil, sdk.ErrUnknownRequest("missing request data")
-	}
-	params, ok := iParam.(*QueryTallyParams)
-	if !ok {
-		return nil, sdk.ErrUnknownRequest("incorrectly formatted request data")
-	}
+func queryTally(ctx sdk.Context, path []string, req abci.RequestQuery, params *QueryTallyParams, keeper Keeper) (res []byte, err sdk.Error) {
 
 	proposal := keeper.GetProposal(ctx, params.ProposalID)
 	if proposal == nil {
@@ -301,7 +240,7 @@ func RequestPrepare(ctx sdk.Context, k Keeper, req abci.RequestQuery, p SideChai
 	if errRes != nil {
 		return ctx, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("can not unmarshal request", errRes.Error()))
 	}
-	newCtx = ctx.WithValue(ParsedRequestKey, p)
+	newCtx = ctx
 	if len(p.GetSideChainId()) != 0 {
 		newCtx, err = prepareSideChainCtx(newCtx, k, p.GetSideChainId())
 		if err != nil {
