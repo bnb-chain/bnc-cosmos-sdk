@@ -45,7 +45,7 @@ type cmd struct {
 	event Event
 }
 
-type Publisher struct {
+type Server struct {
 	common.BaseService
 	name string
 
@@ -57,30 +57,31 @@ type Publisher struct {
 	// check if the subscriber has already been added before
 	// subscribing or unsubscribing
 	mtx sync.RWMutex
+	wg  sync.WaitGroup
 }
 
-func NewPublisher(name string, logger log.Logger) *Publisher {
-	publisher := &Publisher{
+func NewServer(name string, logger log.Logger) *Server {
+	server := &Server{
 		name:        name,
 		cmds:        make(chan cmd),
 		subscribers: make(map[ClientID]map[Topic]struct{}),
 	}
-	publisher.BaseService = *common.NewBaseService(logger, name, publisher)
-	return publisher
+	server.BaseService = *common.NewBaseService(logger, name, server)
+	return server
 }
 
-func (publisher *Publisher) OnStart() error {
-	publisher.subscriptions = make(map[Topic]map[ClientID]*Subscriber)
-	go publisher.loop()
+func (server *Server) OnStart() error {
+	server.subscriptions = make(map[Topic]map[ClientID]*Subscriber)
+	go server.loop()
 	return nil
 }
 
-func (publisher *Publisher) OnStop() {
-	publisher.cmds <- cmd{op: shutdown}
+func (server *Server) OnStop() {
+	server.cmds <- cmd{op: shutdown}
 }
 
-func (publisher *Publisher) HasSubscribed(clientID ClientID, topic Topic) bool {
-	subs, ok := publisher.subscribers[clientID]
+func (server *Server) HasSubscribed(clientID ClientID, topic Topic) bool {
+	subs, ok := server.subscribers[clientID]
 	if !ok {
 		return ok
 	}
@@ -90,69 +91,75 @@ func (publisher *Publisher) HasSubscribed(clientID ClientID, topic Topic) bool {
 	return ok
 }
 
-func (publisher *Publisher) loop() {
-	for cmd := range publisher.cmds {
+func (server *Server) loop() {
+	for cmd := range server.cmds {
 		switch cmd.op {
 		case unsub:
 			if len(cmd.topic) != 0 {
-				publisher.remove(cmd.clientID, cmd.topic)
+				server.remove(cmd.clientID, cmd.topic)
 			} else {
-				publisher.removeClient(cmd.clientID)
+				server.removeClient(cmd.clientID)
 			}
 		case shutdown:
-			publisher.removeAll()
+			server.removeAll()
 			return
 		case sub:
 			// initialize subscription for this client per topic if needed
-			if _, ok := publisher.subscriptions[cmd.topic]; !ok {
-				publisher.subscriptions[cmd.topic] = make(map[ClientID]*Subscriber)
+			if _, ok := server.subscriptions[cmd.topic]; !ok {
+				server.subscriptions[cmd.topic] = make(map[ClientID]*Subscriber)
 			}
 			// create subscription
-			publisher.subscriptions[cmd.topic][cmd.clientID] = cmd.subscriber
+			server.subscriptions[cmd.topic][cmd.clientID] = cmd.subscriber
 		case pub:
-			publisher.push(cmd.event)
+			server.push(cmd.event)
 		}
 	}
 }
 
-func (publisher *Publisher) push(event Event) {
-	for _, sub := range publisher.subscriptions[event.GetTopic()] {
+func (server *Server) push(event Event) {
+	for _, sub := range server.subscriptions[event.GetTopic()] {
 		sub.wg.Add(1)
-		go func(sub *subscriber) {
-			defer func() {
-				if err := recover(); err != nil {
-					publisher.Logger.Error("event handle err: ", err)
-				}
-				sub.wg.Done()
-			}()
-			handler, ok := sub.handlers[event.GetTopic()]
-			if ok {
-				handler(event)
-			}
-		}(sub)
-	}
+		select {
+		case sub.out <- event:
+		default:
+			// what should we do if channel is blocked? Remove the subscriber directly?
+		}
 
+		//go func(sub *Subscriber) {
+		//	defer func() {
+		//		if err := recover(); err != nil {
+		//			publisher.Logger.Error("event handle err: ", err)
+		//		}
+		//		sub.wg.Done()
+		//	}()
+		//	handler, ok := sub.handlers[event.GetTopic()]
+		//	if ok {
+		//		handler(event)
+		//	}
+		//}(sub)
+	}
+	server.wg.Done()
 }
 
-func (publisher *Publisher) removeClient(clientID ClientID) {
-	for topic, clientSubscriptions := range publisher.subscriptions {
+func (server *Server) removeClient(clientID ClientID) {
+	for topic, clientSubscriptions := range server.subscriptions {
 		if _, ok := clientSubscriptions[clientID]; ok {
-			publisher.remove(clientID, topic)
+			server.remove(clientID, topic)
 		}
 	}
 }
 
-func (publisher *Publisher) removeAll() {
-	for topic, clientSubscriptions := range publisher.subscriptions {
+func (server *Server) removeAll() {
+	for topic, clientSubscriptions := range server.subscriptions {
 		for clientID := range clientSubscriptions {
-			publisher.remove(clientID, topic)
+			server.remove(clientID, topic)
 		}
 	}
 }
 
-func (publisher *Publisher) remove(clientID ClientID, topic Topic) {
+func (server *Server) remove(clientID ClientID, topic Topic) {
 
-	clientSubscriptions, ok := publisher.subscriptions[topic]
+	clientSubscriptions, ok := server.subscriptions[topic]
 	if !ok {
 		return
 	}
@@ -163,20 +170,22 @@ func (publisher *Publisher) remove(clientID ClientID, topic Topic) {
 	}
 	// remove client from topic map.
 	// if topic has no other clients subscribed, remove it.
-	delete(publisher.subscriptions[topic], clientID)
-	if len(publisher.subscriptions[topic]) == 0 {
-		delete(publisher.subscriptions, topic)
+	delete(server.subscriptions[topic], clientID)
+	if len(server.subscriptions[topic]) == 0 {
+		delete(server.subscriptions, topic)
 	}
 }
 
-func (publisher *Publisher) Publish(e Event) {
-	if !publisher.IsRunning() {
+func (server *Server) Publish(e Event) {
+	server.wg.Add(1)
+	if !server.IsRunning() {
 		return
 	}
+
 	select {
-	case publisher.cmds <- cmd{op: pub, event: e}:
+	case server.cmds <- cmd{op: pub, event: e}:
 		return
-	case <-publisher.Quit():
+	case <-server.Quit():
 		return
 	}
 }

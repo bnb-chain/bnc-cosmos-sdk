@@ -19,12 +19,12 @@ func (bc BlockCompleteEvent) GetTopic() Topic {
 
 func TestSubscribe(t *testing.T) {
 
-	pub := startPublisher(t, "test_pubsub")
+	server := startServer(t, "test_pubsub")
 
-	sub, err := pub.NewSubscriber("test_client")
+	sub, err := server.NewSubscriber("test_client", nil)
 	require.Nil(t, err)
 
-	_, err = pub.NewSubscriber("test_client")
+	_, err = server.NewSubscriber("test_client", nil)
 	require.Equal(t, ErrDuplicateClientID, err)
 
 	var getTxNum int
@@ -40,7 +40,7 @@ func TestSubscribe(t *testing.T) {
 	err = sub.Subscribe(blockT, func(event Event) {})
 	require.Equal(t, pubsub.ErrAlreadySubscribed, err)
 
-	pub.Publish(BlockCompleteEvent{txNum: 100})
+	server.Publish(BlockCompleteEvent{txNum: 100})
 	require.NotEqual(t, 100, getTxNum)
 	sub.Wait()
 	require.Equal(t, 100, getTxNum)
@@ -48,25 +48,25 @@ func TestSubscribe(t *testing.T) {
 }
 
 func TestUnsubscribe(t *testing.T) {
-	pub := startPublisher(t, "test_pubsub")
+	server := startServer(t, "test_pubsub")
 
 	clientId := ClientID("test_client")
-	sub, err := pub.NewSubscriber(clientId)
+	sub, err := server.NewSubscriber(clientId, nil)
 	require.Nil(t, err)
 
 	err = sub.Subscribe(blockT, func(event Event) {})
 	require.Nil(t, err)
 
-	require.True(t, pub.HasSubscribed(clientId, blockT))
+	require.True(t, server.HasSubscribed(clientId, blockT))
 
 	err = sub.Unsubscribe(blockT)
 	require.Nil(t, err)
 
-	require.False(t, pub.HasSubscribed(clientId, blockT))
+	require.False(t, server.HasSubscribed(clientId, blockT))
 }
 
-func startPublisher(t *testing.T, name string) *Publisher {
-	pub := NewPublisher(name, nil)
+func startServer(t *testing.T, name string) *Server {
+	pub := NewServer(name, nil)
 	err := pub.Start()
 	require.Nil(t, err)
 	return pub

@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
@@ -58,7 +59,7 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 			k.addrPool.AddAddrs(changedAddrs)
 		}
 
-		if ctx.IsDeliverTx() && len(rewards) > 0 && k.Publisher != nil {
+		if ctx.IsDeliverTx() && len(rewards) > 0 && k.PbsbServer != nil {
 			toPublish = append(toPublish, types.DistributionData{
 				Validator:     validator.GetOperator(),
 				SelfDelegator: validator.GetFeeAddr(),
@@ -72,12 +73,12 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 		}
 	}
 
-	if ctx.IsDeliverTx() && len(toPublish) > 0 && k.Publisher != nil {
+	if ctx.IsDeliverTx() && len(toPublish) > 0 && k.PbsbServer != nil {
 		event := types.SideDistributionEvent{
 			SideChainId: sideChainId,
 			Data:        toPublish,
 		}
-		k.Publisher.Publish(event)
+		k.PbsbServer.Publish(event)
 	}
 
 	removeValidatorsAndDelegationsAtHeight(height, k, ctx, validators)

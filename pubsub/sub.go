@@ -1,43 +1,80 @@
 package pubsub
 
-import "sync"
+import (
+	"fmt"
+	"sync"
+
+	"github.com/tendermint/tendermint/libs/log"
+)
 
 type ClientID string
 
 type Subscriber struct {
 	clientID ClientID
-	pub      *Publisher
+	server   *Server
 	handlers map[Topic]Handler
-	wg       *sync.WaitGroup
+	out      chan Event
+	quit     chan struct{}
+	wg       sync.WaitGroup
+	Logger   log.Logger
 }
 
-func (publisher *Publisher) NewSubscriber(clientID ClientID) (*Subscriber, error) {
-	publisher.mtx.Lock()
-	defer publisher.mtx.Unlock()
-	_, ok := publisher.subscribers[clientID]
+func (server *Server) NewSubscriber(clientID ClientID, logger log.Logger) (*Subscriber, error) {
+	server.mtx.Lock()
+	defer server.mtx.Unlock()
+	_, ok := server.subscribers[clientID]
 	if ok {
 		return nil, ErrDuplicateClientID
 	}
 	sub := &Subscriber{
 		clientID: clientID,
-		pub:      publisher,
+		server:   server,
 		handlers: make(map[Topic]Handler),
-		wg:       &sync.WaitGroup{},
+		out:      make(chan Event, 100),
+		quit:     make(chan struct{}),
+		Logger:   logger,
 	}
-	publisher.subscribers[clientID] = make(map[Topic]struct{})
+	server.subscribers[clientID] = make(map[Topic]struct{})
+
+	go func() {
+		for {
+			select {
+			case event := <-sub.out:
+				sub.eventHandle(event)
+				sub.wg.Done()
+			case <-sub.quit:
+				if sub.Logger != nil {
+					sub.Logger.Info(fmt.Sprintf("Subscriber[%s] removed", sub.clientID))
+				}
+				return
+			}
+		}
+	}()
 	return sub, nil
+}
+
+func (s *Subscriber) eventHandle(event Event) {
+	defer func() {
+		if err := recover(); err != nil && s.Logger != nil {
+			s.Logger.Error("event handle err: ", err)
+		}
+	}()
+	handler, ok := s.handlers[event.GetTopic()]
+	if ok {
+		handler(event)
+	}
 }
 
 func (s *Subscriber) Subscribe(topic Topic, handler Handler) error {
 	if handler == nil {
 		return ErrNilHandler
 	}
-	s.pub.mtx.RLock()
-	subscribers, ok := s.pub.subscribers[s.clientID]
+	s.server.mtx.RLock()
+	subscribers, ok := s.server.subscribers[s.clientID]
 	if ok {
 		_, ok = subscribers[topic]
 	}
-	s.pub.mtx.RUnlock()
+	s.server.mtx.RUnlock()
 	if ok {
 		return ErrAlreadySubscribed
 	}
@@ -45,58 +82,60 @@ func (s *Subscriber) Subscribe(topic Topic, handler Handler) error {
 	s.handlers[topic] = handler
 
 	select {
-	case s.pub.cmds <- cmd{op: sub, topic: topic, subscriber: s, clientID: s.clientID}:
-		s.pub.mtx.Lock()
-		if _, ok := s.pub.subscribers[s.clientID]; !ok {
-			s.pub.subscribers[s.clientID] = make(map[Topic]struct{})
+	case s.server.cmds <- cmd{op: sub, topic: topic, subscriber: s, clientID: s.clientID}:
+		s.server.mtx.Lock()
+		if _, ok := s.server.subscribers[s.clientID]; !ok {
+			s.server.subscribers[s.clientID] = make(map[Topic]struct{})
 		}
-		s.pub.subscribers[s.clientID][topic] = struct{}{}
-		s.pub.mtx.Unlock()
+		s.server.subscribers[s.clientID][topic] = struct{}{}
+		s.server.mtx.Unlock()
 		return nil
-	case <-s.pub.Quit():
+	case <-s.server.Quit():
 		return nil
 	}
 }
 
 func (s *Subscriber) Unsubscribe(topic Topic) error {
-	s.pub.mtx.RLock()
-	subscribers, ok := s.pub.subscribers[s.clientID]
+	s.server.mtx.RLock()
+	subscribers, ok := s.server.subscribers[s.clientID]
 	if ok {
 		_, ok = subscribers[topic]
 	}
-	s.pub.mtx.RUnlock()
+	s.server.mtx.RUnlock()
 	if !ok {
 		return ErrSubscriptionNotFound
 	}
 	select {
-	case s.pub.cmds <- cmd{op: unsub, clientID: s.clientID, topic: topic}:
-		s.pub.mtx.Lock()
-		delete(s.pub.subscribers[s.clientID], topic)
-		s.pub.mtx.Unlock()
+	case s.server.cmds <- cmd{op: unsub, clientID: s.clientID, topic: topic}:
+		s.server.mtx.Lock()
+		delete(s.server.subscribers[s.clientID], topic)
+		close(s.quit)
+		s.server.mtx.Unlock()
 		return nil
-	case <-s.pub.Quit():
+	case <-s.server.Quit():
 		return nil
 	}
 }
 
 func (s *Subscriber) UnsubscribeAll() error {
-	s.pub.mtx.RLock()
-	_, ok := s.pub.subscribers[s.clientID]
-	s.pub.mtx.RUnlock()
+	s.server.mtx.RLock()
+	_, ok := s.server.subscribers[s.clientID]
+	s.server.mtx.RUnlock()
 	if !ok {
 		return ErrSubscriptionNotFound
 	}
 	select {
-	case s.pub.cmds <- cmd{op: unsub, clientID: s.clientID}:
-		s.pub.mtx.Lock()
-		delete(s.pub.subscribers, s.clientID)
-		s.pub.mtx.RUnlock()
+	case s.server.cmds <- cmd{op: unsub, clientID: s.clientID}:
+		s.server.mtx.Lock()
+		delete(s.server.subscribers, s.clientID)
+		s.server.mtx.RUnlock()
 		return nil
-	case <-s.pub.Quit():
+	case <-s.server.Quit():
 		return nil
 	}
 }
 
 func (s *Subscriber) Wait() {
+	s.server.wg.Wait()
 	s.wg.Wait()
 }

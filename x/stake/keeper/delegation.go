@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/pubsub"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
@@ -76,6 +77,23 @@ func (k Keeper) SetDelegation(ctx sdk.Context, delegation types.Delegation) {
 	store := ctx.KVStore(k.storeKey)
 	b := types.MustMarshalDelegation(k.cdc, delegation)
 	store.Set(GetDelegationKey(delegation.DelegatorAddr, delegation.ValidatorAddr), b)
+
+	// publish delegation update
+	if k.PbsbServer != nil && ctx.IsDeliverTx() {
+		var event pubsub.Event = types.DelegationUpdateEvent{
+			StakeEvent: types.StakeEvent{
+				IsFromTx: ctx.Tx() != nil,
+			},
+			Delegation: delegation,
+		}
+		if len(ctx.SideChainId()) > 0 {
+			event = types.SideDelegationUpdateEvent{
+				DelegationUpdateEvent: event.(types.DelegationUpdateEvent),
+				SideChainId:           ctx.SideChainId(),
+			}
+		}
+		k.PbsbServer.Publish(event)
+	}
 }
 
 // set the delegation indexed by validator operator and delegator
@@ -90,6 +108,26 @@ func (k Keeper) RemoveDelegation(ctx sdk.Context, delegation types.Delegation) {
 	k.OnDelegationRemoved(ctx, delegation.DelegatorAddr, delegation.ValidatorAddr)
 	store := ctx.KVStore(k.storeKey)
 	store.Delete(GetDelegationKey(delegation.DelegatorAddr, delegation.ValidatorAddr))
+
+	// publish delegation update
+	if k.PbsbServer != nil && ctx.IsDeliverTx() {
+		var event pubsub.Event = types.DelegationRemovedEvent{
+			StakeEvent: types.StakeEvent{
+				IsFromTx: ctx.Tx() != nil,
+			},
+			DvPair: types.DVPair{
+				DelegatorAddr: delegation.DelegatorAddr,
+				ValidatorAddr: delegation.ValidatorAddr,
+			},
+		}
+		if len(ctx.SideChainId()) > 0 {
+			event = types.SideDelegationRemovedEvent{
+				DelegationRemovedEvent: event.(types.DelegationRemovedEvent),
+				SideChainId:            ctx.SideChainId(),
+			}
+		}
+		k.PbsbServer.Publish(event)
+	}
 }
 
 // remove a delegation stored within key grouped in order of validator and delegator
@@ -195,6 +233,23 @@ func (k Keeper) SetUnbondingDelegation(ctx sdk.Context, ubd types.UnbondingDeleg
 	key := GetUBDKey(ubd.DelegatorAddr, ubd.ValidatorAddr)
 	store.Set(key, bz)
 	store.Set(GetUBDByValIndexKey(ubd.DelegatorAddr, ubd.ValidatorAddr), []byte{}) // index, store empty bytes
+
+	// publish ubd update
+	if k.PbsbServer != nil && ctx.IsDeliverTx() {
+		var event pubsub.Event = types.UBDUpdateEvent{
+			StakeEvent: types.StakeEvent{
+				IsFromTx: ctx.Tx() != nil,
+			},
+			UBD: ubd,
+		}
+		if len(ctx.SideChainId()) > 0 {
+			event = types.SideUBDUpdateEvent{
+				UBDUpdateEvent: event.(types.UBDUpdateEvent),
+				SideChainId:    ctx.SideChainId(),
+			}
+		}
+		k.PbsbServer.Publish(event)
+	}
 }
 
 // remove the unbonding delegation object and associated index
@@ -331,6 +386,23 @@ func (k Keeper) SetRedelegation(ctx sdk.Context, red types.Redelegation) {
 	store.Set(key, bz)
 	store.Set(GetREDByValSrcIndexKey(red.DelegatorAddr, red.ValidatorSrcAddr, red.ValidatorDstAddr), []byte{})
 	store.Set(GetREDByValDstIndexKey(red.DelegatorAddr, red.ValidatorSrcAddr, red.ValidatorDstAddr), []byte{})
+
+	// publish red update
+	if k.PbsbServer != nil && ctx.IsDeliverTx() {
+		var event pubsub.Event = types.REDUpdateEvent{
+			StakeEvent: types.StakeEvent{
+				IsFromTx: ctx.Tx() != nil,
+			},
+			RED: red,
+		}
+		if len(ctx.SideChainId()) > 0 {
+			event = types.SideREDUpdateEvent{
+				REDUpdateEvent: event.(types.REDUpdateEvent),
+				SideChainId:    ctx.SideChainId(),
+			}
+		}
+		k.PbsbServer.Publish(event)
+	}
 }
 
 // remove a redelegation object and associated index

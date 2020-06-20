@@ -124,7 +124,7 @@ func (h ClaimHooks) ExecuteClaim(ctx sdk.Context, finalClaim string) (sdk.ClaimR
 	signInfo.JailedUntil = jailUtil
 	h.k.setValidatorSigningInfo(sideCtx, slashClaim.SideConsAddr, signInfo)
 
-	if h.k.Publisher != nil {
+	if h.k.PbsbServer != nil {
 		event := SideSlashEvent{
 			Validator:        validator.GetOperator(),
 			InfractionType:   Downtime,
@@ -134,7 +134,7 @@ func (h ClaimHooks) ExecuteClaim(ctx sdk.Context, finalClaim string) (sdk.ClaimR
 			SlashAmt:         slashedAmt.RawInt(),
 			SideChainId:      slashClaim.SideChainId,
 		}
-		h.k.Publisher.Publish(event)
+		h.k.PbsbServer.Publish(event)
 	}
 	return sdk.ClaimResult{}, nil
 }

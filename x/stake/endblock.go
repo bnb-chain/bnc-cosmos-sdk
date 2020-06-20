@@ -11,20 +11,20 @@ import (
 
 func EndBlocker(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.ValidatorUpdate, completedUbds []types.UnbondingDelegation) {
 	var events sdk.Events
-	_, validatorUpdates, completedUbds, events = handleValidatorAndDelegations(ctx, k)
+	_, validatorUpdates, completedUbds, _, events = handleValidatorAndDelegations(ctx, k)
 	ctx.EventManager().EmitEvents(events)
 	return
 }
 
 func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.ValidatorUpdate, completedUbds []types.UnbondingDelegation) {
 	var events sdk.Events
-	_, validatorUpdates, completedUbds, events = handleValidatorAndDelegations(ctx, k)
+	_, validatorUpdates, completedUbds, _, events = handleValidatorAndDelegations(ctx, k)
 
 	if sdk.IsUpgrade(sdk.LaunchBscUpgrade) && k.ScKeeper != nil {
 		sideChainIds, storePrefixes := k.ScKeeper.GetAllSideChainPrefixes(ctx)
 		for i := range storePrefixes {
 			sideChainCtx := ctx.WithSideChainKeyPrefix(storePrefixes[i])
-			newVals, _, completedUbds, scEvents := handleValidatorAndDelegations(sideChainCtx, k)
+			newVals, _, completedUbds, completedREDs, scEvents := handleValidatorAndDelegations(sideChainCtx, k)
 			if k.ExistHeightValidators(sideChainCtx) { // will not send ibc package if no snapshot of validators stored ever
 				saveSideChainValidatorsToIBC(ctx, sideChainIds[i], newVals, k)
 			}
@@ -37,20 +37,31 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 			storeValidatorsWithHeight(sideChainCtx, newVals, k)
 			k.Distribute(sideChainCtx, sideChainIds[i])
 
-			publishCompletedUBD(k, completedUbds, sideChainIds[i])
+			publishCompletedUBD(k, completedUbds, sideChainIds[i], ctx.BlockHeight())
+			publishCompletedRED(k, completedREDs, sideChainIds[i])
 		}
 	}
 	ctx.EventManager().EmitEvents(events)
 	return
 }
 
-func publishCompletedUBD(k keeper.Keeper, completedUbds []types.UnbondingDelegation, sideChainId string) {
-	if k.Publisher != nil && len(completedUbds) > 0 {
+func publishCompletedUBD(k keeper.Keeper, completedUbds []types.UnbondingDelegation, sideChainId string, height int64) {
+	if k.PbsbServer != nil && len(completedUbds) > 0 {
 		compUBDsEvent := types.SideCompletedUBDEvent{
 			CompUBDs:    completedUbds,
 			SideChainId: sideChainId,
 		}
-		k.Publisher.Publish(compUBDsEvent)
+		k.PbsbServer.Publish(compUBDsEvent)
+	}
+}
+
+func publishCompletedRED(k keeper.Keeper, completedReds []types.DVVTriplet, sideChainId string) {
+	if k.PbsbServer != nil && len(completedReds) > 0 {
+		compREDsEvent := types.SideCompletedREDEvent{
+			CompREDs:    completedReds,
+			SideChainId: sideChainId,
+		}
+		k.PbsbServer.Publish(compREDsEvent)
 	}
 }
 
@@ -80,22 +91,22 @@ func storeValidatorsWithHeight(ctx sdk.Context, validators []types.Validator, k 
 	k.SetValidatorsByHeight(ctx, blockHeight, validators)
 }
 
-func handleValidatorAndDelegations(ctx sdk.Context, k keeper.Keeper) ([]types.Validator, []abci.ValidatorUpdate, []types.UnbondingDelegation, sdk.Events) {
+func handleValidatorAndDelegations(ctx sdk.Context, k keeper.Keeper) ([]types.Validator, []abci.ValidatorUpdate, []types.UnbondingDelegation, []types.DVVTriplet, sdk.Events) {
 	// calculate validator set changes
 	newVals, validatorUpdates := k.ApplyAndReturnValidatorSetUpdates(ctx)
 
 	k.UnbondAllMatureValidatorQueue(ctx)
 	completedUbd, events := handleMatureUnbondingDelegations(k, ctx)
 
-	redEvents := handleMatureRedelegations(k, ctx)
+	completedREDs, redEvents := handleMatureRedelegations(k, ctx)
 	events = events.AppendEvents(redEvents)
 
 	// reset the intra-transaction counter
 	k.SetIntraTxCounter(ctx, 0)
-	return newVals, validatorUpdates, completedUbd, events
+	return newVals, validatorUpdates, completedUbd, completedREDs, events
 }
 
-func handleMatureRedelegations(k keeper.Keeper, ctx sdk.Context) sdk.Events {
+func handleMatureRedelegations(k keeper.Keeper, ctx sdk.Context) ([]types.DVVTriplet, sdk.Events) {
 	matureRedelegations := k.DequeueAllMatureRedelegationQueue(ctx, ctx.BlockHeader().Time)
 	events := make(sdk.Events, 0, len(matureRedelegations))
 	for _, dvvTriplet := range matureRedelegations {
@@ -111,7 +122,7 @@ func handleMatureRedelegations(k keeper.Keeper, ctx sdk.Context) sdk.Events {
 			sdk.NewAttribute(types.AttributeKeyDstValidator, dvvTriplet.ValidatorDstAddr.String()),
 		))
 	}
-	return events
+	return matureRedelegations, events
 }
 
 func handleMatureUnbondingDelegations(k keeper.Keeper, ctx sdk.Context) ([]types.UnbondingDelegation, sdk.Events) {

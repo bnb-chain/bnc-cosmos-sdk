@@ -29,7 +29,7 @@ type Keeper struct {
 	BankKeeper bank.Keeper
 	ScKeeper   *sidechain.Keeper
 
-	Publisher *pubsub.Publisher
+	PbsbServer *pubsub.Server
 }
 
 // NewKeeper creates a slashing keeper
@@ -49,8 +49,8 @@ func (k *Keeper) SetSideChain(scKeeper *sidechain.Keeper) {
 	k.ScKeeper = scKeeper
 }
 
-func (k *Keeper) SetPublisher(publisher *pubsub.Publisher) {
-	k.Publisher = publisher
+func (k *Keeper) SetPbsbServer(server *pubsub.Server) {
+	k.PbsbServer = server
 }
 
 func (k Keeper) ClaimRegister(oracleKeeper sdk.OracleKeeper) error {
