@@ -114,3 +114,77 @@ func TestMsgVote(t *testing.T) {
 		}
 	}
 }
+
+func TestMsgSideChainSubmitProposal(t *testing.T) {
+	_, addrs, _, _ := mock.CreateGenAccounts(1, sdk.Coins{})
+	tests := []struct {
+		title, description string
+		proposalType       gov.ProposalKind
+		proposerAddr       sdk.AccAddress
+		initialDeposit     sdk.Coins
+		votingPeriod       time.Duration
+		sideChainId        string
+		expectPass         bool
+	}{
+		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeSCParamsChange, addrs[0], coinsPos, 1000 * time.Second, "bsc", true},
+		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeCSCParamsChange, addrs[0], coinsPos, 1000 * time.Second, "rialto", true},
+		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeSCParamsChange, addrs[0], coinsPos, 1000 * time.Second, "", false},
+		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeParameterChange, addrs[0], coinsPos, 1000 * time.Second, "", false},
+	}
+
+	for i, tc := range tests {
+		msg := gov.NewMsgSideChainSubmitProposal(tc.title, tc.description, tc.proposalType, tc.proposerAddr, tc.initialDeposit, tc.votingPeriod, tc.sideChainId)
+		if tc.expectPass {
+			require.Nil(t, msg.ValidateBasic(), "test: %v", i)
+		} else {
+			require.NotNil(t, msg.ValidateBasic(), "test: %v", i)
+		}
+	}
+}
+
+func TestMsgSideChainDeposit(t *testing.T) {
+	_, addrs, _, _ := mock.CreateGenAccounts(1, sdk.Coins{})
+	tests := []struct {
+		proposalID    int64
+		depositerAddr sdk.AccAddress
+		depositAmount sdk.Coins
+		sideChain     string
+		expectPass    bool
+	}{
+		{0, addrs[0], coinsPos, "bsc", true},
+		{0, addrs[0], coinsPos, "", false},
+	}
+
+	for i, tc := range tests {
+		msg := gov.NewMsgSideChainDeposit(tc.depositerAddr, tc.proposalID, tc.depositAmount, tc.sideChain)
+		if tc.expectPass {
+			require.Nil(t, msg.ValidateBasic(), "test: %v", i)
+		} else {
+			require.NotNil(t, msg.ValidateBasic(), "test: %v", i)
+		}
+	}
+}
+
+// test ValidateBasic for MsgDeposit
+func TestMsgSideChainVote(t *testing.T) {
+	_, addrs, _, _ := mock.CreateGenAccounts(1, sdk.Coins{})
+	tests := []struct {
+		proposalID int64
+		voterAddr  sdk.AccAddress
+		option     gov.VoteOption
+		sideChain  string
+		expectPass bool
+	}{
+		{0, addrs[0], gov.OptionYes, "bsc", true},
+		{0, addrs[0], gov.OptionYes, "", false},
+	}
+
+	for i, tc := range tests {
+		msg := gov.NewMsgSideChainVote(tc.voterAddr, tc.proposalID, tc.option, tc.sideChain)
+		if tc.expectPass {
+			require.Nil(t, msg.ValidateBasic(), "test: %v", i)
+		} else {
+			require.NotNil(t, msg.ValidateBasic(), "test: %v", i)
+		}
+	}
+}

@@ -19,6 +19,7 @@ import (
 	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/gov/client"
+	"github.com/cosmos/cosmos-sdk/x/sidechain"
 )
 
 const (
@@ -39,6 +40,7 @@ const (
 	flagQuoteAsset        = "quote-asset-symbol"
 	flagInitPrice         = "init-price"
 	flagExpireTime        = "expire-time"
+	flagSideChainId       = "side-chain-id"
 )
 
 type proposal struct {
@@ -47,6 +49,7 @@ type proposal struct {
 	VotingPeriod int64  `json:"voting_period"`
 	Type         string `json:"type"`
 	Deposit      string `json:"deposit"`
+	SideChainId  string `json:"side_chain_id, omitempty"`
 }
 
 var proposalFlags = []string{
@@ -99,6 +102,10 @@ $ CLI gov submit-proposal --title="Test Proposal" --description="My awesome prop
 				return errors.New(fmt.Sprintf("Proposal description is longer than max length of %d", gov.MaxDescriptionLength))
 			}
 
+			if proposal.SideChainId != gov.NativeChainID && len(proposal.SideChainId) > sidechain.MaxSideChainIdLength {
+				return errors.New(fmt.Sprintf("chain-id exceed the length limit %d", sidechain.MaxSideChainIdLength))
+			}
+
 			txBldr := authtxb.NewTxBuilderFromCLI().WithCodec(cdc)
 			cliCtx := context.NewCLIContext().
 				WithCodec(cdc).
@@ -108,6 +115,7 @@ $ CLI gov submit-proposal --title="Test Proposal" --description="My awesome prop
 				return errors.New("voting period should be positive")
 			}
 
+			sideChainId := proposal.SideChainId
 			votingPeriod := time.Duration(proposal.VotingPeriod) * time.Second
 			if votingPeriod > gov.MaxVotingPeriod {
 				return errors.New(fmt.Sprintf("voting period should be less than %d seconds", gov.MaxVotingPeriod/time.Second))
@@ -127,8 +135,12 @@ $ CLI gov submit-proposal --title="Test Proposal" --description="My awesome prop
 			if err != nil {
 				return err
 			}
-
-			msg := gov.NewMsgSubmitProposal(proposal.Title, proposal.Description, proposalType, fromAddr, amount, votingPeriod)
+			var msg sdk.Msg
+			if sideChainId == gov.NativeChainID {
+				msg = gov.NewMsgSubmitProposal(proposal.Title, proposal.Description, proposalType, fromAddr, amount, votingPeriod)
+			} else {
+				msg = gov.NewMsgSideChainSubmitProposal(proposal.Title, proposal.Description, proposalType, fromAddr, amount, votingPeriod, sideChainId)
+			}
 			err = msg.ValidateBasic()
 			if err != nil {
 				return err
@@ -151,7 +163,7 @@ $ CLI gov submit-proposal --title="Test Proposal" --description="My awesome prop
 	cmd.Flags().String(flagProposalType, "", "proposalType of proposal, types: text/parameter_change/software_upgrade")
 	cmd.Flags().String(flagDeposit, "", "deposit of proposal")
 	cmd.Flags().String(flagProposal, "", "proposal file path (if this path is given, other proposal flags are ignored)")
-
+	cmd.Flags().String(flagSideChainId, gov.NativeChainID, "the id of side chain, default is native chain")
 	return cmd
 }
 
@@ -165,6 +177,7 @@ func parseSubmitProposalFlags() (*proposal, error) {
 		proposal.VotingPeriod = viper.GetInt64(flagVotingPeriod)
 		proposal.Type = client.NormalizeProposalType(viper.GetString(flagProposalType))
 		proposal.Deposit = viper.GetString(flagDeposit)
+		proposal.SideChainId = viper.GetString(flagSideChainId)
 		return proposal, nil
 	}
 
@@ -204,13 +217,22 @@ func GetCmdDeposit(cdc *codec.Codec) *cobra.Command {
 			}
 
 			proposalID := viper.GetInt64(flagProposalID)
+			sideChainId := viper.GetString(flagSideChainId)
+			if len(sideChainId) > sidechain.MaxSideChainIdLength {
+				return fmt.Errorf("side-chain-id exceed the max length %d", sidechain.MaxSideChainIdLength)
+			}
 
 			amount, err := sdk.ParseCoins(viper.GetString(flagDeposit))
 			if err != nil {
 				return err
 			}
+			var msg sdk.Msg
+			if sideChainId == gov.NativeChainID {
+				msg = gov.NewMsgDeposit(depositerAddr, proposalID, amount)
+			} else {
+				msg = gov.NewMsgSideChainDeposit(depositerAddr, proposalID, amount, sideChainId)
+			}
 
-			msg := gov.NewMsgDeposit(depositerAddr, proposalID, amount)
 			err = msg.ValidateBasic()
 			if err != nil {
 				return err
@@ -228,6 +250,7 @@ func GetCmdDeposit(cdc *codec.Codec) *cobra.Command {
 
 	cmd.Flags().String(flagProposalID, "", "proposalID of proposal depositing on")
 	cmd.Flags().String(flagDeposit, "", "amount of deposit")
+	cmd.Flags().String(flagSideChainId, gov.NativeChainID, "the id of side chain, default is native chain")
 
 	return cmd
 }
@@ -250,13 +273,22 @@ func GetCmdVote(cdc *codec.Codec) *cobra.Command {
 
 			proposalID := viper.GetInt64(flagProposalID)
 			option := viper.GetString(flagOption)
+			sideChainId := viper.GetString(flagSideChainId)
+
+			if len(sideChainId) > sidechain.MaxSideChainIdLength {
+				return fmt.Errorf("side-chain-id exceed the max length %d", sidechain.MaxSideChainIdLength)
+			}
 
 			byteVoteOption, err := gov.VoteOptionFromString(client.NormalizeVoteOption(option))
 			if err != nil {
 				return err
 			}
-
-			msg := gov.NewMsgVote(voterAddr, proposalID, byteVoteOption)
+			var msg sdk.Msg
+			if sideChainId == gov.NativeChainID {
+				msg = gov.NewMsgVote(voterAddr, proposalID, byteVoteOption)
+			} else {
+				msg = gov.NewMsgSideChainVote(voterAddr, proposalID, byteVoteOption, sideChainId)
+			}
 			err = msg.ValidateBasic()
 			if err != nil {
 				return err
@@ -265,10 +297,15 @@ func GetCmdVote(cdc *codec.Codec) *cobra.Command {
 			if cliCtx.GenerateOnly {
 				return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg})
 			}
-
-			fmt.Printf("Vote[Voter:%s,ProposalID:%d,Option:%s]",
-				voterAddr.String(), msg.ProposalID, msg.Option.String(),
-			)
+			if sideChainId == gov.NativeChainID {
+				fmt.Printf("Vote[Voter:%s,ProposalID:%d,Option:%s]",
+					voterAddr.String(), proposalID, option,
+				)
+			} else {
+				fmt.Printf("Vote[Voter:%s,ProposalID:%d,Option:%s, sideChainId:%s]",
+					voterAddr.String(), proposalID, option, sideChainId,
+				)
+			}
 
 			// Build and sign the transaction, then broadcast to a Tendermint
 			// node.
@@ -278,6 +315,7 @@ func GetCmdVote(cdc *codec.Codec) *cobra.Command {
 
 	cmd.Flags().String(flagProposalID, "", "proposalID of proposal voting on")
 	cmd.Flags().String(flagOption, "", "vote option {yes, no, no_with_veto, abstain}")
+	cmd.Flags().String(flagSideChainId, gov.NativeChainID, "the id of side chain, default is native chain")
 
 	return cmd
 }
@@ -290,8 +328,10 @@ func GetCmdQueryProposal(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			proposalID := viper.GetInt64(flagProposalID)
+			sideChainId := viper.GetString(flagSideChainId)
 
 			params := gov.QueryProposalParams{
+				BaseParams: gov.NewBaseParams(sideChainId),
 				ProposalID: proposalID,
 			}
 
@@ -311,6 +351,7 @@ func GetCmdQueryProposal(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	}
 
 	cmd.Flags().String(flagProposalID, "", "proposalID of proposal being queried")
+	cmd.Flags().String(flagSideChainId, "", "the id of side chain, default is native chain")
 
 	return cmd
 }
@@ -325,8 +366,10 @@ func GetCmdQueryProposals(queryRoute string, cdc *codec.Codec) *cobra.Command {
 			bechVoterAddr := viper.GetString(flagVoter)
 			strProposalStatus := viper.GetString(flagStatus)
 			latestProposalsIDs := viper.GetInt64(flagLatestProposalIDs)
+			sideChainId := viper.GetString(flagSideChainId)
 
 			params := gov.QueryProposalsParams{
+				BaseParams:         gov.NewBaseParams(sideChainId),
 				NumLatestProposals: latestProposalsIDs,
 			}
 
@@ -389,6 +432,7 @@ func GetCmdQueryProposals(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	cmd.Flags().String(flagDepositer, "", "(optional) filter by proposals deposited on by depositer")
 	cmd.Flags().String(flagVoter, "", "(optional) filter by proposals voted on by voted")
 	cmd.Flags().String(flagStatus, "", "(optional) filter proposals by proposal status, status: deposit_period/voting_period/passed/rejected")
+	cmd.Flags().String(flagSideChainId, "", "the id of side chain, default is native chain")
 
 	return cmd
 }
@@ -402,6 +446,7 @@ func GetCmdQueryVote(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			proposalID := viper.GetInt64(flagProposalID)
+			sideChainId := viper.GetString(flagSideChainId)
 
 			voterAddr, err := sdk.AccAddressFromBech32(viper.GetString(flagVoter))
 			if err != nil {
@@ -409,6 +454,7 @@ func GetCmdQueryVote(queryRoute string, cdc *codec.Codec) *cobra.Command {
 			}
 
 			params := gov.QueryVoteParams{
+				BaseParams: gov.NewBaseParams(sideChainId),
 				Voter:      voterAddr,
 				ProposalID: proposalID,
 			}
@@ -429,6 +475,7 @@ func GetCmdQueryVote(queryRoute string, cdc *codec.Codec) *cobra.Command {
 
 	cmd.Flags().String(flagProposalID, "", "proposalID of proposal voting on")
 	cmd.Flags().String(flagVoter, "", "bech32 voter address")
+	cmd.Flags().String(flagSideChainId, "", "the id of side chain, default is native chain")
 
 	return cmd
 }
@@ -441,8 +488,10 @@ func GetCmdQueryVotes(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			proposalID := viper.GetInt64(flagProposalID)
+			sideChainId := viper.GetString(flagSideChainId)
 
 			params := gov.QueryVotesParams{
+				BaseParams: gov.NewBaseParams(sideChainId),
 				ProposalID: proposalID,
 			}
 			bz, err := cdc.MarshalJSON(params)
@@ -461,6 +510,7 @@ func GetCmdQueryVotes(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	}
 
 	cmd.Flags().String(flagProposalID, "", "proposalID of which proposal's votes are being queried")
+	cmd.Flags().String(flagSideChainId, "", "the id of side chain, default is native chain")
 
 	return cmd
 }
@@ -474,6 +524,7 @@ func GetCmdQueryDeposit(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			proposalID := viper.GetInt64(flagProposalID)
+			sideChainId := viper.GetString(flagSideChainId)
 
 			depositerAddr, err := sdk.AccAddressFromBech32(viper.GetString(flagDepositer))
 			if err != nil {
@@ -481,6 +532,7 @@ func GetCmdQueryDeposit(queryRoute string, cdc *codec.Codec) *cobra.Command {
 			}
 
 			params := gov.QueryDepositParams{
+				BaseParams: gov.NewBaseParams(sideChainId),
 				Depositer:  depositerAddr,
 				ProposalID: proposalID,
 			}
@@ -501,7 +553,7 @@ func GetCmdQueryDeposit(queryRoute string, cdc *codec.Codec) *cobra.Command {
 
 	cmd.Flags().String(flagProposalID, "", "proposalID of proposal deposited on")
 	cmd.Flags().String(flagDepositer, "", "bech32 depositer address")
-
+	cmd.Flags().String(flagSideChainId, "", "the id of side chain, default is native chain")
 	return cmd
 }
 
@@ -513,8 +565,10 @@ func GetCmdQueryDeposits(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			proposalID := viper.GetInt64(flagProposalID)
+			sideChainId := viper.GetString(flagSideChainId)
 
 			params := gov.QueryDepositsParams{
+				BaseParams: gov.NewBaseParams(sideChainId),
 				ProposalID: proposalID,
 			}
 			bz, err := cdc.MarshalJSON(params)
@@ -533,6 +587,7 @@ func GetCmdQueryDeposits(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	}
 
 	cmd.Flags().String(flagProposalID, "", "proposalID of which proposal's deposits are being queried")
+	cmd.Flags().String(flagSideChainId, "", "the id of side chain, default is native chain")
 
 	return cmd
 }
@@ -545,8 +600,10 @@ func GetCmdQueryTally(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			proposalID := viper.GetInt64(flagProposalID)
+			sideChainId := viper.GetString(flagSideChainId)
 
 			params := gov.QueryTallyParams{
+				BaseParams: gov.NewBaseParams(sideChainId),
 				ProposalID: proposalID,
 			}
 			bz, err := cdc.MarshalJSON(params)
@@ -565,6 +622,7 @@ func GetCmdQueryTally(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	}
 
 	cmd.Flags().String(flagProposalID, "", "proposalID of which proposal is being tallied")
+	cmd.Flags().String(flagSideChainId, "", "the id of side chain, default is native chain")
 
 	return cmd
 }
