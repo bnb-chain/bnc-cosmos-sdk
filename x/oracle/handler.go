@@ -7,11 +7,10 @@ import (
 	"strconv"
 
 	"github.com/cosmos/cosmos-sdk/bsc/rlp"
-	"github.com/cosmos/cosmos-sdk/types/fees"
-	"github.com/cosmos/cosmos-sdk/x/sidechain"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/fees"
 	"github.com/cosmos/cosmos-sdk/x/oracle/types"
+	"github.com/cosmos/cosmos-sdk/x/sidechain"
 )
 
 func NewHandler(keeper Keeper) sdk.Handler {
@@ -59,9 +58,15 @@ func handleClaimMsg(ctx sdk.Context, oracleKeeper Keeper, msg ClaimMsg) sdk.Resu
 	for _, pack := range packages {
 		event, sdkErr := handlePackage(ctx, oracleKeeper, msg.ChainId, &pack)
 		if sdkErr != nil {
-			return sdkErr.Result()
+			// only do log, but let reset package get chance to execute.
+			ctx.Logger().With("module", "oracle").Error(fmt.Sprintf("process package failed, channel=%d, sequence=%d, error=%v", pack.ChannelId, pack.Sequence, sdkErr))
+		} else {
+			ctx.Logger().With("module", "oracle").Info(fmt.Sprintf("process package success, channel=%d, sequence=%d", pack.ChannelId, pack.Sequence))
 		}
 		events = append(events, event)
+
+		// increase channel sequence
+		oracleKeeper.ScKeeper.IncrReceiveSequence(ctx, msg.ChainId, pack.ChannelId)
 	}
 
 	// delete prophecy when execute claim success
@@ -77,7 +82,6 @@ func handlePackage(ctx sdk.Context, oracleKeeper Keeper, chainId sdk.IbcChainID,
 	logger := ctx.Logger().With("module", "x/oracle")
 
 	crossChainApp := oracleKeeper.ScKeeper.GetCrossChainApp(ctx, pack.ChannelId)
-
 	if crossChainApp == nil {
 		return sdk.Event{}, types.ErrChannelNotRegistered(fmt.Sprintf("channel %d not registered", pack.ChannelId))
 	}
@@ -125,6 +129,8 @@ func handlePackage(ctx sdk.Context, oracleKeeper Keeper, chainId sdk.IbcChainID,
 	crash, result := executeClaim(cacheCtx, crossChainApp, pack.Payload, packageType)
 	if result.IsOk() {
 		write()
+	} else if ctx.IsDeliverTx() {
+		oracleKeeper.Metrics.ErrNumOfChannels.With("channel_id", fmt.Sprintf("%d", pack.ChannelId)).Add(1)
 	}
 
 	// write ack package
@@ -155,12 +161,14 @@ func handlePackage(ctx sdk.Context, oracleKeeper Keeper, chainId sdk.IbcChainID,
 		types.ClaimSequence, []byte(strconv.FormatUint(pack.Sequence, 10)),
 	)
 
+	// emit event if feeAmount is larger than 0
+	if feeAmount > 0 {
+		resultTags = append(resultTags, sdk.GetPegOutTag(sdk.NativeTokenSymbol, feeAmount))
+	}
+
 	if result.Tags != nil {
 		resultTags = resultTags.AppendTags(result.Tags)
 	}
-
-	// increase claim type sequence
-	oracleKeeper.ScKeeper.IncrReceiveSequence(ctx, chainId, pack.ChannelId)
 
 	event := sdk.Event{
 		Type:       types.EventTypeClaim,

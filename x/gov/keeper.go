@@ -464,7 +464,7 @@ func (keeper Keeper) RefundDeposits(ctx sdk.Context, proposalID int64) {
 // DistributeDeposits distributes deposits to proposer
 func (keeper Keeper) DistributeDeposits(ctx sdk.Context, proposalID int64) {
 	proposerValAddr := ctx.BlockHeader().ProposerAddress
-	proposerValidator := keeper.vs.ValidatorByConsAddr(ctx, proposerValAddr)
+	proposerValidator := keeper.vs.ValidatorByConsAddr(ctx.DepriveSideChainKeyPrefix(), proposerValAddr)
 	proposerAccAddr := proposerValidator.GetFeeAddr()
 
 	store := ctx.KVStore(keeper.storeKey)

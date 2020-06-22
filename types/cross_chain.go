@@ -8,11 +8,24 @@ import (
 	"github.com/tendermint/tendermint/crypto"
 )
 
+const (
+	pegInTagName  = "peg_in_%s"
+	pegOutTagName = "peg_out_%s"
+)
+
 var (
 	// bnb prefix address:  bnb1v8vkkymvhe2sf7gd2092ujc6hweta38xadu2pj
 	// tbnb prefix address: tbnb1v8vkkymvhe2sf7gd2092ujc6hweta38xnc4wpr
 	PegAccount = AccAddress(crypto.AddressHash([]byte("BinanceChainPegAccount")))
 )
+
+func GetPegInTag(symbol string, amount int64) Tag {
+	return MakeTag(fmt.Sprintf(pegInTagName, symbol), []byte(strconv.FormatInt(amount, 10)))
+}
+
+func GetPegOutTag(symbol string, amount int64) Tag {
+	return MakeTag(fmt.Sprintf(pegOutTagName, symbol), []byte(strconv.FormatInt(amount, 10)))
+}
 
 type CrossChainPackageType uint8
 
