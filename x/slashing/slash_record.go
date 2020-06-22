@@ -18,11 +18,11 @@ const (
 type SlashRecord struct {
 	ConsAddr         []byte
 	InfractionType   byte
-	InfractionHeight int64
+	InfractionHeight uint64
 	SlashHeight      int64
 	JailUntil        time.Time
 	SlashAmt         int64
-	SideChainId      string
+	SideChainName    string
 }
 
 func (r SlashRecord) HumanReadableString() (string, error) {
@@ -34,7 +34,7 @@ func (r SlashRecord) HumanReadableString() (string, error) {
 	}
 
 	var consAddr string
-	if len(r.SideChainId) == 0 {
+	if len(r.SideChainName) == 0 {
 		pk, err := cryptoAmino.PubKeyFromBytes(r.ConsAddr)
 		if err != nil {
 			return "", err
@@ -55,8 +55,8 @@ func (r SlashRecord) HumanReadableString() (string, error) {
 	resp += fmt.Sprintf("Slash Height: %d\n", r.SlashHeight)
 	resp += fmt.Sprintf("Jail Until: %v\n", r.JailUntil)
 	resp += fmt.Sprintf("Slash Amount: %d\n", r.SlashAmt)
-	if len(r.SideChainId) != 0 {
-		resp += fmt.Sprintf("Side Chain id: %s\n", r.SideChainId)
+	if len(r.SideChainName) != 0 {
+		resp += fmt.Sprintf("Side Chain id: %s\n", r.SideChainName)
 	}
 	return resp, nil
 }
@@ -81,7 +81,7 @@ func MarshalSlashRecord(cdc *codec.Codec, record SlashRecord) ([]byte, error) {
 		SlashHeight: record.SlashHeight,
 		JailUntil:   record.JailUntil,
 		SlashAmt:    record.SlashAmt,
-		SideChainId: record.SideChainId,
+		SideChainId: record.SideChainName,
 	}
 	return cdc.MarshalBinaryLengthPrefixed(srv)
 }
@@ -104,7 +104,7 @@ func UnmarshalSlashRecord(cdc *codec.Codec, key []byte, value []byte) (SlashReco
 	infractionType := keys[sdk.AddrLen : sdk.AddrLen+1]
 	infractionHeightBz := keys[sdk.AddrLen+1:]
 
-	infractionHeight := int64(binary.BigEndian.Uint64(infractionHeightBz))
+	infractionHeight := binary.BigEndian.Uint64(infractionHeightBz)
 	return SlashRecord{
 		ConsAddr:         consAddr,
 		InfractionType:   infractionType[0],
@@ -112,7 +112,7 @@ func UnmarshalSlashRecord(cdc *codec.Codec, key []byte, value []byte) (SlashReco
 		SlashHeight:      storeValue.SlashHeight,
 		JailUntil:        storeValue.JailUntil,
 		SlashAmt:         storeValue.SlashAmt,
-		SideChainId:      storeValue.SideChainId,
+		SideChainName:    storeValue.SideChainId,
 	}, nil
 }
 
@@ -122,7 +122,7 @@ func (k Keeper) setSlashRecord(ctx sdk.Context, record SlashRecord) {
 	store.Set(GetSlashRecordKey(record.ConsAddr, record.InfractionType, record.InfractionHeight), bz)
 }
 
-func (k Keeper) getSlashRecord(ctx sdk.Context, consAddr []byte, infractionType byte, infractionHeight int64) (sr SlashRecord, found bool) {
+func (k Keeper) getSlashRecord(ctx sdk.Context, consAddr []byte, infractionType byte, infractionHeight uint64) (sr SlashRecord, found bool) {
 	store := ctx.KVStore(k.storeKey)
 	key := GetSlashRecordKey(consAddr, infractionType, infractionHeight)
 	bz := store.Get(key)
@@ -132,7 +132,7 @@ func (k Keeper) getSlashRecord(ctx sdk.Context, consAddr []byte, infractionType 
 	return MustUnmarshalSlashRecord(k.cdc, key, bz), true
 }
 
-func (k Keeper) hasSlashRecord(ctx sdk.Context, consAddr []byte, infractionType byte, infractionHeight int64) bool {
+func (k Keeper) hasSlashRecord(ctx sdk.Context, consAddr []byte, infractionType byte, infractionHeight uint64) bool {
 	store := ctx.KVStore(k.storeKey)
 	return store.Get(GetSlashRecordKey(consAddr, infractionType, infractionHeight)) != nil
 }

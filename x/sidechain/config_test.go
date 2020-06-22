@@ -1,4 +1,4 @@
-package ibc
+package sidechain
 
 import (
 	"testing"
@@ -10,20 +10,20 @@ import (
 
 func TestInitCrossChainID(t *testing.T) {
 	sourceChainID := sdk.IbcChainID(0x0001)
-	_, keeper := createTestInput(t, true)
+	_, keeper := CreateTestInput(t, true)
 	keeper.SetSrcIbcChainID(sourceChainID)
 
 	require.Equal(t, sourceChainID, keeper.GetSrcIbcChainID())
 }
 
 func TestRegisterCrossChainChannel(t *testing.T) {
-	_, keeper := createTestInput(t, true)
-	require.NoError(t, keeper.RegisterChannel("bind", sdk.IbcChannelID(1)))
-	require.NoError(t, keeper.RegisterChannel("transfer", sdk.IbcChannelID(2)))
-	require.NoError(t, keeper.RegisterChannel("timeout", sdk.IbcChannelID(3)))
-	require.NoError(t, keeper.RegisterChannel("staking", sdk.IbcChannelID(4)))
-	require.Error(t, keeper.RegisterChannel("staking", sdk.IbcChannelID(5)))
-	require.Error(t, keeper.RegisterChannel("staking-new", sdk.IbcChannelID(4)))
+	_, keeper := CreateTestInput(t, true)
+	require.NoError(t, keeper.RegisterChannel("bind", sdk.IbcChannelID(1), nil))
+	require.NoError(t, keeper.RegisterChannel("transfer", sdk.IbcChannelID(2), nil))
+	require.NoError(t, keeper.RegisterChannel("timeout", sdk.IbcChannelID(3), nil))
+	require.NoError(t, keeper.RegisterChannel("staking", sdk.IbcChannelID(4), nil))
+	require.Error(t, keeper.RegisterChannel("staking", sdk.IbcChannelID(5), nil))
+	require.Error(t, keeper.RegisterChannel("staking-new", sdk.IbcChannelID(4), nil))
 
 	channeID, err := keeper.GetChannelID("transfer")
 	require.NoError(t, err)
@@ -35,7 +35,7 @@ func TestRegisterCrossChainChannel(t *testing.T) {
 }
 
 func TestRegisterDestChainID(t *testing.T) {
-	_, keeper := createTestInput(t, true)
+	_, keeper := CreateTestInput(t, true)
 	require.NoError(t, keeper.RegisterDestChain("bsc", sdk.IbcChainID(1)))
 	require.NoError(t, keeper.RegisterDestChain("ethereum", sdk.IbcChainID(2)))
 	require.NoError(t, keeper.RegisterDestChain("btc", sdk.IbcChainID(3)))

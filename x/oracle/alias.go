@@ -26,7 +26,6 @@ var (
 	ErrInvalidClaim                  = types.ErrInvalidClaim
 	ErrInvalidValidator              = types.ErrInvalidValidator
 	ErrInternalDB                    = types.ErrInternalDB
-	ErrInvalidClaimType              = types.ErrInvalidClaimType
 
 	NewProphecy = types.NewProphecy
 	NewStatus   = types.NewStatus

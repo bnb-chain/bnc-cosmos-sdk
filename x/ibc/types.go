@@ -5,10 +5,9 @@ import (
 )
 
 type packageRecord struct {
-	destChainName string
-	destChainID   sdk.IbcChainID
-	channelID     sdk.IbcChannelID
-	sequence      uint64
+	destChainID sdk.IbcChainID
+	channelID   sdk.IbcChannelID
+	sequence    uint64
 }
 
 type packageCollector struct {

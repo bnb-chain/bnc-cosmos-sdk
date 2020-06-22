@@ -43,16 +43,19 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 }
 
 func saveSideChainValidatorsToIBC(ctx sdk.Context, sideChainId string, newVals []types.Validator, k keeper.Keeper) {
-	ibcValidatorSet := make(types.IbcValidatorSet, len(newVals))
+	ibcPackage := types.IbcValidatorSetPackage{
+		Type:         types.StakePackageType,
+		ValidatorSet: make([]types.IbcValidator, len(newVals)),
+	}
 	for i := range newVals {
-		ibcValidatorSet[i] = types.IbcValidator{
+		ibcPackage.ValidatorSet[i] = types.IbcValidator{
 			ConsAddr: newVals[i].SideConsAddr,
 			FeeAddr:  newVals[i].SideFeeAddr,
 			DistAddr: newVals[i].DistributionAddr,
-			Power:    newVals[i].GetPower().RawInt(),
+			Power:    uint64(newVals[i].GetPower().RawInt()),
 		}
 	}
-	_, err := k.SaveValidatorSetToIbc(ctx, sideChainId, ibcValidatorSet)
+	_, err := k.SaveValidatorSetToIbc(ctx, sideChainId, ibcPackage)
 	if err != nil {
 		k.Logger(ctx).Error("save validators to ibc package failed: " + err.Error())
 		return

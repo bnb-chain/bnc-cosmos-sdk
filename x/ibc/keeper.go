@@ -3,9 +3,13 @@ package ibc
 import (
 	"encoding/binary"
 	"fmt"
-	"strings"
+	"math/big"
 
+	"github.com/cosmos/cosmos-sdk/bsc"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/paramHub/types"
+	param "github.com/cosmos/cosmos-sdk/x/params"
+	"github.com/cosmos/cosmos-sdk/x/sidechain"
 )
 
 // IBC Keeper
@@ -13,44 +17,89 @@ type Keeper struct {
 	storeKey  sdk.StoreKey
 	codespace sdk.CodespaceType
 
-	cfg              *crossChainConfig
+	paramSpace       param.Subspace
 	packageCollector *packageCollector
+	sideKeeper       sidechain.Keeper
 }
 
-func NewKeeper(storeKey sdk.StoreKey, codespace sdk.CodespaceType) Keeper {
+func ParamTypeTable() param.TypeTable {
+	return param.NewTypeTable().RegisterParamSet(&Params{})
+}
+
+func NewKeeper(storeKey sdk.StoreKey, paramSpace param.Subspace, codespace sdk.CodespaceType, sideKeeper sidechain.Keeper) Keeper {
 	return Keeper{
 		storeKey:         storeKey,
 		codespace:        codespace,
-		cfg:              newCrossChainCfg(),
 		packageCollector: newPackageCollector(),
+		paramSpace:       paramSpace.WithTypeTable(ParamTypeTable()),
+		sideKeeper:       sideKeeper,
 	}
 }
 
-func (k *Keeper) CreateIBCPackage(ctx sdk.Context, destChainName string, channelName string, value []byte) (uint64, sdk.Error) {
-	destIbcChainID, err := k.GetDestIbcChainID(destChainName)
+func (k *Keeper) CreateIBCPackage(ctx sdk.Context, destChainName string, channelName string, packageLoad []byte) (uint64, sdk.Error) {
+	relayerFee, err := k.GetRelayerFeeParam(ctx, destChainName)
+	if err != nil {
+		return 0, ErrFeeParamMismatch(DefaultCodespace, fmt.Sprintf("fail to load relayerFee, %v", err))
+	}
+	return k.CreateRawIBCPackage(ctx, destChainName, channelName, sdk.SynCrossChainPackageType, packageLoad, *relayerFee)
+}
+
+func (k *Keeper) CreateIBCPackageWithFee(ctx sdk.Context, destChainName string, channelName string, packageLoad []byte,
+	relayerFee big.Int) (uint64, sdk.Error) {
+	return k.CreateRawIBCPackage(ctx, destChainName, channelName, sdk.SynCrossChainPackageType, packageLoad, relayerFee)
+}
+
+func (k *Keeper) CreateRawIBCPackage(ctx sdk.Context, destChainName string, channelName string,
+	packageType sdk.CrossChainPackageType, packageLoad []byte, relayerFee big.Int) (uint64, sdk.Error) {
+
+	destIbcChainID, err := k.sideKeeper.GetDestIbcChainID(destChainName)
 	if err != nil {
 		return 0, sdk.ErrInternal(err.Error())
 	}
-	channelID, err := k.GetChannelID(channelName)
+	channelID, err := k.sideKeeper.GetChannelID(channelName)
 	if err != nil {
 		return 0, sdk.ErrInternal(err.Error())
 	}
 
-	sequence := k.getSequence(ctx, destIbcChainID, channelID)
-	key := buildIBCPackageKey(k.GetSrcIbcChainID(), destIbcChainID, channelID, sequence)
+	return k.CreateRawIBCPackageByIdWithFee(ctx, destIbcChainID, channelID, packageType, packageLoad, relayerFee)
+}
+
+func (k *Keeper) CreateRawIBCPackageById(ctx sdk.Context, destIbcChainID sdk.IbcChainID, channelID sdk.IbcChannelID,
+	packageType sdk.CrossChainPackageType, packageLoad []byte) (uint64, sdk.Error) {
+
+	destChainName, err := k.sideKeeper.GetDestIbcChainName(destIbcChainID)
+	if err != nil {
+		return 0, ErrInvalidChainId(DefaultCodespace, "can not find dest chain id")
+	}
+	relayerFee, err := k.GetRelayerFeeParam(ctx, destChainName)
+	if err != nil {
+		return 0, ErrFeeParamMismatch(DefaultCodespace, fmt.Sprintf("fail to load relayerFee, %v", err))
+	}
+
+	return k.CreateRawIBCPackageByIdWithFee(ctx, destIbcChainID, channelID, packageType, packageLoad, *relayerFee)
+}
+
+func (k *Keeper) CreateRawIBCPackageByIdWithFee(ctx sdk.Context, destIbcChainID sdk.IbcChainID, channelID sdk.IbcChannelID,
+	packageType sdk.CrossChainPackageType, packageLoad []byte, relayerFee big.Int) (uint64, sdk.Error) {
+
+	sequence := k.sideKeeper.GetSendSequence(ctx, destIbcChainID, channelID)
+	key := buildIBCPackageKey(k.sideKeeper.GetSrcIbcChainID(), destIbcChainID, channelID, sequence)
 	kvStore := ctx.KVStore(k.storeKey)
 	if kvStore.Has(key) {
 		return 0, ErrDuplicatedSequence(DefaultCodespace, "duplicated sequence")
 	}
-	kvStore.Set(key, value)
-	k.incrSequence(ctx, destIbcChainID, channelID)
+
+	// Assemble the package header
+	packageHeader := sidechain.EncodePackageHeader(packageType, relayerFee)
+
+	kvStore.Set(key, append(packageHeader, packageLoad...))
+	k.sideKeeper.IncrSendSequence(ctx, destIbcChainID, channelID)
 
 	if ctx.IsDeliverTx() {
 		k.packageCollector.collectedPackages = append(k.packageCollector.collectedPackages, packageRecord{
-			destChainName: destChainName,
-			destChainID:   destIbcChainID,
-			channelID:     channelID,
-			sequence:      sequence,
+			destChainID: destIbcChainID,
+			channelID:   channelID,
+			sequence:    sequence,
 		})
 	}
 
@@ -58,30 +107,33 @@ func (k *Keeper) CreateIBCPackage(ctx sdk.Context, destChainName string, channel
 }
 
 func (k *Keeper) GetIBCPackage(ctx sdk.Context, destChainName string, channelName string, sequence uint64) ([]byte, error) {
-	destChainID, err := k.GetDestIbcChainID(destChainName)
+	destChainID, err := k.sideKeeper.GetDestIbcChainID(destChainName)
 	if err != nil {
 		return nil, err
 	}
-	channelID, err := k.GetChannelID(channelName)
+	channelID, err := k.sideKeeper.GetChannelID(channelName)
 	if err != nil {
 		return nil, err
 	}
+	return k.GetIBCPackageById(ctx, destChainID, channelID, sequence)
+}
 
+func (k *Keeper) GetIBCPackageById(ctx sdk.Context, destChainID sdk.IbcChainID, channelId sdk.IbcChannelID, sequence uint64) ([]byte, error) {
 	kvStore := ctx.KVStore(k.storeKey)
-	key := buildIBCPackageKey(k.GetSrcIbcChainID(), destChainID, channelID, sequence)
+	key := buildIBCPackageKey(k.sideKeeper.GetSrcIbcChainID(), destChainID, channelId, sequence)
 	return kvStore.Get(key), nil
 }
 
 func (k *Keeper) CleanupIBCPackage(ctx sdk.Context, destChainName string, channelName string, confirmedSequence uint64) {
-	destChainID, err := k.GetDestIbcChainID(destChainName)
+	destChainID, err := k.sideKeeper.GetDestIbcChainID(destChainName)
 	if err != nil {
 		return
 	}
-	channelID, err := k.GetChannelID(channelName)
+	channelID, err := k.sideKeeper.GetChannelID(channelName)
 	if err != nil {
 		return
 	}
-	prefixKey := buildIBCPackageKeyPrefix(k.GetSrcIbcChainID(), destChainID, channelID)
+	prefixKey := buildIBCPackageKeyPrefix(k.sideKeeper.GetSrcIbcChainID(), destChainID, channelID)
 	kvStore := ctx.KVStore(k.storeKey)
 	iterator := sdk.KVStorePrefixIterator(kvStore, prefixKey)
 	defer iterator.Close()
@@ -99,82 +151,42 @@ func (k *Keeper) CleanupIBCPackage(ctx sdk.Context, destChainName string, channe
 	}
 }
 
-func (k *Keeper) RegisterChannel(name string, id sdk.IbcChannelID) error {
-	_, ok := k.cfg.nameToChannelID[name]
-	if ok {
-		return fmt.Errorf("duplicated channel name")
+func (k Keeper) GetRelayerFeeParam(ctx sdk.Context, destChainName string) (relaterFee *big.Int, err error) {
+	storePrefix := k.sideKeeper.GetSideChainStorePrefix(ctx, destChainName)
+	if storePrefix == nil {
+		return nil, fmt.Errorf("invalid sideChainId: %s", destChainName)
 	}
-	_, ok = k.cfg.channelIDToName[id]
-	if ok {
-		return fmt.Errorf("duplicated channel id")
-	}
-	k.cfg.nameToChannelID[name] = id
-	k.cfg.channelIDToName[id] = name
-	return nil
+	sideChainCtx := ctx.WithSideChainKeyPrefix(storePrefix)
+	var relayerFeeParam int64
+	k.paramSpace.Get(sideChainCtx, ParamRelayerFee, &relayerFeeParam)
+	relaterFee = bsc.ConvertBCAmountToBSCAmount(relayerFeeParam)
+	return
 }
 
-// internally, we use name as the id of the chain, must be unique
-func (k *Keeper) RegisterDestChain(name string, ibcChainID sdk.IbcChainID) error {
-	if strings.Contains(name, separator) {
-		return fmt.Errorf("destination chain name should not contains %s", separator)
-	}
-	_, ok := k.cfg.destChainNameToID[name]
-	if ok {
-		return fmt.Errorf("duplicated destination chain name")
-	}
-	_, ok = k.cfg.destChainIDToName[ibcChainID]
-	if ok {
-		return fmt.Errorf("duplicated destination chain ibcChainID")
-	}
-	k.cfg.destChainNameToID[name] = ibcChainID
-	k.cfg.destChainIDToName[ibcChainID] = name
-	return nil
+func (k Keeper) SetParams(ctx sdk.Context, params Params) {
+	k.paramSpace.SetParamSet(ctx, &params)
 }
 
-func (k *Keeper) GetChannelID(channelName string) (sdk.IbcChannelID, error) {
-	id, ok := k.cfg.nameToChannelID[channelName]
-	if !ok {
-		return sdk.IbcChannelID(0), fmt.Errorf("non-existing channel")
-	}
-	return id, nil
-}
-
-func (k *Keeper) SetSrcIbcChainID(srcIbcChainID sdk.IbcChainID) {
-	k.cfg.srcIbcChainID = srcIbcChainID
-}
-
-func (k *Keeper) GetSrcIbcChainID() sdk.IbcChainID {
-	return k.cfg.srcIbcChainID
-}
-
-func (k *Keeper) GetDestIbcChainID(name string) (sdk.IbcChainID, error) {
-	destChainID, exist := k.cfg.destChainNameToID[name]
-	if !exist {
-		return sdk.IbcChainID(0), fmt.Errorf("non-existing destination ibcChainID")
-	}
-	return destChainID, nil
-}
-
-func (k *Keeper) getSequence(ctx sdk.Context, destChainID sdk.IbcChainID, channelID sdk.IbcChannelID) uint64 {
-	kvStore := ctx.KVStore(k.storeKey)
-	bz := kvStore.Get(buildChannelSequenceKey(destChainID, channelID))
-	if bz == nil {
-		return 0
-	}
-	return binary.BigEndian.Uint64(bz)
-}
-
-func (k *Keeper) incrSequence(ctx sdk.Context, destChainID sdk.IbcChainID, channelID sdk.IbcChannelID) {
-	var sequence uint64
-	kvStore := ctx.KVStore(k.storeKey)
-	bz := kvStore.Get(buildChannelSequenceKey(destChainID, channelID))
-	if bz == nil {
-		sequence = 0
-	} else {
-		sequence = binary.BigEndian.Uint64(bz)
-	}
-
-	sequenceBytes := make([]byte, sequenceLength)
-	binary.BigEndian.PutUint64(sequenceBytes, sequence+1)
-	kvStore.Set(buildChannelSequenceKey(destChainID, channelID), sequenceBytes)
+func (k *Keeper) SubscribeParamChange(hub types.ParamChangePublisher) {
+	hub.SubscribeParamChange(
+		func(context sdk.Context, iChange interface{}) {
+			switch change := iChange.(type) {
+			case *Params:
+				err := change.UpdateCheck()
+				if err != nil {
+					context.Logger().Error("skip invalid param change", "err", err, "param", change)
+				} else {
+					k.SetParams(context, *change)
+					break
+				}
+			default:
+				context.Logger().Debug("skip unknown param change")
+			}
+		},
+		&types.ParamSpaceProto{ParamSpace: k.paramSpace, Proto: func() types.SCParam {
+			return new(Params)
+		}},
+		nil,
+		nil,
+	)
 }

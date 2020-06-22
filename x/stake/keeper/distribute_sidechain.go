@@ -45,7 +45,7 @@ func (k Keeper) Distribute(ctx sdk.Context) {
 			}
 		}
 		// assign rewards to delegator
-		changedAddrs := make([]sdk.AccAddress, len(rewards) + 1)
+		changedAddrs := make([]sdk.AccAddress, len(rewards)+1)
 		for i := range rewards {
 			if _, _, err := k.bankKeeper.AddCoins(ctx, rewards[i].AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, rewards[i].Amount)}); err != nil {
 				panic(err)

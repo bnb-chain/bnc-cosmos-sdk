@@ -66,7 +66,6 @@ func NewStakeHandler(k Keeper) sdk.Handler {
 	}
 }
 
-
 //_____________________________________________________________________
 
 // These functions assume everything has been authenticated,
@@ -95,7 +94,7 @@ func handleMsgRemoveValidatorAfterProposal(ctx sdk.Context, msg MsgRemoveValidat
 		msgBeginUnbonding := MsgBeginUnbonding{
 			ValidatorAddr: del.GetValidatorAddr(),
 			DelegatorAddr: del.GetDelegatorAddr(),
-			SharesAmount: del.GetShares(),
+			SharesAmount:  del.GetShares(),
 		}
 		result = handleMsgBeginUnbonding(ctx, msgBeginUnbonding, k)
 		// handleMsgBeginUnbonding return error, abort execution

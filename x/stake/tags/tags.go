@@ -4,6 +4,7 @@ package tags
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
+
 // TODO: remove them all
 var (
 	SrcValidator = sdk.TagSrcValidator
@@ -12,5 +13,4 @@ var (
 	Moniker      = "moniker"
 	Identity     = "identity"
 	EndTime      = "end-time"
-
 )

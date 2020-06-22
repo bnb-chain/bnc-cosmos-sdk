@@ -35,6 +35,8 @@ func TestSetParams(t *testing.T) {
 	ctx := sdk.NewContext(ms, abci.Header{ChainID: "foochainid"}, mode, log.NewNopLogger())
 	pk := params.NewKeeper(cdc, keyParams, tkeyParams)
 	k := NewKeeper(cdc, keyStake, tkeyStake, nil, nil, pk.Subspace(DefaultParamspace), types.DefaultCodespace)
+	sdk.UpgradeMgr.AddUpgradeHeight(sdk.LaunchBscUpgrade, 10)
+	sdk.UpgradeMgr.SetHeight(1)
 	k.SetParams(ctx, types.DefaultParams())
 
 	require.True(t, k.paramstore.Has(ctx, types.KeyUnbondingTime))
@@ -43,7 +45,6 @@ func TestSetParams(t *testing.T) {
 	require.False(t, k.paramstore.Has(ctx, types.KeyMinSelfDelegation))
 	require.False(t, k.paramstore.Has(ctx, types.KeyMinDelegationChange))
 
-	sdk.UpgradeMgr.AddUpgradeHeight(sdk.LaunchBscUpgrade, 10)
 	sdk.UpgradeMgr.SetHeight(10)
 	k.SetParams(ctx, types.DefaultParams())
 	require.True(t, k.paramstore.Has(ctx, types.KeyUnbondingTime))

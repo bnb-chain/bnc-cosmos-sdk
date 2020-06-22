@@ -13,16 +13,17 @@ type CodeType = sdk.CodeType
 const (
 	DefaultCodespace sdk.CodespaceType = 4
 
-	CodeInvalidValidator  CodeType = 101
-	CodeInvalidDelegation CodeType = 102
-	CodeInvalidInput      CodeType = 103
-	CodeValidatorJailed   CodeType = 104
-	CodeInvalidProposal   CodeType = 105
-	CodeInvalidSideChain  CodeType = 106
-	CodeInvalidAddress    CodeType = sdk.CodeInvalidAddress
-	CodeUnauthorized      CodeType = sdk.CodeUnauthorized
-	CodeInternal          CodeType = sdk.CodeInternal
-	CodeUnknownRequest    CodeType = sdk.CodeUnknownRequest
+	CodeInvalidValidator         CodeType = 101
+	CodeInvalidDelegation        CodeType = 102
+	CodeInvalidInput             CodeType = 103
+	CodeValidatorJailed          CodeType = 104
+	CodeInvalidProposal          CodeType = 105
+	CodeInvalidSideChain         CodeType = 106
+	CodeInvalidCrossChainPackage CodeType = 107
+	CodeInvalidAddress           CodeType = sdk.CodeInvalidAddress
+	CodeUnauthorized             CodeType = sdk.CodeUnauthorized
+	CodeInternal                 CodeType = sdk.CodeInternal
+	CodeUnknownRequest           CodeType = sdk.CodeUnknownRequest
 )
 
 //validator
@@ -225,4 +226,8 @@ func ErrInvalidProposal(codespace sdk.CodespaceType, reason string) sdk.Error {
 
 func ErrInvalidSideChainId(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidSideChain, "invalid side chain id")
+}
+
+func ErrInvalidCrosschainPackage(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidCrossChainPackage, "invalid cross chain package")
 }

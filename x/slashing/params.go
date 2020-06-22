@@ -1,6 +1,7 @@
 package slashing
 
 import (
+	"fmt"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -47,6 +48,39 @@ type Params struct {
 	DowntimeSlashAmount      int64         `json:"downtime_slash_amount"`
 	SubmitterReward          int64         `json:"submitter_reward"`
 	DowntimeSlashFee         int64         `json:"downtime_slash_fee"`
+}
+
+func (p *Params) GetParamAttribute() (string, bool) {
+	return "slash", false
+}
+
+func (p *Params) UpdateCheck() error {
+	// no check for SignedBlocksWindow, MinSignedPerWindow, SlashFractionDoubleSign, SlashFractionDowntime
+	if p.MaxEvidenceAge < 1*time.Minute || p.MaxEvidenceAge > 100*24*time.Hour {
+		return fmt.Errorf("the max_evidence_age should be in range 1 minutes to 100 day")
+	}
+	if p.DoubleSignUnbondDuration < 1*time.Hour {
+		return fmt.Errorf("the double_sign_unbond_duration should be greate than 1 hour")
+	}
+	if p.DowntimeUnbondDuration < 60*time.Second || p.DowntimeUnbondDuration > 100*24*time.Hour {
+		return fmt.Errorf("the downtime_unbond_duration should be in range 1 minutes to 100 day")
+	}
+	if p.TooLowDelUnbondDuration < 60*time.Second || p.TooLowDelUnbondDuration > 100*24*time.Hour {
+		return fmt.Errorf("the too_low_del_unbond_duration should be in range 1 minutes to 100 day")
+	}
+	if p.DoubleSignSlashAmount < 1e8 {
+		return fmt.Errorf("the double_sign_slash_amount should be larger than 1e8")
+	}
+	if p.DowntimeSlashAmount < 1e8 || p.DowntimeSlashAmount > 10000e8 {
+		return fmt.Errorf("the downtime_slash_amount should be in range 1e8 to 10000e8")
+	}
+	if p.SubmitterReward < 1e7 || p.SubmitterReward > 1000e8 {
+		return fmt.Errorf("the submitter_reward should be in range 1e7 to 1000e8")
+	}
+	if p.DowntimeSlashFee < 1e8 || p.DowntimeSlashFee > 1000e8 {
+		return fmt.Errorf("the downtime_slash_fee should be in range 1e8 to 1000e8")
+	}
+	return nil
 }
 
 // Implements params.ParamStruct

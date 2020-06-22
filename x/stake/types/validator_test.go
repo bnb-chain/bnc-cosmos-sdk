@@ -1,6 +1,7 @@
 package types
 
 import (
+	"crypto/rand"
 	"fmt"
 	"testing"
 
@@ -321,4 +322,13 @@ func TestMarshalValidator(t *testing.T) {
 	require.EqualValues(t, validator.Jailed, getVal.Jailed)
 	require.EqualValues(t, validator.Status, getVal.Status)
 	require.EqualValues(t, validator.SideConsAddr, getVal.SideConsAddr)
+}
+
+func randAddr(t *testing.T, size int64) []byte {
+	addr := make([]byte, size)
+	n, err := rand.Read(addr)
+	require.NoError(t, err)
+	require.Equal(t, 20, n)
+	require.Equal(t, 20, len(addr))
+	return addr
 }

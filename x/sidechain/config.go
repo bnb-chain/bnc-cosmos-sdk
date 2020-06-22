@@ -1,14 +1,13 @@
-package ibc
+package sidechain
 
-import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-)
+import sdk "github.com/cosmos/cosmos-sdk/types"
 
 type crossChainConfig struct {
 	srcIbcChainID sdk.IbcChainID
 
 	nameToChannelID map[string]sdk.IbcChannelID
 	channelIDToName map[sdk.IbcChannelID]string
+	channelIDToApp  map[sdk.IbcChannelID]sdk.CrossChainApplication
 
 	destChainNameToID map[string]sdk.IbcChainID
 	destChainIDToName map[sdk.IbcChainID]string
@@ -21,6 +20,7 @@ func newCrossChainCfg() *crossChainConfig {
 		channelIDToName:   make(map[sdk.IbcChannelID]string),
 		destChainNameToID: make(map[string]sdk.IbcChainID),
 		destChainIDToName: make(map[sdk.IbcChainID]string),
+		channelIDToApp:    make(map[sdk.IbcChannelID]sdk.CrossChainApplication),
 	}
 	return config
 }

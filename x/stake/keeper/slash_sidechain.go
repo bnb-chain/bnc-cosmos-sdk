@@ -75,13 +75,18 @@ func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr
 		k.addrPool.AddAddrs([]sdk.AccAddress{DelegationAccAddr})
 	}
 	if validator.IsBonded() {
-		ibcValidator := types.IbcValidator{
-			ConsAddr: validator.SideConsAddr,
-			FeeAddr:  validator.SideFeeAddr,
-			DistAddr: validator.DistributionAddr,
-			Power:    validator.GetPower().RawInt(),
+		ibcPackage := types.IbcValidatorSetPackage{
+			Type: types.JailPackageType,
+			ValidatorSet: []types.IbcValidator{
+				{
+					ConsAddr: validator.SideConsAddr,
+					FeeAddr:  validator.SideFeeAddr,
+					DistAddr: validator.DistributionAddr,
+					Power:    uint64(validator.GetPower().RawInt()),
+				},
+			},
 		}
-		if _, err := k.SaveJailedValidatorToIbc(ctx, sideChainId, ibcValidator); err != nil {
+		if _, err := k.SaveValidatorSetToIbc(ctx, sideChainId, ibcPackage); err != nil {
 			return sdk.ZeroDec(), errors.New(err.Error())
 		}
 	}

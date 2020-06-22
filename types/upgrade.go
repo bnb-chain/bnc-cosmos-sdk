@@ -6,6 +6,9 @@ var UpgradeMgr = NewUpgradeManager(UpgradeConfig{})
 
 const (
 	FixSignBytesOverflow = "FixSignBytesOverflow" // fix json unmarshal overflow when build SignBytes
+	BEP9                 = "BEP9"                 // https://github.com/binance-chain/BEPs/pull/9
+	BEP12                = "BEP12"                // https://github.com/binance-chain/BEPs/pull/17
+	BEP3                 = "BEP3"                 // https://github.com/binance-chain/BEPs/pull/30
 	BEP8                 = "BEP8"                 // Mini-BEP2 token
 	LaunchBscUpgrade     = "LaunchBscUpgrade"
 )

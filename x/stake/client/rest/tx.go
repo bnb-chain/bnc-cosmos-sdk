@@ -190,10 +190,9 @@ func delegationsRequestHandlerFn(cdc *codec.Codec, kb keys.Keybase, cliCtx conte
 			i++
 		}
 
-
 		txBldr := authtxb.TxBuilder{
-			Codec:         cdc,
-			ChainID:       baseReq.ChainID,
+			Codec:   cdc,
+			ChainID: baseReq.ChainID,
 		}
 
 		// sign messages

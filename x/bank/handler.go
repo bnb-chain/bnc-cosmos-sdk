@@ -2,6 +2,7 @@ package bank
 
 import (
 	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -34,7 +35,7 @@ func handleMsgSend(ctx sdk.Context, k Keeper, msg MsgSend) sdk.Result {
 	if sdk.IsUpgrade(sdk.BEP8) {
 		am := k.GetAccountKeeper()
 		for _, in := range msg.Inputs {
-			if err := checkAndValidateMiniTokenCoins(ctx, am, in.Address, in.Coins); err != nil {
+			if err := CheckAndValidateMiniTokenCoins(ctx, am, in.Address, in.Coins); err != nil {
 				return err.Result()
 			}
 		}

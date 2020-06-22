@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/cosmos/cosmos-sdk/x/sidechain"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -15,18 +17,26 @@ const (
 
 var _ sdk.Msg = ClaimMsg{}
 
+type Packages []Package
+
+type Package struct {
+	ChannelId sdk.IbcChannelID
+	Sequence  uint64
+	Payload   []byte
+}
+
 type ClaimMsg struct {
-	ClaimType        sdk.ClaimType  `json:"claim_type"`
-	Sequence         int64          `json:"sequence"`
-	Claim            string         `json:"claim"`
+	ChainId          sdk.IbcChainID `json:"chain_id"`
+	Sequence         uint64         `json:"sequence"`
+	Payload          []byte         `json:"payload"`
 	ValidatorAddress sdk.AccAddress `json:"validator_address"`
 }
 
-func NewClaimMsg(claimType sdk.ClaimType, sequence int64, claim string, validatorAddr sdk.AccAddress) ClaimMsg {
+func NewClaimMsg(ChainId sdk.IbcChainID, sequence uint64, payload []byte, validatorAddr sdk.AccAddress) ClaimMsg {
 	return ClaimMsg{
-		ClaimType:        claimType,
+		ChainId:          ChainId,
 		Sequence:         sequence,
-		Claim:            claim,
+		Payload:          payload,
 		ValidatorAddress: validatorAddr,
 	}
 }
@@ -39,8 +49,8 @@ func (msg ClaimMsg) GetSigners() []sdk.AccAddress {
 }
 
 func (msg ClaimMsg) String() string {
-	return fmt.Sprintf("Claim{%v#%v#%v#%v}",
-		msg.ClaimType, msg.Sequence, msg.Claim, msg.ValidatorAddress.String())
+	return fmt.Sprintf("Claim{%v#%v%v%x}",
+		msg.ChainId, msg.Sequence, msg.ValidatorAddress.String(), msg.Payload)
 }
 
 // GetSignBytes - Get the bytes for the message signer to sign on
@@ -58,14 +68,9 @@ func (msg ClaimMsg) GetInvolvedAddresses() []sdk.AccAddress {
 
 // ValidateBasic is used to quickly disqualify obviously invalid messages quickly
 func (msg ClaimMsg) ValidateBasic() sdk.Error {
-	if msg.Sequence < 0 {
-		return ErrInvalidSequence("sequence should not be less than 0")
+	if len(msg.Payload) < sidechain.PackageHeaderLength {
+		return ErrInvalidPayloadHeader(fmt.Sprintf("length of payload is less than %d", sidechain.PackageHeaderLength))
 	}
-
-	if len(msg.Claim) == 0 {
-		return ErrInvalidClaim()
-	}
-
 	if len(msg.ValidatorAddress) != sdk.AddrLen {
 		return sdk.ErrInvalidAddress(msg.ValidatorAddress.String())
 	}

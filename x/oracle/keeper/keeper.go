@@ -1,13 +1,14 @@
 package keeper
 
 import (
-	"encoding/binary"
-	"fmt"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/bank"
+	"github.com/cosmos/cosmos-sdk/x/ibc"
 	"github.com/cosmos/cosmos-sdk/x/oracle/types"
-	"github.com/cosmos/cosmos-sdk/x/params"
+	pTypes "github.com/cosmos/cosmos-sdk/x/paramHub/types"
+	param "github.com/cosmos/cosmos-sdk/x/params"
+	"github.com/cosmos/cosmos-sdk/x/sidechain"
 )
 
 // Keeper maintains the link to data storage and
@@ -17,13 +18,14 @@ type Keeper struct {
 	storeKey sdk.StoreKey
 
 	// The reference to the Paramstore to get and set gov specific params
-	paramSpace params.Subspace
+	paramSpace param.Subspace
+
+	Pool *sdk.Pool
 
 	stakeKeeper types.StakingKeeper
-
-	claimTypeToName map[sdk.ClaimType]string
-	nameToClaimType map[string]sdk.ClaimType
-	claimHooksMap   map[sdk.ClaimType]sdk.ClaimHooks
+	ScKeeper    sidechain.Keeper
+	IbcKeeper   ibc.Keeper
+	BkKeeper    bank.Keeper
 }
 
 // Parameter store
@@ -31,39 +33,33 @@ const (
 	DefaultParamSpace = "oracle"
 )
 
-var (
-	ParamStoreKeyProphecyParams = []byte("prophecyParams")
-)
-
-func ParamTypeTable() params.TypeTable {
-	return params.NewTypeTable(
-		ParamStoreKeyProphecyParams, types.ProphecyParams{},
-	)
+func ParamTypeTable() param.TypeTable {
+	return param.NewTypeTable().RegisterParamSet(&types.Params{})
 }
 
 // NewKeeper creates new instances of the oracle Keeper
-func NewKeeper(
-	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace params.Subspace, stakeKeeper types.StakingKeeper,
+func NewKeeper(cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace param.Subspace, stakeKeeper types.StakingKeeper,
+	scKeeper sidechain.Keeper, ibcKeeper ibc.Keeper, bkKeeper bank.Keeper, pool *sdk.Pool,
 ) Keeper {
 	return Keeper{
-		cdc:             cdc,
-		storeKey:        storeKey,
-		paramSpace:      paramSpace.WithTypeTable(ParamTypeTable()),
-		stakeKeeper:     stakeKeeper,
-		claimTypeToName: make(map[sdk.ClaimType]string),
-		nameToClaimType: make(map[string]sdk.ClaimType),
-		claimHooksMap:   make(map[sdk.ClaimType]sdk.ClaimHooks),
+		cdc:         cdc,
+		storeKey:    storeKey,
+		paramSpace:  paramSpace.WithTypeTable(ParamTypeTable()),
+		stakeKeeper: stakeKeeper,
+		ScKeeper:    scKeeper,
+		IbcKeeper:   ibcKeeper,
+		BkKeeper:    bkKeeper,
+		Pool:        pool,
 	}
 }
 
-func (k Keeper) GetProphecyParams(ctx sdk.Context) types.ProphecyParams {
-	var depositParams types.ProphecyParams
-	k.paramSpace.Get(ctx, ParamStoreKeyProphecyParams, &depositParams)
-	return depositParams
+func (k Keeper) GetConsensusNeeded(ctx sdk.Context) (consensusNeeded sdk.Dec) {
+	k.paramSpace.Get(ctx, types.ParamStoreKeyProphecyParams, &consensusNeeded)
+	return
 }
 
-func (k Keeper) SetProphecyParams(ctx sdk.Context, params types.ProphecyParams) {
-	k.paramSpace.Set(ctx, ParamStoreKeyProphecyParams, &params)
+func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
+	k.paramSpace.SetParamSet(ctx, &params)
 }
 
 // GetProphecy gets the entire prophecy data struct for a given id
@@ -102,59 +98,6 @@ func (k Keeper) setProphecy(ctx sdk.Context, prophecy types.Prophecy) {
 	store.Set([]byte(prophecy.ID), k.cdc.MustMarshalBinaryBare(serializedProphecy))
 }
 
-func (k Keeper) RegisterClaimType(claimType sdk.ClaimType, claimTypeName string, hooks sdk.ClaimHooks) error {
-	if claimTypeName == "" {
-		return fmt.Errorf("claim type name should not be empty")
-	}
-
-	if _, ok := k.claimTypeToName[claimType]; ok {
-		return fmt.Errorf("claim type %d already exists", claimType)
-	}
-	if _, ok := k.nameToClaimType[claimTypeName]; ok {
-		return fmt.Errorf("claim type name %s already exists", claimTypeName)
-	}
-	if _, ok := k.claimHooksMap[claimType]; ok {
-		return fmt.Errorf("hooks of claim type %d already exists", claimType)
-	}
-
-	k.claimTypeToName[claimType] = claimTypeName
-	k.nameToClaimType[claimTypeName] = claimType
-	k.claimHooksMap[claimType] = hooks
-	return nil
-}
-
-func (k Keeper) GetClaimHooks(claimType sdk.ClaimType) sdk.ClaimHooks {
-	return k.claimHooksMap[claimType]
-}
-
-func (k Keeper) GetClaimTypeName(claimType sdk.ClaimType) string {
-	return k.claimTypeToName[claimType]
-}
-
-func (k Keeper) IncreaseSequence(ctx sdk.Context, claimType sdk.ClaimType) int64 {
-	currentSequence := k.GetCurrentSequence(ctx, claimType)
-
-	kvStore := ctx.KVStore(k.storeKey)
-	nextSeq := currentSequence + 1
-
-	bz := make([]byte, 8)
-	binary.BigEndian.PutUint64(bz, uint64(nextSeq))
-
-	kvStore.Set(types.GetClaimTypeSequence(claimType), bz)
-	return nextSeq
-}
-
-func (k Keeper) GetCurrentSequence(ctx sdk.Context, claimType sdk.ClaimType) int64 {
-	kvStore := ctx.KVStore(k.storeKey)
-	bz := kvStore.Get(types.GetClaimTypeSequence(claimType))
-	if bz == nil {
-		return types.StartSequence
-	}
-
-	sequence := binary.BigEndian.Uint64(bz)
-	return int64(sequence)
-}
-
 // ProcessClaim ...
 func (k Keeper) ProcessClaim(ctx sdk.Context, claim types.Claim) (types.Prophecy, sdk.Error) {
 	activeValidator := k.checkActiveValidator(ctx, claim.ValidatorAddress)
@@ -166,7 +109,7 @@ func (k Keeper) ProcessClaim(ctx sdk.Context, claim types.Claim) (types.Prophecy
 		return types.Prophecy{}, types.ErrInvalidIdentifier()
 	}
 
-	if claim.Content == "" {
+	if len(claim.Payload) == 0 {
 		return types.Prophecy{}, types.ErrInvalidClaim()
 	}
 
@@ -182,7 +125,7 @@ func (k Keeper) ProcessClaim(ctx sdk.Context, claim types.Claim) (types.Prophecy
 		return types.Prophecy{}, types.ErrProphecyFinalized()
 	}
 
-	prophecy.AddClaim(claim.ValidatorAddress, claim.Content)
+	prophecy.AddClaim(claim.ValidatorAddress, claim.Payload)
 	prophecy = k.processCompletion(ctx, prophecy)
 
 	k.setProphecy(ctx, prophecy)
@@ -213,13 +156,39 @@ func (k Keeper) processCompletion(ctx sdk.Context, prophecy types.Prophecy) type
 
 	highestPossibleConsensusRatio := sdk.NewDec(highestPossibleClaimPower).Quo(sdk.NewDec(totalPower))
 
-	prophecyParams := k.GetProphecyParams(ctx)
+	consensusNeeded := k.GetConsensusNeeded(ctx)
 
-	if highestConsensusRatio.GTE(prophecyParams.ConsensusNeeded) {
+	if highestConsensusRatio.GTE(consensusNeeded) {
 		prophecy.Status.Text = types.SuccessStatusText
 		prophecy.Status.FinalClaim = highestClaim
-	} else if highestPossibleConsensusRatio.LT(prophecyParams.ConsensusNeeded) {
+	} else if highestPossibleConsensusRatio.LT(consensusNeeded) {
 		prophecy.Status.Text = types.FailedStatusText
 	}
 	return prophecy
+}
+
+func (k *Keeper) SubscribeParamChange(hub pTypes.ParamChangePublisher) {
+	hub.SubscribeParamChange(
+		func(context sdk.Context, iChange interface{}) {
+			switch change := iChange.(type) {
+			case *types.Params:
+				// do double check
+				err := change.UpdateCheck()
+				if err != nil {
+					context.Logger().Error("skip invalid param change", "err", err, "param", change)
+				} else {
+					newCtx := context.DepriveSideChainKeyPrefix()
+					k.SetParams(newCtx, *change)
+					break
+				}
+			default:
+				context.Logger().Debug("skip unknown param change")
+			}
+		},
+		&pTypes.ParamSpaceProto{ParamSpace: k.paramSpace, Proto: func() pTypes.SCParam {
+			return new(types.Params)
+		}},
+		nil,
+		nil,
+	)
 }

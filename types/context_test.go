@@ -71,6 +71,8 @@ func TestCacheContext(t *testing.T) {
 	v2 := []byte("value")
 
 	ctx := defaultContext(key)
+	ctx = ctx.WithAccountCache(&types.DummyAccountCache{})
+
 	store := ctx.KVStore(key)
 	store.Set(k1, v1)
 	require.Equal(t, v1, store.Get(k1))

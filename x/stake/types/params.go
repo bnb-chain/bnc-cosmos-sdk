@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/types"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -47,6 +48,33 @@ type Params struct {
 	BondDenom           string `json:"bond_denom"`            // bondable coin denomination
 	MinSelfDelegation   int64  `json:"min_self_delegation"`   // the minimal self-delegation amount
 	MinDelegationChange int64  `json:"min_delegation_change"` // the minimal delegation amount changed
+}
+
+func (p *Params) GetParamAttribute() (string, bool) {
+	return "staking", false
+}
+
+func (p *Params) UpdateCheck() error {
+	if p.BondDenom != types.NativeTokenSymbol {
+		return fmt.Errorf("only native token is availabe as bond_denom so far")
+	}
+	// the valid range is 1 minute to 100 day.
+	if p.UnbondingTime > 100*24*time.Hour || p.UnbondingTime < time.Minute {
+		return fmt.Errorf("the UnbondingTime should be in range 1 minute to 100 days")
+	}
+	if p.MaxValidators < 1 || p.MaxValidators > 500 {
+		return fmt.Errorf("the max validator should be in range 1 to 500")
+	}
+	// BondDenom do not check here, it should be native token and do not support update so far.
+	// Leave the check in node repo.
+
+	if p.MinSelfDelegation > 10000000e8 || p.MinSelfDelegation < 1e8 {
+		return fmt.Errorf("the min_self_delegation should be in range 1e8 to 10000000e8]")
+	}
+	if p.MinDelegationChange < 1e5 {
+		return fmt.Errorf("the min_delegation_change should be no less than 1e5")
+	}
+	return nil
 }
 
 // Implements params.ParamSet
