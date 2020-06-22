@@ -9,14 +9,17 @@ require (
 	github.com/binance-chain/tss-lib v1.0.0
 	github.com/btcsuite/btcd v0.20.0-beta
 	github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d
+	github.com/go-kit/kit v0.9.0
 	github.com/golang/protobuf v1.3.2
 	github.com/gorilla/mux v1.7.3
 	github.com/hashicorp/golang-lru v0.5.3
 	github.com/ipfs/go-log v0.0.1
+	github.com/magiconair/properties v1.8.1
 	github.com/mattn/go-isatty v0.0.10
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pelletier/go-toml v1.4.0
 	github.com/pkg/errors v0.8.1
+	github.com/prometheus/client_golang v1.1.0
 	github.com/rakyll/statik v0.1.5
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.3

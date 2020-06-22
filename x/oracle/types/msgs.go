@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/x/sidechain"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -49,7 +48,7 @@ func (msg ClaimMsg) GetSigners() []sdk.AccAddress {
 }
 
 func (msg ClaimMsg) String() string {
-	return fmt.Sprintf("Claim{%v#%v%v%x}",
+	return fmt.Sprintf("Claim{%v#%v#%v#%x}",
 		msg.ChainId, msg.Sequence, msg.ValidatorAddress.String(), msg.Payload)
 }
 

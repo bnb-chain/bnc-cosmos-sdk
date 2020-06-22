@@ -1,10 +1,12 @@
 package keeper
 
 import (
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/ibc"
+	"github.com/cosmos/cosmos-sdk/x/oracle/metrics"
 	"github.com/cosmos/cosmos-sdk/x/oracle/types"
 	pTypes "github.com/cosmos/cosmos-sdk/x/paramHub/types"
 	param "github.com/cosmos/cosmos-sdk/x/params"
@@ -26,6 +28,8 @@ type Keeper struct {
 	ScKeeper    sidechain.Keeper
 	IbcKeeper   ibc.Keeper
 	BkKeeper    bank.Keeper
+
+	Metrics *metrics.Metrics
 }
 
 // Parameter store
@@ -49,6 +53,7 @@ func NewKeeper(cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace param.Subspac
 		ScKeeper:    scKeeper,
 		IbcKeeper:   ibcKeeper,
 		BkKeeper:    bkKeeper,
+		Metrics:     metrics.NopMetrics(),
 		Pool:        pool,
 	}
 }
@@ -56,6 +61,10 @@ func NewKeeper(cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace param.Subspac
 func (k Keeper) GetConsensusNeeded(ctx sdk.Context) (consensusNeeded sdk.Dec) {
 	k.paramSpace.Get(ctx, types.ParamStoreKeyProphecyParams, &consensusNeeded)
 	return
+}
+
+func (k Keeper) EnablePrometheusMetrics() {
+	k.Metrics = metrics.PrometheusMetrics()
 }
 
 func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
