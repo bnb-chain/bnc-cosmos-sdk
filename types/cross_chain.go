@@ -19,12 +19,12 @@ var (
 	PegAccount = AccAddress(crypto.AddressHash([]byte("BinanceChainPegAccount")))
 )
 
-func GetPegInTagName(symbol string) string {
-	return fmt.Sprintf(pegInTagName, symbol)
+func GetPegInTag(symbol string, amount int64) Tag {
+	return MakeTag(fmt.Sprintf(pegOutTagName, symbol), []byte(strconv.FormatInt(amount, 10)))
 }
 
-func GetPegOutTagName(symbol string) string {
-	return fmt.Sprintf(pegOutTagName, symbol)
+func GetPegOutTag(symbol string, amount int64) Tag {
+	return MakeTag(fmt.Sprintf(pegOutTagName, symbol), []byte(strconv.FormatInt(amount, 10)))
 }
 
 type CrossChainPackageType uint8

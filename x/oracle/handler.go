@@ -151,7 +151,6 @@ func handlePackage(ctx sdk.Context, oracleKeeper Keeper, chainId sdk.IbcChainID,
 	}
 
 	resultTags := sdk.NewTags(
-		sdk.GetPegOutTagName(sdk.NativeTokenSymbol), []byte(strconv.FormatInt(feeAmount, 10)),
 		types.ClaimResultCode, []byte(strconv.FormatInt(int64(result.Code()), 10)),
 		types.ClaimResultMsg, []byte(result.Msg()),
 		types.ClaimPackageType, []byte(strconv.FormatInt(int64(packageType), 10)),
@@ -159,6 +158,7 @@ func handlePackage(ctx sdk.Context, oracleKeeper Keeper, chainId sdk.IbcChainID,
 		types.ClaimChannel, []byte{uint8(pack.ChannelId)},
 		types.ClaimSequence, []byte(strconv.FormatUint(pack.Sequence, 10)),
 	)
+	resultTags = append(resultTags, sdk.GetPegOutTag(sdk.NativeTokenSymbol, feeAmount))
 
 	if result.Tags != nil {
 		resultTags = resultTags.AppendTags(result.Tags)
