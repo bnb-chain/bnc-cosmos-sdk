@@ -59,9 +59,14 @@ func handleClaimMsg(ctx sdk.Context, oracleKeeper Keeper, msg ClaimMsg) sdk.Resu
 		event, sdkErr := handlePackage(ctx, oracleKeeper, msg.ChainId, &pack)
 		if sdkErr != nil {
 			// only do log, but let reset package get chance to execute.
-			ctx.Logger().With("module", "oracle").Error(fmt.Sprintf("failed to process package channel %d, sequence %d, error %v", pack.ChannelId, pack.Sequence, sdkErr))
+			ctx.Logger().With("module", "oracle").Error(fmt.Sprintf("process package failed, channel=%d, sequence=%d, error=%v", pack.ChannelId, pack.Sequence, sdkErr))
+		} else {
+			ctx.Logger().With("module", "oracle").Info(fmt.Sprintf("process package success, channel=%d, sequence=%d", pack.ChannelId, pack.Sequence))
 		}
 		events = append(events, event)
+
+		// increase channel sequence
+		oracleKeeper.ScKeeper.IncrReceiveSequence(ctx, msg.ChainId, pack.ChannelId)
 	}
 
 	// delete prophecy when execute claim success
@@ -75,11 +80,8 @@ func handleClaimMsg(ctx sdk.Context, oracleKeeper Keeper, msg ClaimMsg) sdk.Resu
 
 func handlePackage(ctx sdk.Context, oracleKeeper Keeper, chainId sdk.IbcChainID, pack *types.Package) (sdk.Event, sdk.Error) {
 	logger := ctx.Logger().With("module", "x/oracle")
-	// increase claim type sequence
-	oracleKeeper.ScKeeper.IncrReceiveSequence(ctx, chainId, pack.ChannelId)
 
 	crossChainApp := oracleKeeper.ScKeeper.GetCrossChainApp(ctx, pack.ChannelId)
-
 	if crossChainApp == nil {
 		return sdk.Event{}, types.ErrChannelNotRegistered(fmt.Sprintf("channel %d not registered", pack.ChannelId))
 	}
