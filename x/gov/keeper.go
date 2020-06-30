@@ -10,7 +10,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/params"
-	"github.com/cosmos/cosmos-sdk/x/sidechain"
 )
 
 // Parameter store default namestore
@@ -33,6 +32,11 @@ func ParamTypeTable() params.TypeTable {
 		ParamStoreKeyDepositParams, DepositParams{},
 		ParamStoreKeyTallyParams, TallyParams{},
 	)
+}
+
+type SideChainKeeper interface {
+	PrepareCtxForSideChain(ctx sdk.Context, sideChainId string) (sdk.Context, error)
+	GetAllSideChainPrefixes(ctx sdk.Context) ([]string, [][]byte)
 }
 
 // Governance Keeper
@@ -68,7 +72,7 @@ type Keeper struct {
 	pool *sdk.Pool
 
 	// if you want to enable side chains, you need call `SetupForSideChain`
-	ScKeeper *sidechain.Keeper
+	ScKeeper SideChainKeeper
 }
 
 // NewKeeper returns a governance keeper. It handles:
@@ -91,7 +95,7 @@ func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, paramsKeeper params.Keeper, p
 	}
 }
 
-func (keeper *Keeper) SetupForSideChain(scKeeper *sidechain.Keeper) {
+func (keeper *Keeper) SetupForSideChain(scKeeper SideChainKeeper) {
 	keeper.ScKeeper = scKeeper
 }
 

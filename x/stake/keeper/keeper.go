@@ -1,6 +1,7 @@
 package keeper
 
 import (
+
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/bsc/rlp"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -10,6 +11,7 @@ import (
 	pTypes "github.com/cosmos/cosmos-sdk/x/paramHub/types"
 	"github.com/cosmos/cosmos-sdk/x/params"
 	"github.com/cosmos/cosmos-sdk/x/sidechain"
+	sTypes "github.com/cosmos/cosmos-sdk/x/sidechain/types"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 	"github.com/tendermint/tendermint/libs/log"
 )
@@ -210,7 +212,7 @@ func (k *Keeper) ExecuteSynPackage(ctx sdk.Context, payload []byte) sdk.ExecuteR
 
 func (k *Keeper) ExecuteAckPackage(ctx sdk.Context, payload []byte) sdk.ExecuteResult {
 	logger := ctx.Logger().With("module", "stake")
-	var ackPackage sidechain.CommonAckPackage
+	var ackPackage sTypes.CommonAckPackage
 	err := rlp.DecodeBytes(payload, &ackPackage)
 	if err != nil {
 		logger.Error("fail to decode ack package", "payload", payload)

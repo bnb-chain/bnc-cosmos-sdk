@@ -10,6 +10,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/paramHub/types"
 	param "github.com/cosmos/cosmos-sdk/x/params"
 	"github.com/cosmos/cosmos-sdk/x/sidechain"
+	sTypes "github.com/cosmos/cosmos-sdk/x/sidechain/types"
 )
 
 // IBC Keeper
@@ -36,17 +37,12 @@ func NewKeeper(storeKey sdk.StoreKey, paramSpace param.Subspace, codespace sdk.C
 	}
 }
 
-func (k *Keeper) CreateIBCPackage(ctx sdk.Context, destChainName string, channelName string, packageLoad []byte) (uint64, sdk.Error) {
+func (k *Keeper) CreateIBCSyncPackage(ctx sdk.Context, destChainName string, channelName string, packageLoad []byte) (uint64, sdk.Error) {
 	relayerFee, err := k.GetRelayerFeeParam(ctx, destChainName)
 	if err != nil {
 		return 0, ErrFeeParamMismatch(DefaultCodespace, fmt.Sprintf("fail to load relayerFee, %v", err))
 	}
 	return k.CreateRawIBCPackage(ctx, destChainName, channelName, sdk.SynCrossChainPackageType, packageLoad, *relayerFee)
-}
-
-func (k *Keeper) CreateIBCPackageWithFee(ctx sdk.Context, destChainName string, channelName string, packageLoad []byte,
-	relayerFee big.Int) (uint64, sdk.Error) {
-	return k.CreateRawIBCPackage(ctx, destChainName, channelName, sdk.SynCrossChainPackageType, packageLoad, relayerFee)
 }
 
 func (k *Keeper) CreateRawIBCPackage(ctx sdk.Context, destChainName string, channelName string,
@@ -82,6 +78,10 @@ func (k *Keeper) CreateRawIBCPackageById(ctx sdk.Context, destIbcChainID sdk.Ibc
 func (k *Keeper) CreateRawIBCPackageByIdWithFee(ctx sdk.Context, destIbcChainID sdk.IbcChainID, channelID sdk.IbcChannelID,
 	packageType sdk.CrossChainPackageType, packageLoad []byte, relayerFee big.Int) (uint64, sdk.Error) {
 
+	if packageType == sdk.SynCrossChainPackageType && k.sideKeeper.GetChannelSendPermission(ctx, destIbcChainID, channelID) != sdk.ChannelAllow {
+		return 0, ErrWritePackageForbidden(DefaultCodespace, fmt.Sprintf("channel %d is not allowed to write syn package", channelID))
+	}
+
 	sequence := k.sideKeeper.GetSendSequence(ctx, destIbcChainID, channelID)
 	key := buildIBCPackageKey(k.sideKeeper.GetSrcIbcChainID(), destIbcChainID, channelID, sequence)
 	kvStore := ctx.KVStore(k.storeKey)
@@ -90,7 +90,7 @@ func (k *Keeper) CreateRawIBCPackageByIdWithFee(ctx sdk.Context, destIbcChainID 
 	}
 
 	// Assemble the package header
-	packageHeader := sidechain.EncodePackageHeader(packageType, relayerFee)
+	packageHeader := sTypes.EncodePackageHeader(packageType, relayerFee)
 
 	kvStore.Set(key, append(packageHeader, packageLoad...))
 	k.sideKeeper.IncrSendSequence(ctx, destIbcChainID, channelID)

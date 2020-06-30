@@ -38,6 +38,13 @@ const (
 	FailAckCrossChainPackageType CrossChainPackageType = 0x02
 )
 
+type ChannelPermission uint8
+
+const (
+	ChannelAllow     ChannelPermission = 1
+	ChannelForbidden ChannelPermission = 0
+)
+
 func IsValidCrossChainPackageType(packageType CrossChainPackageType) bool {
 	return packageType == SynCrossChainPackageType || packageType == AckCrossChainPackageType || packageType == FailAckCrossChainPackageType
 }

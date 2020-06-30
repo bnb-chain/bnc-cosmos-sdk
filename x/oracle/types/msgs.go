@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/cosmos/cosmos-sdk/x/sidechain"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/sidechain/types"
 )
 
 const (
@@ -67,8 +67,8 @@ func (msg ClaimMsg) GetInvolvedAddresses() []sdk.AccAddress {
 
 // ValidateBasic is used to quickly disqualify obviously invalid messages quickly
 func (msg ClaimMsg) ValidateBasic() sdk.Error {
-	if len(msg.Payload) < sidechain.PackageHeaderLength {
-		return ErrInvalidPayloadHeader(fmt.Sprintf("length of payload is less than %d", sidechain.PackageHeaderLength))
+	if len(msg.Payload) < types.PackageHeaderLength {
+		return ErrInvalidPayloadHeader(fmt.Sprintf("length of payload is less than %d", types.PackageHeaderLength))
 	}
 	if len(msg.ValidatorAddress) != sdk.AddrLen {
 		return sdk.ErrInvalidAddress(msg.ValidatorAddress.String())

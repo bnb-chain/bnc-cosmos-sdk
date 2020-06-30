@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/params"
 )
 
@@ -17,22 +19,39 @@ type Keeper struct {
 	storeKey   sdk.StoreKey
 	paramspace params.Subspace
 	cfg        *crossChainConfig
+	cdc        *codec.Codec
+
+	govKeeper *gov.Keeper
+	ibcKeeper IbcKeeper
 }
 
-func NewKeeper(storeKey sdk.StoreKey, paramspace params.Subspace) Keeper {
+type IbcKeeper interface {
+	CreateRawIBCPackageById(ctx sdk.Context, destIbcChainID sdk.IbcChainID, channelID sdk.IbcChannelID,
+		packageType sdk.CrossChainPackageType, packageLoad []byte) (uint64, sdk.Error)
+}
+
+func NewKeeper(storeKey sdk.StoreKey, paramspace params.Subspace, cdc *codec.Codec) Keeper {
 	return Keeper{
 		storeKey:   storeKey,
 		paramspace: paramspace.WithTypeTable(ParamTypeTable()),
 		cfg:        newCrossChainCfg(),
+		cdc:        cdc,
 	}
 }
 
-func (k Keeper) PrepareCtxForSideChain(ctx sdk.Context, sideChainId string) (sdk.Context, error) {
+func (k *Keeper) SetGovKeeper(govKeeper *gov.Keeper) {
+	k.govKeeper = govKeeper
+}
+
+func (k *Keeper) SetIbcKeeper(ibcKeeper IbcKeeper) {
+	k.ibcKeeper = ibcKeeper
+}
+
+func (k *Keeper) PrepareCtxForSideChain(ctx sdk.Context, sideChainId string) (sdk.Context, error) {
 	storePrefix := k.GetSideChainStorePrefix(ctx, sideChainId)
 	if storePrefix == nil {
 		return sdk.Context{}, fmt.Errorf("invalid sideChainId: %s", sideChainId)
 	}
-
 	// add store prefix to ctx for side chain use
 	return ctx.WithSideChainKeyPrefix(storePrefix), nil
 }
@@ -51,7 +70,7 @@ func (k Keeper) GetSideChainStorePrefix(ctx sdk.Context, sideChainId string) []b
 	return store.Get(GetSideChainStorePrefixKey(sideChainId))
 }
 
-func (k Keeper) GetAllSideChainPrefixes(ctx sdk.Context) ([]string, [][]byte) {
+func (k *Keeper) GetAllSideChainPrefixes(ctx sdk.Context) ([]string, [][]byte) {
 	store := ctx.KVStore(k.storeKey)
 	sideChainIds := make([]string, 0, 1)
 	prefixes := make([][]byte, 0, 1)
@@ -96,6 +115,36 @@ func (k *Keeper) RegisterDestChain(name string, ibcChainID sdk.IbcChainID) error
 	k.cfg.destChainNameToID[name] = ibcChainID
 	k.cfg.destChainIDToName[ibcChainID] = name
 	return nil
+}
+
+func (k *Keeper) SetChannelSendPermission(ctx sdk.Context, destChainID sdk.IbcChainID, channelID sdk.IbcChannelID, permission sdk.ChannelPermission) {
+	kvStore := ctx.KVStore(k.storeKey)
+	kvStore.Set(buildChannelPermissionKey(destChainID, channelID), []byte{byte(permission)})
+}
+
+func (k *Keeper) GetChannelSendPermission(ctx sdk.Context, destChainID sdk.IbcChainID, channelID sdk.IbcChannelID) sdk.ChannelPermission {
+	kvStore := ctx.KVStore(k.storeKey)
+	bz := kvStore.Get(buildChannelPermissionKey(destChainID, channelID))
+	if bz == nil {
+		return sdk.ChannelForbidden
+	}
+	return sdk.ChannelPermission(bz[0])
+}
+
+func (k *Keeper) GetChannelSendPermissions(ctx sdk.Context, destChainID sdk.IbcChainID) map[sdk.IbcChannelID]sdk.ChannelPermission {
+	kvStore := ctx.KVStore(k.storeKey).Prefix(buildChannelPermissionsPrefixKey(destChainID))
+	ite := kvStore.Iterator(nil, nil)
+	permissions := make(map[sdk.IbcChannelID]sdk.ChannelPermission, 0)
+	for ; ite.Valid(); ite.Next() {
+		key := ite.Key()
+		if len(key) < 1 {
+			continue
+		}
+		channelId := sdk.IbcChannelID(key[0])
+		value := ite.Value()
+		permissions[channelId] = sdk.ChannelPermission(value[0])
+	}
+	return permissions
 }
 
 func (k *Keeper) GetChannelID(channelName string) (sdk.IbcChannelID, error) {
@@ -172,4 +221,23 @@ func (k *Keeper) incrSequence(ctx sdk.Context, destChainID sdk.IbcChainID, chann
 	sequenceBytes := make([]byte, sequenceLength)
 	binary.BigEndian.PutUint64(sequenceBytes, sequence+1)
 	kvStore.Set(buildChannelSequenceKey(destChainID, channelID, prefix), sequenceBytes)
+}
+
+func EndBlock(ctx sdk.Context, k Keeper) {
+	if sdk.IsUpgrade(sdk.LaunchBscUpgrade) && k.govKeeper != nil {
+		chanPermissions := k.getLastChanPermissionChanges(ctx)
+		// should in reverse order
+		for j := len(chanPermissions) - 1; j >= 0; j-- {
+			change := chanPermissions[j]
+			// must exist
+			id, _ := k.cfg.destChainNameToID[change.SideChainId]
+			k.SetChannelSendPermission(ctx, id, change.ChannelId, change.Permission)
+			_, err := k.SaveChannelSettingChangeToIbc(ctx, id, change.ChannelId, change.Permission)
+			if err != nil {
+				ctx.Logger().With("module", "side_chain").Error("failed to write cross chain channel permission change message ",
+					"err", err)
+			}
+		}
+	}
+	return
 }
