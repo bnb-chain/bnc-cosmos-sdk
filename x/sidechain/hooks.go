@@ -9,7 +9,7 @@ import (
 	"github.com/tendermint/go-amino"
 )
 
-//---------------------    SCParamsChangeHook  -----------------
+//---------------------    ChanPermissionSettingHooks  -----------------
 type ChanPermissionSettingHooks struct {
 	cdc *amino.Codec
 	k   *Keeper
