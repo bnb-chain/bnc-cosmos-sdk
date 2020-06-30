@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/sidechain"
+	"github.com/cosmos/cosmos-sdk/x/sidechain/types"
 )
 
 const (
@@ -95,7 +95,7 @@ func (msg MsgCreateSideChainValidator) ValidateBasic() sdk.Error {
 		return err
 	}
 
-	if len(msg.SideChainId) == 0 || len(msg.SideChainId) > sidechain.MaxSideChainIdLength {
+	if len(msg.SideChainId) == 0 || len(msg.SideChainId) > types.MaxSideChainIdLength {
 		return sdk.NewError(DefaultCodespace, CodeInvalidInput, "side chain id must be included and max length is 20 bytes")
 	}
 
@@ -172,7 +172,7 @@ func (msg MsgEditSideChainValidator) ValidateBasic() sdk.Error {
 		}
 	}
 
-	if len(msg.SideChainId) == 0 || len(msg.SideChainId) > sidechain.MaxSideChainIdLength {
+	if len(msg.SideChainId) == 0 || len(msg.SideChainId) > types.MaxSideChainIdLength {
 		return sdk.NewError(DefaultCodespace, CodeInvalidInput, "side chain id must be included and max length is 20 bytes")
 	}
 
@@ -241,7 +241,7 @@ func (msg MsgSideChainDelegate) ValidateBasic() sdk.Error {
 	if len(msg.ValidatorAddr) != sdk.AddrLen {
 		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected validator address length is %d, actual length is %d", sdk.AddrLen, len(msg.ValidatorAddr)))
 	}
-	if len(msg.SideChainId) == 0 || len(msg.SideChainId) > sidechain.MaxSideChainIdLength {
+	if len(msg.SideChainId) == 0 || len(msg.SideChainId) > types.MaxSideChainIdLength {
 		return sdk.NewError(DefaultCodespace, CodeInvalidInput, "side chain id must be included and max length is 20 bytes")
 	}
 	return nil
@@ -304,7 +304,7 @@ func (msg MsgSideChainRedelegate) ValidateBasic() sdk.Error {
 	if bytes.Equal(msg.ValidatorSrcAddr, msg.ValidatorDstAddr) {
 		return ErrSelfRedelegation(DefaultCodespace)
 	}
-	if len(msg.SideChainId) == 0 || len(msg.SideChainId) > sidechain.MaxSideChainIdLength {
+	if len(msg.SideChainId) == 0 || len(msg.SideChainId) > types.MaxSideChainIdLength {
 		return sdk.NewError(DefaultCodespace, CodeInvalidInput, "side chain id must be included and max length is 20 bytes")
 	}
 	return nil
@@ -354,7 +354,7 @@ func (msg MsgSideChainUndelegate) ValidateBasic() sdk.Error {
 	if msg.Amount.Amount <= 0 {
 		return ErrBadDelegationAmount(DefaultCodespace, "undelegation amount must be positive")
 	}
-	if len(msg.SideChainId) == 0 || len(msg.SideChainId) > sidechain.MaxSideChainIdLength {
+	if len(msg.SideChainId) == 0 || len(msg.SideChainId) > types.MaxSideChainIdLength {
 		return sdk.NewError(DefaultCodespace, CodeInvalidInput, "side chain id must be included and max length is 20 bytes")
 	}
 	return nil

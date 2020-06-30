@@ -10,6 +10,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/paramHub/types"
 	param "github.com/cosmos/cosmos-sdk/x/params"
 	"github.com/cosmos/cosmos-sdk/x/sidechain"
+	sTypes "github.com/cosmos/cosmos-sdk/x/sidechain/types"
 )
 
 // IBC Keeper
@@ -82,6 +83,10 @@ func (k *Keeper) CreateRawIBCPackageById(ctx sdk.Context, destIbcChainID sdk.Ibc
 func (k *Keeper) CreateRawIBCPackageByIdWithFee(ctx sdk.Context, destIbcChainID sdk.IbcChainID, channelID sdk.IbcChannelID,
 	packageType sdk.CrossChainPackageType, packageLoad []byte, relayerFee big.Int) (uint64, sdk.Error) {
 
+	if packageType == sdk.SynCrossChainPackageType && k.sideKeeper.GetChannelSendPermission(ctx, destIbcChainID, channelID) != sdk.ChannelAllow {
+		return 0, ErrWritePackageForbidden(DefaultCodespace, fmt.Sprintf("channel %d is not allowed to write syn package", channelID))
+	}
+
 	sequence := k.sideKeeper.GetSendSequence(ctx, destIbcChainID, channelID)
 	key := buildIBCPackageKey(k.sideKeeper.GetSrcIbcChainID(), destIbcChainID, channelID, sequence)
 	kvStore := ctx.KVStore(k.storeKey)
@@ -90,7 +95,7 @@ func (k *Keeper) CreateRawIBCPackageByIdWithFee(ctx sdk.Context, destIbcChainID 
 	}
 
 	// Assemble the package header
-	packageHeader := sidechain.EncodePackageHeader(packageType, relayerFee)
+	packageHeader := sTypes.EncodePackageHeader(packageType, relayerFee)
 
 	kvStore.Set(key, append(packageHeader, packageLoad...))
 	k.sideKeeper.IncrSendSequence(ctx, destIbcChainID, channelID)

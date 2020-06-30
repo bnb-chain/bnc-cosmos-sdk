@@ -5,6 +5,10 @@ import (
 	"math"
 	"time"
 
+	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/crypto"
+	tmtypes "github.com/tendermint/tendermint/types"
+
 	"github.com/cosmos/cosmos-sdk/bsc/rlp"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -13,10 +17,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/paramHub/types"
 	param "github.com/cosmos/cosmos-sdk/x/params"
 	"github.com/cosmos/cosmos-sdk/x/sidechain"
+	sTypes "github.com/cosmos/cosmos-sdk/x/sidechain/types"
 	stake "github.com/cosmos/cosmos-sdk/x/stake/types"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto"
-	tmtypes "github.com/tendermint/tendermint/types"
 )
 
 // Keeper of the slashing store
@@ -235,7 +237,7 @@ func (k *Keeper) ExecuteSynPackage(ctx sdk.Context, payload []byte) sdk.ExecuteR
 	if err != nil {
 		resCode = uint32(err.ABCICode())
 	}
-	ackPackage, encodeErr := sidechain.GenCommonAckPackage(resCode)
+	ackPackage, encodeErr := sTypes.GenCommonAckPackage(resCode)
 	if encodeErr != nil {
 		panic(encodeErr)
 	}

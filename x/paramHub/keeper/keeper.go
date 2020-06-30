@@ -2,6 +2,8 @@ package keeper
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/tendermint/tendermint/libs/log"
 
 	"github.com/cosmos/cosmos-sdk/bsc/rlp"
@@ -12,6 +14,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/paramHub/types"
 	"github.com/cosmos/cosmos-sdk/x/params"
 	"github.com/cosmos/cosmos-sdk/x/sidechain"
+	sTypes "github.com/cosmos/cosmos-sdk/x/sidechain/types"
 )
 
 var (
@@ -24,6 +27,8 @@ var (
 
 const (
 	ParamSpace = "paramhub"
+
+	SafeToleratePeriod = 2 * 7 * 24 * 60 * 60 * time.Second // 2 weeks
 )
 
 func ParamTypeTable() params.TypeTable {
@@ -197,7 +202,7 @@ func (keeper *Keeper) ExecuteSynPackage(ctx sdk.Context, payload []byte) sdk.Exe
 }
 
 func (keeper *Keeper) ExecuteAckPackage(ctx sdk.Context, payload []byte) sdk.ExecuteResult {
-	var ackPackage sidechain.CommonAckPackage
+	var ackPackage sTypes.CommonAckPackage
 	err := rlp.DecodeBytes(payload, &ackPackage)
 	if err != nil {
 		keeper.Logger(ctx).Error("fail to decode ack package", "payload", payload)

@@ -10,7 +10,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/fees"
 	"github.com/cosmos/cosmos-sdk/x/oracle/types"
-	"github.com/cosmos/cosmos-sdk/x/sidechain"
+	sTypes "github.com/cosmos/cosmos-sdk/x/sidechain/types"
 )
 
 func NewHandler(keeper Keeper) sdk.Handler {
@@ -60,6 +60,7 @@ func handleClaimMsg(ctx sdk.Context, oracleKeeper Keeper, msg ClaimMsg) sdk.Resu
 		if sdkErr != nil {
 			// only do log, but let reset package get chance to execute.
 			ctx.Logger().With("module", "oracle").Error(fmt.Sprintf("process package failed, channel=%d, sequence=%d, error=%v", pack.ChannelId, pack.Sequence, sdkErr))
+			return sdkErr.Result()
 		} else {
 			ctx.Logger().With("module", "oracle").Info(fmt.Sprintf("process package success, channel=%d, sequence=%d", pack.ChannelId, pack.Sequence))
 		}
@@ -91,7 +92,7 @@ func handlePackage(ctx sdk.Context, oracleKeeper Keeper, chainId sdk.IbcChainID,
 		return sdk.Event{}, types.ErrInvalidSequence(fmt.Sprintf("current sequence of channel %d is %d", pack.ChannelId, sequence))
 	}
 
-	packageType, relayFee, err := sidechain.DecodePackageHeader(pack.Payload)
+	packageType, relayFee, err := sTypes.DecodePackageHeader(pack.Payload)
 	if err != nil {
 		return sdk.Event{}, types.ErrInvalidPayloadHeader(err.Error())
 	}
@@ -189,11 +190,11 @@ func executeClaim(ctx sdk.Context, app sdk.CrossChainApplication, payload []byte
 
 	switch packageType {
 	case sdk.SynCrossChainPackageType:
-		result = app.ExecuteSynPackage(ctx, payload[sidechain.PackageHeaderLength:])
+		result = app.ExecuteSynPackage(ctx, payload[sTypes.PackageHeaderLength:])
 	case sdk.AckCrossChainPackageType:
-		result = app.ExecuteAckPackage(ctx, payload[sidechain.PackageHeaderLength:])
+		result = app.ExecuteAckPackage(ctx, payload[sTypes.PackageHeaderLength:])
 	case sdk.FailAckCrossChainPackageType:
-		result = app.ExecuteFailAckPackage(ctx, payload[sidechain.PackageHeaderLength:])
+		result = app.ExecuteFailAckPackage(ctx, payload[sTypes.PackageHeaderLength:])
 	default:
 		panic(fmt.Sprintf("receive unexpected package type %d", packageType))
 	}

@@ -19,7 +19,7 @@ import (
 	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/gov/client"
-	"github.com/cosmos/cosmos-sdk/x/sidechain"
+	"github.com/cosmos/cosmos-sdk/x/sidechain/types"
 )
 
 const (
@@ -102,8 +102,8 @@ $ CLI gov submit-proposal --title="Test Proposal" --description="My awesome prop
 				return errors.New(fmt.Sprintf("Proposal description is longer than max length of %d", gov.MaxDescriptionLength))
 			}
 
-			if proposal.SideChainId != gov.NativeChainID && len(proposal.SideChainId) > sidechain.MaxSideChainIdLength {
-				return errors.New(fmt.Sprintf("chain-id exceed the length limit %d", sidechain.MaxSideChainIdLength))
+			if proposal.SideChainId != gov.NativeChainID && len(proposal.SideChainId) > types.MaxSideChainIdLength {
+				return errors.New(fmt.Sprintf("chain-id exceed the length limit %d", types.MaxSideChainIdLength))
 			}
 
 			txBldr := authtxb.NewTxBuilderFromCLI().WithCodec(cdc)
@@ -218,8 +218,8 @@ func GetCmdDeposit(cdc *codec.Codec) *cobra.Command {
 
 			proposalID := viper.GetInt64(flagProposalID)
 			sideChainId := viper.GetString(flagSideChainId)
-			if len(sideChainId) > sidechain.MaxSideChainIdLength {
-				return fmt.Errorf("side-chain-id exceed the max length %d", sidechain.MaxSideChainIdLength)
+			if len(sideChainId) > types.MaxSideChainIdLength {
+				return fmt.Errorf("side-chain-id exceed the max length %d", types.MaxSideChainIdLength)
 			}
 
 			amount, err := sdk.ParseCoins(viper.GetString(flagDeposit))
@@ -275,8 +275,8 @@ func GetCmdVote(cdc *codec.Codec) *cobra.Command {
 			option := viper.GetString(flagOption)
 			sideChainId := viper.GetString(flagSideChainId)
 
-			if len(sideChainId) > sidechain.MaxSideChainIdLength {
-				return fmt.Errorf("side-chain-id exceed the max length %d", sidechain.MaxSideChainIdLength)
+			if len(sideChainId) > types.MaxSideChainIdLength {
+				return fmt.Errorf("side-chain-id exceed the max length %d", types.MaxSideChainIdLength)
 			}
 
 			byteVoteOption, err := gov.VoteOptionFromString(client.NormalizeVoteOption(option))
