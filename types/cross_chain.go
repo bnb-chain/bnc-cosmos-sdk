@@ -20,7 +20,7 @@ var (
 )
 
 func GetPegInTag(symbol string, amount int64) Tag {
-	return MakeTag(fmt.Sprintf(pegOutTagName, symbol), []byte(strconv.FormatInt(amount, 10)))
+	return MakeTag(fmt.Sprintf(pegInTagName, symbol), []byte(strconv.FormatInt(amount, 10)))
 }
 
 func GetPegOutTag(symbol string, amount int64) Tag {
