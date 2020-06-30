@@ -5,7 +5,7 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/sidechain"
+	"github.com/cosmos/cosmos-sdk/x/sidechain/types"
 )
 
 const (
@@ -46,7 +46,7 @@ func (msg MsgSideChainSubmitProposal) Type() string  { return MsgTypeSideSubmitP
 
 // Implements Msg.
 func (msg MsgSideChainSubmitProposal) ValidateBasic() sdk.Error {
-	if len(msg.SideChainId) == 0 || len(msg.SideChainId) > sidechain.MaxSideChainIdLength {
+	if len(msg.SideChainId) == 0 || len(msg.SideChainId) > types.MaxSideChainIdLength {
 		return ErrInvalidSideChainId(DefaultCodespace, msg.SideChainId)
 	}
 	if len(msg.Title) == 0 {
@@ -127,7 +127,7 @@ func (msg MsgSideChainDeposit) Type() string  { return MsgTypeSideDeposit }
 
 // Implements Msg.
 func (msg MsgSideChainDeposit) ValidateBasic() sdk.Error {
-	if len(msg.SideChainId) == 0 || len(msg.SideChainId) > sidechain.MaxSideChainIdLength {
+	if len(msg.SideChainId) == 0 || len(msg.SideChainId) > types.MaxSideChainIdLength {
 		return ErrInvalidSideChainId(DefaultCodespace, msg.SideChainId)
 	}
 	if len(msg.Depositer) != sdk.AddrLen {
@@ -193,7 +193,7 @@ func (msg MsgSideChainVote) Type() string  { return MsgTypeSideVote }
 
 // Implements Msg.
 func (msg MsgSideChainVote) ValidateBasic() sdk.Error {
-	if len(msg.SideChainId) == 0 || len(msg.SideChainId) > sidechain.MaxSideChainIdLength {
+	if len(msg.SideChainId) == 0 || len(msg.SideChainId) > types.MaxSideChainIdLength {
 		return ErrInvalidSideChainId(DefaultCodespace, msg.SideChainId)
 	}
 	if len(msg.Voter) != sdk.AddrLen {

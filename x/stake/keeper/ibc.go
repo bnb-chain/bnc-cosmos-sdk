@@ -17,5 +17,5 @@ func (k Keeper) SaveValidatorSetToIbc(ctx sdk.Context, sideChainId string, ibcPa
 	if err != nil {
 		return 0, sdk.ErrInternal("failed to encode IbcValidatorSetPackage")
 	}
-	return k.ibcKeeper.CreateIBCPackage(ctx, sideChainId, IbcChannelName, bz)
+	return k.ibcKeeper.CreateIBCSyncPackage(ctx, sideChainId, IbcChannelName, bz)
 }

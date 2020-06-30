@@ -51,7 +51,7 @@ func TestSideChainSlashDowntime(t *testing.T) {
 	slashRecord, found := keeper.getSlashRecord(sideCtx, sideConsAddr, Downtime, sideHeight)
 	require.True(t, found)
 	require.EqualValues(t, sideHeight, slashRecord.InfractionHeight)
-	require.EqualValues(t, sideChainId, slashRecord.SideChainName)
+	require.EqualValues(t, sideChainId, slashRecord.SideChainId)
 	require.EqualValues(t, realSlashAmt, slashRecord.SlashAmt)
 	require.EqualValues(t, ctx.BlockHeader().Time.Add(slashingParams.DowntimeUnbondDuration).Unix(), slashRecord.JailUntil.Unix())
 

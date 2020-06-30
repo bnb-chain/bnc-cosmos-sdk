@@ -88,7 +88,7 @@ func createTestInput(t *testing.T, defaults Params) (sdk.Context, bank.Keeper, s
 
 	ck := bank.NewBaseKeeper(accountKeeper)
 	paramsKeeper := params.NewKeeper(cdc, keyParams, tkeyParams)
-	scKeeper := sidechain.NewKeeper(keySideChain, paramsKeeper.Subspace(sidechain.DefaultParamspace))
+	scKeeper := sidechain.NewKeeper(keySideChain, paramsKeeper.Subspace(sidechain.DefaultParamspace), cdc)
 	ibcKeeper := ibc.NewKeeper(keyIbc, paramsKeeper.Subspace(ibc.DefaultParamspace), ibc.DefaultCodespace, scKeeper)
 	sk := stake.NewKeeper(cdc, keyStake, tkeyStake, ck, nil, paramsKeeper.Subspace(stake.DefaultParamspace), stake.DefaultCodespace)
 	sk.SetupForSideChain(&scKeeper, &ibcKeeper)
@@ -148,7 +148,7 @@ func createSideTestInput(t *testing.T, defaults Params) (sdk.Context, sdk.Contex
 
 	paramsKeeper := params.NewKeeper(cdc, keyParams, tkeyParams)
 
-	scKeeper := sidechain.NewKeeper(keySideChain, paramsKeeper.Subspace(sidechain.DefaultParamspace))
+	scKeeper := sidechain.NewKeeper(keySideChain, paramsKeeper.Subspace(sidechain.DefaultParamspace), cdc)
 	bscStorePrefix := []byte{0x99}
 	scKeeper.SetSideChainIdAndStorePrefix(ctx, "bsc", bscStorePrefix)
 	scKeeper.SetParams(ctx, sidechain.DefaultParams())
@@ -186,6 +186,7 @@ func createSideTestInput(t *testing.T, defaults Params) (sdk.Context, sdk.Contex
 	sk = sk.WithHooks(keeper.Hooks())
 	keeper.SetSideChain(&scKeeper)
 	keeper.SetParams(sideCtx, defaults)
+	scKeeper.SetChannelSendPermission(ctx, sdk.IbcChainID(1), sdk.IbcChannelID(8), sdk.ChannelAllow)
 
 	require.NotPanics(t, func() {
 		InitGenesis(ctx, keeper, GenesisState{defaults}, genesis)

@@ -8,7 +8,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/mock"
-	"github.com/cosmos/cosmos-sdk/x/sidechain"
+	"github.com/cosmos/cosmos-sdk/x/sidechain/types"
 )
 
 func TestClaimMsg(t *testing.T) {
@@ -19,13 +19,13 @@ func TestClaimMsg(t *testing.T) {
 		expectedPass bool
 	}{
 		{
-			NewClaimMsg(1, 1, common.RandBytes(sidechain.PackageHeaderLength), addrs[0]),
+			NewClaimMsg(1, 1, common.RandBytes(types.PackageHeaderLength), addrs[0]),
 			true,
 		}, {
 			NewClaimMsg(1, 1, []byte("test"), addrs[0]),
 			false,
 		}, {
-			NewClaimMsg(1, 1, common.RandBytes(sidechain.PackageHeaderLength), sdk.AccAddress{1}),
+			NewClaimMsg(1, 1, common.RandBytes(types.PackageHeaderLength), sdk.AccAddress{1}),
 			false,
 		},
 	}

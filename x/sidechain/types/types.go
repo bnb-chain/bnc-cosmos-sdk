@@ -1,4 +1,4 @@
-package sidechain
+package types
 
 import (
 	"fmt"
@@ -10,6 +10,8 @@ import (
 
 const (
 	MaxSideChainIdLength = 20
+
+	GovChannelId = sdk.IbcChannelID(9)
 )
 
 const (
@@ -46,4 +48,23 @@ func (p CommonAckPackage) IsOk() bool {
 
 func GenCommonAckPackage(code uint32) ([]byte, error) {
 	return rlp.EncodeToBytes(&CommonAckPackage{Code: code})
+}
+
+type ChanPermissionSetting struct {
+	SideChainId string                `json:"side_chain_id"`
+	ChannelId   sdk.IbcChannelID      `json:"channel_id"`
+	Permission  sdk.ChannelPermission `json:"permission"`
+}
+
+func (c *ChanPermissionSetting) Check() error {
+	if len(c.SideChainId) == 0 || len(c.SideChainId) > MaxSideChainIdLength {
+		return fmt.Errorf("invalid side chain id")
+	}
+	if c.ChannelId == GovChannelId {
+		return fmt.Errorf("gov channel id is forbidden to set")
+	}
+	if c.Permission != sdk.ChannelAllow && c.Permission != sdk.ChannelForbidden {
+		return fmt.Errorf("permission %d is invalid", c.Permission)
+	}
+	return nil
 }

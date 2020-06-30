@@ -126,10 +126,11 @@ const (
 	ProposalTypeSoftwareUpgrade ProposalKind = 0x03
 	ProposalTypeListTradingPair ProposalKind = 0x04
 	// ProposalTypeFeeChange belongs to ProposalTypeParameterChange. We use this to make it easily to distinguish。
-	ProposalTypeFeeChange         ProposalKind = 0x05
-	ProposalTypeCreateValidator   ProposalKind = 0x06
-	ProposalTypeRemoveValidator   ProposalKind = 0x07
-	ProposalTypeDelistTradingPair ProposalKind = 0x08
+	ProposalTypeFeeChange            ProposalKind = 0x05
+	ProposalTypeCreateValidator      ProposalKind = 0x06
+	ProposalTypeRemoveValidator      ProposalKind = 0x07
+	ProposalTypeDelistTradingPair    ProposalKind = 0x08
+	ProposalTypeManageChanPermission ProposalKind = 0x09
 )
 
 // String to proposalType byte.  Returns ff if invalid.
@@ -155,6 +156,8 @@ func ProposalTypeFromString(str string) (ProposalKind, error) {
 		return ProposalTypeSCParamsChange, nil
 	case "CSCParamsChange":
 		return ProposalTypeCSCParamsChange, nil
+	case "ManageChanPermission":
+		return ProposalTypeManageChanPermission, nil
 	default:
 		return ProposalKind(0xff), errors.Errorf("'%s' is not a valid proposal type", str)
 	}
@@ -169,7 +172,8 @@ func validProposalType(pt ProposalKind) bool {
 		pt == ProposalTypeFeeChange ||
 		pt == ProposalTypeCreateValidator ||
 		pt == ProposalTypeRemoveValidator ||
-		pt == ProposalTypeDelistTradingPair {
+		pt == ProposalTypeDelistTradingPair ||
+		pt == ProposalTypeManageChanPermission {
 		return true
 	}
 	return false
@@ -230,6 +234,8 @@ func (pt ProposalKind) String() string {
 		return "SCParamsChange"
 	case ProposalTypeCSCParamsChange:
 		return "CSCParamsChange"
+	case ProposalTypeManageChanPermission:
+		return "ManageChanPermission"
 	default:
 		return ""
 	}

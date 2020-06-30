@@ -38,7 +38,7 @@ func getMockApp(t *testing.T) (*mock.App, stake.Keeper, Keeper) {
 	bankKeeper := bank.NewBaseKeeper(mapp.AccountKeeper)
 
 	paramsKeeper := params.NewKeeper(mapp.Cdc, keyParams, tkeyParams)
-	scKeeper := sidechain.NewKeeper(keySideChain, paramsKeeper.Subspace(sidechain.DefaultParamspace))
+	scKeeper := sidechain.NewKeeper(keySideChain, paramsKeeper.Subspace(sidechain.DefaultParamspace), mapp.Cdc)
 	ibcKeeper := ibc.NewKeeper(keyIbc, paramsKeeper.Subspace(ibc.DefaultParamspace), ibc.DefaultCodespace, scKeeper)
 	stakeKeeper := stake.NewKeeper(mapp.Cdc, keyStake, tkeyStake, bankKeeper, nil, paramsKeeper.Subspace(stake.DefaultParamspace), mapp.RegisterCodespace(stake.DefaultCodespace))
 	stakeKeeper.SetupForSideChain(&scKeeper, &ibcKeeper)

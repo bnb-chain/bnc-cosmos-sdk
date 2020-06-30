@@ -1,14 +1,10 @@
 package keeper
 
 import (
-	"time"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/paramHub/types"
 )
-
-const SafeToleratePeriod = 2 * 7 * 24 * 60 * 60 * time.Second // 2 weeks
 
 func (keeper *Keeper) registerCSCParamsCallBack() {
 	keeper.SubscribeParamChange(
