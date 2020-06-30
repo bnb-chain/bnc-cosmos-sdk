@@ -22,7 +22,7 @@ type SlashRecord struct {
 	SlashHeight      int64
 	JailUntil        time.Time
 	SlashAmt         int64
-	SideChainName    string
+	SideChainId      string
 }
 
 func (r SlashRecord) HumanReadableString() (string, error) {
@@ -34,7 +34,7 @@ func (r SlashRecord) HumanReadableString() (string, error) {
 	}
 
 	var consAddr string
-	if len(r.SideChainName) == 0 {
+	if len(r.SideChainId) == 0 {
 		pk, err := cryptoAmino.PubKeyFromBytes(r.ConsAddr)
 		if err != nil {
 			return "", err
@@ -55,8 +55,8 @@ func (r SlashRecord) HumanReadableString() (string, error) {
 	resp += fmt.Sprintf("Slash Height: %d\n", r.SlashHeight)
 	resp += fmt.Sprintf("Jail Until: %v\n", r.JailUntil)
 	resp += fmt.Sprintf("Slash Amount: %d\n", r.SlashAmt)
-	if len(r.SideChainName) != 0 {
-		resp += fmt.Sprintf("Side Chain id: %s\n", r.SideChainName)
+	if len(r.SideChainId) != 0 {
+		resp += fmt.Sprintf("Side Chain id: %s\n", r.SideChainId)
 	}
 	return resp, nil
 }
@@ -81,7 +81,7 @@ func MarshalSlashRecord(cdc *codec.Codec, record SlashRecord) ([]byte, error) {
 		SlashHeight: record.SlashHeight,
 		JailUntil:   record.JailUntil,
 		SlashAmt:    record.SlashAmt,
-		SideChainId: record.SideChainName,
+		SideChainId: record.SideChainId,
 	}
 	return cdc.MarshalBinaryLengthPrefixed(srv)
 }
@@ -112,7 +112,7 @@ func UnmarshalSlashRecord(cdc *codec.Codec, key []byte, value []byte) (SlashReco
 		SlashHeight:      storeValue.SlashHeight,
 		JailUntil:        storeValue.JailUntil,
 		SlashAmt:         storeValue.SlashAmt,
-		SideChainName:    storeValue.SideChainId,
+		SideChainId:      storeValue.SideChainId,
 	}, nil
 }
 

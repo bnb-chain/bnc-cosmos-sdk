@@ -48,11 +48,8 @@ func SubmitChannelManageProposalCmd(cdc *codec.Codec) *cobra.Command {
 			channelSetting.SideChainId = sideChainId
 			enable := viper.GetBool(flagChannelEnable)
 			if enable {
-				fmt.Println("true")
 				channelSetting.Permission = sdk.ChannelAllow
 			} else {
-				fmt.Println("false")
-
 				channelSetting.Permission = sdk.ChannelForbidden
 			}
 

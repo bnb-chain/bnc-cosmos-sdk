@@ -334,7 +334,7 @@ func (k *Keeper) executeSynPackage(ctx sdk.Context, event *SideDowntimeSlashEven
 		SlashHeight:      header.Height,
 		JailUntil:        jailUtil,
 		SlashAmt:         slashedAmt.RawInt(),
-		SideChainName:    sideChainName,
+		SideChainId:      sideChainName,
 	}
 	k.setSlashRecord(sideCtx, sr)
 
