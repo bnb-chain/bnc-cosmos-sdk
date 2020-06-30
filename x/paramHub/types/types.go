@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/cosmos/cosmos-sdk/bsc/rlp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/params/subspace"
 )
@@ -263,11 +262,6 @@ func (c *CSCParamChange) Check() error {
 		return fmt.Errorf("the length of target address is not %d", sdk.AddrLen)
 	}
 	return nil
-}
-
-func (c *CSCParamChange) Serialize() []byte {
-	bz, _ := rlp.EncodeToBytes(c)
-	return bz
 }
 
 // ---------   Definition side chain prams change ------------------- //

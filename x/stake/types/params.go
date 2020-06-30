@@ -69,7 +69,7 @@ func (p *Params) UpdateCheck() error {
 	// Leave the check in node repo.
 
 	if p.MinSelfDelegation > 10000000e8 || p.MinSelfDelegation < 1e8 {
-		return fmt.Errorf("the min_self_delegation should be in range 1e8 to 10000000e8]")
+		return fmt.Errorf("the min_self_delegation should be in range 1e8 to 10000000e8")
 	}
 	if p.MinDelegationChange < 1e5 {
 		return fmt.Errorf("the min_delegation_change should be no less than 1e5")
