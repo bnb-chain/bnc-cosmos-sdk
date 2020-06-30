@@ -19,5 +19,5 @@ func (keeper *Keeper) SaveParamChangeToIbc(ctx sdk.Context, sideChainId string, 
 	if err != nil {
 		return 0, sdk.ErrInternal("failed to encode paramChange")
 	}
-	return keeper.ibcKeeper.CreateIBCPackage(ctx, sideChainId, IbcChannelName, bz)
+	return keeper.ibcKeeper.CreateIBCSyncPackage(ctx, sideChainId, IbcChannelName, bz)
 }

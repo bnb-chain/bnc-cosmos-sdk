@@ -37,17 +37,12 @@ func NewKeeper(storeKey sdk.StoreKey, paramSpace param.Subspace, codespace sdk.C
 	}
 }
 
-func (k *Keeper) CreateIBCPackage(ctx sdk.Context, destChainName string, channelName string, packageLoad []byte) (uint64, sdk.Error) {
+func (k *Keeper) CreateIBCSyncPackage(ctx sdk.Context, destChainName string, channelName string, packageLoad []byte) (uint64, sdk.Error) {
 	relayerFee, err := k.GetRelayerFeeParam(ctx, destChainName)
 	if err != nil {
 		return 0, ErrFeeParamMismatch(DefaultCodespace, fmt.Sprintf("fail to load relayerFee, %v", err))
 	}
 	return k.CreateRawIBCPackage(ctx, destChainName, channelName, sdk.SynCrossChainPackageType, packageLoad, *relayerFee)
-}
-
-func (k *Keeper) CreateIBCPackageWithFee(ctx sdk.Context, destChainName string, channelName string, packageLoad []byte,
-	relayerFee big.Int) (uint64, sdk.Error) {
-	return k.CreateRawIBCPackage(ctx, destChainName, channelName, sdk.SynCrossChainPackageType, packageLoad, relayerFee)
 }
 
 func (k *Keeper) CreateRawIBCPackage(ctx sdk.Context, destChainName string, channelName string,

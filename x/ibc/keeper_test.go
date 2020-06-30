@@ -62,25 +62,24 @@ func TestKeeper(t *testing.T) {
 	testSynFee := big.NewInt(100)
 
 	value := []byte{0x00}
-	sequence, err := keeper.CreateIBCPackageWithFee(ctx, destChainName, channelName, value, *testSynFee)
+	sequence, err := keeper.CreateRawIBCPackage(ctx, destChainName, channelName, sdk.SynCrossChainPackageType, value, *testSynFee)
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), sequence)
 
 	value = []byte{0x00, 0x01}
-	testRelayerFee := big.NewInt(100)
-	sequence, err = keeper.CreateIBCPackageWithFee(ctx, destChainName, channelName, value, *testRelayerFee)
+	sequence, err = keeper.CreateRawIBCPackage(ctx, destChainName, channelName, sdk.SynCrossChainPackageType, value, *testSynFee)
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), sequence)
 	value = []byte{0x00, 0x01, 0x02}
-	sequence, err = keeper.CreateIBCPackageWithFee(ctx, destChainName, channelName, value, *testRelayerFee)
+	sequence, err = keeper.CreateRawIBCPackage(ctx, destChainName, channelName, sdk.SynCrossChainPackageType, value, *testSynFee)
 	require.NoError(t, err)
 	require.Equal(t, uint64(2), sequence)
 	value = []byte{0x00, 0x01, 0x02, 0x03}
-	sequence, err = keeper.CreateIBCPackageWithFee(ctx, destChainName, channelName, value, *testRelayerFee)
+	sequence, err = keeper.CreateRawIBCPackage(ctx, destChainName, channelName, sdk.SynCrossChainPackageType, value, *testSynFee)
 	require.NoError(t, err)
 	require.Equal(t, uint64(3), sequence)
 	value = []byte{0x00, 0x01, 0x02, 0x03, 0x04}
-	sequence, err = keeper.CreateIBCPackageWithFee(ctx, destChainName, channelName, value, *testRelayerFee)
+	sequence, err = keeper.CreateRawIBCPackage(ctx, destChainName, channelName, sdk.SynCrossChainPackageType, value, *testSynFee)
 	require.NoError(t, err)
 	require.Equal(t, uint64(4), sequence)
 
@@ -105,13 +104,13 @@ func TestKeeper(t *testing.T) {
 	require.NoError(t, keeper.sideKeeper.RegisterDestChain("btc", sdk.IbcChainID(0x0002)))
 	keeper.sideKeeper.SetChannelSendPermission(ctx, sdk.IbcChainID(0x0002), channelID, sdk.ChannelAllow)
 
-	sequence, err = keeper.CreateIBCPackageWithFee(ctx, "btc", channelName, value, *testSynFee)
+	sequence, err = keeper.CreateRawIBCPackage(ctx, "btc", channelName, sdk.SynCrossChainPackageType, value, *testSynFee)
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), sequence)
 
 	require.NoError(t, keeper.sideKeeper.RegisterChannel("mockChannel", sdk.IbcChannelID(2), nil))
 	keeper.sideKeeper.SetChannelSendPermission(ctx, destChainID, sdk.IbcChannelID(2), sdk.ChannelAllow)
-	sequence, err = keeper.CreateIBCPackageWithFee(ctx, destChainName, "mockChannel", value, *testSynFee)
+	sequence, err = keeper.CreateRawIBCPackage(ctx, destChainName, "mockChannel", sdk.SynCrossChainPackageType, value, *testSynFee)
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), sequence)
 	require.Equal(t, uint64(0), sequence)
