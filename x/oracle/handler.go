@@ -79,7 +79,7 @@ func handleClaimMsg(ctx sdk.Context, oracleKeeper Keeper, msg ClaimMsg) sdk.Resu
 	}
 }
 
-func handlePackage(ctx sdk.Context, oracleKeeper Keeper, chainId sdk.IbcChainID, pack *types.Package) (sdk.Event, sdk.Error) {
+func handlePackage(ctx sdk.Context, oracleKeeper Keeper, chainId sdk.ChainID, pack *types.Package) (sdk.Event, sdk.Error) {
 	logger := ctx.Logger().With("module", "x/oracle")
 
 	crossChainApp := oracleKeeper.ScKeeper.GetCrossChainApp(ctx, pack.ChannelId)
@@ -135,20 +135,25 @@ func handlePackage(ctx sdk.Context, oracleKeeper Keeper, chainId sdk.IbcChainID,
 	}
 
 	// write ack package
+	var sendSequence int64 = -1
 	if packageType == sdk.SynCrossChainPackageType {
 		if crash {
-			_, err := oracleKeeper.IbcKeeper.CreateRawIBCPackageById(ctx, chainId,
+			sendSeq, err := oracleKeeper.IbcKeeper.CreateRawIBCPackageById(ctx, chainId,
 				pack.ChannelId, sdk.FailAckCrossChainPackageType, pack.Payload)
 			if err != nil {
 				logger.Error("failed to write FailAckCrossChainPackage", "err", err)
+				return sdk.Event{}, err
 			}
+			sendSequence = int64(sendSeq)
 		} else {
 			if len(result.Payload) != 0 {
-				_, err := oracleKeeper.IbcKeeper.CreateRawIBCPackageById(ctx, chainId,
+				sendSeq, err := oracleKeeper.IbcKeeper.CreateRawIBCPackageById(ctx, chainId,
 					pack.ChannelId, sdk.AckCrossChainPackageType, result.Payload)
 				if err != nil {
 					logger.Error("failed to write AckCrossChainPackage", "err", err)
+					return sdk.Event{}, err
 				}
+				sendSequence = int64(sendSeq)
 			}
 		}
 	}
@@ -159,8 +164,16 @@ func handlePackage(ctx sdk.Context, oracleKeeper Keeper, chainId sdk.IbcChainID,
 		types.ClaimPackageType, []byte(strconv.FormatInt(int64(packageType), 10)),
 		// The following tags are for index
 		types.ClaimChannel, []byte{uint8(pack.ChannelId)},
-		types.ClaimSequence, []byte(strconv.FormatUint(pack.Sequence, 10)),
+		types.ClaimReceiveSequence, []byte(strconv.FormatUint(pack.Sequence, 10)),
 	)
+
+	if sendSequence >= 0 {
+		resultTags = append(resultTags, sdk.MakeTag(types.ClaimSendSequence, []byte(strconv.FormatInt(sendSequence, 10))))
+	}
+
+	if crash {
+		resultTags = append(resultTags, sdk.MakeTag(types.ClaimCrash, []byte{1}))
+	}
 
 	// emit event if feeAmount is larger than 0
 	if feeAmount > 0 {

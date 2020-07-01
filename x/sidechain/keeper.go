@@ -26,7 +26,7 @@ type Keeper struct {
 }
 
 type IbcKeeper interface {
-	CreateRawIBCPackageById(ctx sdk.Context, destIbcChainID sdk.IbcChainID, channelID sdk.IbcChannelID,
+	CreateRawIBCPackageById(ctx sdk.Context, destChainID sdk.ChainID, channelID sdk.ChannelID,
 		packageType sdk.CrossChainPackageType, packageLoad []byte) (uint64, sdk.Error)
 }
 
@@ -84,7 +84,7 @@ func (k *Keeper) GetAllSideChainPrefixes(ctx sdk.Context) ([]string, [][]byte) {
 	return sideChainIds, prefixes
 }
 
-func (k *Keeper) RegisterChannel(name string, id sdk.IbcChannelID, app sdk.CrossChainApplication) error {
+func (k *Keeper) RegisterChannel(name string, id sdk.ChannelID, app sdk.CrossChainApplication) error {
 	_, ok := k.cfg.nameToChannelID[name]
 	if ok {
 		return fmt.Errorf("duplicated channel name")
@@ -100,7 +100,7 @@ func (k *Keeper) RegisterChannel(name string, id sdk.IbcChannelID, app sdk.Cross
 }
 
 // internally, we use name as the id of the chain, must be unique
-func (k *Keeper) RegisterDestChain(name string, ibcChainID sdk.IbcChainID) error {
+func (k *Keeper) RegisterDestChain(name string, chainID sdk.ChainID) error {
 	if strings.Contains(name, separator) {
 		return fmt.Errorf("destination chain name should not contains %s", separator)
 	}
@@ -108,21 +108,21 @@ func (k *Keeper) RegisterDestChain(name string, ibcChainID sdk.IbcChainID) error
 	if ok {
 		return fmt.Errorf("duplicated destination chain name")
 	}
-	_, ok = k.cfg.destChainIDToName[ibcChainID]
+	_, ok = k.cfg.destChainIDToName[chainID]
 	if ok {
-		return fmt.Errorf("duplicated destination chain ibcChainID")
+		return fmt.Errorf("duplicated destination chain chainID")
 	}
-	k.cfg.destChainNameToID[name] = ibcChainID
-	k.cfg.destChainIDToName[ibcChainID] = name
+	k.cfg.destChainNameToID[name] = chainID
+	k.cfg.destChainIDToName[chainID] = name
 	return nil
 }
 
-func (k *Keeper) SetChannelSendPermission(ctx sdk.Context, destChainID sdk.IbcChainID, channelID sdk.IbcChannelID, permission sdk.ChannelPermission) {
+func (k *Keeper) SetChannelSendPermission(ctx sdk.Context, destChainID sdk.ChainID, channelID sdk.ChannelID, permission sdk.ChannelPermission) {
 	kvStore := ctx.KVStore(k.storeKey)
 	kvStore.Set(buildChannelPermissionKey(destChainID, channelID), []byte{byte(permission)})
 }
 
-func (k *Keeper) GetChannelSendPermission(ctx sdk.Context, destChainID sdk.IbcChainID, channelID sdk.IbcChannelID) sdk.ChannelPermission {
+func (k *Keeper) GetChannelSendPermission(ctx sdk.Context, destChainID sdk.ChainID, channelID sdk.ChannelID) sdk.ChannelPermission {
 	kvStore := ctx.KVStore(k.storeKey)
 	bz := kvStore.Get(buildChannelPermissionKey(destChainID, channelID))
 	if bz == nil {
@@ -131,75 +131,76 @@ func (k *Keeper) GetChannelSendPermission(ctx sdk.Context, destChainID sdk.IbcCh
 	return sdk.ChannelPermission(bz[0])
 }
 
-func (k *Keeper) GetChannelSendPermissions(ctx sdk.Context, destChainID sdk.IbcChainID) map[sdk.IbcChannelID]sdk.ChannelPermission {
+func (k *Keeper) GetChannelSendPermissions(ctx sdk.Context, destChainID sdk.ChainID) map[sdk.ChannelID]sdk.ChannelPermission {
 	kvStore := ctx.KVStore(k.storeKey).Prefix(buildChannelPermissionsPrefixKey(destChainID))
 	ite := kvStore.Iterator(nil, nil)
-	permissions := make(map[sdk.IbcChannelID]sdk.ChannelPermission, 0)
+	defer ite.Close()
+	permissions := make(map[sdk.ChannelID]sdk.ChannelPermission, 0)
 	for ; ite.Valid(); ite.Next() {
 		key := ite.Key()
 		if len(key) < 1 {
 			continue
 		}
-		channelId := sdk.IbcChannelID(key[0])
+		channelId := sdk.ChannelID(key[0])
 		value := ite.Value()
 		permissions[channelId] = sdk.ChannelPermission(value[0])
 	}
 	return permissions
 }
 
-func (k *Keeper) GetChannelID(channelName string) (sdk.IbcChannelID, error) {
+func (k *Keeper) GetChannelID(channelName string) (sdk.ChannelID, error) {
 	id, ok := k.cfg.nameToChannelID[channelName]
 	if !ok {
-		return sdk.IbcChannelID(0), fmt.Errorf("non-existing channel")
+		return sdk.ChannelID(0), fmt.Errorf("non-existing channel")
 	}
 	return id, nil
 }
 
-func (k *Keeper) SetSrcIbcChainID(srcIbcChainID sdk.IbcChainID) {
-	k.cfg.srcIbcChainID = srcIbcChainID
+func (k *Keeper) SetSrcChainID(srcChainID sdk.ChainID) {
+	k.cfg.srcChainID = srcChainID
 }
 
-func (k *Keeper) GetSrcIbcChainID() sdk.IbcChainID {
-	return k.cfg.srcIbcChainID
+func (k *Keeper) GetSrcChainID() sdk.ChainID {
+	return k.cfg.srcChainID
 }
 
-func (k *Keeper) GetDestIbcChainID(name string) (sdk.IbcChainID, error) {
+func (k *Keeper) GetDestChainID(name string) (sdk.ChainID, error) {
 	destChainID, exist := k.cfg.destChainNameToID[name]
 	if !exist {
-		return sdk.IbcChainID(0), fmt.Errorf("non-existing destination ibcChainName ")
+		return sdk.ChainID(0), fmt.Errorf("non-existing destination chainName ")
 	}
 	return destChainID, nil
 }
 
-func (k *Keeper) GetDestIbcChainName(id sdk.IbcChainID) (string, error) {
+func (k *Keeper) GetDestChainName(id sdk.ChainID) (string, error) {
 	destChainName, exist := k.cfg.destChainIDToName[id]
 	if !exist {
-		return "", fmt.Errorf("non-existing destination ibcChainID")
+		return "", fmt.Errorf("non-existing destination chainID")
 	}
 	return destChainName, nil
 }
 
-func (k *Keeper) GetSendSequence(ctx sdk.Context, destChainID sdk.IbcChainID, channelID sdk.IbcChannelID) uint64 {
+func (k *Keeper) GetSendSequence(ctx sdk.Context, destChainID sdk.ChainID, channelID sdk.ChannelID) uint64 {
 	return k.getSequence(ctx, destChainID, channelID, PrefixForSendSequenceKey)
 }
 
-func (k *Keeper) IncrSendSequence(ctx sdk.Context, destChainID sdk.IbcChainID, channelID sdk.IbcChannelID) {
+func (k *Keeper) IncrSendSequence(ctx sdk.Context, destChainID sdk.ChainID, channelID sdk.ChannelID) {
 	k.incrSequence(ctx, destChainID, channelID, PrefixForSendSequenceKey)
 }
 
-func (k *Keeper) GetReceiveSequence(ctx sdk.Context, destChainID sdk.IbcChainID, channelID sdk.IbcChannelID) uint64 {
+func (k *Keeper) GetReceiveSequence(ctx sdk.Context, destChainID sdk.ChainID, channelID sdk.ChannelID) uint64 {
 	return k.getSequence(ctx, destChainID, channelID, PrefixForReceiveSequenceKey)
 }
 
-func (k *Keeper) IncrReceiveSequence(ctx sdk.Context, destChainID sdk.IbcChainID, channelID sdk.IbcChannelID) {
+func (k *Keeper) IncrReceiveSequence(ctx sdk.Context, destChainID sdk.ChainID, channelID sdk.ChannelID) {
 	k.incrSequence(ctx, destChainID, channelID, PrefixForReceiveSequenceKey)
 }
 
-func (k *Keeper) GetCrossChainApp(ctx sdk.Context, channelID sdk.IbcChannelID) sdk.CrossChainApplication {
+func (k *Keeper) GetCrossChainApp(ctx sdk.Context, channelID sdk.ChannelID) sdk.CrossChainApplication {
 	return k.cfg.channelIDToApp[channelID]
 }
 
-func (k *Keeper) getSequence(ctx sdk.Context, destChainID sdk.IbcChainID, channelID sdk.IbcChannelID, prefix []byte) uint64 {
+func (k *Keeper) getSequence(ctx sdk.Context, destChainID sdk.ChainID, channelID sdk.ChannelID, prefix []byte) uint64 {
 	kvStore := ctx.KVStore(k.storeKey)
 	bz := kvStore.Get(buildChannelSequenceKey(destChainID, channelID, prefix))
 	if bz == nil {
@@ -208,7 +209,7 @@ func (k *Keeper) getSequence(ctx sdk.Context, destChainID sdk.IbcChainID, channe
 	return binary.BigEndian.Uint64(bz)
 }
 
-func (k *Keeper) incrSequence(ctx sdk.Context, destChainID sdk.IbcChainID, channelID sdk.IbcChannelID, prefix []byte) {
+func (k *Keeper) incrSequence(ctx sdk.Context, destChainID sdk.ChainID, channelID sdk.ChannelID, prefix []byte) {
 	var sequence uint64
 	kvStore := ctx.KVStore(k.storeKey)
 	bz := kvStore.Get(buildChannelSequenceKey(destChainID, channelID, prefix))

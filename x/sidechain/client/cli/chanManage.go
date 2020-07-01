@@ -44,7 +44,7 @@ func SubmitChannelManageProposalCmd(cdc *codec.Codec) *cobra.Command {
 				return fmt.Errorf("missing side-chain-id")
 			}
 
-			channelSetting.ChannelId = sdk.IbcChannelID(channelId)
+			channelSetting.ChannelId = sdk.ChannelID(channelId)
 			channelSetting.SideChainId = sideChainId
 			enable := viper.GetBool(flagChannelEnable)
 			if enable {

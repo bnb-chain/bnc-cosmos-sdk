@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	IbcChannelName = "params"
-	IbcChannelId   = sdk.IbcChannelID(9)
+	ChannelName = "params"
+	ChannelId   = sdk.ChannelID(9)
 )
 
 func (keeper *Keeper) SaveParamChangeToIbc(ctx sdk.Context, sideChainId string, paramChange types.CSCParamChange) (seq uint64, sdkErr sdk.Error) {
@@ -19,5 +19,5 @@ func (keeper *Keeper) SaveParamChangeToIbc(ctx sdk.Context, sideChainId string, 
 	if err != nil {
 		return 0, sdk.ErrInternal("failed to encode paramChange")
 	}
-	return keeper.ibcKeeper.CreateIBCSyncPackage(ctx, sideChainId, IbcChannelName, bz)
+	return keeper.ibcKeeper.CreateIBCSyncPackage(ctx, sideChainId, ChannelName, bz)
 }

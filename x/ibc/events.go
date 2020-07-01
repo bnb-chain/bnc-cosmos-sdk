@@ -13,6 +13,6 @@ const (
 	ibcPackageInfoAttributeValue = "%d" + separator + "%d" + separator + "%d" // destChainID channelID sequence
 )
 
-func buildIBCPackageAttributeValue(sideChainID sdk.IbcChainID, channelID sdk.IbcChannelID, sequence uint64) string {
+func buildIBCPackageAttributeValue(sideChainID sdk.ChainID, channelID sdk.ChannelID, sequence uint64) string {
 	return fmt.Sprintf(ibcPackageInfoAttributeValue, sideChainID, channelID, sequence)
 }

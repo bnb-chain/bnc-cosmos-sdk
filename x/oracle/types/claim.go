@@ -8,11 +8,11 @@ import (
 
 const (
 	// RelayPackagesChannelId is not a communication channel actually, we just use it to record sequence.
-	RelayPackagesChannelName                  = "relayPackages"
-	RelayPackagesChannelId   sdk.IbcChannelID = 0x00
+	RelayPackagesChannelName               = "relayPackages"
+	RelayPackagesChannelId   sdk.ChannelID = 0x00
 )
 
-func GetClaimId(chainId sdk.IbcChainID, channelId sdk.IbcChannelID, sequence uint64) string {
+func GetClaimId(chainId sdk.ChainID, channelId sdk.ChannelID, sequence uint64) string {
 	return fmt.Sprintf("%d:%d:%d", chainId, channelId, sequence)
 }
 

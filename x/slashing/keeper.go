@@ -54,9 +54,9 @@ func (k *Keeper) SetSideChain(scKeeper *sidechain.Keeper) {
 }
 
 func (k Keeper) initIbc() {
-	err := k.ScKeeper.RegisterChannel(IbcChannelName, IbcChannelId, &k)
+	err := k.ScKeeper.RegisterChannel(ChannelName, ChannelId, &k)
 	if err != nil {
-		panic(fmt.Sprintf("register ibc channel failed, channel=%s, err=%s", IbcChannelName, err.Error()))
+		panic(fmt.Sprintf("register ibc channel failed, channel=%s, err=%s", ChannelName, err.Error()))
 	}
 }
 
@@ -230,9 +230,9 @@ func (k *Keeper) SubscribeParamChange(hub types.ParamChangePublisher) {
 // implement cross chain app
 func (k *Keeper) ExecuteSynPackage(ctx sdk.Context, payload []byte) sdk.ExecuteResult {
 	var resCode uint32
-	event, err := k.checkAndParseSynPackage(payload)
+	pack, err := k.checkAndParseSynPackage(payload)
 	if err == nil {
-		err = k.executeSynPackage(ctx, event)
+		err = k.executeSynPackage(ctx, pack)
 	}
 	if err != nil {
 		resCode = uint32(err.ABCICode())
@@ -256,8 +256,8 @@ func (k *Keeper) ExecuteFailAckPackage(ctx sdk.Context, payload []byte) sdk.Exec
 	panic("receive unexpected fail ack package")
 }
 
-func (k *Keeper) checkAndParseSynPackage(payload []byte) (*SideDowntimeSlashEvent, sdk.Error) {
-	var slashEvent SideDowntimeSlashEvent
+func (k *Keeper) checkAndParseSynPackage(payload []byte) (*SideDowntimeSlashPackage, sdk.Error) {
+	var slashEvent SideDowntimeSlashPackage
 	err := rlp.DecodeBytes(payload, &slashEvent)
 	if err != nil {
 		return nil, ErrInvalidInput(k.Codespace, "failed to parse the payload")
@@ -280,8 +280,8 @@ func (k *Keeper) checkAndParseSynPackage(payload []byte) (*SideDowntimeSlashEven
 	return &slashEvent, nil
 }
 
-func (k *Keeper) executeSynPackage(ctx sdk.Context, event *SideDowntimeSlashEvent) sdk.Error {
-	sideChainName, err := k.ScKeeper.GetDestIbcChainName(sdk.IbcChainID(event.SideChainId))
+func (k *Keeper) executeSynPackage(ctx sdk.Context, pack *SideDowntimeSlashPackage) sdk.Error {
+	sideChainName, err := k.ScKeeper.GetDestChainName(pack.SideChainId)
 	if err != nil {
 		return ErrInvalidSideChainId(DefaultCodespace)
 	}
@@ -291,17 +291,17 @@ func (k *Keeper) executeSynPackage(ctx sdk.Context, event *SideDowntimeSlashEven
 	}
 
 	header := sideCtx.BlockHeader()
-	age := uint64(header.Time.Unix()) - event.SideTimestamp
+	age := uint64(header.Time.Unix()) - pack.SideTimestamp
 	if age > uint64(k.MaxEvidenceAge(sideCtx).Seconds()) {
 		return ErrExpiredEvidence(DefaultCodespace)
 	}
 
-	if k.hasSlashRecord(sideCtx, event.SideConsAddr, Downtime, event.SideHeight) {
+	if k.hasSlashRecord(sideCtx, pack.SideConsAddr, Downtime, pack.SideHeight) {
 		return ErrDuplicateDowntimeClaim(k.Codespace)
 	}
 
 	slashAmt := k.DowntimeSlashAmount(sideCtx)
-	slashedAmt, err := k.validatorSet.SlashSideChain(ctx, sideChainName, event.SideConsAddr, sdk.NewDec(slashAmt))
+	slashedAmt, err := k.validatorSet.SlashSideChain(ctx, sideChainName, pack.SideConsAddr, sdk.NewDec(slashAmt))
 	if err != nil {
 		return ErrFailedToSlash(k.Codespace, err.Error())
 	}
@@ -316,7 +316,7 @@ func (k *Keeper) executeSynPackage(ctx sdk.Context, event *SideDowntimeSlashEven
 
 	remaining := slashedAmt.RawInt() - downtimeClaimFeeReal
 	if remaining > 0 {
-		found, err := k.validatorSet.AllocateSlashAmtToValidators(sideCtx, event.SideConsAddr, sdk.NewDec(remaining))
+		found, err := k.validatorSet.AllocateSlashAmtToValidators(sideCtx, pack.SideConsAddr, sdk.NewDec(remaining))
 		if err != nil {
 			return ErrFailedToSlash(k.Codespace, err.Error())
 		}
@@ -328,9 +328,9 @@ func (k *Keeper) executeSynPackage(ctx sdk.Context, event *SideDowntimeSlashEven
 
 	jailUtil := header.Time.Add(k.DowntimeUnbondDuration(sideCtx))
 	sr := SlashRecord{
-		ConsAddr:         event.SideConsAddr,
+		ConsAddr:         pack.SideConsAddr,
 		InfractionType:   Downtime,
-		InfractionHeight: event.SideHeight,
+		InfractionHeight: pack.SideHeight,
 		SlashHeight:      header.Height,
 		JailUntil:        jailUtil,
 		SlashAmt:         slashedAmt.RawInt(),
@@ -339,12 +339,12 @@ func (k *Keeper) executeSynPackage(ctx sdk.Context, event *SideDowntimeSlashEven
 	k.setSlashRecord(sideCtx, sr)
 
 	// Set or updated validator jail duration
-	signInfo, found := k.getValidatorSigningInfo(sideCtx, event.SideConsAddr)
+	signInfo, found := k.getValidatorSigningInfo(sideCtx, pack.SideConsAddr)
 	if !found {
-		return sdk.ErrInternal(fmt.Sprintf("Expected signing info for validator %s but not found", sdk.HexEncode(event.SideConsAddr)))
+		return sdk.ErrInternal(fmt.Sprintf("Expected signing info for validator %s but not found", sdk.HexEncode(pack.SideConsAddr)))
 	}
 	signInfo.JailedUntil = jailUtil
-	k.setValidatorSigningInfo(sideCtx, event.SideConsAddr, signInfo)
+	k.setValidatorSigningInfo(sideCtx, pack.SideConsAddr, signInfo)
 
 	return nil
 }
