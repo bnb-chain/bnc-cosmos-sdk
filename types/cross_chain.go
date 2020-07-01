@@ -29,8 +29,8 @@ func GetPegOutTag(symbol string, amount int64) Tag {
 
 type CrossChainPackageType uint8
 
-type IbcChannelID uint8
-type IbcChainID uint16
+type ChannelID uint8
+type ChainID uint16
 
 const (
 	SynCrossChainPackageType     CrossChainPackageType = 0x00
@@ -49,26 +49,26 @@ func IsValidCrossChainPackageType(packageType CrossChainPackageType) bool {
 	return packageType == SynCrossChainPackageType || packageType == AckCrossChainPackageType || packageType == FailAckCrossChainPackageType
 }
 
-func ParseIbcChannelID(input string) (IbcChannelID, error) {
+func ParseChannelID(input string) (ChannelID, error) {
 	channelID, err := strconv.Atoi(input)
 	if err != nil {
-		return IbcChannelID(0), err
+		return ChannelID(0), err
 	}
 	if channelID > math.MaxInt8 || channelID < 0 {
-		return IbcChannelID(0), fmt.Errorf("channelID must be in [0, 255]")
+		return ChannelID(0), fmt.Errorf("channelID must be in [0, 255]")
 	}
-	return IbcChannelID(channelID), nil
+	return ChannelID(channelID), nil
 }
 
-func ParseIbcChainID(input string) (IbcChainID, error) {
+func ParseChainID(input string) (ChainID, error) {
 	chainID, err := strconv.Atoi(input)
 	if err != nil {
-		return IbcChainID(0), err
+		return ChainID(0), err
 	}
 	if chainID > math.MaxUint16 || chainID < 0 {
-		return IbcChainID(0), fmt.Errorf("cross chainID must be in [0, 65535]")
+		return ChainID(0), fmt.Errorf("cross chainID must be in [0, 65535]")
 	}
-	return IbcChainID(chainID), nil
+	return ChainID(chainID), nil
 }
 
 type CrossChainApplication interface {

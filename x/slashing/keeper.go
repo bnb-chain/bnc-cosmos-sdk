@@ -54,9 +54,9 @@ func (k *Keeper) SetSideChain(scKeeper *sidechain.Keeper) {
 }
 
 func (k Keeper) initIbc() {
-	err := k.ScKeeper.RegisterChannel(IbcChannelName, IbcChannelId, &k)
+	err := k.ScKeeper.RegisterChannel(ChannelName, ChannelId, &k)
 	if err != nil {
-		panic(fmt.Sprintf("register ibc channel failed, channel=%s, err=%s", IbcChannelName, err.Error()))
+		panic(fmt.Sprintf("register ibc channel failed, channel=%s, err=%s", ChannelName, err.Error()))
 	}
 }
 
@@ -281,7 +281,7 @@ func (k *Keeper) checkAndParseSynPackage(payload []byte) (*SideDowntimeSlashEven
 }
 
 func (k *Keeper) executeSynPackage(ctx sdk.Context, event *SideDowntimeSlashEvent) sdk.Error {
-	sideChainName, err := k.ScKeeper.GetDestIbcChainName(sdk.IbcChainID(event.SideChainId))
+	sideChainName, err := k.ScKeeper.GetDestChainName(sdk.ChainID(event.SideChainId))
 	if err != nil {
 		return ErrInvalidSideChainId(DefaultCodespace)
 	}

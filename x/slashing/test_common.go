@@ -155,8 +155,8 @@ func createSideTestInput(t *testing.T, defaults Params) (sdk.Context, sdk.Contex
 
 	ibcKeeper := ibc.NewKeeper(keyIbc, paramsKeeper.Subspace(ibc.DefaultParamspace), ibc.DefaultCodespace, scKeeper)
 	// set up IBC chainID for BBC
-	scKeeper.SetSrcIbcChainID(sdk.IbcChainID(1))
-	err = scKeeper.RegisterDestChain("bsc", sdk.IbcChainID(1))
+	scKeeper.SetSrcChainID(sdk.ChainID(1))
+	err = scKeeper.RegisterDestChain("bsc", sdk.ChainID(1))
 	require.Nil(t, err)
 	storePrefix := scKeeper.GetSideChainStorePrefix(ctx, "bsc")
 	ibcKeeper.SetParams(ctx.WithSideChainKeyPrefix(storePrefix), ibc.Params{RelayerFee: ibc.DefaultRelayerFeeParam})
@@ -186,7 +186,7 @@ func createSideTestInput(t *testing.T, defaults Params) (sdk.Context, sdk.Contex
 	sk = sk.WithHooks(keeper.Hooks())
 	keeper.SetSideChain(&scKeeper)
 	keeper.SetParams(sideCtx, defaults)
-	scKeeper.SetChannelSendPermission(ctx, sdk.IbcChainID(1), sdk.IbcChannelID(8), sdk.ChannelAllow)
+	scKeeper.SetChannelSendPermission(ctx, sdk.ChainID(1), sdk.ChannelID(8), sdk.ChannelAllow)
 
 	require.NotPanics(t, func() {
 		InitGenesis(ctx, keeper, GenesisState{defaults}, genesis)

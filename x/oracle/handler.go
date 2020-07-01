@@ -79,7 +79,7 @@ func handleClaimMsg(ctx sdk.Context, oracleKeeper Keeper, msg ClaimMsg) sdk.Resu
 	}
 }
 
-func handlePackage(ctx sdk.Context, oracleKeeper Keeper, chainId sdk.IbcChainID, pack *types.Package) (sdk.Event, sdk.Error) {
+func handlePackage(ctx sdk.Context, oracleKeeper Keeper, chainId sdk.ChainID, pack *types.Package) (sdk.Event, sdk.Error) {
 	logger := ctx.Logger().With("module", "x/oracle")
 
 	crossChainApp := oracleKeeper.ScKeeper.GetCrossChainApp(ctx, pack.ChannelId)

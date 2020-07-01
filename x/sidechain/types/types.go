@@ -11,7 +11,7 @@ import (
 const (
 	MaxSideChainIdLength = 20
 
-	GovChannelId = sdk.IbcChannelID(9)
+	GovChannelId = sdk.ChannelID(9)
 )
 
 const (
@@ -52,7 +52,7 @@ func GenCommonAckPackage(code uint32) ([]byte, error) {
 
 type ChanPermissionSetting struct {
 	SideChainId string                `json:"side_chain_id"`
-	ChannelId   sdk.IbcChannelID      `json:"channel_id"`
+	ChannelId   sdk.ChannelID         `json:"channel_id"`
 	Permission  sdk.ChannelPermission `json:"permission"`
 }
 

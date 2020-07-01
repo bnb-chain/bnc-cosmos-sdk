@@ -2,5 +2,5 @@ package slashing
 
 import "github.com/cosmos/cosmos-sdk/types"
 
-const IbcChannelName = "slash"
-const IbcChannelId = types.IbcChannelID(11)
+const ChannelName = "slash"
+const ChannelId = types.ChannelID(11)

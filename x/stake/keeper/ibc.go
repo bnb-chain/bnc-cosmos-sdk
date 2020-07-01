@@ -6,8 +6,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
 
-const IbcChannelName = "staking"
-const IbcChannelId = sdk.IbcChannelID(8)
+const ChannelName = "staking"
+const ChannelId = sdk.ChannelID(8)
 
 func (k Keeper) SaveValidatorSetToIbc(ctx sdk.Context, sideChainId string, ibcPackage types.IbcValidatorSetPackage) (seq uint64, sdkErr sdk.Error) {
 	if k.ibcKeeper == nil {
@@ -17,5 +17,5 @@ func (k Keeper) SaveValidatorSetToIbc(ctx sdk.Context, sideChainId string, ibcPa
 	if err != nil {
 		return 0, sdk.ErrInternal("failed to encode IbcValidatorSetPackage")
 	}
-	return k.ibcKeeper.CreateIBCSyncPackage(ctx, sideChainId, IbcChannelName, bz)
+	return k.ibcKeeper.CreateIBCSyncPackage(ctx, sideChainId, ChannelName, bz)
 }

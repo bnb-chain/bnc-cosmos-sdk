@@ -7,11 +7,10 @@ import (
 )
 
 const (
-	prefixLength         = 1
-	destIbcChainIDLength = 2
-	channelIDLength      = 1
-	sequenceLength       = 8
-	permissionLength     = 1
+	prefixLength      = 1
+	destChainIDLength = 2
+	channelIDLength   = 1
+	sequenceLength    = 8
 )
 
 var (
@@ -27,28 +26,28 @@ func GetSideChainStorePrefixKey(sideChainId string) []byte {
 	return append(SideChainStorePrefixByIdKey, []byte(sideChainId)...)
 }
 
-func buildChannelSequenceKey(destIbcChainID sdk.IbcChainID, channelID sdk.IbcChannelID, prefix []byte) []byte {
-	key := make([]byte, prefixLength+destIbcChainIDLength+channelIDLength)
+func buildChannelSequenceKey(destChainID sdk.ChainID, channelID sdk.ChannelID, prefix []byte) []byte {
+	key := make([]byte, prefixLength+destChainIDLength+channelIDLength)
 
 	copy(key[:prefixLength], prefix)
-	binary.BigEndian.PutUint16(key[prefixLength:prefixLength+destIbcChainIDLength], uint16(destIbcChainID))
-	copy(key[prefixLength+destIbcChainIDLength:], []byte{byte(channelID)})
+	binary.BigEndian.PutUint16(key[prefixLength:prefixLength+destChainIDLength], uint16(destChainID))
+	copy(key[prefixLength+destChainIDLength:], []byte{byte(channelID)})
 	return key
 }
 
-func buildChannelPermissionKey(destIbcChainID sdk.IbcChainID, channelID sdk.IbcChannelID) []byte {
-	key := make([]byte, prefixLength+destIbcChainIDLength+channelIDLength)
+func buildChannelPermissionKey(destChainID sdk.ChainID, channelID sdk.ChannelID) []byte {
+	key := make([]byte, prefixLength+destChainIDLength+channelIDLength)
 
 	copy(key[:prefixLength], PrefixForChannelPermissionKey)
-	binary.BigEndian.PutUint16(key[prefixLength:prefixLength+destIbcChainIDLength], uint16(destIbcChainID))
-	copy(key[prefixLength+destIbcChainIDLength:], []byte{byte(channelID)})
+	binary.BigEndian.PutUint16(key[prefixLength:prefixLength+destChainIDLength], uint16(destChainID))
+	copy(key[prefixLength+destChainIDLength:], []byte{byte(channelID)})
 	return key
 }
 
-func buildChannelPermissionsPrefixKey(destIbcChainID sdk.IbcChainID) []byte {
-	key := make([]byte, prefixLength+destIbcChainIDLength)
+func buildChannelPermissionsPrefixKey(destChainID sdk.ChainID) []byte {
+	key := make([]byte, prefixLength+destChainIDLength)
 
 	copy(key[:prefixLength], PrefixForChannelPermissionKey)
-	binary.BigEndian.PutUint16(key[prefixLength:prefixLength+destIbcChainIDLength], uint16(destIbcChainID))
+	binary.BigEndian.PutUint16(key[prefixLength:prefixLength+destChainIDLength], uint16(destChainID))
 	return key
 }

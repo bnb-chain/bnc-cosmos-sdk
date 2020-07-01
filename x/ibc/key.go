@@ -8,11 +8,11 @@ import (
 
 const (
 	prefixLength          = 1
-	srcIbcChainIdLength   = 2
-	destIbcChainIDLength  = 2
+	srcChainIdLength      = 2
+	destChainIDLength     = 2
 	channelIDLength       = 1
 	sequenceLength        = 8
-	totalPackageKeyLength = prefixLength + srcIbcChainIdLength + destIbcChainIDLength + channelIDLength + sequenceLength
+	totalPackageKeyLength = prefixLength + srcChainIdLength + destChainIDLength + channelIDLength + sequenceLength
 )
 
 var (
@@ -20,35 +20,35 @@ var (
 	PrefixForSequenceKey   = []byte{0x01}
 )
 
-func buildIBCPackageKey(srcIbcChainID, destIbcChainID sdk.IbcChainID, channelID sdk.IbcChannelID, sequence uint64) []byte {
+func buildIBCPackageKey(srcChainID, destChainID sdk.ChainID, channelID sdk.ChannelID, sequence uint64) []byte {
 	key := make([]byte, totalPackageKeyLength)
 
 	copy(key[:prefixLength], PrefixForIbcPackageKey)
-	binary.BigEndian.PutUint16(key[prefixLength:srcIbcChainIdLength+prefixLength], uint16(srcIbcChainID))
-	binary.BigEndian.PutUint16(key[prefixLength+srcIbcChainIdLength:prefixLength+srcIbcChainIdLength+destIbcChainIDLength], uint16(destIbcChainID))
-	copy(key[prefixLength+srcIbcChainIdLength+destIbcChainIDLength:], []byte{byte(channelID)})
-	binary.BigEndian.PutUint64(key[prefixLength+srcIbcChainIdLength+destIbcChainIDLength+channelIDLength:], sequence)
+	binary.BigEndian.PutUint16(key[prefixLength:srcChainIdLength+prefixLength], uint16(srcChainID))
+	binary.BigEndian.PutUint16(key[prefixLength+srcChainIdLength:prefixLength+srcChainIdLength+destChainIDLength], uint16(destChainID))
+	copy(key[prefixLength+srcChainIdLength+destChainIDLength:], []byte{byte(channelID)})
+	binary.BigEndian.PutUint64(key[prefixLength+srcChainIdLength+destChainIDLength+channelIDLength:], sequence)
 
 	return key
 }
 
-func buildIBCPackageKeyPrefix(srcIbcChainID, destIbcChainID sdk.IbcChainID, channelID sdk.IbcChannelID) []byte {
+func buildIBCPackageKeyPrefix(srcChainID, destChainID sdk.ChainID, channelID sdk.ChannelID) []byte {
 	key := make([]byte, totalPackageKeyLength-sequenceLength)
 
 	copy(key[:prefixLength], PrefixForIbcPackageKey)
-	binary.BigEndian.PutUint16(key[prefixLength:prefixLength+srcIbcChainIdLength], uint16(srcIbcChainID))
-	binary.BigEndian.PutUint16(key[prefixLength+srcIbcChainIdLength:prefixLength+srcIbcChainIdLength+destIbcChainIDLength], uint16(destIbcChainID))
-	copy(key[prefixLength+srcIbcChainIdLength+destIbcChainIDLength:], []byte{byte(channelID)})
+	binary.BigEndian.PutUint16(key[prefixLength:prefixLength+srcChainIdLength], uint16(srcChainID))
+	binary.BigEndian.PutUint16(key[prefixLength+srcChainIdLength:prefixLength+srcChainIdLength+destChainIDLength], uint16(destChainID))
+	copy(key[prefixLength+srcChainIdLength+destChainIDLength:], []byte{byte(channelID)})
 
 	return key
 }
 
-func buildChannelSequenceKey(destIbcChainID sdk.IbcChainID, channelID sdk.IbcChannelID) []byte {
-	key := make([]byte, prefixLength+destIbcChainIDLength+channelIDLength)
+func buildChannelSequenceKey(destChainID sdk.ChainID, channelID sdk.ChannelID) []byte {
+	key := make([]byte, prefixLength+destChainIDLength+channelIDLength)
 
 	copy(key[:prefixLength], PrefixForSequenceKey)
-	binary.BigEndian.PutUint16(key[prefixLength:prefixLength+destIbcChainIDLength], uint16(destIbcChainID))
-	copy(key[prefixLength+destIbcChainIDLength:], []byte{byte(channelID)})
+	binary.BigEndian.PutUint16(key[prefixLength:prefixLength+destChainIDLength], uint16(destChainID))
+	copy(key[prefixLength+destChainIDLength:], []byte{byte(channelID)})
 
 	return key
 }

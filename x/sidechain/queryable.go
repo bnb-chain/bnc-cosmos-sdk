@@ -31,7 +31,7 @@ func NewQuerier(k Keeper) sdk.Querier {
 }
 
 func queryChannelSettings(ctx sdk.Context, k Keeper, sideChainId string) ([]byte, sdk.Error) {
-	id, err := k.GetDestIbcChainID(sideChainId)
+	id, err := k.GetDestChainID(sideChainId)
 	if err != nil {
 		return nil, ErrInvalidSideChainId(DefaultCodespace, err.Error())
 	}

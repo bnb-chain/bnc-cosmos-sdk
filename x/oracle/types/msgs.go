@@ -19,19 +19,19 @@ var _ sdk.Msg = ClaimMsg{}
 type Packages []Package
 
 type Package struct {
-	ChannelId sdk.IbcChannelID
+	ChannelId sdk.ChannelID
 	Sequence  uint64
 	Payload   []byte
 }
 
 type ClaimMsg struct {
-	ChainId          sdk.IbcChainID `json:"chain_id"`
+	ChainId          sdk.ChainID    `json:"chain_id"`
 	Sequence         uint64         `json:"sequence"`
 	Payload          []byte         `json:"payload"`
 	ValidatorAddress sdk.AccAddress `json:"validator_address"`
 }
 
-func NewClaimMsg(ChainId sdk.IbcChainID, sequence uint64, payload []byte, validatorAddr sdk.AccAddress) ClaimMsg {
+func NewClaimMsg(ChainId sdk.ChainID, sequence uint64, payload []byte, validatorAddr sdk.AccAddress) ClaimMsg {
 	return ClaimMsg{
 		ChainId:          ChainId,
 		Sequence:         sequence,

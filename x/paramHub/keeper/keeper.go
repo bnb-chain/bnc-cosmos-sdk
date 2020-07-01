@@ -93,9 +93,9 @@ func (keeper Keeper) initIbc() {
 	if keeper.ibcKeeper == nil {
 		return
 	}
-	err := keeper.ScKeeper.RegisterChannel(IbcChannelName, IbcChannelId, &keeper)
+	err := keeper.ScKeeper.RegisterChannel(ChannelName, ChannelId, &keeper)
 	if err != nil {
-		panic(fmt.Sprintf("register ibc channel failed, channel=%s, err=%s", IbcChannelName, err.Error()))
+		panic(fmt.Sprintf("register ibc channel failed, channel=%s, err=%s", ChannelName, err.Error()))
 	}
 }
 

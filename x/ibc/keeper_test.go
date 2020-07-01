@@ -44,19 +44,19 @@ func createTestInput(t *testing.T, isCheckTx bool) (sdk.Context, Keeper) {
 }
 
 func TestKeeper(t *testing.T) {
-	sourceChainID := sdk.IbcChainID(0x0001)
+	sourceChainID := sdk.ChainID(0x0001)
 
 	destChainName := "bsc"
-	destChainID := sdk.IbcChainID(0x000f)
+	destChainID := sdk.ChainID(0x000f)
 
 	channelName := "transfer"
-	channelID := sdk.IbcChannelID(0x01)
+	channelID := sdk.ChannelID(0x01)
 
 	ctx, keeper := createTestInput(t, true)
 
 	keeper.sideKeeper.SetChannelSendPermission(ctx, destChainID, channelID, sdk.ChannelAllow)
 
-	keeper.sideKeeper.SetSrcIbcChainID(sourceChainID)
+	keeper.sideKeeper.SetSrcChainID(sourceChainID)
 	require.NoError(t, keeper.sideKeeper.RegisterDestChain(destChainName, destChainID))
 	require.NoError(t, keeper.sideKeeper.RegisterChannel(channelName, channelID, nil))
 	testSynFee := big.NewInt(100)
@@ -101,15 +101,15 @@ func TestKeeper(t *testing.T) {
 	require.NoError(t, sdkErr)
 	require.NotNil(t, ibcPackage)
 
-	require.NoError(t, keeper.sideKeeper.RegisterDestChain("btc", sdk.IbcChainID(0x0002)))
-	keeper.sideKeeper.SetChannelSendPermission(ctx, sdk.IbcChainID(0x0002), channelID, sdk.ChannelAllow)
+	require.NoError(t, keeper.sideKeeper.RegisterDestChain("btc", sdk.ChainID(0x0002)))
+	keeper.sideKeeper.SetChannelSendPermission(ctx, sdk.ChainID(0x0002), channelID, sdk.ChannelAllow)
 
 	sequence, err = keeper.CreateRawIBCPackage(ctx, "btc", channelName, sdk.SynCrossChainPackageType, value, *testSynFee)
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), sequence)
 
-	require.NoError(t, keeper.sideKeeper.RegisterChannel("mockChannel", sdk.IbcChannelID(2), nil))
-	keeper.sideKeeper.SetChannelSendPermission(ctx, destChainID, sdk.IbcChannelID(2), sdk.ChannelAllow)
+	require.NoError(t, keeper.sideKeeper.RegisterChannel("mockChannel", sdk.ChannelID(2), nil))
+	keeper.sideKeeper.SetChannelSendPermission(ctx, destChainID, sdk.ChannelID(2), sdk.ChannelAllow)
 	sequence, err = keeper.CreateRawIBCPackage(ctx, destChainName, "mockChannel", sdk.SynCrossChainPackageType, value, *testSynFee)
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), sequence)
