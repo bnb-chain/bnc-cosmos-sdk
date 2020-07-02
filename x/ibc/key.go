@@ -42,13 +42,3 @@ func buildIBCPackageKeyPrefix(srcChainID, destChainID sdk.ChainID, channelID sdk
 
 	return key
 }
-
-func buildChannelSequenceKey(destChainID sdk.ChainID, channelID sdk.ChannelID) []byte {
-	key := make([]byte, prefixLength+destChainIDLength+channelIDLength)
-
-	copy(key[:prefixLength], PrefixForSequenceKey)
-	binary.BigEndian.PutUint16(key[prefixLength:prefixLength+destChainIDLength], uint16(destChainID))
-	copy(key[prefixLength+destChainIDLength:], []byte{byte(channelID)})
-
-	return key
-}
