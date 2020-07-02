@@ -33,7 +33,7 @@ func TestSideChainSlashDowntime(t *testing.T) {
 	sideHeight := uint64(100)
 	sideChainId := "bsc"
 	sideTimestamp := ctx.BlockHeader().Time.Add(-6 * 60 * 60 * time.Second)
-	claim := SideDowntimeSlashEvent{
+	claim := SideDowntimeSlashPackage{
 		SideConsAddr:  sideConsAddr,
 		SideHeight:    sideHeight,
 		SideChainId:   1,
@@ -138,7 +138,7 @@ func TestSlashDowntimeBalanceVerify(t *testing.T) {
 
 	sideHeight := uint64(50)
 	sideTimestamp := ctx.BlockHeader().Time.Add(-6 * 60 * 60 * time.Second)
-	claim := SideDowntimeSlashEvent{
+	claim := SideDowntimeSlashPackage{
 		SideConsAddr:  sideConsAddr2,
 		SideHeight:    sideHeight,
 		SideChainId:   1,
@@ -166,7 +166,7 @@ func TestSlashDowntimeBalanceVerify(t *testing.T) {
 
 	sideHeight = uint64(80)
 	sideTimestamp = ctx.BlockHeader().Time.Add(-3 * 60 * 60 * time.Second)
-	claim = SideDowntimeSlashEvent{
+	claim = SideDowntimeSlashPackage{
 		SideConsAddr:  sideConsAddr2,
 		SideHeight:    sideHeight,
 		SideChainId:   1,

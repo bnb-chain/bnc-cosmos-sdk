@@ -230,9 +230,9 @@ func (k *Keeper) SubscribeParamChange(hub types.ParamChangePublisher) {
 // implement cross chain app
 func (k *Keeper) ExecuteSynPackage(ctx sdk.Context, payload []byte) sdk.ExecuteResult {
 	var resCode uint32
-	event, err := k.checkAndParseSynPackage(payload)
+	pack, err := k.checkAndParseSynPackage(payload)
 	if err == nil {
-		err = k.executeSynPackage(ctx, event)
+		err = k.executeSynPackage(ctx, pack)
 	}
 	if err != nil {
 		resCode = uint32(err.ABCICode())
@@ -256,8 +256,8 @@ func (k *Keeper) ExecuteFailAckPackage(ctx sdk.Context, payload []byte) sdk.Exec
 	panic("receive unexpected fail ack package")
 }
 
-func (k *Keeper) checkAndParseSynPackage(payload []byte) (*SideDowntimeSlashEvent, sdk.Error) {
-	var slashEvent SideDowntimeSlashEvent
+func (k *Keeper) checkAndParseSynPackage(payload []byte) (*SideDowntimeSlashPackage, sdk.Error) {
+	var slashEvent SideDowntimeSlashPackage
 	err := rlp.DecodeBytes(payload, &slashEvent)
 	if err != nil {
 		return nil, ErrInvalidInput(k.Codespace, "failed to parse the payload")
@@ -280,7 +280,7 @@ func (k *Keeper) checkAndParseSynPackage(payload []byte) (*SideDowntimeSlashEven
 	return &slashEvent, nil
 }
 
-func (k *Keeper) executeSynPackage(ctx sdk.Context, event *SideDowntimeSlashEvent) sdk.Error {
+func (k *Keeper) executeSynPackage(ctx sdk.Context, event *SideDowntimeSlashPackage) sdk.Error {
 	sideChainName, err := k.ScKeeper.GetDestChainName(sdk.ChainID(event.SideChainId))
 	if err != nil {
 		return ErrInvalidSideChainId(DefaultCodespace)

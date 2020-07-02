@@ -1,6 +1,6 @@
 package slashing
 
-type SideDowntimeSlashEvent struct {
+type SideDowntimeSlashPackage struct {
 	SideConsAddr  []byte `json:"side_cons_addr"`
 	SideHeight    uint64 `json:"side_height"`
 	SideChainId   uint16 `json:"side_chain_id"`
