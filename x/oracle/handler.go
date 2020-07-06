@@ -164,7 +164,7 @@ func handlePackage(ctx sdk.Context, oracleKeeper Keeper, chainId sdk.ChainID, pa
 		types.ClaimPackageType, []byte(strconv.FormatInt(int64(packageType), 10)),
 		// The following tags are for index
 		types.ClaimChannel, []byte{uint8(pack.ChannelId)},
-		types.ClaimSequence, []byte(strconv.FormatUint(pack.Sequence, 10)),
+		types.ClaimReceiveSequence, []byte(strconv.FormatUint(pack.Sequence, 10)),
 	)
 
 	if sendSequence >= 0 {
