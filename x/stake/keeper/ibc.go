@@ -6,7 +6,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
 
-const ChannelName = "staking"
+const ChannelName = "stake"
 const ChannelId = sdk.ChannelID(8)
 
 func (k Keeper) SaveValidatorSetToIbc(ctx sdk.Context, sideChainId string, ibcPackage types.IbcValidatorSetPackage) (seq uint64, sdkErr sdk.Error) {

@@ -7,5 +7,5 @@ var (
 
 	ProposalID        = "proposal-id"
 	VotingPeriodStart = "voting-period-start"
-	SideChainID       = "side_chain_id"
+	SideChainID       = "side-chain-id"
 )

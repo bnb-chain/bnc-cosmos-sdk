@@ -36,7 +36,7 @@ func TestSideChainSlashDowntime(t *testing.T) {
 	claim := SideDowntimeSlashPackage{
 		SideConsAddr:  sideConsAddr,
 		SideHeight:    sideHeight,
-		SideChainId:   1,
+		SideChainId:   sdk.ChainID(1),
 		SideTimestamp: uint64(sideTimestamp.Unix()),
 	}
 
@@ -90,7 +90,7 @@ func TestSideChainSlashDowntime(t *testing.T) {
 
 	claim.SideTimestamp = uint64(ctx.BlockHeader().Time.Add(-6 * 60 * 60 * time.Second).Unix())
 	claim.SideConsAddr = sideConsAddr
-	claim.SideChainId = 2
+	claim.SideChainId = sdk.ChainID(2)
 
 	result = keeper.executeSynPackage(ctx, &claim)
 	require.NotNil(t, result, "Expected get err, but got nil")
@@ -98,7 +98,7 @@ func TestSideChainSlashDowntime(t *testing.T) {
 
 	claim.SideHeight = sideHeight
 	claim.SideConsAddr = createSideAddr(20)
-	claim.SideChainId = 1
+	claim.SideChainId = sdk.ChainID(1)
 
 	result = keeper.executeSynPackage(ctx, &claim)
 	require.NotNil(t, result, "Expected got err of no signing info found, but got nil")
@@ -141,7 +141,7 @@ func TestSlashDowntimeBalanceVerify(t *testing.T) {
 	claim := SideDowntimeSlashPackage{
 		SideConsAddr:  sideConsAddr2,
 		SideHeight:    sideHeight,
-		SideChainId:   1,
+		SideChainId:   sdk.ChainID(1),
 		SideTimestamp: uint64(sideTimestamp.Unix()),
 	}
 
@@ -169,7 +169,7 @@ func TestSlashDowntimeBalanceVerify(t *testing.T) {
 	claim = SideDowntimeSlashPackage{
 		SideConsAddr:  sideConsAddr2,
 		SideHeight:    sideHeight,
-		SideChainId:   1,
+		SideChainId:   sdk.ChainID(1),
 		SideTimestamp: uint64(sideTimestamp.Unix()),
 	}
 

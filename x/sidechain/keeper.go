@@ -134,6 +134,7 @@ func (k *Keeper) GetChannelSendPermission(ctx sdk.Context, destChainID sdk.Chain
 func (k *Keeper) GetChannelSendPermissions(ctx sdk.Context, destChainID sdk.ChainID) map[sdk.ChannelID]sdk.ChannelPermission {
 	kvStore := ctx.KVStore(k.storeKey).Prefix(buildChannelPermissionsPrefixKey(destChainID))
 	ite := kvStore.Iterator(nil, nil)
+	defer ite.Close()
 	permissions := make(map[sdk.ChannelID]sdk.ChannelPermission, 0)
 	for ; ite.Valid(); ite.Next() {
 		key := ite.Key()
