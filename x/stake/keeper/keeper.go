@@ -3,12 +3,15 @@ package keeper
 import (
 	"fmt"
 
+	"github.com/cosmos/cosmos-sdk/bsc/rlp"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/ibc"
+	pTypes "github.com/cosmos/cosmos-sdk/x/paramHub/types"
 	"github.com/cosmos/cosmos-sdk/x/params"
 	"github.com/cosmos/cosmos-sdk/x/sidechain"
+	sTypes "github.com/cosmos/cosmos-sdk/x/sidechain/types"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 	"github.com/tendermint/tendermint/libs/log"
 )
@@ -52,9 +55,9 @@ func (k Keeper) initIbc() {
 	if k.ibcKeeper == nil {
 		return
 	}
-	err := k.ibcKeeper.RegisterChannel(IbcChannelName, IbcChannelId)
+	err := k.ScKeeper.RegisterChannel(ChannelName, ChannelId, &k)
 	if err != nil {
-		panic(fmt.Sprintf("register ibc channel failed, channel=%s, err=%s", IbcChannelName, err.Error()))
+		panic(fmt.Sprintf("register ibc channel failed, channel=%s, err=%s", ChannelName, err.Error()))
 	}
 }
 
@@ -171,4 +174,58 @@ func (k Keeper) SetIntraTxCounter(ctx sdk.Context, counter int16) {
 	store := ctx.KVStore(k.storeKey)
 	bz := k.cdc.MustMarshalBinaryLengthPrefixed(counter)
 	store.Set(IntraTxCounterKey, bz)
+}
+
+func (k *Keeper) SubscribeParamChange(hub pTypes.ParamChangePublisher) {
+	hub.SubscribeParamChange(
+		func(context sdk.Context, iChange interface{}) {
+			switch change := iChange.(type) {
+			case *types.Params:
+				// do double check
+				err := change.UpdateCheck()
+				if err != nil {
+					context.Logger().Error("skip invalid param change", "err", err, "param", change)
+				} else {
+					res := k.GetParams(context)
+					// ignore BondDenom update if have.
+					change.BondDenom = res.BondDenom
+					k.SetParams(context, *change)
+					break
+				}
+
+			default:
+				context.Logger().Debug("skip unknown param change")
+			}
+		},
+		&pTypes.ParamSpaceProto{ParamSpace: k.paramstore, Proto: func() pTypes.SCParam {
+			return new(types.Params)
+		}},
+		nil,
+		nil,
+	)
+}
+
+// cross chain app implement
+func (k *Keeper) ExecuteSynPackage(ctx sdk.Context, payload []byte) sdk.ExecuteResult {
+	panic("receive unexpected syn package")
+}
+
+func (k *Keeper) ExecuteAckPackage(ctx sdk.Context, payload []byte) sdk.ExecuteResult {
+	logger := ctx.Logger().With("module", "stake")
+	var ackPackage sTypes.CommonAckPackage
+	err := rlp.DecodeBytes(payload, &ackPackage)
+	if err != nil {
+		logger.Error("fail to decode ack package", "payload", payload)
+		return sdk.ExecuteResult{Err: types.ErrInvalidCrosschainPackage(k.codespace)}
+	}
+	if !ackPackage.IsOk() {
+		logger.Error("side chain failed to process staking package", "code", ackPackage.Code)
+	}
+	return sdk.ExecuteResult{}
+}
+
+func (k *Keeper) ExecuteFailAckPackage(ctx sdk.Context, payload []byte) sdk.ExecuteResult {
+	//do no thing
+	ctx.Logger().Error("side chain process staking package crashed", "payload", payload)
+	return sdk.ExecuteResult{}
 }

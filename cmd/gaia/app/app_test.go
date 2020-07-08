@@ -16,6 +16,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/ibc"
 	"github.com/cosmos/cosmos-sdk/x/mint"
 	"github.com/cosmos/cosmos-sdk/x/params"
+	"github.com/cosmos/cosmos-sdk/x/sidechain"
 	"github.com/cosmos/cosmos-sdk/x/slashing"
 	"github.com/cosmos/cosmos-sdk/x/stake"
 	"github.com/stretchr/testify/require"
@@ -53,6 +54,7 @@ func NewMockGaiaApp(logger log.Logger, db dbm.DB, traceStore io.Writer, baseAppO
 		keyParams:   sdk.NewKVStoreKey("params"),
 		tkeyParams:  sdk.NewTransientStoreKey("transient_params"),
 		keyIbc:      sdk.NewKVStoreKey("ibc"),
+		keySide:     sdk.NewKVStoreKey("side"),
 	}
 
 	var app = &MockGaiaApp{gApp}
@@ -70,7 +72,9 @@ func NewMockGaiaApp(logger log.Logger, db dbm.DB, traceStore io.Writer, baseAppO
 		app.cdc,
 		app.keyParams, app.tkeyParams,
 	)
-	app.ibcKeeper = ibc.NewKeeper(app.keyIbc, ibc.DefaultCodespace)
+	app.ibcKeeper = ibc.NewKeeper(app.keyIbc, app.paramsKeeper.Subspace(ibc.DefaultParamspace), ibc.DefaultCodespace,
+		sidechain.NewKeeper(app.keySide, app.paramsKeeper.Subspace(sidechain.DefaultParamspace), app.cdc))
+
 	app.stakeKeeper = stake.NewKeeper(
 		app.cdc,
 		app.keyStake, app.tkeyStake,

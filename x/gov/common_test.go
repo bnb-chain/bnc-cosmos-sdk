@@ -37,8 +37,9 @@ func getMockApp(t *testing.T, numGenAccs int) (*mock.App, bank.BaseKeeper, gov.K
 
 	pk := params.NewKeeper(mapp.Cdc, keyGlobalParams, tkeyGlobalParams)
 	ck := bank.NewBaseKeeper(mapp.AccountKeeper)
-	ibcKeeper := ibc.NewKeeper(keyIbc, ibc.DefaultCodespace)
-	scKeeper := sidechain.NewKeeper(keySideChain, pk.Subspace(sidechain.DefaultParamspace))
+	scKeeper := sidechain.NewKeeper(keySideChain, pk.Subspace(sidechain.DefaultParamspace), mapp.Cdc)
+	ibcKeeper := ibc.NewKeeper(keyIbc, pk.Subspace(ibc.DefaultParamspace), ibc.DefaultCodespace, scKeeper)
+
 	sk := stake.NewKeeper(mapp.Cdc, keyStake, tkeyStake, ck, nil, pk.Subspace(stake.DefaultParamspace), mapp.RegisterCodespace(stake.DefaultCodespace))
 	sk.SetupForSideChain(&scKeeper, &ibcKeeper)
 	keeper := gov.NewKeeper(mapp.Cdc, keyGov, pk, pk.Subspace("testgov"), ck, sk, gov.DefaultCodespace, new(sdk.Pool))
@@ -60,9 +61,9 @@ func getMockApp(t *testing.T, numGenAccs int) (*mock.App, bank.BaseKeeper, gov.K
 // gov and stake endblocker
 func getEndBlocker(keeper gov.Keeper) sdk.EndBlocker {
 	return func(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
-		tags, _, _ := gov.EndBlocker(ctx, keeper)
+		gov.EndBlocker(ctx, keeper)
 		return abci.ResponseEndBlock{
-			Events: tags.ToEvents(),
+			Events: ctx.EventManager().ABCIEvents(),
 		}
 	}
 }

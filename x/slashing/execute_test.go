@@ -1,15 +1,16 @@
 package slashing
 
 import (
-	"encoding/json"
-	"github.com/cosmos/cosmos-sdk/types/fees"
+	"github.com/cosmos/cosmos-sdk/bsc/rlp"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/fees"
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/stake"
-	"github.com/stretchr/testify/require"
 )
 
 func TestSideChainSlashDowntime(t *testing.T) {
@@ -17,7 +18,6 @@ func TestSideChainSlashDowntime(t *testing.T) {
 	slashingParams := DefaultParams()
 	slashingParams.MaxEvidenceAge = 12 * 60 * 60 * time.Second
 	ctx, sideCtx, _, stakeKeeper, _, keeper := createSideTestInput(t, slashingParams)
-	hooks := keeper.ClaimHooks()
 
 	// create a validator
 	bondAmount := int64(10000e8)
@@ -30,24 +30,19 @@ func TestSideChainSlashDowntime(t *testing.T) {
 	// end block
 	stake.EndBreatheBlock(ctx, stakeKeeper)
 
-	sideHeight := int64(100)
+	sideHeight := uint64(100)
 	sideChainId := "bsc"
 	sideTimestamp := ctx.BlockHeader().Time.Add(-6 * 60 * 60 * time.Second)
-	claim := SideDowntimeSlashClaim{
+	claim := SideDowntimeSlashPackage{
 		SideConsAddr:  sideConsAddr,
 		SideHeight:    sideHeight,
-		SideChainId:   sideChainId,
-		SideTimestamp: sideTimestamp.Unix(),
+		SideChainId:   sdk.ChainID(1),
+		SideTimestamp: uint64(sideTimestamp.Unix()),
 	}
 
-	jsonClaim, err := json.Marshal(claim)
-	require.Nil(t, err)
+	result := keeper.executeSynPackage(ctx, &claim)
 
-	sdkErr := hooks.CheckClaim(ctx, string(jsonClaim))
-	require.Nil(t, sdkErr)
-
-	_, sdkErr = hooks.ExecuteClaim(ctx, string(jsonClaim))
-	require.Nil(t, sdkErr, "Expected nil, but got : %v", sdkErr)
+	require.Nil(t, result, "Expected nil, but got : %v", result)
 
 	info, found := keeper.getValidatorSigningInfo(sideCtx, sideConsAddr)
 	require.True(t, found)
@@ -70,56 +65,43 @@ func TestSideChainSlashDowntime(t *testing.T) {
 	require.True(t, found)
 	require.EqualValues(t, bondAmount-realSlashAmt, delegation.Shares.RawInt())
 
-	_, sdkErr = hooks.ExecuteClaim(ctx, string(jsonClaim))
-	require.NotNil(t, sdkErr)
-	require.EqualValues(t, CodeDuplicateDowntimeClaim, sdkErr.Code())
+	result = keeper.executeSynPackage(ctx, &claim)
+	require.NotNil(t, result)
+	require.EqualValues(t, CodeDuplicateDowntimeClaim, result.Code())
 
-	sdkErr = hooks.CheckClaim(ctx, "")
-	require.NotNil(t, sdkErr)
+	exeResult := keeper.ExecuteSynPackage(ctx, []byte(""))
+	require.NotNil(t, exeResult.Err)
 
 	claim.SideHeight = 0
-	jsonClaim, err = json.Marshal(claim)
-	require.Nil(t, err)
-	sdkErr = hooks.CheckClaim(ctx, string(jsonClaim))
-	require.NotNil(t, sdkErr)
+	bz, _ := rlp.EncodeToBytes(&claim)
+	_, result = keeper.checkAndParseSynPackage(bz)
+	require.NotNil(t, result)
 
 	claim.SideHeight = sideHeight
 	claim.SideConsAddr = createSideAddr(21)
-	jsonClaim, err = json.Marshal(claim)
-	require.Nil(t, err)
-	sdkErr = hooks.CheckClaim(ctx, string(jsonClaim))
-	require.NotNil(t, sdkErr)
+
+	result = keeper.executeSynPackage(ctx, &claim)
+	require.NotNil(t, result)
 
 	claim.SideConsAddr = sideConsAddr
-	claim.SideTimestamp = ctx.BlockHeader().Time.Add(-24 * 60 * 60 * time.Second).Unix()
-	jsonClaim, err = json.Marshal(claim)
-	require.Nil(t, err)
-	sdkErr = hooks.CheckClaim(ctx, string(jsonClaim))
-	require.Nil(t, sdkErr)
-	claimResult, sdkErr := hooks.ExecuteClaim(ctx, string(jsonClaim))
-	require.Nil(t, sdkErr)
-	require.EqualValues(t, CodeExpiredEvidence, claimResult.Code, "Expected got 201 err code, but got err: %v", sdkErr)
+	claim.SideTimestamp = uint64(ctx.BlockHeader().Time.Add(-24 * 60 * 60 * time.Second).Unix())
+	result = keeper.executeSynPackage(ctx, &claim)
+	require.EqualValues(t, CodeExpiredEvidence, result.Code(), "Expected got 201 err code, but got err: %v", result)
 
-	claim.SideTimestamp = ctx.BlockHeader().Time.Add(-6 * 60 * 60 * time.Second).Unix()
+	claim.SideTimestamp = uint64(ctx.BlockHeader().Time.Add(-6 * 60 * 60 * time.Second).Unix())
 	claim.SideConsAddr = sideConsAddr
-	claim.SideChainId = "bcc"
-	jsonClaim, err = json.Marshal(claim)
-	require.Nil(t, err)
-	sdkErr = hooks.CheckClaim(ctx, string(jsonClaim))
-	require.Nil(t, sdkErr)
-	_, sdkErr = hooks.ExecuteClaim(ctx, string(jsonClaim))
-	require.NotNil(t, sdkErr, "Expected get err, but got nil")
-	require.EqualValues(t, CodeInvalidSideChain, sdkErr.Code(), "Expected got 205 error code, but got err: %v", sdkErr)
+	claim.SideChainId = sdk.ChainID(2)
+
+	result = keeper.executeSynPackage(ctx, &claim)
+	require.NotNil(t, result, "Expected get err, but got nil")
+	require.EqualValues(t, CodeInvalidSideChain, result.Code(), "Expected got 205 error code, but got err: %v", result)
 
 	claim.SideHeight = sideHeight
 	claim.SideConsAddr = createSideAddr(20)
-	claim.SideChainId = sideChainId
-	jsonClaim, err = json.Marshal(claim)
-	require.Nil(t, err)
-	sdkErr = hooks.CheckClaim(ctx, string(jsonClaim))
-	require.Nil(t, sdkErr)
-	_, sdkErr = hooks.ExecuteClaim(ctx, string(jsonClaim))
-	require.NotNil(t, sdkErr, "Expected got err of no signing info found, but got nil")
+	claim.SideChainId = sdk.ChainID(1)
+
+	result = keeper.executeSynPackage(ctx, &claim)
+	require.NotNil(t, result, "Expected got err of no signing info found, but got nil")
 
 }
 
@@ -130,7 +112,6 @@ func TestSlashDowntimeBalanceVerify(t *testing.T) {
 	slashingParams.DowntimeSlashAmount = 8000e8
 	slashingParams.DowntimeSlashFee = 5000e8
 	ctx, sideCtx, bk, stakeKeeper, _, keeper := createSideTestInput(t, slashingParams)
-	hooks := keeper.ClaimHooks()
 
 	bondAmount := int64(10000e8)
 	// create validator to be allocated slashed amount further
@@ -155,23 +136,18 @@ func TestSlashDowntimeBalanceVerify(t *testing.T) {
 	// end block
 	stake.EndBreatheBlock(ctx, stakeKeeper)
 
-	sideHeight := int64(50)
-	sideChainId := "bsc"
+	sideHeight := uint64(50)
 	sideTimestamp := ctx.BlockHeader().Time.Add(-6 * 60 * 60 * time.Second)
-	claim := SideDowntimeSlashClaim{
+	claim := SideDowntimeSlashPackage{
 		SideConsAddr:  sideConsAddr2,
 		SideHeight:    sideHeight,
-		SideChainId:   sideChainId,
-		SideTimestamp: sideTimestamp.Unix(),
+		SideChainId:   sdk.ChainID(1),
+		SideTimestamp: uint64(sideTimestamp.Unix()),
 	}
-	jsonClaim, err := json.Marshal(claim)
-	require.Nil(t, err)
-	sdkErr := hooks.CheckClaim(ctx, string(jsonClaim))
-	require.Nil(t, sdkErr)
 
 	feesInPoolBefore := fees.Pool.BlockFees().Tokens.AmountOf("steak")
-	_, sdkErr = hooks.ExecuteClaim(ctx, string(jsonClaim))
-	require.Nil(t, sdkErr)
+	result := keeper.executeSynPackage(ctx, &claim)
+	require.Nil(t, result)
 
 	validator2, found := stakeKeeper.GetValidator(sideCtx, valAddr2)
 	require.True(t, found)
@@ -188,21 +164,17 @@ func TestSlashDowntimeBalanceVerify(t *testing.T) {
 	coins := bk.GetCoins(ctx, distributionAddr)
 	require.EqualValues(t, 3000e8, coins.AmountOf("steak")) // remaining amount(3000e8) allocated to
 
-	sideHeight = int64(80)
-	sideChainId = "bsc"
+	sideHeight = uint64(80)
 	sideTimestamp = ctx.BlockHeader().Time.Add(-3 * 60 * 60 * time.Second)
-	claim = SideDowntimeSlashClaim{
+	claim = SideDowntimeSlashPackage{
 		SideConsAddr:  sideConsAddr2,
 		SideHeight:    sideHeight,
-		SideChainId:   sideChainId,
-		SideTimestamp: sideTimestamp.Unix(),
+		SideChainId:   sdk.ChainID(1),
+		SideTimestamp: uint64(sideTimestamp.Unix()),
 	}
-	jsonClaim, err = json.Marshal(claim)
-	require.Nil(t, err)
-	sdkErr = hooks.CheckClaim(ctx, string(jsonClaim))
-	require.Nil(t, sdkErr)
-	_, sdkErr = hooks.ExecuteClaim(ctx, string(jsonClaim))
-	require.Nil(t, sdkErr)
+
+	result = keeper.executeSynPackage(ctx, &claim)
+	require.Nil(t, result)
 
 	validator2, found = stakeKeeper.GetValidator(sideCtx, valAddr2)
 	require.True(t, found)

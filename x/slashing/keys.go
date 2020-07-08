@@ -50,9 +50,9 @@ func getAddrPubkeyRelationKey(address []byte) []byte {
 	return append(AddrPubkeyRelationKey, address...)
 }
 
-func GetSlashRecordKey(consAddr []byte, infractionType byte, infractionHeight int64) []byte {
+func GetSlashRecordKey(consAddr []byte, infractionType byte, infractionHeight uint64) []byte {
 	heightBz := make([]byte, 8)
-	binary.BigEndian.PutUint64(heightBz, uint64(infractionHeight))
+	binary.BigEndian.PutUint64(heightBz, infractionHeight)
 	return append(GetSlashRecordsByAddrAndTypeIndexKey(consAddr, infractionType), heightBz...)
 }
 

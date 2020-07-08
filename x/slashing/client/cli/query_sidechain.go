@@ -143,7 +143,7 @@ func GetCmdQuerySideChainSlashRecord(storeName string, cdc *codec.Codec) *cobra.
 			if err != nil {
 				return err
 			}
-			height := viper.GetInt64(FlagInfractionHeight)
+			height := viper.GetUint64(FlagInfractionHeight)
 
 			key := append(sideChainStorePrefix, slashing.GetSlashRecordKey(sideConsAddr, resType, height)...)
 			res, err := cliCtx.QueryStore(key, storeName)

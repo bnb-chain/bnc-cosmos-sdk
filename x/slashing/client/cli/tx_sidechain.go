@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/cosmos/cosmos-sdk/bsc"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/utils"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -13,7 +14,6 @@ import (
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
 	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 	"github.com/cosmos/cosmos-sdk/x/slashing"
-	"github.com/cosmos/cosmos-sdk/x/slashing/bsc"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

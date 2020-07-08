@@ -5,14 +5,35 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/params"
 )
 
-// DefaultConsensusNeeded defines the default consensus value required for a
-// prophecy to be finalized
-var DefaultConsensusNeeded sdk.Dec = sdk.NewDecWithPrec(7, 1)
+var (
+	// DefaultConsensusNeeded defines the default consensus value required for a
+	// prophecy to be finalized
+	DefaultConsensusNeeded      sdk.Dec = sdk.NewDecWithPrec(7, 1)
+	ParamStoreKeyProphecyParams         = []byte("prophecyParams")
+)
 
-type ProphecyParams struct {
+type Params struct {
 	ConsensusNeeded sdk.Dec `json:"ConsensusNeeded"` //  Minimum deposit for a proposal to enter voting period.
+}
+
+func (p *Params) UpdateCheck() error {
+	if p.ConsensusNeeded.IsNil() || p.ConsensusNeeded.GT(sdk.OneDec()) || p.ConsensusNeeded.LT(sdk.NewDecWithPrec(5, 1)) {
+		return fmt.Errorf("the value should be in range 0.5 to 1")
+	}
+	return nil
+}
+
+func (p *Params) GetParamAttribute() (string, bool) {
+	return "oracle", true
+}
+
+func (p *Params) KeyValuePairs() params.KeyValuePairs {
+	return params.KeyValuePairs{
+		{ParamStoreKeyProphecyParams, &p.ConsensusNeeded},
+	}
 }
 
 // Prophecy is a struct that contains all the metadata of an oracle ritual.

@@ -36,7 +36,7 @@ func CreateTestInput(t *testing.T, isCheckTx bool) (sdk.Context, Keeper) {
 		mode = sdk.RunTxModeCheck
 	}
 	ctx := sdk.NewContext(ms, abci.Header{ChainID: "foochainid"}, mode, log.NewNopLogger())
-	k := NewKeeper(key, paramsKeeper.Subspace(DefaultParamspace))
+	k := NewKeeper(key, paramsKeeper.Subspace(DefaultParamspace), cdc)
 	k.SetParams(ctx, DefaultParams())
 	return ctx, k
 }

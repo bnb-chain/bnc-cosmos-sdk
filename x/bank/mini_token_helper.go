@@ -14,7 +14,7 @@ const (
 	MiniTokenMinExecutionAmount int64 = 100000000 // 1 with 8 decimal digits
 )
 
-func checkAndValidateMiniTokenCoins(ctx sdk.Context, am auth.AccountKeeper, addr sdk.AccAddress, coins sdk.Coins) sdk.Error {
+func CheckAndValidateMiniTokenCoins(ctx sdk.Context, am auth.AccountKeeper, addr sdk.AccAddress, coins sdk.Coins) sdk.Error {
 	var err sdk.Error
 	for _, coin := range coins {
 		if isMiniTokenSymbol(coin.Denom) {

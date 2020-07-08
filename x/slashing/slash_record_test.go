@@ -11,7 +11,7 @@ import (
 func TestSetGetSlashRecord(t *testing.T) {
 	ctx, _, _, _, keeper := createTestInput(t, DefaultParams())
 	sideConsAddr := randomSideConsAddr()
-	iHeight := int64(100)
+	iHeight := uint64(100)
 	sHeight := int64(150)
 	jailUtil := time.Now().Add(60 * 60 * time.Second)
 	sr := SlashRecord{

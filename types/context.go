@@ -264,6 +264,10 @@ func (c Context) WithSideChainKeyPrefix(prefix []byte) Context {
 	return c.withValue(contextKeySideChainKeyPrefix, prefix)
 }
 
+func (c Context) DepriveSideChainKeyPrefix() Context {
+	return c.withValue(contextKeySideChainKeyPrefix, nil)
+}
+
 func (c Context) WithEventManager(em *EventManager) Context {
 	return c.withValue(contextKeyEventManager, em)
 }
@@ -272,8 +276,13 @@ func (c Context) WithEventManager(em *EventManager) Context {
 // written to the context when writeCache is called.
 func (c Context) CacheContext() (cc Context, writeCache func()) {
 	cms := c.MultiStore().CacheMultiStore()
-	cc = c.WithMultiStore(cms)
-	return cc, cms.Write
+	accountCache := c.AccountCache().Cache()
+
+	cc = c.WithMultiStore(cms).WithAccountCache(accountCache)
+	return cc, func() {
+		accountCache.Write()
+		cms.Write()
+	}
 }
 
 //----------------------------------------

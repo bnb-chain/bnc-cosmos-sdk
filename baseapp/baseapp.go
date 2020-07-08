@@ -485,7 +485,7 @@ func handleQueryCustom(app *BaseApp, path []string, req abci.RequestQuery) (res 
 	}
 	querier := app.queryRouter.Route(path[1])
 	if querier == nil {
-		return sdk.ErrUnknownRequest("no custom querier found for route "+ path[1]).QueryResult()
+		return sdk.ErrUnknownRequest("no custom querier found for route " + path[1]).QueryResult()
 	}
 
 	ctx := sdk.NewContext(app.cms.CacheMultiStore(), app.CheckState.Ctx.BlockHeader(), sdk.RunTxModeCheck, app.Logger)
@@ -589,7 +589,7 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) (res abci.ResponseCheckTx) 
 		Code:   uint32(result.Code),
 		Data:   result.Data,
 		Log:    result.Log,
-		Events: result.Tags.ToEvents(),
+		Events: result.GetEvents(),
 	}
 }
 
@@ -617,7 +617,7 @@ func (app *BaseApp) PreCheckTx(req abci.RequestCheckTx) (res abci.ResponseCheckT
 		Code:   uint32(result.Code),
 		Data:   result.Data,
 		Log:    result.Log,
-		Events: result.Tags.ToEvents(),
+		Events: result.GetEvents(),
 	}
 }
 
@@ -644,7 +644,7 @@ func (app *BaseApp) ReCheckTx(req abci.RequestCheckTx) (res abci.ResponseCheckTx
 		Code:   uint32(result.Code),
 		Data:   result.Data,
 		Log:    result.Log,
-		Events: result.Tags.ToEvents(),
+		Events: result.GetEvents(),
 	}
 }
 
@@ -679,7 +679,7 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliv
 		Code:   uint32(result.Code),
 		Data:   result.Data,
 		Log:    result.Log,
-		Events: result.Tags.ToEvents(),
+		Events: result.GetEvents(),
 	}
 }
 
@@ -691,7 +691,7 @@ func (app *BaseApp) PreDeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDe
 		Code:   uint32(result.Code),
 		Data:   result.Data,
 		Log:    result.Log,
-		Events: result.Tags.ToEvents(),
+		Events: result.GetEvents(),
 	}
 }
 
@@ -747,6 +747,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode sdk.RunTxMode)
 	logs := make([]string, 0, len(msgs))
 	var data []byte   // NOTE: we just append them all (?!)
 	var tags sdk.Tags // also just append them all
+	var events sdk.Events
 	var code sdk.ABCICodeType
 	for msgIdx, msg := range msgs {
 		// Match route.
@@ -762,6 +763,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode sdk.RunTxMode)
 		// Append Data and Tags
 		data = append(data, msgResult.Data...)
 		tags = append(tags, msgResult.Tags...)
+		events = append(events, msgResult.Events...)
 
 		// Stop execution and return on first failed message.
 		if !msgResult.IsOK() {
@@ -771,7 +773,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode sdk.RunTxMode)
 		}
 
 		// Construct usable logs in multi-message transactions.
-		logs = append(logs, "Msg " + strconv.Itoa(msgIdx) + ": " + msgResult.Log)
+		logs = append(logs, "Msg "+strconv.Itoa(msgIdx)+": "+msgResult.Log)
 	}
 	// A tx must only contain one msg. If the msg execution is success, record it
 	if code == sdk.ABCICodeOK {
@@ -783,7 +785,8 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode sdk.RunTxMode)
 		Data: data,
 		Log:  strings.Join(logs, "\n"),
 		// TODO: FeeAmount/FeeDenom
-		Tags: tags,
+		Tags:   tags,
+		Events: events,
 	}
 
 	return result

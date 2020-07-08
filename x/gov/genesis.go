@@ -48,8 +48,8 @@ func InitGenesis(ctx sdk.Context, k Keeper, data GenesisState) {
 		// TODO: Handle this with #870
 		panic(err)
 	}
-	k.setDepositParams(ctx, data.DepositParams)
-	k.setTallyParams(ctx, data.TallyParams)
+	k.SetDepositParams(ctx, data.DepositParams)
+	k.SetTallyParams(ctx, data.TallyParams)
 }
 
 // WriteGenesis - output genesis parameters

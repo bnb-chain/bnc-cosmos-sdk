@@ -8,23 +8,23 @@ import (
 )
 
 func TestParseChannelID(t *testing.T) {
-	channelID, err := types.ParseIbcChannelID("12")
+	channelID, err := types.ParseChannelID("12")
 	require.NoError(t, err)
-	require.Equal(t, types.IbcChannelID(12), channelID)
+	require.Equal(t, types.ChannelID(12), channelID)
 
-	_, err = types.ParseIbcChannelID("1024")
+	_, err = types.ParseChannelID("1024")
 	require.Error(t, err)
 }
 
 func TestParseCrossChainID(t *testing.T) {
-	chainID, err := types.ParseIbcChainID("12")
+	chainID, err := types.ParseChainID("12")
 	require.NoError(t, err)
-	require.Equal(t, types.IbcChainID(12), chainID)
+	require.Equal(t, types.ChainID(12), chainID)
 
-	chainID, err = types.ParseIbcChainID("10000")
+	chainID, err = types.ParseChainID("10000")
 	require.NoError(t, err)
-	require.Equal(t, types.IbcChainID(10000), chainID)
+	require.Equal(t, types.ChainID(10000), chainID)
 
-	_, err = types.ParseIbcChainID("65536")
+	_, err = types.ParseChainID("65536")
 	require.Error(t, err)
 }

@@ -20,7 +20,10 @@ const (
 	CodeInvalidValidator              sdk.CodeType = 1007
 	CodeInternalDB                    sdk.CodeType = 1008
 	CodeInvalidSequence               sdk.CodeType = 1009
-	CodeInvalidClaimType              sdk.CodeType = 1010
+	CodeChannelNotRegistered          sdk.CodeType = 1010
+	CodeInvalidLengthOfPayload        sdk.CodeType = 1011
+	CodeFeeOverflow                   sdk.CodeType = 1012
+	CodeInvalidPayload                sdk.CodeType = 1013
 )
 
 func ErrProphecyNotFound() sdk.Error {
@@ -49,8 +52,12 @@ func ErrDuplicateMessage() sdk.Error {
 
 func ErrInvalidClaim() sdk.Error {
 	return sdk.NewError(DefaultCodespace, CodeInvalidClaim, fmt.Sprintf("claim cannot be empty string"))
-
 }
+
+func ErrInvalidPackageType() sdk.Error {
+	return sdk.NewError(DefaultCodespace, CodeInvalidClaim, fmt.Sprintf("package type is invalid"))
+}
+
 func ErrInvalidValidator() sdk.Error {
 	return sdk.NewError(DefaultCodespace, CodeInvalidValidator, fmt.Sprintf("claim must be made by actively bonded validator"))
 }
@@ -63,6 +70,18 @@ func ErrInvalidSequence(msg string) sdk.Error {
 	return sdk.NewError(DefaultCodespace, CodeInvalidSequence, msg)
 }
 
-func ErrInvalidClaimType(msg string) sdk.Error {
-	return sdk.NewError(DefaultCodespace, CodeInvalidClaimType, msg)
+func ErrChannelNotRegistered(msg string) sdk.Error {
+	return sdk.NewError(DefaultCodespace, CodeChannelNotRegistered, msg)
+}
+
+func ErrInvalidPayloadHeader(msg string) sdk.Error {
+	return sdk.NewError(DefaultCodespace, CodeInvalidLengthOfPayload, msg)
+}
+
+func ErrFeeOverflow(msg string) sdk.Error {
+	return sdk.NewError(DefaultCodespace, CodeFeeOverflow, msg)
+}
+
+func ErrInvalidPayload(msg string) sdk.Error {
+	return sdk.NewError(DefaultCodespace, CodeInvalidPayload, msg)
 }

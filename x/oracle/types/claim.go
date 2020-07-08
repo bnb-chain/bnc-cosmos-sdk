@@ -6,22 +6,28 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-func GetClaimId(claimType sdk.ClaimType, sequence int64) string {
-	return fmt.Sprintf("%d:%d", claimType, sequence)
+const (
+	// RelayPackagesChannelId is not a communication channel actually, we just use it to record sequence.
+	RelayPackagesChannelName               = "relayPackages"
+	RelayPackagesChannelId   sdk.ChannelID = 0x00
+)
+
+func GetClaimId(chainId sdk.ChainID, channelId sdk.ChannelID, sequence uint64) string {
+	return fmt.Sprintf("%d:%d:%d", chainId, channelId, sequence)
 }
 
 // Claim contains an arbitrary claim with arbitrary content made by a given validator
 type Claim struct {
 	ID               string         `json:"id"`
 	ValidatorAddress sdk.ValAddress `json:"validator_address"`
-	Content          string         `json:"content"`
+	Payload          string         `json:"payload"`
 }
 
 // NewClaim returns a new Claim
-func NewClaim(id string, validatorAddress sdk.ValAddress, content string) Claim {
+func NewClaim(id string, validatorAddress sdk.ValAddress, payload string) Claim {
 	return Claim{
 		ID:               id,
 		ValidatorAddress: validatorAddress,
-		Content:          content,
+		Payload:          payload,
 	}
 }

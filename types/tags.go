@@ -33,7 +33,7 @@ func (t Tags) ToKVPairs() []cmn.KVPair {
 
 // Turn tags into abci.Event list
 func (t Tags) ToEvents() []abci.Event {
-	return []abci.Event{abci.Event{Attributes: t}}
+	return []abci.Event{{Attributes: t}}
 }
 
 // New variadic tags, must be k string, v []byte repeating

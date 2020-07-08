@@ -149,7 +149,7 @@ func TestMsgSendValidation(t *testing.T) {
 		{false, MsgSend{
 			Inputs:  []Input{NewInput(emptyAddr, atom123)}, // invalid input
 			Outputs: []Output{output1}},
-	    },
+		},
 		{false, MsgSend{
 			Inputs:  []Input{NewInput(shortAddr, atom123)}, // invalid input
 			Outputs: []Output{output1}},

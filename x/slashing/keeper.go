@@ -2,17 +2,23 @@ package slashing
 
 import (
 	"fmt"
+	"math"
 	"time"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/bank"
-	"github.com/cosmos/cosmos-sdk/x/params"
-	"github.com/cosmos/cosmos-sdk/x/sidechain"
-	stake "github.com/cosmos/cosmos-sdk/x/stake/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
 	tmtypes "github.com/tendermint/tendermint/types"
+
+	"github.com/cosmos/cosmos-sdk/bsc/rlp"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/fees"
+	"github.com/cosmos/cosmos-sdk/x/bank"
+	"github.com/cosmos/cosmos-sdk/x/paramHub/types"
+	param "github.com/cosmos/cosmos-sdk/x/params"
+	"github.com/cosmos/cosmos-sdk/x/sidechain"
+	sTypes "github.com/cosmos/cosmos-sdk/x/sidechain/types"
+	stake "github.com/cosmos/cosmos-sdk/x/stake/types"
 )
 
 // Keeper of the slashing store
@@ -20,7 +26,7 @@ type Keeper struct {
 	storeKey     sdk.StoreKey
 	cdc          *codec.Codec
 	validatorSet sdk.ValidatorSet
-	paramspace   params.Subspace
+	paramspace   param.Subspace
 
 	// codespace
 	Codespace sdk.CodespaceType
@@ -30,7 +36,7 @@ type Keeper struct {
 }
 
 // NewKeeper creates a slashing keeper
-func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, vs sdk.ValidatorSet, paramspace params.Subspace, codespace sdk.CodespaceType, bk bank.Keeper) Keeper {
+func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, vs sdk.ValidatorSet, paramspace param.Subspace, codespace sdk.CodespaceType, bk bank.Keeper) Keeper {
 	keeper := Keeper{
 		storeKey:     key,
 		cdc:          cdc,
@@ -44,13 +50,14 @@ func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, vs sdk.ValidatorSet, paramspa
 
 func (k *Keeper) SetSideChain(scKeeper *sidechain.Keeper) {
 	k.ScKeeper = scKeeper
+	k.initIbc()
 }
 
-func (k Keeper) ClaimRegister(oracleKeeper sdk.OracleKeeper) error {
-	if err := oracleKeeper.RegisterClaimType(ClaimTypeDowntimeSlash, ClaimNameDowntimeSlash, k.ClaimHooks()); err != nil {
-		return err
+func (k Keeper) initIbc() {
+	err := k.ScKeeper.RegisterChannel(ChannelName, ChannelId, &k)
+	if err != nil {
+		panic(fmt.Sprintf("register ibc channel failed, channel=%s, err=%s", ChannelName, err.Error()))
 	}
-	return nil
 }
 
 // handle a validator signing two blocks at the same height
@@ -193,6 +200,153 @@ func (k Keeper) AddValidators(ctx sdk.Context, vals []abci.ValidatorUpdate) {
 		}
 		k.addPubkey(ctx, pubkey)
 	}
+}
+
+func (k *Keeper) SubscribeParamChange(hub types.ParamChangePublisher) {
+	hub.SubscribeParamChange(
+		func(context sdk.Context, iChange interface{}) {
+			switch change := iChange.(type) {
+			case *Params:
+				// do double check
+				err := change.UpdateCheck()
+				if err != nil {
+					context.Logger().Error("skip invalid param change", "err", err, "param", change)
+				} else {
+					k.SetParams(context, *change)
+					break
+				}
+			default:
+				context.Logger().Debug("skip unknown param change")
+			}
+		},
+		&types.ParamSpaceProto{ParamSpace: k.paramspace, Proto: func() types.SCParam {
+			return new(Params)
+		}},
+		nil,
+		nil,
+	)
+}
+
+// implement cross chain app
+func (k *Keeper) ExecuteSynPackage(ctx sdk.Context, payload []byte) sdk.ExecuteResult {
+	var resCode uint32
+	pack, err := k.checkAndParseSynPackage(payload)
+	if err == nil {
+		err = k.executeSynPackage(ctx, pack)
+	}
+	if err != nil {
+		resCode = uint32(err.ABCICode())
+	}
+	ackPackage, encodeErr := sTypes.GenCommonAckPackage(resCode)
+	if encodeErr != nil {
+		panic(encodeErr)
+	}
+	return sdk.ExecuteResult{
+		Payload: ackPackage,
+		Err:     err,
+		Tags:    sdk.EmptyTags(),
+	}
+}
+func (k *Keeper) ExecuteAckPackage(ctx sdk.Context, payload []byte) sdk.ExecuteResult {
+	panic("receive unexpected ack package")
+}
+
+// When the ack application crash, payload is the payload of the origin package.
+func (k *Keeper) ExecuteFailAckPackage(ctx sdk.Context, payload []byte) sdk.ExecuteResult {
+	panic("receive unexpected fail ack package")
+}
+
+func (k *Keeper) checkAndParseSynPackage(payload []byte) (*SideDowntimeSlashPackage, sdk.Error) {
+	var slashEvent SideDowntimeSlashPackage
+	err := rlp.DecodeBytes(payload, &slashEvent)
+	if err != nil {
+		return nil, ErrInvalidInput(k.Codespace, "failed to parse the payload")
+	}
+	if len(slashEvent.SideConsAddr) != sdk.AddrLen {
+		return nil, ErrInvalidClaim(k.Codespace, fmt.Sprintf("wrong sideConsAddr length, expected=%d", slashEvent.SideConsAddr))
+	}
+
+	if slashEvent.SideHeight <= 0 {
+		return nil, ErrInvalidClaim(k.Codespace, "side height must be positive")
+	}
+
+	if slashEvent.SideHeight > math.MaxInt64 {
+		return nil, ErrInvalidClaim(k.Codespace, "side height overflow")
+	}
+
+	if slashEvent.SideTimestamp <= 0 {
+		return nil, ErrInvalidClaim(k.Codespace, "invalid side timestamp")
+	}
+	return &slashEvent, nil
+}
+
+func (k *Keeper) executeSynPackage(ctx sdk.Context, pack *SideDowntimeSlashPackage) sdk.Error {
+	sideChainName, err := k.ScKeeper.GetDestChainName(pack.SideChainId)
+	if err != nil {
+		return ErrInvalidSideChainId(DefaultCodespace)
+	}
+	sideCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, sideChainName)
+	if err != nil {
+		return ErrInvalidSideChainId(DefaultCodespace)
+	}
+
+	header := sideCtx.BlockHeader()
+	age := uint64(header.Time.Unix()) - pack.SideTimestamp
+	if age > uint64(k.MaxEvidenceAge(sideCtx).Seconds()) {
+		return ErrExpiredEvidence(DefaultCodespace)
+	}
+
+	if k.hasSlashRecord(sideCtx, pack.SideConsAddr, Downtime, pack.SideHeight) {
+		return ErrDuplicateDowntimeClaim(k.Codespace)
+	}
+
+	slashAmt := k.DowntimeSlashAmount(sideCtx)
+	slashedAmt, err := k.validatorSet.SlashSideChain(ctx, sideChainName, pack.SideConsAddr, sdk.NewDec(slashAmt))
+	if err != nil {
+		return ErrFailedToSlash(k.Codespace, err.Error())
+	}
+
+	downtimeClaimFee := k.DowntimeSlashFee(sideCtx)
+	downtimeClaimFeeReal := sdk.MinInt64(downtimeClaimFee, slashedAmt.RawInt())
+	bondDenom := k.validatorSet.BondDenom(sideCtx)
+	if downtimeClaimFeeReal > 0 && ctx.IsDeliverTx() {
+		feeCoinAdd := sdk.NewCoin(bondDenom, downtimeClaimFeeReal)
+		fees.Pool.AddAndCommitFee("side_downtime_slash", sdk.NewFee(sdk.Coins{feeCoinAdd}, sdk.FeeForAll))
+	}
+
+	remaining := slashedAmt.RawInt() - downtimeClaimFeeReal
+	if remaining > 0 {
+		found, err := k.validatorSet.AllocateSlashAmtToValidators(sideCtx, pack.SideConsAddr, sdk.NewDec(remaining))
+		if err != nil {
+			return ErrFailedToSlash(k.Codespace, err.Error())
+		}
+		if !found && ctx.IsDeliverTx() {
+			remainingCoin := sdk.NewCoin(bondDenom, remaining)
+			fees.Pool.AddAndCommitFee("side_downtime_slash_remaining", sdk.NewFee(sdk.Coins{remainingCoin}, sdk.FeeForAll))
+		}
+	}
+
+	jailUtil := header.Time.Add(k.DowntimeUnbondDuration(sideCtx))
+	sr := SlashRecord{
+		ConsAddr:         pack.SideConsAddr,
+		InfractionType:   Downtime,
+		InfractionHeight: pack.SideHeight,
+		SlashHeight:      header.Height,
+		JailUntil:        jailUtil,
+		SlashAmt:         slashedAmt.RawInt(),
+		SideChainId:      sideChainName,
+	}
+	k.setSlashRecord(sideCtx, sr)
+
+	// Set or updated validator jail duration
+	signInfo, found := k.getValidatorSigningInfo(sideCtx, pack.SideConsAddr)
+	if !found {
+		return sdk.ErrInternal(fmt.Sprintf("Expected signing info for validator %s but not found", sdk.HexEncode(pack.SideConsAddr)))
+	}
+	signInfo.JailedUntil = jailUtil
+	k.setValidatorSigningInfo(sideCtx, pack.SideConsAddr, signInfo)
+
+	return nil
 }
 
 // TODO: Make a method to remove the pubkey from the map when a validator is unbonded.

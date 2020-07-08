@@ -305,7 +305,7 @@ func queryDepositHandlerFn(cdc *codec.Codec, cliCtx context.CLIContext) http.Han
 		var deposit gov.Deposit
 		cdc.UnmarshalJSON(res, &deposit)
 		if deposit.Empty() {
-			res, err := cliCtx.QueryWithData("custom/gov/proposal", cdc.MustMarshalBinaryLengthPrefixed(gov.QueryProposalParams{params.ProposalID}))
+			res, err := cliCtx.QueryWithData("custom/gov/proposal", cdc.MustMarshalBinaryLengthPrefixed(gov.QueryProposalParams{ProposalID: params.ProposalID}))
 			if err != nil || len(res) == 0 {
 				err := errors.Errorf("proposalID [%d] does not exist", proposalID)
 				utils.WriteErrorResponse(w, http.StatusNotFound, err.Error())
@@ -368,7 +368,7 @@ func queryVoteHandlerFn(cdc *codec.Codec, cliCtx context.CLIContext) http.Handle
 		var vote gov.Vote
 		cdc.UnmarshalJSON(res, &vote)
 		if vote.Empty() {
-			bz, err := cdc.MarshalJSON(gov.QueryProposalParams{params.ProposalID})
+			bz, err := cdc.MarshalJSON(gov.QueryProposalParams{ProposalID: params.ProposalID})
 			if err != nil {
 				utils.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
 				return

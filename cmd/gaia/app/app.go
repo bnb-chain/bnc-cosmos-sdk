@@ -7,7 +7,6 @@ import (
 	"os"
 	"sort"
 
-	"github.com/cosmos/cosmos-sdk/x/ibc"
 	abci "github.com/tendermint/tendermint/abci/types"
 	cmn "github.com/tendermint/tendermint/libs/common"
 	dbm "github.com/tendermint/tendermint/libs/db"
@@ -21,8 +20,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	distr "github.com/cosmos/cosmos-sdk/x/distribution"
 	"github.com/cosmos/cosmos-sdk/x/gov"
+	"github.com/cosmos/cosmos-sdk/x/ibc"
 	"github.com/cosmos/cosmos-sdk/x/mint"
 	"github.com/cosmos/cosmos-sdk/x/params"
+	"github.com/cosmos/cosmos-sdk/x/sidechain"
 	"github.com/cosmos/cosmos-sdk/x/slashing"
 	"github.com/cosmos/cosmos-sdk/x/stake"
 )
@@ -60,6 +61,7 @@ type GaiaApp struct {
 	keyParams        *sdk.KVStoreKey
 	tkeyParams       *sdk.TransientStoreKey
 	keyIbc           *sdk.KVStoreKey
+	keySide          *sdk.KVStoreKey
 
 	// Manage getting and setting accounts
 	accountKeeper       auth.AccountKeeper
@@ -116,7 +118,8 @@ func NewGaiaApp(logger log.Logger, db dbm.DB, traceStore io.Writer, baseAppOptio
 		app.cdc,
 		app.keyParams, app.tkeyParams,
 	)
-	app.ibcKeeper = ibc.NewKeeper(app.keyIbc, ibc.DefaultCodespace)
+	app.ibcKeeper = ibc.NewKeeper(app.keyIbc, app.paramsKeeper.Subspace(ibc.DefaultParamspace), ibc.DefaultCodespace,
+		sidechain.NewKeeper(app.keySide, app.paramsKeeper.Subspace(sidechain.DefaultParamspace), app.cdc))
 	app.stakeKeeper = stake.NewKeeper(
 		app.cdc,
 		app.keyStake, app.tkeyStake,
@@ -223,7 +226,7 @@ func (app *GaiaApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) ab
 // nolint: unparam
 func (app *GaiaApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
 	ctx = ctx.WithEventManager(sdk.NewEventManager())
-	tags, _, _ := gov.EndBlocker(ctx, app.govKeeper)
+	gov.EndBlocker(ctx, app.govKeeper)
 	validatorUpdates, _ := stake.EndBlocker(ctx, app.stakeKeeper)
 	ibc.EndBlocker(ctx, app.ibcKeeper)
 
@@ -232,7 +235,7 @@ func (app *GaiaApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.R
 
 	return abci.ResponseEndBlock{
 		ValidatorUpdates: validatorUpdates,
-		Events:           append(tags.ToEvents(), ctx.EventManager().ABCIEvents()...),
+		Events:           ctx.EventManager().ABCIEvents(),
 	}
 }
 

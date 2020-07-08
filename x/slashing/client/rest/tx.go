@@ -6,6 +6,9 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/gorilla/mux"
+
+	"github.com/cosmos/cosmos-sdk/bsc"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/utils"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -13,8 +16,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 	"github.com/cosmos/cosmos-sdk/x/slashing"
-	"github.com/cosmos/cosmos-sdk/x/slashing/bsc"
-	"github.com/gorilla/mux"
 )
 
 func registerTxRoutes(cliCtx context.CLIContext, r *mux.Router, cdc *codec.Codec, kb keys.Keybase) {

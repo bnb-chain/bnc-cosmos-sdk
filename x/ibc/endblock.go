@@ -12,7 +12,7 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) {
 	for _, ibcPackageRecord := range keeper.packageCollector.collectedPackages {
 		attributes = append(attributes,
 			sdk.NewAttribute(ibcPackageInfoAttributeKey,
-				buildIBCPackageAttributeValue(ibcPackageRecord.destChainName, ibcPackageRecord.destChainID, ibcPackageRecord.channelID, ibcPackageRecord.sequence)))
+				buildIBCPackageAttributeValue(ibcPackageRecord.destChainID, ibcPackageRecord.channelID, ibcPackageRecord.sequence)))
 	}
 	keeper.packageCollector.collectedPackages = keeper.packageCollector.collectedPackages[:0]
 	event := sdk.NewEvent(ibcEventType, attributes...)

@@ -1,13 +1,13 @@
 package types
 
 const (
-	EventTypeCompleteUnbonding              = "complete_unbonding"
-	EventTypeCompleteRedelegation           = "complete_redelegation"
-	EventTypeCreateValidator                = "create_validator"
-	EventTypeEditValidator                  = "edit_validator"
-	EventTypeDelegate                       = "delegate"
-	EventTypeUnbond                         = "unbond"
-	EventTypeRedelegate                     = "redelegate"
+	EventTypeCompleteUnbonding    = "complete_unbonding"
+	EventTypeCompleteRedelegation = "complete_redelegation"
+	EventTypeCreateValidator      = "create_validator"
+	EventTypeEditValidator        = "edit_validator"
+	EventTypeDelegate             = "delegate"
+	EventTypeUnbond               = "unbond"
+	EventTypeRedelegate           = "redelegate"
 
 	AttributeKeyValidator         = "validator"
 	AttributeKeyCommissionRate    = "commission_rate"
@@ -17,5 +17,5 @@ const (
 	AttributeKeyDelegator         = "delegator"
 	AttributeKeyCompletionTime    = "completion_time"
 
-	AttributeKeySideChainId                 = "side_chain_id"
+	AttributeKeySideChainId = "side_chain_id"
 )

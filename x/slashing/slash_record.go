@@ -18,7 +18,7 @@ const (
 type SlashRecord struct {
 	ConsAddr         []byte
 	InfractionType   byte
-	InfractionHeight int64
+	InfractionHeight uint64
 	SlashHeight      int64
 	JailUntil        time.Time
 	SlashAmt         int64
@@ -104,7 +104,7 @@ func UnmarshalSlashRecord(cdc *codec.Codec, key []byte, value []byte) (SlashReco
 	infractionType := keys[sdk.AddrLen : sdk.AddrLen+1]
 	infractionHeightBz := keys[sdk.AddrLen+1:]
 
-	infractionHeight := int64(binary.BigEndian.Uint64(infractionHeightBz))
+	infractionHeight := binary.BigEndian.Uint64(infractionHeightBz)
 	return SlashRecord{
 		ConsAddr:         consAddr,
 		InfractionType:   infractionType[0],
@@ -122,7 +122,7 @@ func (k Keeper) setSlashRecord(ctx sdk.Context, record SlashRecord) {
 	store.Set(GetSlashRecordKey(record.ConsAddr, record.InfractionType, record.InfractionHeight), bz)
 }
 
-func (k Keeper) getSlashRecord(ctx sdk.Context, consAddr []byte, infractionType byte, infractionHeight int64) (sr SlashRecord, found bool) {
+func (k Keeper) getSlashRecord(ctx sdk.Context, consAddr []byte, infractionType byte, infractionHeight uint64) (sr SlashRecord, found bool) {
 	store := ctx.KVStore(k.storeKey)
 	key := GetSlashRecordKey(consAddr, infractionType, infractionHeight)
 	bz := store.Get(key)
@@ -132,7 +132,7 @@ func (k Keeper) getSlashRecord(ctx sdk.Context, consAddr []byte, infractionType 
 	return MustUnmarshalSlashRecord(k.cdc, key, bz), true
 }
 
-func (k Keeper) hasSlashRecord(ctx sdk.Context, consAddr []byte, infractionType byte, infractionHeight int64) bool {
+func (k Keeper) hasSlashRecord(ctx sdk.Context, consAddr []byte, infractionType byte, infractionHeight uint64) bool {
 	store := ctx.KVStore(k.storeKey)
 	return store.Get(GetSlashRecordKey(consAddr, infractionType, infractionHeight)) != nil
 }

@@ -29,7 +29,7 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 		return ErrInvalidEvidence(DefaultCodespace, "The signers of two block headers are not the same").Result()
 	}
 
-	if k.hasSlashRecord(sideCtx, sideConsAddr.Bytes(), DoubleSign, msg.Headers[0].Number) {
+	if k.hasSlashRecord(sideCtx, sideConsAddr.Bytes(), DoubleSign, uint64(msg.Headers[0].Number)) {
 		return ErrEvidenceHasBeenHandled(k.Codespace).Result()
 	}
 
@@ -77,7 +77,7 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 	sr := SlashRecord{
 		ConsAddr:         sideConsAddr.Bytes(),
 		InfractionType:   DoubleSign,
-		InfractionHeight: msg.Headers[0].Number,
+		InfractionHeight: uint64(msg.Headers[0].Number),
 		SlashHeight:      header.Height,
 		JailUntil:        jailUtil,
 		SlashAmt:         slashedAmount.RawInt(),

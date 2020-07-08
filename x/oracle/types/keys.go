@@ -1,16 +1,13 @@
 package types
 
-import sdk "github.com/cosmos/cosmos-sdk/types"
-
-const StartSequence = 0
-
-var claimTypeSequencePrefix = []byte("claimTypeSeq:")
-
-func GetClaimTypeSequence(claimType sdk.ClaimType) []byte {
-	return append(claimTypeSequencePrefix, byte(claimType))
-}
-
 const (
-	ClaimResultCode = "ClaimResultCode"
-	ClaimResultMsg  = "ClaimResultMsg"
+	EventTypeClaim = "claim"
+
+	ClaimResultCode      = "ClaimResultCode"
+	ClaimResultMsg       = "ClaimResultMsg"
+	ClaimChannel         = "ClaimChannel"
+	ClaimReceiveSequence = "ClaimReceiveSequence"
+	ClaimSendSequence    = "ClaimSendSequence"
+	ClaimCrash           = "ClaimCrash"
+	ClaimPackageType     = "ClaimPackageType"
 )

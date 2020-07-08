@@ -123,10 +123,11 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initCoins int64) (sdk.Context
 	ctx = ctx.WithAccountCache(accountCache)
 
 	ck := bank.NewBaseKeeper(accountKeeper)
-	ibcKeeper := ibc.NewKeeper(keyIbc, ibc.DefaultCodespace)
 
 	pk := params.NewKeeper(cdc, keyParams, tkeyParams)
-	scKeeper := sidechain.NewKeeper(keySideChain, pk.Subspace(sidechain.DefaultParamspace))
+	scKeeper := sidechain.NewKeeper(keySideChain, pk.Subspace(sidechain.DefaultParamspace), cdc)
+
+	ibcKeeper := ibc.NewKeeper(keyIbc, pk.Subspace(ibc.DefaultParamspace), ibc.DefaultCodespace, scKeeper)
 	keeper := NewKeeper(cdc, keyStake, tkeyStake, ck, nil, pk.Subspace(DefaultParamspace), types.DefaultCodespace)
 	keeper.SetPool(ctx, types.InitialPool())
 	keeper.SetParams(ctx, types.DefaultParams())

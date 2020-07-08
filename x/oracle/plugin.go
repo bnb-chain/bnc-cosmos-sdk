@@ -7,6 +7,11 @@ import (
 
 func RegisterUpgradeBeginBlocker(keeper Keeper) {
 	sdk.UpgradeMgr.RegisterBeginBlocker(sdk.LaunchBscUpgrade, func(ctx sdk.Context) {
-		keeper.SetProphecyParams(ctx, types.ProphecyParams{ConsensusNeeded: types.DefaultConsensusNeeded})
+		keeper.SetParams(ctx, types.Params{ConsensusNeeded: types.DefaultConsensusNeeded})
 	})
+
+	err := keeper.ScKeeper.RegisterChannel(types.RelayPackagesChannelName, types.RelayPackagesChannelId, nil)
+	if err != nil {
+		panic("register relay packages channel error")
+	}
 }

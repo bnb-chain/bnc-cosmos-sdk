@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/cosmos/cosmos-sdk/bsc"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/slashing/bsc"
+	"github.com/cosmos/cosmos-sdk/x/sidechain/types"
 )
 
 var cdc = codec.New()
@@ -17,8 +18,6 @@ const (
 	TypeMsgUnjail            = "unjail"
 	TypeMsgSideChainUnjail   = "side_chain_unjail"
 	TypeMsgBscSubmitEvidence = "bsc_submit_evidence"
-
-	MaxSideChainIdLength = 20
 )
 
 // verify interface at compile time
@@ -99,8 +98,8 @@ func (msg MsgSideChainUnjail) ValidateBasic() sdk.Error {
 	if msg.ValidatorAddr == nil {
 		return ErrBadValidatorAddr(DefaultCodespace)
 	}
-	if len(msg.SideChainId) == 0 || len(msg.SideChainId) > MaxSideChainIdLength {
-		return ErrInvalidInput(DefaultCodespace, fmt.Sprintf("side chain id must be included and max length is %d bytes", MaxSideChainIdLength))
+	if len(msg.SideChainId) == 0 || len(msg.SideChainId) > types.MaxSideChainIdLength {
+		return ErrInvalidInput(DefaultCodespace, fmt.Sprintf("side chain id must be included and max length is %d bytes", types.MaxSideChainIdLength))
 	}
 	return nil
 }
