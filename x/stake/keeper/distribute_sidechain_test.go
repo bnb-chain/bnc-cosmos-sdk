@@ -63,7 +63,7 @@ func TestDistribute(t *testing.T) {
 		validator.DelegatorShares = sdk.NewDec(totalShares)
 		validator.Tokens = sdk.NewDec(totalShares)
 		validator.DistributionAddr = Addrs[499-i]
-		validator, setCommErr := validator.SetInitialCommission(types.Commission{Rate: sdk.NewDecWithPrec(60, 2), MaxRate: sdk.NewDecWithPrec(90, 2)})
+		validator, setCommErr := validator.SetInitialCommission(types.Commission{Rate: sdk.NewDecWithPrec(40, 2), MaxRate: sdk.NewDecWithPrec(90, 2)})
 		require.NoError(t, setCommErr)
 		validators[i] = validator
 
