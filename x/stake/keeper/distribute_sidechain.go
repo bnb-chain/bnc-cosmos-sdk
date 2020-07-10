@@ -31,16 +31,15 @@ func (k Keeper) Distribute(ctx sdk.Context) {
 		}
 		totalRewardDec := sdk.NewDec(totalReward)
 		commission := totalRewardDec.Mul(validator.Commission.Rate)
-		remainReward := totalRewardDec.Sub(commission).RawInt()
+		remainReward := totalRewardDec.Sub(commission)
 		// remove all balance of bondDenom from Distribution account
 		distAccCoins = distAccCoins.Minus(sdk.Coins{sdk.NewCoin(bondDenom, totalReward)})
 		if err := k.bankKeeper.SetCoins(ctx, validator.DistributionAddr, distAccCoins); err != nil {
 			panic(err)
 		}
-		//shouldCarry, shouldNotCarry, remainInt := allocateReward(delegations, commission, validator.DelegatorShares.RawInt(), remainInt)
-		rewards := allocate(simDelsToSharers(delegations), commission, validator.DelegatorShares)
-		if remainReward > 0 { // assign rewards to self-delegator
-			if _, _, err := k.bankKeeper.AddCoins(ctx, validator.GetFeeAddr(), sdk.Coins{sdk.NewCoin(bondDenom, remainReward)}); err != nil {
+		rewards := allocate(simDelsToSharers(delegations), remainReward, validator.DelegatorShares)
+		if commission.RawInt() > 0 { // assign rewards to self-delegator
+			if _, _, err := k.bankKeeper.AddCoins(ctx, validator.GetFeeAddr(), sdk.Coins{sdk.NewCoin(bondDenom, commission.RawInt())}); err != nil {
 				panic(err)
 			}
 		}
