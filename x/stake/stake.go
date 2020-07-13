@@ -54,6 +54,12 @@ type (
 	SideREDUpdateEvent         = types.SideREDUpdateEvent
 	DVVTriplet                 = types.DVVTriplet
 	DVPair                     = types.DVPair
+	DelegateEvent              = types.DelegateEvent
+	UndelegateEvent            = types.UndelegateEvent
+	RedelegateEvent            = types.RedelegateEvent
+	SideDelegateEvent          = types.SideDelegateEvent
+	SideUndelegateEvent        = types.SideUnDelegateEvent
+	SideRedelegateEvent        = types.SideRedelegateEvent
 )
 
 var (
