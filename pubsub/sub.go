@@ -82,7 +82,7 @@ func (s *Subscriber) Subscribe(topic Topic, handler Handler) error {
 	s.handlers[topic] = handler
 
 	select {
-	case s.server.cmds <- cmd{op: SUB, topic: topic, subscriber: s, clientID: s.clientID}:
+	case s.server.cmds <- cmd{op: sub, topic: topic, subscriber: s, clientID: s.clientID}:
 		s.server.mtx.Lock()
 		if _, ok := s.server.subscribers[s.clientID]; !ok {
 			s.server.subscribers[s.clientID] = make(map[Topic]bool)
@@ -106,7 +106,7 @@ func (s *Subscriber) Unsubscribe(topic Topic) error {
 		return ErrSubscriptionNotFound
 	}
 	select {
-	case s.server.cmds <- cmd{op: UNSUB, clientID: s.clientID, topic: topic}:
+	case s.server.cmds <- cmd{op: unsub, clientID: s.clientID, topic: topic}:
 		s.server.mtx.Lock()
 		delete(s.server.subscribers[s.clientID], topic)
 		close(s.quit)
@@ -125,7 +125,7 @@ func (s *Subscriber) UnsubscribeAll() error {
 		return ErrSubscriptionNotFound
 	}
 	select {
-	case s.server.cmds <- cmd{op: UNSUB, clientID: s.clientID}:
+	case s.server.cmds <- cmd{op: unsub, clientID: s.clientID}:
 		s.server.mtx.Lock()
 		delete(s.server.subscribers, s.clientID)
 		s.server.mtx.RUnlock()

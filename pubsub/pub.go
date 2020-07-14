@@ -27,10 +27,10 @@ var (
 type operation int
 
 const (
-	SUB operation = iota
-	PUB
-	UNSUB
-	SHUTDOWN
+	sub operation = iota
+	pub
+	unsub
+	shutdown
 )
 
 type cmd struct {
@@ -75,7 +75,7 @@ func (server *Server) OnStart() error {
 }
 
 func (server *Server) OnStop() {
-	server.cmds <- cmd{op: SHUTDOWN}
+	server.cmds <- cmd{op: shutdown}
 }
 
 func (server *Server) HasSubscribed(clientID ClientID, topic Topic) bool {
@@ -89,23 +89,23 @@ func (server *Server) HasSubscribed(clientID ClientID, topic Topic) bool {
 func (server *Server) loop() {
 	for cmd := range server.cmds {
 		switch cmd.op {
-		case UNSUB:
+		case unsub:
 			if len(cmd.topic) != 0 {
 				server.remove(cmd.clientID, cmd.topic)
 			} else {
 				server.removeClient(cmd.clientID)
 			}
-		case SHUTDOWN:
+		case shutdown:
 			server.removeAll()
 			return
-		case SUB:
+		case sub:
 			// initialize subscription for this client per topic if needed
 			if _, ok := server.subscriptions[cmd.topic]; !ok {
 				server.subscriptions[cmd.topic] = make(map[ClientID]*Subscriber)
 			}
 			// create subscription
 			server.subscriptions[cmd.topic][cmd.clientID] = cmd.subscriber
-		case PUB:
+		case pub:
 			server.push(cmd.event)
 		}
 	}
@@ -161,7 +161,7 @@ func (server *Server) Publish(e Event) {
 
 	server.wg.Add(1)
 	select {
-	case server.cmds <- cmd{op: PUB, event: e}:
+	case server.cmds <- cmd{op: pub, event: e}:
 		return
 	case <-server.Quit():
 		server.wg.Done()
