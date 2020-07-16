@@ -72,7 +72,7 @@ func ParseChainID(input string) (ChainID, error) {
 }
 
 type CrossChainApplication interface {
-	ExecuteSynPackage(ctx Context, payload []byte) ExecuteResult
+	ExecuteSynPackage(ctx Context, payload []byte, relayerFee int64) ExecuteResult
 	ExecuteAckPackage(ctx Context, payload []byte) ExecuteResult
 	// When the ack application crash, payload is the payload of the origin package.
 	ExecuteFailAckPackage(ctx Context, payload []byte) ExecuteResult

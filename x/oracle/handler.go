@@ -127,7 +127,7 @@ func handlePackage(ctx sdk.Context, oracleKeeper Keeper, chainId sdk.ChainID, pa
 	}
 
 	cacheCtx, write := ctx.CacheContext()
-	crash, result := executeClaim(cacheCtx, crossChainApp, pack.Payload, packageType)
+	crash, result := executeClaim(cacheCtx, crossChainApp, pack.Payload, packageType, feeAmount)
 	if result.IsOk() {
 		write()
 	} else if ctx.IsDeliverTx() {
@@ -192,7 +192,7 @@ func handlePackage(ctx sdk.Context, oracleKeeper Keeper, chainId sdk.ChainID, pa
 	return event, nil
 }
 
-func executeClaim(ctx sdk.Context, app sdk.CrossChainApplication, payload []byte, packageType sdk.CrossChainPackageType) (crash bool, result sdk.ExecuteResult) {
+func executeClaim(ctx sdk.Context, app sdk.CrossChainApplication, payload []byte, packageType sdk.CrossChainPackageType, relayerFee int64) (crash bool, result sdk.ExecuteResult) {
 	defer func() {
 		if r := recover(); r != nil {
 			log := fmt.Sprintf("recovered: %v\nstack:\n%v", r, string(debug.Stack()))
@@ -207,7 +207,7 @@ func executeClaim(ctx sdk.Context, app sdk.CrossChainApplication, payload []byte
 
 	switch packageType {
 	case sdk.SynCrossChainPackageType:
-		result = app.ExecuteSynPackage(ctx, payload[sTypes.PackageHeaderLength:])
+		result = app.ExecuteSynPackage(ctx, payload[sTypes.PackageHeaderLength:], relayerFee)
 	case sdk.AckCrossChainPackageType:
 		result = app.ExecuteAckPackage(ctx, payload[sTypes.PackageHeaderLength:])
 	case sdk.FailAckCrossChainPackageType:

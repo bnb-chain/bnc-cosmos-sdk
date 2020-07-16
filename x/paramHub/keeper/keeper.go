@@ -197,7 +197,7 @@ func (keeper *Keeper) SubscribeLoadEvent(c func(sdk.Context, interface{})) {
 }
 
 // implement cross chain app
-func (keeper *Keeper) ExecuteSynPackage(ctx sdk.Context, payload []byte) sdk.ExecuteResult {
+func (keeper *Keeper) ExecuteSynPackage(ctx sdk.Context, payload []byte, _ int64) sdk.ExecuteResult {
 	panic("receive unexpected package")
 }
 
