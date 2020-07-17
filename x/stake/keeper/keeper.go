@@ -213,7 +213,7 @@ func (k *Keeper) SubscribeParamChange(hub pTypes.ParamChangePublisher) {
 }
 
 // cross chain app implement
-func (k *Keeper) ExecuteSynPackage(ctx sdk.Context, payload []byte) sdk.ExecuteResult {
+func (k *Keeper) ExecuteSynPackage(ctx sdk.Context, payload []byte, _ int64) sdk.ExecuteResult {
 	panic("receive unexpected syn package")
 }
 

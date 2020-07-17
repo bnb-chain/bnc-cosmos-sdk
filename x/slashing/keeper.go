@@ -236,7 +236,7 @@ func (k *Keeper) SubscribeParamChange(hub types.ParamChangePublisher) {
 }
 
 // implement cross chain app
-func (k *Keeper) ExecuteSynPackage(ctx sdk.Context, payload []byte) sdk.ExecuteResult {
+func (k *Keeper) ExecuteSynPackage(ctx sdk.Context, payload []byte,_ int64) sdk.ExecuteResult {
 	var resCode uint32
 	pack, err := k.checkAndParseSynPackage(payload)
 	if err == nil {
