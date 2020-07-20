@@ -112,3 +112,49 @@ type DistributionData struct {
 	Commission    sdk.Dec
 	Rewards       []Reward
 }
+
+// delegate event
+type DelegateEvent struct {
+	StakeEvent
+	Delegator sdk.AccAddress
+	Validator sdk.ValAddress
+	Amount    int64
+	Denom     string
+	TxHash    string
+}
+
+type SideDelegateEvent struct {
+	DelegateEvent
+	SideChainId string
+}
+
+// undelegate
+type UndelegateEvent struct {
+	StakeEvent
+	Delegator sdk.AccAddress
+	Validator sdk.ValAddress
+	Amount    int64
+	Denom     string
+	TxHash    string
+}
+
+type SideUnDelegateEvent struct {
+	UndelegateEvent
+	SideChainId string
+}
+
+// redelegate
+type RedelegateEvent struct {
+	StakeEvent
+	Delegator    sdk.AccAddress
+	SrcValidator sdk.ValAddress
+	DstValidator sdk.ValAddress
+	Amount       int64
+	Denom        string
+	TxHash       string
+}
+
+type SideRedelegateEvent struct {
+	RedelegateEvent
+	SideChainId string
+}

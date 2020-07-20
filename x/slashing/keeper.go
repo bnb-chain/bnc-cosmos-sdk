@@ -56,7 +56,6 @@ func (k *Keeper) SetSideChain(scKeeper *sidechain.Keeper) {
 	k.initIbc()
 }
 
-
 func (k Keeper) initIbc() {
 	err := k.ScKeeper.RegisterChannel(ChannelName, ChannelId, &k)
 	if err != nil {
@@ -323,12 +322,14 @@ func (k *Keeper) executeSynPackage(ctx sdk.Context, pack *SideDowntimeSlashPacka
 	}
 
 	remaining := slashedAmt.RawInt() - downtimeClaimFeeReal
+	var toFeePool int64
 	if remaining > 0 {
 		found, err := k.validatorSet.AllocateSlashAmtToValidators(sideCtx, pack.SideConsAddr, sdk.NewDec(remaining))
 		if err != nil {
 			return ErrFailedToSlash(k.Codespace, err.Error())
 		}
 		if !found && ctx.IsDeliverTx() {
+			toFeePool = remaining
 			remainingCoin := sdk.NewCoin(bondDenom, remaining)
 			fees.Pool.AddAndCommitFee("side_downtime_slash_remaining", sdk.NewFee(sdk.Coins{remainingCoin}, sdk.FeeForAll))
 		}
@@ -362,6 +363,7 @@ func (k *Keeper) executeSynPackage(ctx sdk.Context, pack *SideDowntimeSlashPacka
 			SlashHeight:      header.Height,
 			JailUtil:         jailUtil,
 			SlashAmt:         slashedAmt.RawInt(),
+			ToFeePool:        toFeePool,
 			SideChainId:      sideChainName,
 		}
 		k.PbsbServer.Publish(event)

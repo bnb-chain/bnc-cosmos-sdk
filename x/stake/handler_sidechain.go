@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/cosmos/cosmos-sdk/baseapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/stake/keeper"
 	"github.com/cosmos/cosmos-sdk/x/stake/tags"
@@ -151,6 +152,24 @@ func handleMsgSideChainDelegate(ctx sdk.Context, msg MsgSideChainDelegate, k kee
 		return err.Result()
 	}
 
+	// publish delegate event
+	if k.PbsbServer != nil && ctx.IsDeliverTx() {
+		event := types.SideDelegateEvent{
+			DelegateEvent: types.DelegateEvent{
+				StakeEvent: types.StakeEvent{
+					IsFromTx: true,
+				},
+				Delegator: msg.DelegatorAddr,
+				Validator: msg.ValidatorAddr,
+				Amount:    msg.Delegation.Amount,
+				Denom:     msg.Delegation.Denom,
+				TxHash:    ctx.Value(baseapp.TxHashKey).(string),
+			},
+			SideChainId: msg.SideChainId,
+		}
+		k.PbsbServer.Publish(event)
+	}
+
 	return sdk.Result{
 		Tags: sdk.NewTags(
 			tags.Delegator, []byte(msg.DelegatorAddr.String()),
@@ -198,6 +217,26 @@ func handleMsgSideChainRedelegate(ctx sdk.Context, msg MsgSideChainRedelegate, k
 		tags.DstValidator, []byte(msg.ValidatorDstAddr.String()),
 		tags.EndTime, finishTime,
 	)
+
+	// publish redelegate event
+	if k.PbsbServer != nil && ctx.IsDeliverTx() {
+		event := types.SideRedelegateEvent{
+			RedelegateEvent: types.RedelegateEvent{
+				StakeEvent: types.StakeEvent{
+					IsFromTx: true,
+				},
+				Delegator:    msg.DelegatorAddr,
+				SrcValidator: msg.ValidatorSrcAddr,
+				DstValidator: msg.ValidatorDstAddr,
+				Amount:       msg.Amount.Amount,
+				Denom:        msg.Amount.Denom,
+				TxHash:       ctx.Value(baseapp.TxHashKey).(string),
+			},
+			SideChainId: msg.SideChainId,
+		}
+		k.PbsbServer.Publish(event)
+	}
+
 	return sdk.Result{Data: finishTime, Tags: tags}
 }
 
@@ -229,6 +268,25 @@ func handleMsgSideChainUndelegate(ctx sdk.Context, msg MsgSideChainUndelegate, k
 		tags.SrcValidator, []byte(msg.ValidatorAddr.String()),
 		tags.EndTime, finishTime,
 	)
+
+	// publish undelegate event
+	if k.PbsbServer != nil && ctx.IsDeliverTx() {
+		event := types.SideUnDelegateEvent{
+			UndelegateEvent: types.UndelegateEvent{
+				StakeEvent: types.StakeEvent{
+					IsFromTx: true,
+				},
+				Delegator: msg.DelegatorAddr,
+				Validator: msg.ValidatorAddr,
+				Amount:    msg.Amount.Amount,
+				Denom:     msg.Amount.Denom,
+				TxHash:    ctx.Value(baseapp.TxHashKey).(string),
+			},
+			SideChainId: msg.SideChainId,
+		}
+		k.PbsbServer.Publish(event)
+	}
+
 	return sdk.Result{Data: finishTime, Tags: tags}
 }
 

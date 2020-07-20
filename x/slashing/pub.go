@@ -16,6 +16,7 @@ type SideSlashEvent struct {
 	SlashHeight      int64
 	JailUtil         time.Time
 	SlashAmt         int64
+	ToFeePool        int64
 	SideChainId      string
 	Submitter        sdk.AccAddress
 	SubmitterReward  int64
