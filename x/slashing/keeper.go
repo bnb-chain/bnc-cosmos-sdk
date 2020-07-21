@@ -11,6 +11,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/bsc/rlp"
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/pubsub"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/fees"
 	"github.com/cosmos/cosmos-sdk/x/bank"
@@ -33,6 +34,8 @@ type Keeper struct {
 
 	BankKeeper bank.Keeper
 	ScKeeper   *sidechain.Keeper
+
+	PbsbServer *pubsub.Server
 }
 
 // NewKeeper creates a slashing keeper
@@ -58,6 +61,10 @@ func (k Keeper) initIbc() {
 	if err != nil {
 		panic(fmt.Sprintf("register ibc channel failed, channel=%s, err=%s", ChannelName, err.Error()))
 	}
+}
+
+func (k *Keeper) SetPbsbServer(server *pubsub.Server) {
+	k.PbsbServer = server
 }
 
 // handle a validator signing two blocks at the same height
@@ -228,7 +235,7 @@ func (k *Keeper) SubscribeParamChange(hub types.ParamChangePublisher) {
 }
 
 // implement cross chain app
-func (k *Keeper) ExecuteSynPackage(ctx sdk.Context, payload []byte) sdk.ExecuteResult {
+func (k *Keeper) ExecuteSynPackage(ctx sdk.Context, payload []byte,_ int64) sdk.ExecuteResult {
 	var resCode uint32
 	pack, err := k.checkAndParseSynPackage(payload)
 	if err == nil {
@@ -301,7 +308,7 @@ func (k *Keeper) executeSynPackage(ctx sdk.Context, pack *SideDowntimeSlashPacka
 	}
 
 	slashAmt := k.DowntimeSlashAmount(sideCtx)
-	slashedAmt, err := k.validatorSet.SlashSideChain(ctx, sideChainName, pack.SideConsAddr, sdk.NewDec(slashAmt))
+	validator, slashedAmt, err := k.validatorSet.SlashSideChain(ctx, sideChainName, pack.SideConsAddr, sdk.NewDec(slashAmt))
 	if err != nil {
 		return ErrFailedToSlash(k.Codespace, err.Error())
 	}
@@ -315,12 +322,14 @@ func (k *Keeper) executeSynPackage(ctx sdk.Context, pack *SideDowntimeSlashPacka
 	}
 
 	remaining := slashedAmt.RawInt() - downtimeClaimFeeReal
+	var toFeePool int64
 	if remaining > 0 {
 		found, err := k.validatorSet.AllocateSlashAmtToValidators(sideCtx, pack.SideConsAddr, sdk.NewDec(remaining))
 		if err != nil {
 			return ErrFailedToSlash(k.Codespace, err.Error())
 		}
 		if !found && ctx.IsDeliverTx() {
+			toFeePool = remaining
 			remainingCoin := sdk.NewCoin(bondDenom, remaining)
 			fees.Pool.AddAndCommitFee("side_downtime_slash_remaining", sdk.NewFee(sdk.Coins{remainingCoin}, sdk.FeeForAll))
 		}
@@ -345,6 +354,20 @@ func (k *Keeper) executeSynPackage(ctx sdk.Context, pack *SideDowntimeSlashPacka
 	}
 	signInfo.JailedUntil = jailUtil
 	k.setValidatorSigningInfo(sideCtx, pack.SideConsAddr, signInfo)
+
+	if k.PbsbServer != nil {
+		event := SideSlashEvent{
+			Validator:        validator.GetOperator(),
+			InfractionType:   Downtime,
+			InfractionHeight: int64(pack.SideHeight),
+			SlashHeight:      header.Height,
+			JailUtil:         jailUtil,
+			SlashAmt:         slashedAmt.RawInt(),
+			ToFeePool:        toFeePool,
+			SideChainId:      sideChainName,
+		}
+		k.PbsbServer.Publish(event)
+	}
 
 	return nil
 }

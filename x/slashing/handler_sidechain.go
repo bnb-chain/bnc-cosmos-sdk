@@ -44,7 +44,7 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 	}
 
 	slashAmount := k.DoubleSignSlashAmount(sideCtx)
-	slashedAmount, slashErr := k.validatorSet.SlashSideChain(ctx, sideChainId, sideConsAddr.Bytes(), sdk.NewDec(slashAmount))
+	validator, slashedAmount, slashErr := k.validatorSet.SlashSideChain(ctx, sideChainId, sideConsAddr.Bytes(), sdk.NewDec(slashAmount))
 	if slashErr != nil {
 		return ErrFailedToSlash(k.Codespace, slashErr.Error()).Result()
 	}
@@ -62,12 +62,14 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 	}
 
 	remainingReward := slashedAmount.RawInt() - submitterRewardReal
+	var toFeePool int64
 	if remainingReward > 0 {
 		found, err := k.validatorSet.AllocateSlashAmtToValidators(sideCtx, sideConsAddr.Bytes(), sdk.NewDec(remainingReward))
 		if err != nil {
 			return ErrFailedToSlash(k.Codespace, err.Error()).Result()
 		}
 		if !found && ctx.IsDeliverTx() { // if the related validators are not found, the amount will be added to fee pool
+			toFeePool = remainingReward
 			remainingCoin := sdk.NewCoin(bondDenom, remainingReward)
 			fees.Pool.AddAndCommitFee("side_double_sign_slash", sdk.NewFee(sdk.Coins{remainingCoin}, sdk.FeeForAll))
 		}
@@ -93,6 +95,21 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 	signInfo.JailedUntil = jailUtil
 	k.setValidatorSigningInfo(sideCtx, sideConsAddr.Bytes(), signInfo)
 
+	if ctx.IsDeliverTx() && k.PbsbServer != nil {
+		event := SideSlashEvent{
+			Validator:        validator.GetOperator(),
+			InfractionType:   DoubleSign,
+			InfractionHeight: msg.Headers[0].Number,
+			SlashHeight:      header.Height,
+			JailUtil:         jailUtil,
+			SlashAmt:         slashedAmount.RawInt(),
+			SideChainId:      sideChainId,
+			ToFeePool:        toFeePool,
+			Submitter:        msg.Submitter,
+			SubmitterReward:  submitterRewardReal,
+		}
+		k.PbsbServer.Publish(event)
+	}
 	return sdk.Result{}
 }
 

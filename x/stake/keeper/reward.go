@@ -2,32 +2,23 @@ package keeper
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/stake/types"
 	"math"
 	"math/big"
 )
 
-type Sharer struct {
-	AccAddr sdk.AccAddress
-	Shares  sdk.Dec
-}
-
-type Reward struct {
-	AccAddr sdk.AccAddress
-	Amount  int64
-}
-
-func allocate(sharers []Sharer, totalRewards sdk.Dec, totalShares sdk.Dec) (rewards []Reward) {
+func allocate(sharers []types.Sharer, totalRewards sdk.Dec, totalShares sdk.Dec) (rewards []types.Reward) {
 	var minToDistribute int64
-	var shouldCarry []Reward
-	var shouldNotCarry []Reward
+	var shouldCarry []types.Reward
+	var shouldNotCarry []types.Reward
 	for _, sharer := range sharers {
 
 		afterRoundDown, firstDecimalValue := mulQuoDecWithExtraDecimal(sharer.Shares, totalRewards, totalShares, 1)
 
 		if firstDecimalValue < threshold {
-			shouldNotCarry = append(shouldNotCarry, Reward{sharer.AccAddr, afterRoundDown})
+			shouldNotCarry = append(shouldNotCarry, types.Reward{AccAddr: sharer.AccAddr, Shares: sharer.Shares, Amount: afterRoundDown})
 		} else {
-			shouldCarry = append(shouldCarry, Reward{sharer.AccAddr, afterRoundDown})
+			shouldCarry = append(shouldCarry, types.Reward{AccAddr: sharer.AccAddr, Shares: sharer.Shares, Amount: afterRoundDown})
 		}
 		minToDistribute += afterRoundDown
 	}
