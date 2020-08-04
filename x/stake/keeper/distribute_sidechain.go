@@ -23,42 +23,44 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 	for _, validator := range validators {
 		distAccCoins := k.bankKeeper.GetCoins(ctx, validator.DistributionAddr)
 		totalReward := distAccCoins.AmountOf(bondDenom)
-		if totalReward == 0 { // there is no reward for this validator
-			continue
-		}
-		delegations, found := k.GetSimplifiedDelegations(ctx, height, validator.OperatorAddr)
-		if !found {
-			panic(fmt.Sprintf("no delegations found with height=%d, validator=%s", height, validator.OperatorAddr))
-		}
-		totalRewardDec := sdk.NewDec(totalReward)
-		commission := totalRewardDec.Mul(validator.Commission.Rate)
-		remainReward := totalRewardDec.Sub(commission)
-		// remove all balance of bondDenom from Distribution account
-		distAccCoins = distAccCoins.Minus(sdk.Coins{sdk.NewCoin(bondDenom, totalReward)})
-		if err := k.bankKeeper.SetCoins(ctx, validator.DistributionAddr, distAccCoins); err != nil {
-			panic(err)
-		}
-		rewards := allocate(simDelsToSharers(delegations), remainReward, validator.DelegatorShares)
-		if commission.RawInt() > 0 { // assign rewards to self-delegator
-			if _, _, err := k.bankKeeper.AddCoins(ctx, validator.GetFeeAddr(), sdk.Coins{sdk.NewCoin(bondDenom, commission.RawInt())}); err != nil {
+		totalRewardDec := sdk.ZeroDec()
+		commission := sdk.ZeroDec()
+		rewards := make([]types.Reward, 0)
+		if totalReward > 0 {
+			delegations, found := k.GetSimplifiedDelegations(ctx, height, validator.OperatorAddr)
+			if !found {
+				panic(fmt.Sprintf("no delegations found with height=%d, validator=%s", height, validator.OperatorAddr))
+			}
+			totalRewardDec = sdk.NewDec(totalReward)
+			commission = totalRewardDec.Mul(validator.Commission.Rate)
+			remainReward := totalRewardDec.Sub(commission)
+			// remove all balance of bondDenom from Distribution account
+			distAccCoins = distAccCoins.Minus(sdk.Coins{sdk.NewCoin(bondDenom, totalReward)})
+			if err := k.bankKeeper.SetCoins(ctx, validator.DistributionAddr, distAccCoins); err != nil {
 				panic(err)
 			}
-		}
-		// assign rewards to delegator
-		changedAddrs := make([]sdk.AccAddress, len(rewards)+1)
-		for i := range rewards {
-			if _, _, err := k.bankKeeper.AddCoins(ctx, rewards[i].AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, rewards[i].Amount)}); err != nil {
-				panic(err)
+			rewards = allocate(simDelsToSharers(delegations), remainReward, validator.DelegatorShares)
+			if commission.RawInt() > 0 { // assign rewards to self-delegator
+				if _, _, err := k.bankKeeper.AddCoins(ctx, validator.GetFeeAddr(), sdk.Coins{sdk.NewCoin(bondDenom, commission.RawInt())}); err != nil {
+					panic(err)
+				}
 			}
-			changedAddrs[i] = rewards[i].AccAddr
+			// assign rewards to delegator
+			changedAddrs := make([]sdk.AccAddress, len(rewards)+1)
+			for i := range rewards {
+				if _, _, err := k.bankKeeper.AddCoins(ctx, rewards[i].AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, rewards[i].Amount)}); err != nil {
+					panic(err)
+				}
+				changedAddrs[i] = rewards[i].AccAddr
+			}
+
+			changedAddrs[len(rewards)] = validator.DistributionAddr
+			if k.addrPool != nil {
+				k.addrPool.AddAddrs(changedAddrs)
+			}
 		}
 
-		changedAddrs[len(rewards)] = validator.DistributionAddr
-		if k.addrPool != nil {
-			k.addrPool.AddAddrs(changedAddrs)
-		}
-
-		if ctx.IsDeliverTx() && len(rewards) > 0 && k.PbsbServer != nil {
+		if ctx.IsDeliverTx() && k.PbsbServer != nil {
 			toPublish = append(toPublish, types.DistributionData{
 				Validator:     validator.GetOperator(),
 				SelfDelegator: validator.GetFeeAddr(),

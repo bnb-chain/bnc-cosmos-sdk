@@ -83,6 +83,13 @@ func saveSideChainValidatorsToIBC(ctx sdk.Context, sideChainId string, newVals [
 		k.Logger(ctx).Error("save validators to ibc package failed: " + err.Error())
 		return
 	}
+	if k.PbsbServer != nil {
+		sideValidatorsEvent := types.SideElectedValidatorsEvent{
+			Validators:  newVals,
+			SideChainId: sideChainId,
+		}
+		k.PbsbServer.Publish(sideValidatorsEvent)
+	}
 }
 
 func storeValidatorsWithHeight(ctx sdk.Context, validators []types.Validator, k keeper.Keeper) {
