@@ -60,6 +60,7 @@ type (
 	SideDelegateEvent          = types.SideDelegateEvent
 	SideUndelegateEvent        = types.SideUnDelegateEvent
 	SideRedelegateEvent        = types.SideRedelegateEvent
+	SideElectedValidatorsEvent = types.SideElectedValidatorsEvent
 )
 
 var (

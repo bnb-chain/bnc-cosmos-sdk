@@ -158,3 +158,9 @@ type SideRedelegateEvent struct {
 	RedelegateEvent
 	SideChainId string
 }
+
+type SideElectedValidatorsEvent struct {
+	StakeEvent
+	Validators  []Validator
+	SideChainId string
+}
