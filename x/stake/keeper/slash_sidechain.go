@@ -122,11 +122,11 @@ func convertValidators2Shares(validators []types.Validator) (sharers []types.Sha
 	return sharers, totalShares
 }
 
-func (k Keeper) AllocateSlashAmtToValidators(ctx sdk.Context, slashedConsAddr []byte, amount sdk.Dec) (bool, error) {
+func (k Keeper) AllocateSlashAmtToValidators(ctx sdk.Context, slashedConsAddr []byte, amount sdk.Dec) (bool, map[string]int64, error) {
 	// allocate remaining rewards to validators who are going to be distributed next time.
 	validators, found := k.GetEarliestValidatorsWithHeight(ctx)
 	if !found {
-		return found, nil
+		return found, nil, nil
 	}
 	// remove bad validator if it exists in the eligible validators
 	for i := 0; i < len(validators); i++ {
@@ -141,25 +141,27 @@ func (k Keeper) AllocateSlashAmtToValidators(ctx sdk.Context, slashedConsAddr []
 	}
 
 	if len(validators) == 0 {
-		return false, nil
+		return false, nil, nil
 	}
 
 	bondDenom := k.BondDenom(ctx)
 	sharers, totalShares := convertValidators2Shares(validators)
 	rewards := allocate(sharers, amount, totalShares)
 
+	validatorsAllocatedAmt := make(map[string]int64)
 	changedAddrs := make([]sdk.AccAddress, len(rewards))
 	for i := range rewards {
 		accBalance := k.bankKeeper.GetCoins(ctx, rewards[i].AccAddr)
 		rewardCoin := sdk.Coins{sdk.NewCoin(bondDenom, rewards[i].Amount)}
 		accBalance.Plus(rewardCoin)
 		if err := k.bankKeeper.SetCoins(ctx, rewards[i].AccAddr, accBalance.Plus(rewardCoin)); err != nil {
-			return found, err
+			return found, validatorsAllocatedAmt, err
 		}
 		changedAddrs[i] = rewards[i].AccAddr
+		validatorsAllocatedAmt[rewards[i].AccAddr.String()] = rewards[i].Amount
 	}
 	if ctx.IsDeliverTx() && k.addrPool != nil {
 		k.addrPool.AddAddrs(changedAddrs)
 	}
-	return found, nil
+	return found, validatorsAllocatedAmt, nil
 }

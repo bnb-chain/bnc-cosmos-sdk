@@ -63,8 +63,10 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 
 	remainingReward := slashedAmount.RawInt() - submitterRewardReal
 	var toFeePool int64
+	var validatorsAllocatedAmt map[string]int64
+	var found bool
 	if remainingReward > 0 {
-		found, err := k.validatorSet.AllocateSlashAmtToValidators(sideCtx, sideConsAddr.Bytes(), sdk.NewDec(remainingReward))
+		found, validatorsAllocatedAmt, err = k.validatorSet.AllocateSlashAmtToValidators(sideCtx, sideConsAddr.Bytes(), sdk.NewDec(remainingReward))
 		if err != nil {
 			return ErrFailedToSlash(k.Codespace, err.Error()).Result()
 		}
@@ -97,16 +99,17 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 
 	if ctx.IsDeliverTx() && k.PbsbServer != nil {
 		event := SideSlashEvent{
-			Validator:        validator.GetOperator(),
-			InfractionType:   DoubleSign,
-			InfractionHeight: msg.Headers[0].Number,
-			SlashHeight:      header.Height,
-			JailUtil:         jailUtil,
-			SlashAmt:         slashedAmount.RawInt(),
-			SideChainId:      sideChainId,
-			ToFeePool:        toFeePool,
-			Submitter:        msg.Submitter,
-			SubmitterReward:  submitterRewardReal,
+			Validator:              validator.GetOperator(),
+			InfractionType:         DoubleSign,
+			InfractionHeight:       msg.Headers[0].Number,
+			SlashHeight:            header.Height,
+			JailUtil:               jailUtil,
+			SlashAmt:               slashedAmount.RawInt(),
+			SideChainId:            sideChainId,
+			ToFeePool:              toFeePool,
+			Submitter:              msg.Submitter,
+			SubmitterReward:        submitterRewardReal,
+			ValidatorsAllocatedAmt: validatorsAllocatedAmt,
 		}
 		k.PbsbServer.Publish(event)
 	}

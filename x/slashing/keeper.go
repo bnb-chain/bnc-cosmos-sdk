@@ -235,7 +235,7 @@ func (k *Keeper) SubscribeParamChange(hub types.ParamChangePublisher) {
 }
 
 // implement cross chain app
-func (k *Keeper) ExecuteSynPackage(ctx sdk.Context, payload []byte,_ int64) sdk.ExecuteResult {
+func (k *Keeper) ExecuteSynPackage(ctx sdk.Context, payload []byte, _ int64) sdk.ExecuteResult {
 	var resCode uint32
 	pack, err := k.checkAndParseSynPackage(payload)
 	if err == nil {
@@ -323,8 +323,10 @@ func (k *Keeper) executeSynPackage(ctx sdk.Context, pack *SideDowntimeSlashPacka
 
 	remaining := slashedAmt.RawInt() - downtimeClaimFeeReal
 	var toFeePool int64
+	var validatorsAllocatedAmt map[string]int64
+	var found bool
 	if remaining > 0 {
-		found, err := k.validatorSet.AllocateSlashAmtToValidators(sideCtx, pack.SideConsAddr, sdk.NewDec(remaining))
+		found, validatorsAllocatedAmt, err = k.validatorSet.AllocateSlashAmtToValidators(sideCtx, pack.SideConsAddr, sdk.NewDec(remaining))
 		if err != nil {
 			return ErrFailedToSlash(k.Codespace, err.Error())
 		}
@@ -335,13 +337,13 @@ func (k *Keeper) executeSynPackage(ctx sdk.Context, pack *SideDowntimeSlashPacka
 		}
 	}
 
-	jailUtil := header.Time.Add(k.DowntimeUnbondDuration(sideCtx))
+	jailUntil := header.Time.Add(k.DowntimeUnbondDuration(sideCtx))
 	sr := SlashRecord{
 		ConsAddr:         pack.SideConsAddr,
 		InfractionType:   Downtime,
 		InfractionHeight: pack.SideHeight,
 		SlashHeight:      header.Height,
-		JailUntil:        jailUtil,
+		JailUntil:        jailUntil,
 		SlashAmt:         slashedAmt.RawInt(),
 		SideChainId:      sideChainName,
 	}
@@ -352,19 +354,20 @@ func (k *Keeper) executeSynPackage(ctx sdk.Context, pack *SideDowntimeSlashPacka
 	if !found {
 		return sdk.ErrInternal(fmt.Sprintf("Expected signing info for validator %s but not found", sdk.HexEncode(pack.SideConsAddr)))
 	}
-	signInfo.JailedUntil = jailUtil
+	signInfo.JailedUntil = jailUntil
 	k.setValidatorSigningInfo(sideCtx, pack.SideConsAddr, signInfo)
 
 	if k.PbsbServer != nil {
 		event := SideSlashEvent{
-			Validator:        validator.GetOperator(),
-			InfractionType:   Downtime,
-			InfractionHeight: int64(pack.SideHeight),
-			SlashHeight:      header.Height,
-			JailUtil:         jailUtil,
-			SlashAmt:         slashedAmt.RawInt(),
-			ToFeePool:        toFeePool,
-			SideChainId:      sideChainName,
+			Validator:              validator.GetOperator(),
+			InfractionType:         Downtime,
+			InfractionHeight:       int64(pack.SideHeight),
+			SlashHeight:            header.Height,
+			JailUtil:               jailUntil,
+			SlashAmt:               slashedAmt.RawInt(),
+			ToFeePool:              toFeePool,
+			SideChainId:            sideChainName,
+			ValidatorsAllocatedAmt: validatorsAllocatedAmt,
 		}
 		k.PbsbServer.Publish(event)
 	}
