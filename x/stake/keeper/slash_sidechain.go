@@ -158,7 +158,7 @@ func (k Keeper) AllocateSlashAmtToValidators(ctx sdk.Context, slashedConsAddr []
 			return found, validatorsAllocatedAmt, err
 		}
 		changedAddrs[i] = rewards[i].AccAddr
-		validatorsAllocatedAmt[rewards[i].AccAddr.String()] = rewards[i].Amount
+		validatorsAllocatedAmt[string(rewards[i].AccAddr.Bytes())] = rewards[i].Amount
 	}
 	if ctx.IsDeliverTx() && k.addrPool != nil {
 		k.addrPool.AddAddrs(changedAddrs)
