@@ -151,20 +151,20 @@ func (k Keeper) AllocateSlashAmtToValidators(ctx sdk.Context, slashedConsAddr []
 	sharers, totalShares := convertValidators2Shares(validators)
 	rewards := allocate(sharers, amount, totalShares)
 
-	validatorsAllocatedAmt := make(map[string]int64)
+	validatorsCompensation := make(map[string]int64)
 	changedAddrs := make([]sdk.AccAddress, len(rewards))
 	for i := range rewards {
 		accBalance := k.bankKeeper.GetCoins(ctx, rewards[i].AccAddr)
 		rewardCoin := sdk.Coins{sdk.NewCoin(bondDenom, rewards[i].Amount)}
 		accBalance.Plus(rewardCoin)
 		if err := k.bankKeeper.SetCoins(ctx, rewards[i].AccAddr, accBalance.Plus(rewardCoin)); err != nil {
-			return found, validatorsAllocatedAmt, err
+			return found, validatorsCompensation, err
 		}
 		changedAddrs[i] = rewards[i].AccAddr
-		validatorsAllocatedAmt[string(rewards[i].AccAddr.Bytes())] = rewards[i].Amount
+		validatorsCompensation[string(rewards[i].AccAddr.Bytes())] = rewards[i].Amount
 	}
 	if ctx.IsDeliverTx() && k.addrPool != nil {
 		k.addrPool.AddAddrs(changedAddrs)
 	}
-	return found, validatorsAllocatedAmt, nil
+	return found, validatorsCompensation, nil
 }

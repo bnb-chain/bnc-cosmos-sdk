@@ -367,7 +367,7 @@ func (k *Keeper) slashingSideDowntime(ctx sdk.Context, pack *SideDowntimeSlashPa
 			SlashAmt:               slashedAmt.RawInt(),
 			ToFeePool:              toFeePool,
 			SideChainId:            sideChainName,
-			ValidatorsAllocatedAmt: validatorsAllocatedAmt,
+			ValidatorsCompensation: validatorsAllocatedAmt,
 		}
 		k.PbsbServer.Publish(event)
 	}

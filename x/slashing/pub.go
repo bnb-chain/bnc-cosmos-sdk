@@ -20,7 +20,7 @@ type SideSlashEvent struct {
 	SideChainId            string
 	Submitter              sdk.AccAddress
 	SubmitterReward        int64
-	ValidatorsAllocatedAmt map[string]int64
+	ValidatorsCompensation map[string]int64
 }
 
 func (event SideSlashEvent) GetTopic() pubsub.Topic {
