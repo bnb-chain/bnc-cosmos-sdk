@@ -40,7 +40,7 @@ func TestSideChainSlashDowntime(t *testing.T) {
 		SideTimestamp: uint64(sideTimestamp.Unix()),
 	}
 
-	result := keeper.executeSynPackage(ctx, &claim)
+	result := keeper.slashingSideDowntime(ctx, &claim)
 
 	require.Nil(t, result, "Expected nil, but got : %v", result)
 
@@ -65,34 +65,34 @@ func TestSideChainSlashDowntime(t *testing.T) {
 	require.True(t, found)
 	require.EqualValues(t, bondAmount-realSlashAmt, delegation.Shares.RawInt())
 
-	result = keeper.executeSynPackage(ctx, &claim)
+	result = keeper.slashingSideDowntime(ctx, &claim)
 	require.NotNil(t, result)
 	require.EqualValues(t, CodeDuplicateDowntimeClaim, result.Code())
 
-	exeResult := keeper.ExecuteSynPackage(ctx, []byte(""))
+	exeResult := keeper.ExecuteSynPackage(ctx, []byte(""), 0)
 	require.NotNil(t, exeResult.Err)
 
 	claim.SideHeight = 0
 	bz, _ := rlp.EncodeToBytes(&claim)
-	_, result = keeper.checkAndParseSynPackage(bz)
+	_, result = keeper.checkSideDowntimeSlashPackage(bz)
 	require.NotNil(t, result)
 
 	claim.SideHeight = sideHeight
 	claim.SideConsAddr = createSideAddr(21)
 
-	result = keeper.executeSynPackage(ctx, &claim)
+	result = keeper.slashingSideDowntime(ctx, &claim)
 	require.NotNil(t, result)
 
 	claim.SideConsAddr = sideConsAddr
 	claim.SideTimestamp = uint64(ctx.BlockHeader().Time.Add(-24 * 60 * 60 * time.Second).Unix())
-	result = keeper.executeSynPackage(ctx, &claim)
+	result = keeper.slashingSideDowntime(ctx, &claim)
 	require.EqualValues(t, CodeExpiredEvidence, result.Code(), "Expected got 201 err code, but got err: %v", result)
 
 	claim.SideTimestamp = uint64(ctx.BlockHeader().Time.Add(-6 * 60 * 60 * time.Second).Unix())
 	claim.SideConsAddr = sideConsAddr
 	claim.SideChainId = sdk.ChainID(2)
 
-	result = keeper.executeSynPackage(ctx, &claim)
+	result = keeper.slashingSideDowntime(ctx, &claim)
 	require.NotNil(t, result, "Expected get err, but got nil")
 	require.EqualValues(t, CodeInvalidSideChain, result.Code(), "Expected got 205 error code, but got err: %v", result)
 
@@ -100,7 +100,7 @@ func TestSideChainSlashDowntime(t *testing.T) {
 	claim.SideConsAddr = createSideAddr(20)
 	claim.SideChainId = sdk.ChainID(1)
 
-	result = keeper.executeSynPackage(ctx, &claim)
+	result = keeper.slashingSideDowntime(ctx, &claim)
 	require.NotNil(t, result, "Expected got err of no signing info found, but got nil")
 
 }
@@ -146,7 +146,7 @@ func TestSlashDowntimeBalanceVerify(t *testing.T) {
 	}
 
 	feesInPoolBefore := fees.Pool.BlockFees().Tokens.AmountOf("steak")
-	result := keeper.executeSynPackage(ctx, &claim)
+	result := keeper.slashingSideDowntime(ctx, &claim)
 	require.Nil(t, result)
 
 	validator2, found := stakeKeeper.GetValidator(sideCtx, valAddr2)
@@ -173,7 +173,7 @@ func TestSlashDowntimeBalanceVerify(t *testing.T) {
 		SideTimestamp: uint64(sideTimestamp.Unix()),
 	}
 
-	result = keeper.executeSynPackage(ctx, &claim)
+	result = keeper.slashingSideDowntime(ctx, &claim)
 	require.Nil(t, result)
 
 	validator2, found = stakeKeeper.GetValidator(sideCtx, valAddr2)

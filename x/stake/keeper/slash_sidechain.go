@@ -113,6 +113,8 @@ func (k Keeper) UnjailSideChain(ctx sdk.Context, consAddr []byte) {
 	return
 }
 
+// return sharers as a array about delegation shares and amount receiving address for each validator,
+// and totalShares as total shares added by all these validators
 func convertValidators2Shares(validators []types.Validator) (sharers []types.Sharer, totalShares sdk.Dec) {
 	sharers = make([]types.Sharer, len(validators))
 	for i, val := range validators {
@@ -122,6 +124,7 @@ func convertValidators2Shares(validators []types.Validator) (sharers []types.Sha
 	return sharers, totalShares
 }
 
+// return this map for storing data of validators amount receiving detail. the receiving address as map key, and amount as map value
 func (k Keeper) AllocateSlashAmtToValidators(ctx sdk.Context, slashedConsAddr []byte, amount sdk.Dec) (bool, map[string]int64, error) {
 	// allocate remaining rewards to validators who are going to be distributed next time.
 	validators, found := k.GetEarliestValidatorsWithHeight(ctx)
