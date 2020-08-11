@@ -56,8 +56,8 @@ func (k *Keeper) SetSideChain(scKeeper *sidechain.Keeper) {
 	k.initIbc()
 }
 
-func (k Keeper) initIbc() {
-	err := k.ScKeeper.RegisterChannel(ChannelName, ChannelId, &k)
+func (k *Keeper) initIbc() {
+	err := k.ScKeeper.RegisterChannel(ChannelName, ChannelId, k)
 	if err != nil {
 		panic(fmt.Sprintf("register ibc channel failed, channel=%s, err=%s", ChannelName, err.Error()))
 	}
