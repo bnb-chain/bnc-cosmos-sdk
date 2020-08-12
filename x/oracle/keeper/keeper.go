@@ -1,8 +1,9 @@
 package keeper
 
 import (
-
+	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/pubsub"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/ibc"
@@ -29,7 +30,8 @@ type Keeper struct {
 	IbcKeeper   ibc.Keeper
 	BkKeeper    bank.Keeper
 
-	Metrics *metrics.Metrics
+	Metrics   *metrics.Metrics
+	pubServer *pubsub.Server
 }
 
 // Parameter store
@@ -63,12 +65,16 @@ func (k Keeper) GetConsensusNeeded(ctx sdk.Context) (consensusNeeded sdk.Dec) {
 	return
 }
 
-func (k Keeper) EnablePrometheusMetrics() {
+func (k *Keeper) EnablePrometheusMetrics() {
 	k.Metrics = metrics.PrometheusMetrics()
 }
 
-func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
+func (k *Keeper) SetParams(ctx sdk.Context, params types.Params) {
 	k.paramSpace.SetParamSet(ctx, &params)
+}
+
+func (k *Keeper) SetPbsbServer(p *pubsub.Server) {
+	k.pubServer = p
 }
 
 // GetProphecy gets the entire prophecy data struct for a given id
@@ -200,4 +206,21 @@ func (k *Keeper) SubscribeParamChange(hub pTypes.ParamChangePublisher) {
 		nil,
 		nil,
 	)
+}
+
+func (k *Keeper) PublishCrossAppFailEvent(ctx sdk.Context, from string, relayerFee int64, chainId string) {
+	if k.pubServer != nil {
+		txHash := ctx.Value(baseapp.TxHashKey)
+		if txHashStr, ok := txHash.(string); ok {
+			event := types.CrossAppFailEvent{
+				TxHash:     txHashStr,
+				ChainId:    chainId,
+				RelayerFee: relayerFee,
+				From:       from,
+			}
+			k.pubServer.Publish(event)
+		} else {
+			ctx.Logger().With("module", "oracle").Error("failed to get txhash, will not publish oracle event ")
+		}
+	}
 }

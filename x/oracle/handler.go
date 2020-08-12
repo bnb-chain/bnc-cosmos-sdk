@@ -132,6 +132,12 @@ func handlePackage(ctx sdk.Context, oracleKeeper Keeper, chainId sdk.ChainID, pa
 		write()
 	} else if ctx.IsDeliverTx() {
 		oracleKeeper.Metrics.ErrNumOfChannels.With("channel_id", fmt.Sprintf("%d", pack.ChannelId)).Add(1)
+		destChainName, err := oracleKeeper.ScKeeper.GetDestChainName(chainId)
+		if err != nil {
+			logger.Error("failed to find name of dest chain", "chainId", chainId)
+		} else {
+			oracleKeeper.PublishCrossAppFailEvent(ctx, sdk.PegAccount.String(), feeAmount, destChainName)
+		}
 	}
 
 	// write ack package
