@@ -315,14 +315,15 @@ func (k *Keeper) slashingSideDowntime(ctx sdk.Context, pack *SideDowntimeSlashPa
 
 	downtimeClaimFee := k.DowntimeSlashFee(sideCtx)
 	downtimeClaimFeeReal := sdk.MinInt64(downtimeClaimFee, slashedAmt.RawInt())
+	var toFeePool int64
 	bondDenom := k.validatorSet.BondDenom(sideCtx)
 	if downtimeClaimFeeReal > 0 && ctx.IsDeliverTx() {
 		feeCoinAdd := sdk.NewCoin(bondDenom, downtimeClaimFeeReal)
 		fees.Pool.AddAndCommitFee("side_downtime_slash", sdk.NewFee(sdk.Coins{feeCoinAdd}, sdk.FeeForAll))
+		toFeePool = downtimeClaimFeeReal
 	}
 
 	remaining := slashedAmt.RawInt() - downtimeClaimFeeReal
-	var toFeePool int64
 	var validatorsAllocatedAmt map[string]int64
 	var found bool
 	if remaining > 0 {
@@ -331,9 +332,9 @@ func (k *Keeper) slashingSideDowntime(ctx sdk.Context, pack *SideDowntimeSlashPa
 			return ErrFailedToSlash(k.Codespace, err.Error())
 		}
 		if !found && ctx.IsDeliverTx() {
-			toFeePool = remaining
 			remainingCoin := sdk.NewCoin(bondDenom, remaining)
 			fees.Pool.AddAndCommitFee("side_downtime_slash_remaining", sdk.NewFee(sdk.Coins{remainingCoin}, sdk.FeeForAll))
+			toFeePool = toFeePool + remaining
 		}
 	}
 
