@@ -104,13 +104,14 @@ type SideDistributionEvent struct {
 }
 
 type DistributionData struct {
-	Validator     sdk.ValAddress
-	SelfDelegator sdk.AccAddress
-	ValShares     sdk.Dec
-	ValTokens     sdk.Dec
-	TotalReward   sdk.Dec
-	Commission    sdk.Dec
-	Rewards       []Reward
+	Validator      sdk.ValAddress
+	SelfDelegator  sdk.AccAddress
+	DistributeAddr sdk.AccAddress
+	ValShares      sdk.Dec
+	ValTokens      sdk.Dec
+	TotalReward    sdk.Dec
+	Commission     sdk.Dec
+	Rewards        []Reward
 }
 
 // delegate event

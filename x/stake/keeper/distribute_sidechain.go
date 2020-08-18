@@ -62,13 +62,14 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 
 		if ctx.IsDeliverTx() && k.PbsbServer != nil {
 			toPublish = append(toPublish, types.DistributionData{
-				Validator:     validator.GetOperator(),
-				SelfDelegator: validator.GetFeeAddr(),
-				ValShares:     validator.GetDelegatorShares(),
-				ValTokens:     validator.GetTokens(),
-				TotalReward:   totalRewardDec,
-				Commission:    commission,
-				Rewards:       rewards,
+				Validator:      validator.GetOperator(),
+				SelfDelegator:  validator.GetFeeAddr(),
+				DistributeAddr: validator.DistributionAddr,
+				ValShares:      validator.GetDelegatorShares(),
+				ValTokens:      validator.GetTokens(),
+				TotalReward:    totalRewardDec,
+				Commission:     commission,
+				Rewards:        rewards,
 			})
 
 		}
