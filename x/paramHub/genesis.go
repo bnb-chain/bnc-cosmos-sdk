@@ -57,11 +57,11 @@ const (
 	IOCExpireFeeNative = 5e3
 
 	// cross chain
-	CrossBindFee        = 1e6
-	CrossUnbindFee      = 1e6
-	CrossTransferOutFee = 1e6
+	CrossBindFee        = 1e8
+	CrossUnbindFee      = 1e8
+	CrossTransferOutFee = 2e4
 
-	CrossTransferOutRelayFee = 2e6
+	CrossTransferOutRelayFee = 1e5
 	CrossBindRelayFee        = 2e6
 	CrossUnbindRelayFee      = 2e6
 
