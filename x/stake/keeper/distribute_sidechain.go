@@ -7,8 +7,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
 
-const threshold = 5
-
 func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 
 	// The rewards collected yesterday is decided by the validators the day before yesterday.

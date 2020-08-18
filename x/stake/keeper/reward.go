@@ -1,11 +1,14 @@
 package keeper
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/stake/types"
 	"math"
 	"math/big"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
+
+const threshold = 5
 
 func allocate(sharers []types.Sharer, totalRewards sdk.Dec, totalShares sdk.Dec) (rewards []types.Reward) {
 	var minToDistribute int64

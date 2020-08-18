@@ -77,13 +77,13 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 		}
 	}
 
-	jailUtil := header.Time.Add(k.DoubleSignUnbondDuration(sideCtx))
+	jailUntil := header.Time.Add(k.DoubleSignUnbondDuration(sideCtx))
 	sr := SlashRecord{
 		ConsAddr:         sideConsAddr.Bytes(),
 		InfractionType:   DoubleSign,
 		InfractionHeight: uint64(msg.Headers[0].Number),
 		SlashHeight:      header.Height,
-		JailUntil:        jailUtil,
+		JailUntil:        jailUntil,
 		SlashAmt:         slashedAmount.RawInt(),
 		SideChainId:      sideChainId,
 	}
@@ -94,7 +94,7 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 	if !found {
 		panic(fmt.Sprintf("Expected signing info for validator %s but not found", sideConsAddr.Hex()))
 	}
-	signInfo.JailedUntil = jailUtil
+	signInfo.JailedUntil = jailUntil
 	k.setValidatorSigningInfo(sideCtx, sideConsAddr.Bytes(), signInfo)
 
 	if ctx.IsDeliverTx() && k.PbsbServer != nil {
@@ -103,7 +103,7 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 			InfractionType:         DoubleSign,
 			InfractionHeight:       msg.Headers[0].Number,
 			SlashHeight:            header.Height,
-			JailUtil:               jailUtil,
+			JailUtil:               jailUntil,
 			SlashAmt:               slashedAmount.RawInt(),
 			SideChainId:            sideChainId,
 			ToFeePool:              toFeePool,
