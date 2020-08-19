@@ -476,16 +476,17 @@ func (k Keeper) SyncDelegationByValDel(ctx sdk.Context, valAddr sdk.ValAddress, 
 	k.SetDelegationByVal(ctx, delegation)
 }
 
-func (k Keeper) SyncAllDelegationsToValDel(ctx sdk.Context, sideChainId string) {
+func (k Keeper) SyncAllSelfDelegationsToValDel(ctx sdk.Context, sideChainId string) {
 	if scCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, sideChainId); err != nil {
 		panic(err)
 	} else {
 		ctx = scCtx
 	}
-	delegations := k.GetAllDelegations(ctx)
-	if len(delegations) > 0 {
-		for i := range delegations {
-			k.SyncDelegationByValDel(ctx, delegations[i].ValidatorAddr, delegations[i].DelegatorAddr)
+
+	validators := k.GetAllValidators(ctx)
+	if len(validators) > 0 {
+		for i := range validators {
+			k.SyncDelegationByValDel(ctx, validators[i].OperatorAddr, validators[i].FeeAddr)
 		}
 	}
 }
