@@ -476,6 +476,16 @@ func (k Keeper) SyncDelegationByValDel(ctx sdk.Context, valAddr sdk.ValAddress, 
 	k.SetDelegationByVal(ctx, delegation)
 }
 
+func (k Keeper) SyncAllDelegationsToValDel(ctx sdk.Context, sideChainId string) {
+	ctx = ctx.WithSideChainId(sideChainId)
+	delegations := k.GetAllDelegations(ctx)
+	if len(delegations) > 0 {
+		for i := range delegations {
+			k.SyncDelegationByValDel(ctx, delegations[i].ValidatorAddr, delegations[i].DelegatorAddr)
+		}
+	}
+}
+
 // Perform a delegation, set/update everything necessary within the store.
 func (k Keeper) Delegate(ctx sdk.Context, delAddr sdk.AccAddress, bondAmt sdk.Coin,
 	validator types.Validator, subtractAccount bool) (newShares sdk.Dec, err sdk.Error) {

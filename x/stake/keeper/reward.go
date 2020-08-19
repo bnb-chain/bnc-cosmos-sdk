@@ -14,6 +14,14 @@ func allocate(sharers []types.Sharer, totalRewards sdk.Dec, totalShares sdk.Dec)
 	var minToDistribute int64
 	var shouldCarry []types.Reward
 	var shouldNotCarry []types.Reward
+
+	if sdk.IsUpgrade(sdk.FixSideChainRewardDistribution) {
+		totalShares = sdk.ZeroDec()
+		for _, sharer := range sharers {
+			totalShares = totalShares.Add(sharer.Shares)
+		}
+	}
+
 	for _, sharer := range sharers {
 
 		afterRoundDown, firstDecimalValue := mulQuoDecWithExtraDecimal(sharer.Shares, totalRewards, totalShares, 1)
