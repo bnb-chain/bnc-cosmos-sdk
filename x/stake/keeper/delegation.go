@@ -477,7 +477,11 @@ func (k Keeper) SyncDelegationByValDel(ctx sdk.Context, valAddr sdk.ValAddress, 
 }
 
 func (k Keeper) SyncAllDelegationsToValDel(ctx sdk.Context, sideChainId string) {
-	ctx = ctx.WithSideChainId(sideChainId)
+	if scCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, sideChainId); err != nil {
+		panic(err)
+	} else {
+		ctx = scCtx
+	}
 	delegations := k.GetAllDelegations(ctx)
 	if len(delegations) > 0 {
 		for i := range delegations {
