@@ -24,7 +24,6 @@ func TestAllocateReward(t *testing.T) {
 		simDel := types.Sharer{AccAddr: delAddr, Shares: shares}
 		simDels[i] = simDel
 	}
-	totalShares := int64(100e8)
 
 	commission := sdk.NewDec(10)
 
@@ -36,7 +35,7 @@ func TestAllocateReward(t *testing.T) {
 	 *  delegator11, got $5
 	 *  delegator1-10, 5 of them got 1, another 5 of them got 0
 	 */
-	rewards := allocate(simDels, commission, sdk.NewDec(totalShares))
+	rewards := allocate(simDels, commission)
 	require.Len(t, rewards, 11)
 	got1Count := 0
 	got0Count := 0
@@ -63,7 +62,7 @@ func TestAllocateReward(t *testing.T) {
 	 *  delegator1-10, got 1
 	 */
 	commission = sdk.NewDec(21)
-	rewards = allocate(simDels, commission, sdk.NewDec(totalShares))
+	rewards = allocate(simDels, commission)
 	for _, sc := range rewards {
 		if sc.AccAddr.Equals(lastDelegator) {
 			require.EqualValues(t, 11, sc.Amount)
@@ -82,7 +81,7 @@ func TestAllocateReward(t *testing.T) {
 	 *
 	 */
 	commission = sdk.NewDec(29)
-	rewards = allocate(simDels, commission, sdk.NewDec(totalShares))
+	rewards = allocate(simDels, commission)
 	got1Count = 0
 	got2Count := 0
 	for _, sc := range rewards {

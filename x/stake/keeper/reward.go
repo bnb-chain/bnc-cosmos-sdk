@@ -10,10 +10,16 @@ import (
 
 const threshold = 5
 
-func allocate(sharers []types.Sharer, totalRewards sdk.Dec, totalShares sdk.Dec) (rewards []types.Reward) {
+func allocate(sharers []types.Sharer, totalRewards sdk.Dec) (rewards []types.Reward) {
 	var minToDistribute int64
 	var shouldCarry []types.Reward
 	var shouldNotCarry []types.Reward
+
+	totalShares := sdk.ZeroDec()
+	for _, sharer := range sharers {
+		totalShares = totalShares.Add(sharer.Shares)
+	}
+
 	for _, sharer := range sharers {
 
 		afterRoundDown, firstDecimalValue := mulQuoDecWithExtraDecimal(sharer.Shares, totalRewards, totalShares, 1)

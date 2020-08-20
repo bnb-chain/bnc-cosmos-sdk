@@ -37,7 +37,7 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 			if err := k.bankKeeper.SetCoins(ctx, validator.DistributionAddr, distAccCoins); err != nil {
 				panic(err)
 			}
-			rewards = allocate(simDelsToSharers(delegations), remainReward, validator.DelegatorShares)
+			rewards = allocate(simDelsToSharers(delegations), remainReward)
 			if commission.RawInt() > 0 { // assign rewards to self-delegator
 				if _, _, err := k.bankKeeper.AddCoins(ctx, validator.GetFeeAddr(), sdk.Coins{sdk.NewCoin(bondDenom, commission.RawInt())}); err != nil {
 					panic(err)
