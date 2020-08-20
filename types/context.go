@@ -135,6 +135,7 @@ func (c Context) WithBlockHeader(header abci.Header) Context {
 
 func (c Context) WithBlockTime(newTime time.Time) Context {
 	newHeader := c.BlockHeader()
+	newHeader.Time = newTime
 	return c.WithBlockHeader(newHeader)
 }
 
@@ -204,7 +205,6 @@ func (c Context) WithEventManager(em *EventManager) Context {
 	c.eventManager = em
 	return c
 }
-
 
 func (c Context) WithSideChainKeyPrefix(prefix []byte) Context {
 	c.sideChainKeyPrefix = prefix
