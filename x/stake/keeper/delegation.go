@@ -78,6 +78,11 @@ func (k Keeper) SetDelegation(ctx sdk.Context, delegation types.Delegation) {
 	b := types.MustMarshalDelegation(k.cdc, delegation)
 	store.Set(GetDelegationKey(delegation.DelegatorAddr, delegation.ValidatorAddr), b)
 
+	// sync delegation to the store with DelegationKeyByVal based
+	if len(ctx.SideChainId()) > 0 {
+		k.SetDelegationByVal(ctx, delegation)
+	}
+
 	// publish delegation update
 	if k.PbsbServer != nil && ctx.IsDeliverTx() {
 		var event pubsub.Event = types.DelegationUpdateEvent{
@@ -108,6 +113,11 @@ func (k Keeper) RemoveDelegation(ctx sdk.Context, delegation types.Delegation) {
 	k.OnDelegationRemoved(ctx, delegation.DelegatorAddr, delegation.ValidatorAddr)
 	store := ctx.KVStore(k.storeKey)
 	store.Delete(GetDelegationKey(delegation.DelegatorAddr, delegation.ValidatorAddr))
+
+	// sync delegation to the store with DelegationKeyByVal based
+	if len(ctx.SideChainId()) > 0 {
+		k.RemoveDelegationByVal(ctx, delegation.DelegatorAddr, delegation.ValidatorAddr)
+	}
 
 	// publish delegation update
 	if k.PbsbServer != nil && ctx.IsDeliverTx() {
