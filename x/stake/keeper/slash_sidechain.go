@@ -50,7 +50,7 @@ func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr
 				return nil, sdk.ZeroDec(), errors.New(fmt.Sprintf("error unbonding delegator: %v", err))
 			}
 			remainingSlashAmount = remainingSlashAmount.Sub(unbondAmount)
-			if sdk.IsUpgrade(sdk.FixSideChainRewardDistribution) {
+			if sdk.IsUpgrade(sdk.FixSideChainRewardDistribution) { // sync delegation changes(because of unbond operation) to the store with DelegationKeyByVal key based
 				k.SyncDelegationByValDel(sideCtx, validator.OperatorAddr, selfDelegation.DelegatorAddr)
 			}
 		}
