@@ -168,7 +168,7 @@ func NewGaiaApp(logger log.Logger, db dbm.DB, baseAppOptions ...func(*bam.BaseAp
 		keyParams:   sdk.NewKVStoreKey("params"),
 		tkeyParams:  sdk.NewTransientStoreKey("transient_params"),
 		keyIbc:      sdk.NewKVStoreKey("ibc"),
-		keySide:     sdk.NewKVStoreKey("ibc"),
+		keySide:     sdk.NewKVStoreKey("sc"),
 	}
 
 	// define the accountKeeper

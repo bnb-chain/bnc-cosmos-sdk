@@ -2,6 +2,7 @@ package ibc
 
 import (
 	"fmt"
+
 	"github.com/cosmos/cosmos-sdk/x/params"
 )
 
