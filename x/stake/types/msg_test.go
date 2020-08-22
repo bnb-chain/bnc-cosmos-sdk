@@ -1,16 +1,17 @@
 package types
 
 import (
+	"encoding/json"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/stretchr/testify/require"
+	"github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/crypto"
 )
 
 var (
-	coinPos  = sdk.NewCoin("steak", 1000)
+	coinPos  = sdk.NewCoin("steak", 10000e8)
 	coinZero = sdk.NewCoin("steak", 0)
 	coinNeg  = sdk.NewCoin("steak", -10000)
 )
@@ -29,7 +30,8 @@ func TestMsgCreateValidator(t *testing.T) {
 		expectPass                                bool
 	}{
 		{"basic good", "a", "b", "c", "d", commission1, addr1, pk1, coinPos, true},
-		{"partial description", "", "", "c", "", commission1, addr1, pk1, coinPos, true},
+		{"empty moniker", "", "", "c", "", commission1, addr1, pk1, coinPos, false},
+		{"partial description", "a", "", "", "", commission1, addr1, pk1, coinPos, true},
 		{"empty description", "", "", "", "", commission2, addr1, pk1, coinPos, false},
 		{"empty address", "a", "b", "c", "d", commission2, emptyAddr, pk1, coinPos, false},
 		{"empty pubkey", "a", "b", "c", "d", commission1, addr1, emptyPubkey, coinPos, true},
@@ -90,7 +92,8 @@ func TestMsgCreateValidatorOnBehalfOf(t *testing.T) {
 		expectPass                                bool
 	}{
 		{"basic good", "a", "b", "c", "d", commission2, sdk.AccAddress(addr1), addr2, pk2, coinPos, true},
-		{"partial description", "", "", "c", "", commission2, sdk.AccAddress(addr1), addr2, pk2, coinPos, true},
+		{"empty moniker", "", "", "c", "", commission2, sdk.AccAddress(addr1), addr2, pk2, coinPos, false},
+		{"partial description", "a", "", "c", "", commission2, sdk.AccAddress(addr1), addr2, pk2, coinPos, true},
 		{"empty description", "", "", "", "", commission1, sdk.AccAddress(addr1), addr2, pk2, coinPos, false},
 		{"empty delegator address", "a", "b", "c", "d", commission1, sdk.AccAddress(emptyAddr), addr2, pk2, coinPos, false},
 		{"empty validator address", "a", "b", "c", "d", commission2, sdk.AccAddress(addr1), emptyAddr, pk2, coinPos, false},
@@ -201,4 +204,15 @@ func TestMsgBeginUnbonding(t *testing.T) {
 			require.NotNil(t, msg.ValidateBasic(), "test: %v", tc.name)
 		}
 	}
+}
+
+func TestMsgSideChainDelegate_Type(t *testing.T) {
+	msg := NewMsgSideChainDelegate("aaa", sdk.AccAddress(addr1), addr2, coinPos)
+	bz, err := json.Marshal(msg)
+	require.NoError(t, err)
+	t.Log(string(bz))
+
+	bz2, err := amino.MarshalJSON(msg)
+	require.NoError(t, err)
+	t.Log(string(bz2))
 }

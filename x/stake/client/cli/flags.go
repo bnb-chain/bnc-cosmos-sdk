@@ -37,6 +37,10 @@ const (
 	FlagVotingPeriod      = "voting-period"
 
 	FlagOutputDocument = "output-document" // inspired by wget -O
+
+	FlagSideChainId  = "side-chain-id"
+	FlagSideConsAddr = "side-cons-addr"
+	FlagSideFeeAddr  = "side-fee-addr"
 )
 
 // common flagsets to add to various functions
@@ -51,6 +55,9 @@ var (
 	fsValidator         = flag.NewFlagSet("", flag.ContinueOnError)
 	fsDelegator         = flag.NewFlagSet("", flag.ContinueOnError)
 	fsRedelegation      = flag.NewFlagSet("", flag.ContinueOnError)
+	fsSideChainFull     = flag.NewFlagSet("", flag.ContinueOnError)
+	fsSideChainEdit     = flag.NewFlagSet("", flag.ContinueOnError)
+	fsSideChainId       = flag.NewFlagSet("", flag.ContinueOnError)
 )
 
 func init() {
@@ -74,4 +81,10 @@ func init() {
 	fsDelegator.String(FlagAddressDelegator, "", "bech address of the delegator")
 	fsRedelegation.String(FlagAddressValidatorSrc, "", "bech address of the source validator")
 	fsRedelegation.String(FlagAddressValidatorDst, "", "bech address of the destination validator")
+	fsSideChainFull.String(FlagSideChainId, "", "chain-id of the side chain the validator belongs to")
+	fsSideChainFull.String(FlagSideConsAddr, "", "consensus address of the validator on side chain, please use hex format prefixed with 0x")
+	fsSideChainFull.String(FlagSideFeeAddr, "", "address that validator collects fee rewards on side chain, please use hex format prefixed with 0x")
+	fsSideChainEdit.String(FlagSideChainId, "", "chain-id of the side chain the validator belongs to")
+	fsSideChainEdit.String(FlagSideFeeAddr, "", "address that validator collects fee rewards on side chain, please use hex format prefixed with 0x")
+	fsSideChainId.String(FlagSideChainId, "", "chain-id of the side chain the validator belongs to")
 }

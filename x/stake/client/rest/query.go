@@ -9,7 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/utils"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/stake/tags"
+	"github.com/cosmos/cosmos-sdk/x/stake/types"
 
 	"github.com/gorilla/mux"
 )
@@ -155,19 +155,16 @@ func delegatorTxsHandlerFn(cliCtx context.CLIContext, cdc *codec.Codec) http.Han
 
 		switch {
 		case isBondTx:
-			actions = append(actions, string(tags.ActionDelegate))
+			actions = append(actions, types.MsgDelegate{}.Type())
 		case isUnbondTx:
-			actions = append(actions, string(tags.ActionBeginUnbonding))
-			actions = append(actions, string(tags.ActionCompleteUnbonding))
+			actions = append(actions, types.MsgBeginUnbonding{}.Type())
 		case isRedTx:
-			actions = append(actions, string(tags.ActionBeginRedelegation))
-			actions = append(actions, string(tags.ActionCompleteRedelegation))
+			actions = append(actions, types.MsgBeginRedelegate{}.Type())
 		case noQuery:
-			actions = append(actions, string(tags.ActionDelegate))
-			actions = append(actions, string(tags.ActionBeginUnbonding))
-			actions = append(actions, string(tags.ActionCompleteUnbonding))
-			actions = append(actions, string(tags.ActionBeginRedelegation))
-			actions = append(actions, string(tags.ActionCompleteRedelegation))
+			actions = append(actions, types.MsgDelegate{}.Type())
+			actions = append(actions, types.MsgBeginUnbonding{}.Type())
+			actions = append(actions, types.MsgBeginRedelegate{}.Type())
+
 		default:
 			w.WriteHeader(http.StatusNoContent)
 			return

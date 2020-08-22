@@ -17,7 +17,7 @@ func TestWithdrawValidatorRewardsAllNoDelegator(t *testing.T) {
 	msgCreateValidator := stake.NewTestMsgCreateValidator(valOpAddr1, valConsPk1, 10)
 	got := stakeHandler(ctx, msgCreateValidator)
 	require.True(t, got.IsOK(), "expected msg to be ok, got %v", got)
-	_ = sk.ApplyAndReturnValidatorSetUpdates(ctx)
+	sk.ApplyAndReturnValidatorSetUpdates(ctx)
 
 	// allocate 100 denom of fees
 	feeInputs := sdk.NewDecWithoutFra(100).RawInt()
@@ -42,7 +42,7 @@ func TestWithdrawValidatorRewardsAllDelegatorNoCommission(t *testing.T) {
 	msgCreateValidator := stake.NewTestMsgCreateValidator(valOpAddr1, valConsPk1, 10)
 	got := stakeHandler(ctx, msgCreateValidator)
 	require.True(t, got.IsOK(), "expected msg to be ok, got %v", got)
-	_ = sk.ApplyAndReturnValidatorSetUpdates(ctx)
+	sk.ApplyAndReturnValidatorSetUpdates(ctx)
 
 	// delegate
 	msgDelegate := stake.NewTestMsgDelegate(delAddr1, valOpAddr1, 10)
@@ -76,7 +76,7 @@ func TestWithdrawValidatorRewardsAllDelegatorWithCommission(t *testing.T) {
 		valOpAddr1, valConsPk1, sdk.NewDecWithoutFra(10).RawInt(), commissionRate)
 	got := stakeHandler(ctx, msgCreateValidator)
 	require.True(t, got.IsOK(), "expected msg to be ok, got %v", got)
-	_ = sk.ApplyAndReturnValidatorSetUpdates(ctx)
+	sk.ApplyAndReturnValidatorSetUpdates(ctx)
 
 	// delegate
 	msgDelegate := stake.NewTestMsgDelegate(delAddr1, valOpAddr1, 10)
@@ -123,7 +123,7 @@ func TestWithdrawValidatorRewardsAllMultipleValidator(t *testing.T) {
 	got = stakeHandler(ctx, msgCreateValidator)
 	require.True(t, got.IsOK(), "expected msg to be ok, got %v", got)
 
-	_ = sk.ApplyAndReturnValidatorSetUpdates(ctx)
+	sk.ApplyAndReturnValidatorSetUpdates(ctx)
 
 	// allocate 1000 denom of fees
 	feeInputs := sdk.NewDecWithoutFra(1000).RawInt()
@@ -156,7 +156,7 @@ func TestWithdrawValidatorRewardsAllMultipleDelegator(t *testing.T) {
 		valOpAddr1, valConsPk1, sdk.NewDecWithoutFra(10).RawInt(), sdk.NewDecWithPrec(1, 1))
 	got := stakeHandler(ctx, msgCreateValidator)
 	require.True(t, got.IsOK(), "expected msg to be ok, got %v", got)
-	_ = sk.ApplyAndReturnValidatorSetUpdates(ctx)
+	sk.ApplyAndReturnValidatorSetUpdates(ctx)
 
 	// delegate
 	msgDelegate := stake.NewTestMsgDelegate(delAddr1, valOpAddr1, 10)

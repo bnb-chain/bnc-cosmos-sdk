@@ -6,8 +6,10 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/bank"
+	"github.com/cosmos/cosmos-sdk/x/ibc"
 	"github.com/cosmos/cosmos-sdk/x/mock"
 	"github.com/cosmos/cosmos-sdk/x/params"
+	"github.com/cosmos/cosmos-sdk/x/sidechain"
 	"github.com/cosmos/cosmos-sdk/x/stake"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -28,16 +30,21 @@ func getMockApp(t *testing.T) (*mock.App, stake.Keeper, Keeper) {
 	keyStake := sdk.NewKVStoreKey("stake")
 	tkeyStake := sdk.NewTransientStoreKey("transient_stake")
 	keySlashing := sdk.NewKVStoreKey("slashing")
+	keyIbc := sdk.NewKVStoreKey("ibc")
+	keySideChain := sdk.NewKVStoreKey("sc")
 
 	keyParams := sdk.NewKVStoreKey("params")
 	tkeyParams := sdk.NewTransientStoreKey("transient_params")
 	bankKeeper := bank.NewBaseKeeper(mapp.AccountKeeper)
 
 	paramsKeeper := params.NewKeeper(mapp.Cdc, keyParams, tkeyParams)
+	scKeeper := sidechain.NewKeeper(keySideChain, paramsKeeper.Subspace(sidechain.DefaultParamspace), mapp.Cdc)
+	ibcKeeper := ibc.NewKeeper(keyIbc, paramsKeeper.Subspace(ibc.DefaultParamspace), ibc.DefaultCodespace, scKeeper)
 	stakeKeeper := stake.NewKeeper(mapp.Cdc, keyStake, tkeyStake, bankKeeper, nil, paramsKeeper.Subspace(stake.DefaultParamspace), mapp.RegisterCodespace(stake.DefaultCodespace))
-	keeper := NewKeeper(mapp.Cdc, keySlashing, stakeKeeper, paramsKeeper.Subspace(DefaultParamspace), mapp.RegisterCodespace(DefaultCodespace))
+	stakeKeeper.SetupForSideChain(&scKeeper, &ibcKeeper)
+	keeper := NewKeeper(mapp.Cdc, keySlashing, stakeKeeper, paramsKeeper.Subspace(DefaultParamspace), mapp.RegisterCodespace(DefaultCodespace), bankKeeper)
 	mapp.Router().AddRoute("stake", stake.NewStakeHandler(stakeKeeper))
-	mapp.Router().AddRoute("slashing", NewHandler(keeper))
+	mapp.Router().AddRoute("slashing", NewSlashingHandler(keeper))
 
 	mapp.SetEndBlocker(getEndBlocker(stakeKeeper))
 	mapp.SetInitChainer(getInitChainer(mapp, stakeKeeper))
@@ -50,6 +57,7 @@ func getMockApp(t *testing.T) (*mock.App, stake.Keeper, Keeper) {
 // stake endblocker
 func getEndBlocker(keeper stake.Keeper) sdk.EndBlocker {
 	return func(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
+		ctx = ctx.WithEventManager(sdk.NewEventManager())
 		validatorUpdates, _ := stake.EndBlocker(ctx, keeper)
 		return abci.ResponseEndBlock{
 			ValidatorUpdates: validatorUpdates,
@@ -93,8 +101,8 @@ func checkValidatorSigningInfo(t *testing.T, mapp *mock.App, keeper Keeper,
 func TestSlashingMsgs(t *testing.T) {
 	mapp, stakeKeeper, keeper := getMockApp(t)
 
-	genCoin := sdk.NewCoin("steak", sdk.NewDecWithoutFra(42).RawInt())
-	bondCoin := sdk.NewCoin("steak", sdk.NewDecWithoutFra(10).RawInt())
+	genCoin := sdk.NewCoin("steak", sdk.NewDecWithoutFra(42000).RawInt())
+	bondCoin := sdk.NewCoin("steak", sdk.NewDecWithoutFra(10000).RawInt())
 
 	acc1 := &auth.BaseAccount{
 		Address: addr1,
@@ -116,7 +124,7 @@ func TestSlashingMsgs(t *testing.T) {
 	validator := checkValidator(t, mapp, stakeKeeper, addr1, true)
 	require.Equal(t, sdk.ValAddress(addr1), validator.OperatorAddr)
 	require.Equal(t, sdk.Bonded, validator.Status)
-	require.True(sdk.DecEq(t, sdk.NewDecWithoutFra(10), validator.BondedTokens()))
+	require.True(sdk.DecEq(t, sdk.NewDecWithoutFra(10000), validator.BondedTokens()))
 	unjailMsg := MsgUnjail{ValidatorAddr: sdk.ValAddress(validator.ConsPubKey.Address())}
 
 	// no signing info yet

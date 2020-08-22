@@ -22,6 +22,7 @@ var (
 	ParamStoreKeyDepositParams = []byte("depositparams")
 	ParamStoreKeyTallyParams   = []byte("tallyparams")
 
+	// Will hold deposit of both BC chain and side chain.
 	DepositedCoinsAccAddr = sdk.AccAddress(crypto.AddressHash([]byte("BinanceChainDepositedCoins")))
 )
 
@@ -31,6 +32,11 @@ func ParamTypeTable() params.TypeTable {
 		ParamStoreKeyDepositParams, DepositParams{},
 		ParamStoreKeyTallyParams, TallyParams{},
 	)
+}
+
+type SideChainKeeper interface {
+	PrepareCtxForSideChain(ctx sdk.Context, sideChainId string) (sdk.Context, error)
+	GetAllSideChainPrefixes(ctx sdk.Context) ([]string, [][]byte)
 }
 
 // Governance Keeper
@@ -64,6 +70,9 @@ type Keeper struct {
 
 	// shared memory for block level state
 	pool *sdk.Pool
+
+	// if you want to enable side chains, you need call `SetupForSideChain`
+	ScKeeper SideChainKeeper
 }
 
 // NewKeeper returns a governance keeper. It handles:
@@ -84,6 +93,10 @@ func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, paramsKeeper params.Keeper, p
 		codespace:    codespace,
 		pool:         pool,
 	}
+}
+
+func (keeper *Keeper) SetupForSideChain(scKeeper SideChainKeeper) {
+	keeper.ScKeeper = scKeeper
 }
 
 // AddHooks add hooks for gov keeper
@@ -292,12 +305,12 @@ func (keeper Keeper) GetTallyParams(ctx sdk.Context) TallyParams {
 }
 
 // nolint: errcheck
-func (keeper Keeper) setDepositParams(ctx sdk.Context, depositParams DepositParams) {
+func (keeper Keeper) SetDepositParams(ctx sdk.Context, depositParams DepositParams) {
 	keeper.paramSpace.Set(ctx, ParamStoreKeyDepositParams, &depositParams)
 }
 
 // nolint: errcheck
-func (keeper Keeper) setTallyParams(ctx sdk.Context, tallyParams TallyParams) {
+func (keeper Keeper) SetTallyParams(ctx sdk.Context, tallyParams TallyParams) {
 	keeper.paramSpace.Set(ctx, ParamStoreKeyTallyParams, &tallyParams)
 }
 
@@ -455,7 +468,7 @@ func (keeper Keeper) RefundDeposits(ctx sdk.Context, proposalID int64) {
 // DistributeDeposits distributes deposits to proposer
 func (keeper Keeper) DistributeDeposits(ctx sdk.Context, proposalID int64) {
 	proposerValAddr := ctx.BlockHeader().ProposerAddress
-	proposerValidator := keeper.vs.ValidatorByConsAddr(ctx, proposerValAddr)
+	proposerValidator := keeper.vs.ValidatorByConsAddr(ctx.DepriveSideChainKeyPrefix(), proposerValAddr)
 	proposerAccAddr := proposerValidator.GetFeeAddr()
 
 	store := ctx.KVStore(keeper.storeKey)

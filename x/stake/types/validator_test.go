@@ -1,6 +1,7 @@
 package types
 
 import (
+	"crypto/rand"
 	"fmt"
 	"testing"
 
@@ -27,6 +28,7 @@ func TestValidatorEqual(t *testing.T) {
 
 func TestUpdateDescription(t *testing.T) {
 	d1 := Description{
+		Moniker: "d1",
 		Website: "https://validator.cosmos",
 		Details: "Test validator",
 	}
@@ -39,7 +41,7 @@ func TestUpdateDescription(t *testing.T) {
 	}
 
 	d3 := Description{
-		Moniker:  "",
+		Moniker:  "d3",
 		Identity: "",
 		Website:  "",
 		Details:  "",
@@ -190,7 +192,7 @@ func TestRemoveDelShares(t *testing.T) {
 	shares := sdk.NewDecWithoutFra(29)
 	_, newPool, tokens := validator.RemoveDelShares(pool, shares)
 
-	exp, err := sdk.NewDecFromStr("128659130431")
+	exp, err := sdk.NewDecFromStr("128659130434")
 	require.NoError(t, err)
 
 	require.True(sdk.DecEq(t, exp, tokens))
@@ -302,4 +304,31 @@ func TestValidatorSetInitialCommission(t *testing.T) {
 			)
 		}
 	}
+}
+
+func TestMarshalValidator(t *testing.T) {
+	validator := NewValidator(addr1, pk1, Description{})
+	validator.Tokens = sdk.NewDec(100)
+	validator.DelegatorShares = sdk.NewDec(100)
+	validator.SideConsAddr = randAddr(t, 20)
+	bz := MustMarshalValidator(MsgCdc, validator)
+	getVal, err := UnmarshalValidator(MsgCdc, bz)
+	require.Nil(t, err)
+	require.EqualValues(t, validator.FeeAddr, getVal.FeeAddr)
+	require.EqualValues(t, validator.OperatorAddr, getVal.OperatorAddr)
+	require.EqualValues(t, validator.ConsPubKey, getVal.ConsPubKey)
+	require.EqualValues(t, validator.Tokens, getVal.Tokens)
+	require.EqualValues(t, validator.DelegatorShares, getVal.DelegatorShares)
+	require.EqualValues(t, validator.Jailed, getVal.Jailed)
+	require.EqualValues(t, validator.Status, getVal.Status)
+	require.EqualValues(t, validator.SideConsAddr, getVal.SideConsAddr)
+}
+
+func randAddr(t *testing.T, size int64) []byte {
+	addr := make([]byte, size)
+	n, err := rand.Read(addr)
+	require.NoError(t, err)
+	require.Equal(t, 20, n)
+	require.Equal(t, 20, len(addr))
+	return addr
 }

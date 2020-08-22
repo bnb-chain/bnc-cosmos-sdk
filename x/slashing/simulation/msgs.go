@@ -20,7 +20,7 @@ func SimulateMsgUnjail(k slashing.Keeper) simulation.Operation {
 			return "", nil, fmt.Errorf("expected msg to pass ValidateBasic: %s", msg.GetSignBytes())
 		}
 		ctx, write := ctx.CacheContext()
-		result := slashing.NewHandler(k)(ctx, msg)
+		result := slashing.NewSlashingHandler(k)(ctx, msg)
 		if result.IsOK() {
 			write()
 		}

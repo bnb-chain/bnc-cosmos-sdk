@@ -130,8 +130,8 @@ func (msg MsgCreateValidator) ValidateBasic() sdk.Error {
 	if len(msg.ValidatorAddr) != sdk.AddrLen {
 		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected validator address length is %d, actual length is %d", sdk.AddrLen, len(msg.ValidatorAddr)))
 	}
-	if !(msg.Delegation.Amount > 0) {
-		return ErrBadDelegationAmount(DefaultCodespace)
+	if msg.Delegation.Amount < 1e8 {
+		return ErrBadDelegationAmount(DefaultCodespace, "self delegation must not be less than 1e8")
 	}
 	if msg.Description == (Description{}) {
 		return sdk.NewError(DefaultCodespace, CodeInvalidInput, "description must be included")
@@ -266,8 +266,8 @@ func (msg MsgDelegate) ValidateBasic() sdk.Error {
 	if msg.ValidatorAddr == nil {
 		return ErrNilValidatorAddr(DefaultCodespace)
 	}
-	if !(msg.Delegation.Amount > 0) {
-		return ErrBadDelegationAmount(DefaultCodespace)
+	if msg.Delegation.Amount < 1e8 {
+		return ErrBadDelegationAmount(DefaultCodespace, "delegation must not be less than 1e8")
 	}
 	return nil
 }

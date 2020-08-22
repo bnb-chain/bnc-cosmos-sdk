@@ -135,10 +135,13 @@ func TestHandleAbsentValidator(t *testing.T) {
 
 	// initial setup
 	ctx, ck, sk, _, keeper := createTestInput(t, keeperTestParams())
+	stakeParam := stake.DefaultParams()
+	stakeParam.MinSelfDelegation = 10e8
+	sk.SetParams(ctx, stakeParam)
 	amtInt := sdk.NewDecWithoutFra(100).RawInt()
 	addr, val, amt := addrs[0], pks[0], amtInt
 	sh := stake.NewStakeHandler(sk)
-	slh := NewHandler(keeper)
+	slh := NewSlashingHandler(keeper)
 	got := sh(ctx, NewTestMsgCreateValidator(addr, val, amt))
 	require.True(t, got.IsOK())
 	validatorUpdates, _ := stake.EndBlocker(ctx, sk)

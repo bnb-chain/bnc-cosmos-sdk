@@ -20,8 +20,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	distr "github.com/cosmos/cosmos-sdk/x/distribution"
 	"github.com/cosmos/cosmos-sdk/x/gov"
+	"github.com/cosmos/cosmos-sdk/x/ibc"
 	"github.com/cosmos/cosmos-sdk/x/mint"
 	"github.com/cosmos/cosmos-sdk/x/params"
+	"github.com/cosmos/cosmos-sdk/x/sidechain"
 	"github.com/cosmos/cosmos-sdk/x/slashing"
 	"github.com/cosmos/cosmos-sdk/x/stake"
 )
@@ -58,6 +60,8 @@ type GaiaApp struct {
 	keyFeeCollection *sdk.KVStoreKey
 	keyParams        *sdk.KVStoreKey
 	tkeyParams       *sdk.TransientStoreKey
+	keyIbc           *sdk.KVStoreKey
+	keySide          *sdk.KVStoreKey
 
 	// Manage getting and setting accounts
 	accountKeeper       auth.AccountKeeper
@@ -69,6 +73,7 @@ type GaiaApp struct {
 	distrKeeper         distr.Keeper
 	govKeeper           gov.Keeper
 	paramsKeeper        params.Keeper
+	ibcKeeper           ibc.Keeper
 }
 
 // NewGaiaApp returns a reference to an initialized GaiaApp.
@@ -93,6 +98,8 @@ func NewGaiaApp(logger log.Logger, db dbm.DB, traceStore io.Writer, baseAppOptio
 		keyFeeCollection: sdk.NewKVStoreKey("fee"),
 		keyParams:        sdk.NewKVStoreKey("params"),
 		tkeyParams:       sdk.NewTransientStoreKey("transient_params"),
+		keyIbc:           sdk.NewKVStoreKey("ibc"),
+		keySide:          sdk.NewKVStoreKey("sc"),
 	}
 
 	// define the accountKeeper
@@ -112,6 +119,8 @@ func NewGaiaApp(logger log.Logger, db dbm.DB, traceStore io.Writer, baseAppOptio
 		app.cdc,
 		app.keyParams, app.tkeyParams,
 	)
+	app.ibcKeeper = ibc.NewKeeper(app.keyIbc, app.paramsKeeper.Subspace(ibc.DefaultParamspace), ibc.DefaultCodespace,
+		sidechain.NewKeeper(app.keySide, app.paramsKeeper.Subspace(sidechain.DefaultParamspace), app.cdc))
 	app.stakeKeeper = stake.NewKeeper(
 		app.cdc,
 		app.keyStake, app.tkeyStake,
@@ -134,6 +143,7 @@ func NewGaiaApp(logger log.Logger, db dbm.DB, traceStore io.Writer, baseAppOptio
 		app.keySlashing,
 		app.stakeKeeper, app.paramsKeeper.Subspace(slashing.DefaultParamspace),
 		app.RegisterCodespace(slashing.DefaultCodespace),
+		app.bankKeeper,
 	)
 	app.govKeeper = gov.NewKeeper(
 		app.cdc,
@@ -152,7 +162,7 @@ func NewGaiaApp(logger log.Logger, db dbm.DB, traceStore io.Writer, baseAppOptio
 		AddRoute("bank", bank.NewHandler(app.bankKeeper)).
 		AddRoute("stake", stake.NewStakeHandler(app.stakeKeeper)).
 		AddRoute("distr", distr.NewHandler(app.distrKeeper)).
-		AddRoute("slashing", slashing.NewHandler(app.slashingKeeper)).
+		AddRoute("slashing", slashing.NewSlashingHandler(app.slashingKeeper)).
 		AddRoute("gov", gov.NewHandler(app.govKeeper))
 
 	app.QueryRouter().
@@ -161,7 +171,7 @@ func NewGaiaApp(logger log.Logger, db dbm.DB, traceStore io.Writer, baseAppOptio
 
 	// initialize BaseApp
 	app.MountStoresIAVL(app.keyMain, app.keyAccount, app.keyStake, app.keyMint, app.keyDistr,
-		app.keySlashing, app.keyGov, app.keyFeeCollection, app.keyParams)
+		app.keySlashing, app.keyGov, app.keyFeeCollection, app.keyParams, app.keyIbc)
 	app.SetInitChainer(app.initChainer)
 	app.SetBeginBlocker(app.BeginBlocker)
 	app.SetAnteHandler(auth.NewAnteHandler(app.accountKeeper))
@@ -216,16 +226,17 @@ func (app *GaiaApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) ab
 // application updates every end block
 // nolint: unparam
 func (app *GaiaApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
-
-	tags, _, _ := gov.EndBlocker(ctx, app.govKeeper)
+	ctx = ctx.WithEventManager(sdk.NewEventManager())
+	gov.EndBlocker(ctx, app.govKeeper)
 	validatorUpdates, _ := stake.EndBlocker(ctx, app.stakeKeeper)
+	ibc.EndBlocker(ctx, app.ibcKeeper)
 
 	// Add these new validators to the addr -> pubkey map.
 	app.slashingKeeper.AddValidators(ctx, validatorUpdates)
 
 	return abci.ResponseEndBlock{
 		ValidatorUpdates: validatorUpdates,
-		Events:           tags.ToEvents(),
+		Events:           ctx.EventManager().ABCIEvents(),
 	}
 }
 
@@ -272,13 +283,13 @@ func (app *GaiaApp) initChainer(ctx sdk.Context, req abci.RequestInitChain) abci
 				panic(err)
 			}
 			bz := app.cdc.MustMarshalBinaryLengthPrefixed(tx)
-			res := app.BaseApp.DeliverTx(abci.RequestDeliverTx{Tx:bz})
+			res := app.BaseApp.DeliverTx(abci.RequestDeliverTx{Tx: bz})
 			if !res.IsOK() {
 				panic(res.Log)
 			}
 		}
 
-		validators = app.stakeKeeper.ApplyAndReturnValidatorSetUpdates(ctx)
+		_, validators = app.stakeKeeper.ApplyAndReturnValidatorSetUpdates(ctx)
 	}
 	app.slashingKeeper.AddValidators(ctx, validators)
 
@@ -369,4 +380,10 @@ func (h Hooks) OnDelegationSharesModified(ctx sdk.Context, delAddr sdk.AccAddres
 }
 func (h Hooks) OnDelegationRemoved(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) {
 	h.dh.OnDelegationRemoved(ctx, delAddr, valAddr)
+}
+func (h Hooks) OnSideChainValidatorBonded(ctx sdk.Context, sideConsAddr []byte, operator sdk.ValAddress) {
+}
+func (h Hooks) OnSideChainValidatorBeginUnbonding(ctx sdk.Context, sideConsAddr []byte, operator sdk.ValAddress) {
+}
+func (h Hooks) OnSelfDelDropBelowMin(ctx sdk.Context, operator sdk.ValAddress) {
 }

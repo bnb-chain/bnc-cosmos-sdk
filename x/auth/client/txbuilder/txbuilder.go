@@ -23,17 +23,8 @@ type TxBuilder struct {
 // NewTxBuilderFromCLI returns a new initialized TxBuilder with parameters from
 // the command line using Viper.
 func NewTxBuilderFromCLI() TxBuilder {
-	// if chain ID is not specified manually, read default chain ID
-	chainID := viper.GetString(client.FlagChainID)
-	if chainID == "" {
-		defaultChainID, err := sdk.DefaultChainID()
-		if err != nil {
-			chainID = defaultChainID
-		}
-	}
-
 	return TxBuilder{
-		ChainID:       chainID,
+		ChainID:       viper.GetString(client.FlagChainID),
 		AccountNumber: viper.GetInt64(client.FlagAccountNumber),
 		Sequence:      viper.GetInt64(client.FlagSequence),
 		Memo:          viper.GetString(client.FlagMemo),

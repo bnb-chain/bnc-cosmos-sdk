@@ -8,43 +8,24 @@ import (
 const (
 	DefaultCodespace sdk.CodespaceType = 3
 
-	// IBC errors reserve 200 - 299.
-	CodeInvalidSequence sdk.CodeType = 200
-	CodeIdenticalChains sdk.CodeType = 201
-	CodeUnknownRequest  sdk.CodeType = sdk.CodeUnknownRequest
+	CodeDuplicatedSequence    sdk.CodeType = 101
+	CodeFeeParamMismatch      sdk.CodeType = 102
+	CodeInvalidChainId        sdk.CodeType = 103
+	CodeWritePackageForbidden sdk.CodeType = 104
 )
 
-func codeToDefaultMsg(code sdk.CodeType) string {
-	switch code {
-	case CodeInvalidSequence:
-		return "invalid IBC packet sequence"
-	case CodeIdenticalChains:
-		return "source and destination chain cannot be identical"
-	default:
-		return sdk.CodeToDefaultMsg(code)
-	}
+func ErrDuplicatedSequence(codespace sdk.CodespaceType, msg string) sdk.Error {
+	return sdk.NewError(codespace, CodeDuplicatedSequence, msg)
 }
 
-// nolint
-func ErrInvalidSequence(codespace sdk.CodespaceType) sdk.Error {
-	return newError(codespace, CodeInvalidSequence, "")
-}
-func ErrIdenticalChains(codespace sdk.CodespaceType) sdk.Error {
-	return newError(codespace, CodeIdenticalChains, "")
+func ErrFeeParamMismatch(codespace sdk.CodespaceType, msg string) sdk.Error {
+	return sdk.NewError(codespace, CodeFeeParamMismatch, msg)
 }
 
-// -------------------------
-// Helpers
-
-// nolint: unparam
-func newError(codespace sdk.CodespaceType, code sdk.CodeType, msg string) sdk.Error {
-	msg = msgOrDefaultMsg(msg, code)
-	return sdk.NewError(codespace, code, msg)
+func ErrInvalidChainId(codespace sdk.CodespaceType, msg string) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidChainId, msg)
 }
 
-func msgOrDefaultMsg(msg string, code sdk.CodeType) string {
-	if msg != "" {
-		return msg
-	}
-	return codeToDefaultMsg(code)
+func ErrWritePackageForbidden(codespace sdk.CodespaceType, msg string) sdk.Error {
+	return sdk.NewError(codespace, CodeWritePackageForbidden, msg)
 }

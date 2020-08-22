@@ -6,6 +6,8 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/cosmos/cosmos-sdk/x/ibc"
+	"github.com/cosmos/cosmos-sdk/x/sidechain"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
@@ -30,10 +32,16 @@ func getMockApp(t *testing.T, numGenAccs int) (*mock.App, bank.BaseKeeper, gov.K
 	keyStake := sdk.NewKVStoreKey("stake")
 	tkeyStake := sdk.NewTransientStoreKey("transient_stake")
 	keyGov := sdk.NewKVStoreKey("gov")
+	keyIbc := sdk.NewKVStoreKey("ibc")
+	keySideChain := sdk.NewKVStoreKey("sc")
 
 	pk := params.NewKeeper(mapp.Cdc, keyGlobalParams, tkeyGlobalParams)
 	ck := bank.NewBaseKeeper(mapp.AccountKeeper)
+	scKeeper := sidechain.NewKeeper(keySideChain, pk.Subspace(sidechain.DefaultParamspace), mapp.Cdc)
+	ibcKeeper := ibc.NewKeeper(keyIbc, pk.Subspace(ibc.DefaultParamspace), ibc.DefaultCodespace, scKeeper)
+
 	sk := stake.NewKeeper(mapp.Cdc, keyStake, tkeyStake, ck, nil, pk.Subspace(stake.DefaultParamspace), mapp.RegisterCodespace(stake.DefaultCodespace))
+	sk.SetupForSideChain(&scKeeper, &ibcKeeper)
 	keeper := gov.NewKeeper(mapp.Cdc, keyGov, pk, pk.Subspace("testgov"), ck, sk, gov.DefaultCodespace, new(sdk.Pool))
 
 	mapp.Router().AddRoute("gov", gov.NewHandler(keeper))
@@ -53,9 +61,9 @@ func getMockApp(t *testing.T, numGenAccs int) (*mock.App, bank.BaseKeeper, gov.K
 // gov and stake endblocker
 func getEndBlocker(keeper gov.Keeper) sdk.EndBlocker {
 	return func(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
-		tags, _, _ := gov.EndBlocker(ctx, keeper)
+		gov.EndBlocker(ctx, keeper)
 		return abci.ResponseEndBlock{
-			Events: tags.ToEvents(),
+			Events: ctx.EventManager().ABCIEvents(),
 		}
 	}
 }
