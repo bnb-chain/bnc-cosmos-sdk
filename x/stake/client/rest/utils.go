@@ -10,7 +10,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/stake"
-	"github.com/cosmos/cosmos-sdk/x/stake/tags"
+	"github.com/cosmos/cosmos-sdk/x/stake/types"
 	"github.com/gorilla/mux"
 
 	rpcclient "github.com/tendermint/tendermint/rpc/client"
@@ -31,7 +31,7 @@ func queryTxs(node rpcclient.Client, cliCtx context.CLIContext, cdc *codec.Codec
 	page := 0
 	perPage := 100
 	prove := !cliCtx.TrustNode
-	query := fmt.Sprintf("%s='%s' AND %s='%s'", tags.Action, tag, tags.Delegator, delegatorAddr)
+	query := fmt.Sprintf("%s='%s' AND %s='%s'", sdk.AttributeKeyAction, tag, types.AttributeKeyDelegator, delegatorAddr)
 	res, err := node.TxSearch(query, prove, page, perPage)
 	if err != nil {
 		return nil, err

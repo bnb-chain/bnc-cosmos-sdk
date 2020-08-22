@@ -18,7 +18,7 @@ func (p *Pool) AddTx(tx Tx, txHash string) {
 	p.txs.Store(txHash, tx)
 }
 
-func (p Pool) GetTxs() sync.Map{
+func (p Pool) GetTxs() sync.Map {
 	return p.txs
 }
 

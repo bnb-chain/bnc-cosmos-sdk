@@ -13,8 +13,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	distr "github.com/cosmos/cosmos-sdk/x/distribution"
 	"github.com/cosmos/cosmos-sdk/x/gov"
+	"github.com/cosmos/cosmos-sdk/x/ibc"
 	"github.com/cosmos/cosmos-sdk/x/mint"
 	"github.com/cosmos/cosmos-sdk/x/params"
+	"github.com/cosmos/cosmos-sdk/x/sidechain"
 	"github.com/cosmos/cosmos-sdk/x/slashing"
 	"github.com/cosmos/cosmos-sdk/x/stake"
 	"github.com/stretchr/testify/require"
@@ -51,6 +53,8 @@ func NewMockGaiaApp(logger log.Logger, db dbm.DB, traceStore io.Writer, baseAppO
 		keyGov:      sdk.NewKVStoreKey("gov"),
 		keyParams:   sdk.NewKVStoreKey("params"),
 		tkeyParams:  sdk.NewTransientStoreKey("transient_params"),
+		keyIbc:      sdk.NewKVStoreKey("ibc"),
+		keySide:     sdk.NewKVStoreKey("side"),
 	}
 
 	var app = &MockGaiaApp{gApp}
@@ -68,10 +72,13 @@ func NewMockGaiaApp(logger log.Logger, db dbm.DB, traceStore io.Writer, baseAppO
 		app.cdc,
 		app.keyParams, app.tkeyParams,
 	)
+	app.ibcKeeper = ibc.NewKeeper(app.keyIbc, app.paramsKeeper.Subspace(ibc.DefaultParamspace), ibc.DefaultCodespace,
+		sidechain.NewKeeper(app.keySide, app.paramsKeeper.Subspace(sidechain.DefaultParamspace), app.cdc))
+
 	app.stakeKeeper = stake.NewKeeper(
 		app.cdc,
 		app.keyStake, app.tkeyStake,
-		app.bankKeeper,  nil, app.paramsKeeper.Subspace(stake.DefaultParamspace),
+		app.bankKeeper, nil, app.paramsKeeper.Subspace(stake.DefaultParamspace),
 		app.RegisterCodespace(stake.DefaultCodespace),
 	)
 	app.mintKeeper = mint.NewKeeper(app.cdc, app.keyMint,
@@ -90,6 +97,7 @@ func NewMockGaiaApp(logger log.Logger, db dbm.DB, traceStore io.Writer, baseAppO
 		app.keySlashing,
 		app.stakeKeeper, app.paramsKeeper.Subspace(slashing.DefaultParamspace),
 		app.RegisterCodespace(slashing.DefaultCodespace),
+		app.bankKeeper,
 	)
 	app.govKeeper = gov.NewKeeper(
 		app.cdc,
@@ -108,7 +116,7 @@ func NewMockGaiaApp(logger log.Logger, db dbm.DB, traceStore io.Writer, baseAppO
 		AddRoute("bank", bank.NewHandler(app.bankKeeper)).
 		AddRoute("stake", stake.NewHandler(app.stakeKeeper, app.govKeeper)).
 		AddRoute("distr", distr.NewHandler(app.distrKeeper)).
-		AddRoute("slashing", slashing.NewHandler(app.slashingKeeper)).
+		AddRoute("slashing", slashing.NewSlashingHandler(app.slashingKeeper)).
 		AddRoute("gov", gov.NewHandler(app.govKeeper))
 
 	app.QueryRouter().

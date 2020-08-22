@@ -2,10 +2,13 @@ package keeper
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/hex"
 	"strconv"
 	"testing"
 
+	"github.com/cosmos/cosmos-sdk/x/ibc"
+	"github.com/cosmos/cosmos-sdk/x/sidechain"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
@@ -88,6 +91,8 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initCoins int64) (sdk.Context
 	keyAcc := sdk.NewKVStoreKey("acc")
 	keyParams := sdk.NewKVStoreKey("params")
 	tkeyParams := sdk.NewTransientStoreKey("transient_params")
+	keyIbc := sdk.NewKVStoreKey("ibc")
+	keySideChain := sdk.NewKVStoreKey("sc")
 
 	db := dbm.NewMemDB()
 	ms := store.NewCommitMultiStore(db)
@@ -96,6 +101,8 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initCoins int64) (sdk.Context
 	ms.MountStoreWithDB(keyAcc, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(keyParams, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(tkeyParams, sdk.StoreTypeTransient, db)
+	ms.MountStoreWithDB(keyIbc, sdk.StoreTypeIAVL, db)
+	ms.MountStoreWithDB(keySideChain, sdk.StoreTypeIAVL, db)
 	err := ms.LoadLatestVersion()
 	require.Nil(t, err)
 
@@ -118,9 +125,16 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initCoins int64) (sdk.Context
 	ck := bank.NewBaseKeeper(accountKeeper)
 
 	pk := params.NewKeeper(cdc, keyParams, tkeyParams)
+	scKeeper := sidechain.NewKeeper(keySideChain, pk.Subspace(sidechain.DefaultParamspace), cdc)
+
+	ibcKeeper := ibc.NewKeeper(keyIbc, pk.Subspace(ibc.DefaultParamspace), ibc.DefaultCodespace, scKeeper)
 	keeper := NewKeeper(cdc, keyStake, tkeyStake, ck, nil, pk.Subspace(DefaultParamspace), types.DefaultCodespace)
 	keeper.SetPool(ctx, types.InitialPool())
 	keeper.SetParams(ctx, types.DefaultParams())
+	sdk.UpgradeMgr.AddUpgradeHeight(sdk.LaunchBscUpgrade, 1)
+	sdk.UpgradeMgr.Height = 1
+	keeper.SetParams(ctx, types.DefaultParams())
+	keeper.SetupForSideChain(&scKeeper, &ibcKeeper)
 
 	// fill all the addresses with some coins, set the loose pool tokens simultaneously
 	for _, addr := range Addrs {
@@ -175,7 +189,6 @@ func CreateTestInputWithGov(t *testing.T, isCheckTx bool, initCoins int64) (sdk.
 	ctx = ctx.WithAccountCache(accountCache)
 
 	ck := bank.NewBaseKeeper(accountKeeper)
-
 	pk := params.NewKeeper(cdc, keyParams, tkeyParams)
 	keeper := NewKeeper(cdc, keyStake, tkeyStake, ck, nil, pk.Subspace(DefaultParamspace), types.DefaultCodespace)
 
@@ -251,6 +264,12 @@ func createTestAddrs(numAddrs int) []sdk.AccAddress {
 	return addresses
 }
 
+func CreateTestAddr() sdk.AccAddress {
+	bz := make([]byte, 20)
+	_, _ = rand.Read(bz)
+	return sdk.AccAddress(bz)
+}
+
 // nolint: unparam
 func createTestPubKeys(numPubKeys int) []crypto.PubKey {
 	var publicKeys []crypto.PubKey
@@ -277,9 +296,8 @@ func ValidatorByPowerIndexExists(ctx sdk.Context, keeper Keeper, power []byte) b
 
 // update validator for testing
 func TestingUpdateValidator(keeper Keeper, ctx sdk.Context, validator types.Validator) types.Validator {
-	pool := keeper.GetPool(ctx)
 	keeper.SetValidator(ctx, validator)
-	keeper.SetValidatorByPowerIndex(ctx, validator, pool)
+	keeper.SetValidatorByPowerIndex(ctx, validator)
 	keeper.ApplyAndReturnValidatorSetUpdates(ctx)
 	validator, found := keeper.GetValidator(ctx, validator.OperatorAddr)
 	if !found {

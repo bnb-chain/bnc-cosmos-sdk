@@ -40,7 +40,7 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, data types.GenesisState) (res [
 
 		// Manually set indices for the first time
 		keeper.SetValidatorByConsAddr(ctx, validator)
-		keeper.SetValidatorByPowerIndex(ctx, validator, data.Pool)
+		keeper.SetValidatorByPowerIndex(ctx, validator)
 		keeper.OnValidatorCreated(ctx, validator.OperatorAddr)
 	}
 
@@ -49,7 +49,7 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, data types.GenesisState) (res [
 		keeper.OnDelegationCreated(ctx, delegation.DelegatorAddr, delegation.ValidatorAddr)
 	}
 
-	res = keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	_, res = keeper.ApplyAndReturnValidatorSetUpdates(ctx)
 	return
 }
 

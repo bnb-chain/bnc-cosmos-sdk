@@ -122,6 +122,9 @@ func (ctx CLIContext) EnsureAccountExists() error {
 	if err != nil {
 		return err
 	}
+	if len(addr) == 0 {
+		return errors.New("from address cannot be empty")
+	}
 
 	accountBytes, err := ctx.QueryStore(auth.AddressStoreKey(addr), ctx.AccountStore)
 	if err != nil {

@@ -33,12 +33,31 @@ type Delegation struct {
 	DelegatorAddr sdk.AccAddress `json:"delegator_addr"`
 	ValidatorAddr sdk.ValAddress `json:"validator_addr"`
 	Shares        sdk.Dec        `json:"shares"`
-	Height        int64          `json:"height"` // Last height bond updated
+	Height        int64          `json:"-"` // Last height bond updated
 }
 
 type delegationValue struct {
 	Shares sdk.Dec
 	Height int64
+}
+
+//________________________________________________________________
+
+type SimplifiedDelegation struct {
+	DelegatorAddr sdk.AccAddress `json:"delegator_addr"`
+	Shares        sdk.Dec        `json:"shares"`
+}
+
+func MustMarshalSimplifiedDelegations(cdc *codec.Codec, simDels []SimplifiedDelegation) []byte {
+	return cdc.MustMarshalBinaryLengthPrefixed(simDels)
+}
+
+func MustUnmarshalSimplifiedDelegations(cdc *codec.Codec, value []byte) (simDels []SimplifiedDelegation) {
+	err := cdc.UnmarshalBinaryLengthPrefixed(value, &simDels)
+	if err != nil {
+		panic(err)
+	}
+	return simDels
 }
 
 // return the delegation without fields contained within the key for the store
@@ -64,7 +83,7 @@ func UnmarshalDelegation(cdc *codec.Codec, key, value []byte) (delegation Delega
 	var storeValue delegationValue
 	err = cdc.UnmarshalBinaryLengthPrefixed(value, &storeValue)
 	if err != nil {
-		err = fmt.Errorf("%v: %v", ErrNoDelegation(DefaultCodespace).Data(), err)
+		err = fmt.Errorf("%v", ErrNoDelegation(DefaultCodespace).Data())
 		return
 	}
 
@@ -83,6 +102,30 @@ func UnmarshalDelegation(cdc *codec.Codec, key, value []byte) (delegation Delega
 		Shares:        storeValue.Shares,
 		Height:        storeValue.Height,
 	}, nil
+}
+
+func MustUnmarshalDelegationValAsKey(cdc *codec.Codec, key, value []byte) Delegation {
+	delegation, err := UnmarshalDelegationValAsKey(cdc, key, value)
+	if err != nil {
+		panic(err)
+	}
+	return delegation
+}
+
+// return the delegation without fields contained within the key for the store.
+// Validator and delegator position in the key need to be exchanged
+func UnmarshalDelegationValAsKey(cdc *codec.Codec, key, value []byte) (realDelegation Delegation, err error) {
+	delegation, err := UnmarshalDelegation(cdc, key, value)
+	if err != nil {
+		return
+	}
+
+	realDelegation.DelegatorAddr = delegation.ValidatorAddr.Bytes()
+	realDelegation.ValidatorAddr = delegation.DelegatorAddr.Bytes()
+	realDelegation.Shares = delegation.Shares
+	realDelegation.Height = delegation.Height
+
+	return realDelegation, nil
 }
 
 // nolint
@@ -291,8 +334,38 @@ func (d Redelegation) HumanReadableString() (string, error) {
 	resp += fmt.Sprintf("Creation height: %v\n", d.CreationHeight)
 	resp += fmt.Sprintf("Min time to unbond (unix): %v\n", d.MinTime)
 	resp += fmt.Sprintf("Source shares: %s\n", d.SharesSrc.String())
-	resp += fmt.Sprintf("Destination shares: %s", d.SharesDst.String())
+	resp += fmt.Sprintf("Destination shares: %s\n", d.SharesDst.String())
+	resp += fmt.Sprintf("Balance: %s", d.Balance.String())
 
 	return resp, nil
 
+}
+
+// ----------------------------------------------------------------------------
+// Client Types
+
+// DelegationResponse is equivalent to Delegation except that it contains a balance
+// in addition to shares which is more suitable for client responses.
+type DelegationResponse struct {
+	Delegation
+	Balance sdk.Coin `json:"balance"`
+}
+
+// NewDelegationResp creates a new DelegationResponse instance
+func NewDelegationResp(
+	delegatorAddr sdk.AccAddress, validatorAddr sdk.ValAddress, shares sdk.Dec, balance sdk.Coin,
+) DelegationResponse {
+	return DelegationResponse{
+		Delegation: Delegation{DelegatorAddr: delegatorAddr, ValidatorAddr: validatorAddr, Shares: shares},
+		Balance:    balance,
+	}
+}
+
+func (dr DelegationResponse) HumanReadableString() (string, error) {
+	resp := "Delegation \n"
+	resp += fmt.Sprintf("Delegator: %s\n", dr.DelegatorAddr)
+	resp += fmt.Sprintf("Validator: %s\n", dr.ValidatorAddr)
+	resp += fmt.Sprintf("Balance: %s", dr.Balance.String())
+
+	return resp, nil
 }

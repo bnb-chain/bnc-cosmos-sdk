@@ -1,4 +1,3 @@
-// nolint
 package tags
 
 import (
@@ -6,12 +5,9 @@ import (
 )
 
 var (
-	ActionSubmitProposal   = []byte("submit-proposal")
-	ActionDeposit          = []byte("deposit")
-	ActionVote             = []byte("vote")
-	ActionProposalDropped  = []byte("proposal-dropped")
-	ActionProposalPassed   = []byte("proposal-passed")
-	ActionProposalRejected = []byte("proposal-rejected")
+	ActionSubmitProposal = []byte("submit-proposal")
+	ActionDeposit        = []byte("deposit")
+	ActionVote           = []byte("vote")
 
 	Action            = sdk.TagAction
 	Proposer          = "proposer"

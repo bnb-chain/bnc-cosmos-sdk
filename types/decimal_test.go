@@ -42,7 +42,7 @@ func TestNewDecFromStr(t *testing.T) {
 		{"11111000", false, NewDecWithPrec(11111, 5)},
 		{"31446055113144278234343371835", true, Dec{}},
 		{"3144278234343370000",
-			false, NewDecFromBigIntWithPrec(normalInt, 4)},
+			false, NewDecFromIntWithPrec(normalInt, 4)},
 		{".", true, Dec{}},
 		{".0", true, ZeroDec()},
 		{"1.", true, OneDec()},

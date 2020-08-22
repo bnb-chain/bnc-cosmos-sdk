@@ -13,6 +13,14 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(MsgDelegate{}, "cosmos-sdk/MsgDelegate", nil)
 	cdc.RegisterConcrete(MsgBeginUnbonding{}, "cosmos-sdk/BeginUnbonding", nil)
 	cdc.RegisterConcrete(MsgBeginRedelegate{}, "cosmos-sdk/BeginRedelegate", nil)
+
+	cdc.RegisterConcrete(MsgCreateSideChainValidator{}, "cosmos-sdk/MsgCreateSideChainValidator", nil)
+	cdc.RegisterConcrete(MsgEditSideChainValidator{}, "cosmos-sdk/MsgEditSideChainValidator", nil)
+	cdc.RegisterConcrete(MsgSideChainDelegate{}, "cosmos-sdk/MsgSideChainDelegate", nil)
+	cdc.RegisterConcrete(MsgSideChainRedelegate{}, "cosmos-sdk/MsgSideChainRedelegate", nil)
+	cdc.RegisterConcrete(MsgSideChainUndelegate{}, "cosmos-sdk/MsgSideChainUndelegate", nil)
+
+	cdc.RegisterConcrete(&Params{}, "params/StakeParamSet", nil)
 }
 
 // generic sealed codec to be used throughout sdk

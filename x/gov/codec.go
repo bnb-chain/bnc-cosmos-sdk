@@ -11,6 +11,10 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(MsgDeposit{}, "cosmos-sdk/MsgDeposit", nil)
 	cdc.RegisterConcrete(MsgVote{}, "cosmos-sdk/MsgVote", nil)
 
+	cdc.RegisterConcrete(MsgSideChainSubmitProposal{}, "cosmos-sdk/MsgSideChainSubmitProposal", nil)
+	cdc.RegisterConcrete(MsgSideChainDeposit{}, "cosmos-sdk/MsgSideChainDeposit", nil)
+	cdc.RegisterConcrete(MsgSideChainVote{}, "cosmos-sdk/MsgSideChainVote", nil)
+
 	cdc.RegisterInterface((*Proposal)(nil), nil)
 	cdc.RegisterConcrete(&TextProposal{}, "gov/TextProposal", nil)
 }

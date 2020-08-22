@@ -185,6 +185,7 @@ type Error interface {
 	// set codespace
 	WithDefaultCodespace(CodespaceType) Error
 
+	RawError() string // return raw error message
 	Code() CodeType
 	Codespace() CodespaceType
 	ABCILog() string
@@ -246,6 +247,11 @@ Codespace: %d
 Code: %d
 Message: %#v
 `, err.codespace, err.code, err.cmnError.Error())
+}
+
+// RawError returns raw error message of error
+func (err *sdkError) RawError() string {
+	return err.cmnError.Error()
 }
 
 // Implements ABCIError.
