@@ -33,6 +33,7 @@ var (
 		"tokensBurn":               {},
 		"setAccountFlags":          {},
 		"tokensFreeze":             {},
+		"transfer_ownership":       {},
 		"create_validator":         {},
 		"remove_validator":         {},
 		"timeLock":                 {},
