@@ -70,6 +70,12 @@ func RegisterUpgradeBeginBlocker(paramHub *ParamHub) {
 		}
 		paramHub.UpdateFeeParams(ctx, miniTokenFeeParams)
 	})
+	sdk.UpgradeMgr.RegisterBeginBlocker(sdk.BEP82, func(ctx sdk.Context) {
+		updateFeeParams := []param.FeeParam{
+			&param.FixedFeeParams{MsgType: "transfer_ownership", Fee: TransferOwnershipFee, FeeFor: sdk.FeeForProposer},
+		}
+		paramHub.UpdateFeeParams(ctx, updateFeeParams)
+	})
 }
 
 func EndBreatheBlock(ctx sdk.Context, paramHub *ParamHub) {
@@ -112,6 +118,7 @@ func init() {
 		"timeLock":                 fees.FixedFeeCalculatorGen,
 		"timeUnlock":               fees.FixedFeeCalculatorGen,
 		"timeRelock":               fees.FixedFeeCalculatorGen,
+		"transfer_ownership":       fees.FixedFeeCalculatorGen,
 		"send":                     bank.TransferFeeCalculatorGen,
 		"HTLT":                     fees.FixedFeeCalculatorGen,
 		"depositHTLT":              fees.FixedFeeCalculatorGen,
