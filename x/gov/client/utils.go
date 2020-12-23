@@ -32,6 +32,12 @@ func NormalizeProposalType(proposalType string) string {
 		return "CreateValidator"
 	case "RemoveValidator", "remove_validator":
 		return "RemoveValidator"
+	case "SCParamsChange", "sc_params_change":
+		return "SCParamsChange"
+	case "CSCParamsChange", "csc_params_change":
+		return "CSCParamsChange"
+	case "ManageChanPermission", "manage_chan_permission":
+		return "ManageChanPermission"
 	}
 	return ""
 }
