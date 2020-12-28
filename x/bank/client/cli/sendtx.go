@@ -31,10 +31,6 @@ func SendTxCmd(cdc *codec.Codec) *cobra.Command {
 				WithCodec(cdc).
 				WithAccountDecoder(authcmd.GetAccountDecoder(cdc))
 
-			if err := cliCtx.EnsureAccountExists(); err != nil {
-				return err
-			}
-
 			toStr := viper.GetString(flagTo)
 
 			to, err := sdk.AccAddressFromBech32(toStr)
