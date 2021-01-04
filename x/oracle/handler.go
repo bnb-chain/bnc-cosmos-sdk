@@ -144,11 +144,19 @@ func handlePackage(ctx sdk.Context, oracleKeeper Keeper, chainId sdk.ChainID, pa
 	var sendSequence int64 = -1
 	if packageType == sdk.SynCrossChainPackageType {
 		if crash {
-			sendSeq, err := oracleKeeper.IbcKeeper.CreateRawIBCPackageById(ctx, chainId,
-				pack.ChannelId, sdk.FailAckCrossChainPackageType, pack.Payload)
-			if err != nil {
+			var ibcErr sdk.Error
+			var sendSeq uint64
+			if sdk.IsUpgrade(sdk.FixFailAckPackage) && len(pack.Payload) >= sTypes.PackageHeaderLength {
+				sendSeq, ibcErr = oracleKeeper.IbcKeeper.CreateRawIBCPackageById(ctx, chainId,
+					pack.ChannelId, sdk.FailAckCrossChainPackageType, pack.Payload[sTypes.PackageHeaderLength:])
+			} else {
+				logger.Error("found payload without header", "channelID", pack.ChannelId, "sequence", pack.Sequence, "payload", hex.EncodeToString(pack.Payload))
+				sendSeq, ibcErr = oracleKeeper.IbcKeeper.CreateRawIBCPackageById(ctx, chainId,
+					pack.ChannelId, sdk.FailAckCrossChainPackageType, pack.Payload)
+			}
+			if ibcErr != nil {
 				logger.Error("failed to write FailAckCrossChainPackage", "err", err)
-				return sdk.Event{}, err
+				return sdk.Event{}, ibcErr
 			}
 			sendSequence = int64(sendSeq)
 		} else {
