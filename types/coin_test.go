@@ -302,6 +302,7 @@ func TestParse(t *testing.T) {
 		{"98:bar , 1:foo  ", true, Coins{{"bar", 98}, {"foo", one}}},
 		{"  55:bling\n", true, Coins{{"bling", 55}}},
 		{"2:foo, 97:bar", true, Coins{{"bar", 97}, {"foo", 2}}},
+		{"10:ba-1BC", true, Coins{{"ba-1BC", 10}}},
 		{"5:mycoin,", false, nil},                                 // no empty coins in a list
 		{"2:3foo, 97:bar", true, Coins{{"3foo", 2}, {"bar", 97}}}, // 3foo is invalid coin name
 		{"11me:coin, 12you:coin", false, nil},                     // no spaces in coin names
