@@ -1,5 +1,15 @@
 # Changelog
 
+##v0.25.0-binance.24
+* [sdk] [\#248](https://github.com/binance-chain/bnc-cosmos-sdk/pull/248) owner transfer
+* [sdk] Allow tx send (generate-only) to actually work offline #4234
+* [sdk] (iavl) #5276 Fix potential race condition in iavlIterator#Close.
+* [sdk] [\#247](https://github.com/binance-chain/bnc-cosmos-sdk/pull/247) Fix failack payload
+* [sdk] [\#251](https://github.com/binance-chain/bnc-cosmos-sdk/pull/251) change minimum length to 2
+* [sdk] [\#252](https://github.com/binance-chain/bnc-cosmos-sdk/pull/252) Fix Fee compatibility issue
+
+
+
 ## v0.25.0 binance.20
 
 * [sdk] [\#163](https://github.com/binance-chain/bnc-cosmos-sdk/pull/163) Tss for project team
