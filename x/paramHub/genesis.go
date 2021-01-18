@@ -7,19 +7,20 @@ import (
 
 const (
 	// Operate fee
-	ProposeFee     = 10e8
-	DepositFee     = 125e3
-	SideProposeFee = 10e8
-	SideDepositFee = 125e3
-	SideVoteFee    = 1e8
-	ListingFee     = 2000e8
-	IssueFee       = 1000e8
-	MintFee        = 200e8
-	BurnFee        = 1e8
-	FreezeFee      = 1e6
-	TimeLockFee    = 1e6
-	TimeUnlockFee  = 1e6
-	TimeRelockFee  = 1e6
+	ProposeFee           = 10e8
+	DepositFee           = 125e3
+	SideProposeFee       = 10e8
+	SideDepositFee       = 125e3
+	SideVoteFee          = 1e8
+	ListingFee           = 2000e8
+	IssueFee             = 1000e8
+	MintFee              = 200e8
+	BurnFee              = 1e8
+	FreezeFee            = 1e6
+	TimeLockFee          = 1e6
+	TimeUnlockFee        = 1e6
+	TimeRelockFee        = 1e6
+	TransferOwnershipFee = 1e6
 
 	SetAccountFlagsFee = 1e8
 
@@ -67,9 +68,9 @@ const (
 
 	//MiniToken fee
 	TinyIssueFee   = 2e8
-	MiniIssueFee   = 4e8
+	MiniIssueFee   = 3e8
 	MiniSetUriFee  = 37500
-	MiniListingFee = 10e8
+	MiniListingFee = 8e8
 )
 
 var DefaultGenesisState = param.GenesisState{

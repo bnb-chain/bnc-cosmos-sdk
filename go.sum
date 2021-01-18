@@ -24,8 +24,8 @@ github.com/bgentry/speakeasy v0.1.0 h1:ByYyxL9InA1OWqxJqqp2A5pYHUrCiAL6K3J+LKSsQ
 github.com/bgentry/speakeasy v0.1.0/go.mod h1:+zsyZBPWlz7T6j88CTgSN5bM796AkVf0kBD4zp0CCIs=
 github.com/binance-chain/bnc-go-amino v0.14.1-binance.2 h1:XcbcfisVItk92UKoGbtNT8nbcfadj3H3ayuM2srAfVs=
 github.com/binance-chain/bnc-go-amino v0.14.1-binance.2/go.mod h1:yaElUUxWtv/TC/ldGtlKAvS1vKwokxgJ1d97I+6is80=
-github.com/binance-chain/bnc-tendermint v0.32.3-binance.3 h1:b8SqtWmtHPhPQ2ADzUgO9sr+ChKL9ho4dTorBjGAAyY=
-github.com/binance-chain/bnc-tendermint v0.32.3-binance.3/go.mod h1:kN5dNxE8voFtDqx2HjbM8sBIH5cUuMtLg0XEHjqzUiY=
+github.com/binance-chain/bnc-tendermint v0.32.3-binance.5 h1:t+gCaAoN3PLMFFayY8EtUkEftir9a0DM9uK2DR6ZCwU=
+github.com/binance-chain/bnc-tendermint v0.32.3-binance.5/go.mod h1:kN5dNxE8voFtDqx2HjbM8sBIH5cUuMtLg0XEHjqzUiY=
 github.com/binance-chain/bnc-tendermint-iavl v0.12.0-binance.4 h1:BhaV2iiGWfRC6iB8HHOYJeUDwtQMB2pUA4ah+KCbBhI=
 github.com/binance-chain/bnc-tendermint-iavl v0.12.0-binance.4/go.mod h1:Zmh8GRdNJB8DULIOBar3JCZp6tSpcvM1NGKfE9U2EzA=
 github.com/binance-chain/ledger-cosmos-go v0.9.9-binance.3 h1:FFpFbkzlP2HUyxQCm0eoU6mkfgMNynfqZRbeWqlaLdQ=
