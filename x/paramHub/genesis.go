@@ -20,7 +20,7 @@ const (
 	TimeLockFee          = 1e6
 	TimeUnlockFee        = 1e6
 	TimeRelockFee        = 1e6
-	TransferOwnershipFee = 1e6 // TODO
+	TransferOwnershipFee = 1e6
 
 	SetAccountFlagsFee = 1e8
 
