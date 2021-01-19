@@ -17,7 +17,8 @@ import (
 func SortJSON(toSortJSON []byte) ([]byte, error) {
 	var c interface{}
 	var err error
-	if !IsUpgrade(FixSignBytesOverflow) {
+	_, ok := UpgradeMgr.Config.HeightMap[FixSignBytesOverflow]
+	if ok && !IsUpgrade(FixSignBytesOverflow) {
 		err = json.Unmarshal(toSortJSON, &c)
 	} else {
 		decoder := json.NewDecoder(bytes.NewReader(toSortJSON))
