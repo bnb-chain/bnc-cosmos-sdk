@@ -76,6 +76,12 @@ func RegisterUpgradeBeginBlocker(paramHub *ParamHub) {
 		}
 		paramHub.UpdateFeeParams(ctx, updateFeeParams)
 	})
+	sdk.UpgradeMgr.RegisterBeginBlocker(sdk.BEPX, func(ctx sdk.Context) {
+		updateFeeParams := []param.FeeParam{
+			&param.FixedFeeParams{MsgType: "dexListGrowthMarket", Fee: ListGrowthMarketFee, FeeFor: sdk.FeeForProposer},
+		}
+		paramHub.UpdateFeeParams(ctx, updateFeeParams)
+	})
 }
 
 func EndBreatheBlock(ctx sdk.Context, paramHub *ParamHub) {
@@ -133,6 +139,7 @@ func init() {
 		"oracleClaim":              fees.FixedFeeCalculatorGen,
 		"miniTokensSetURI":         fees.FixedFeeCalculatorGen,
 		"dexListMini":              fees.FixedFeeCalculatorGen,
+		"dexListGrowthMarket":      fees.FixedFeeCalculatorGen,
 		"tinyIssueMsg":             fees.FixedFeeCalculatorGen,
 		"miniIssueMsg":             fees.FixedFeeCalculatorGen,
 	}

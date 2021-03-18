@@ -71,6 +71,8 @@ const (
 	MiniIssueFee   = 3e8
 	MiniSetUriFee  = 37500
 	MiniListingFee = 8e8
+
+	ListGrowthMarketFee = 10e8
 )
 
 var DefaultGenesisState = param.GenesisState{
