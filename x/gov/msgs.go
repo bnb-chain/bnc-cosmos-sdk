@@ -36,6 +36,12 @@ type DelistTradingPairParams struct {
 }
 
 //-----------------------------------------------------------
+type ListPromotionParams struct {
+	BaseAssetSymbol string `json:"base_asset_symbol"` // base asset symbol
+	IsExecuted      bool   `json:"is_executed"`       // is this proposal executed
+}
+
+//-----------------------------------------------------------
 // MsgSubmitProposal
 type MsgSubmitProposal struct {
 	Title          string         `json:"title"`           //  Title of the proposal

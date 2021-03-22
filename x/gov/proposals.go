@@ -131,6 +131,7 @@ const (
 	ProposalTypeRemoveValidator      ProposalKind = 0x07
 	ProposalTypeDelistTradingPair    ProposalKind = 0x08
 	ProposalTypeManageChanPermission ProposalKind = 0x09
+	ProposalTypeListPromotion        ProposalKind = 0x10
 )
 
 // String to proposalType byte.  Returns ff if invalid.
@@ -158,6 +159,8 @@ func ProposalTypeFromString(str string) (ProposalKind, error) {
 		return ProposalTypeCSCParamsChange, nil
 	case "ManageChanPermission":
 		return ProposalTypeManageChanPermission, nil
+	case "ListPromotion":
+		return ProposalTypeListPromotion, nil
 	default:
 		return ProposalKind(0xff), errors.Errorf("'%s' is not a valid proposal type", str)
 	}
@@ -173,7 +176,8 @@ func validProposalType(pt ProposalKind) bool {
 		pt == ProposalTypeCreateValidator ||
 		pt == ProposalTypeRemoveValidator ||
 		pt == ProposalTypeDelistTradingPair ||
-		pt == ProposalTypeManageChanPermission {
+		pt == ProposalTypeManageChanPermission ||
+		pt == ProposalTypeListPromotion {
 		return true
 	}
 	return false
@@ -236,6 +240,8 @@ func (pt ProposalKind) String() string {
 		return "CSCParamsChange"
 	case ProposalTypeManageChanPermission:
 		return "ManageChanPermission"
+	case ProposalTypeListPromotion:
+		return "ListPromotion"
 	default:
 		return ""
 	}

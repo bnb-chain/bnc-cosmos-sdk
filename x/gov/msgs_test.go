@@ -36,7 +36,7 @@ func TestMsgSubmitProposal(t *testing.T) {
 		{"Test Proposal", "", gov.ProposalTypeText, addrs[0], coinsPos, 1000 * time.Second, false},
 		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeParameterChange, addrs[0], coinsPos, 1000 * time.Second, true},
 		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeSoftwareUpgrade, addrs[0], coinsPos, 1000 * time.Second, true},
-		{"Test Proposal", "the purpose of this proposal is to test", 0x10, addrs[0], coinsPos, 1, false},
+		{"Test Proposal", "the purpose of this proposal is to test", 0x11, addrs[0], coinsPos, 1, false},
 		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeText, sdk.AccAddress{}, coinsPos, 1000 * time.Second, false},
 		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeText, addrs[0], coinsZero, 1000 * time.Second, true},
 		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeText, addrs[0], coinsNeg, 1000 * time.Second, false},
@@ -46,6 +46,7 @@ func TestMsgSubmitProposal(t *testing.T) {
 		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeParameterChange, addrs[0], coinsPos, 0, false},
 		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeParameterChange, addrs[0], coinsPos, 2 * gov.MaxVotingPeriod, false},
 		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeText, sdk.AccAddress{0, 1}, coinsZero, 1000 * time.Second, false},
+		{"Test Proposal", "the purpose of this proposal is to test", gov.ProposalTypeListPromotion, addrs[0], coinsPos, 1000 * time.Second, true},
 	}
 
 	for i, tc := range tests {
