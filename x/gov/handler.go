@@ -124,6 +124,7 @@ type SimpleProposal struct {
 }
 
 func EndBlocker(baseCtx sdk.Context, keeper Keeper) (refundProposals, notRefundProposals []SimpleProposal) {
+	logger := baseCtx.Logger().With("module", "x/gov")
 	events := sdk.EmptyEvents()
 	refundProposals = make([]SimpleProposal, 0)
 	notRefundProposals = make([]SimpleProposal, 0)
@@ -137,22 +138,28 @@ func EndBlocker(baseCtx sdk.Context, keeper Keeper) (refundProposals, notRefundP
 		}
 	}
 	for i := 0; i < len(chainIDs); i++ {
-		resEvents, refund, noRefund := settleProposals(contexts[i], keeper, chainIDs[i])
+		resEvents, refund, noRefund, passed := settleProposals(contexts[i], keeper, chainIDs[i])
 		events = events.AppendEvents(resEvents)
 		refundProposals = append(refundProposals, refund...)
 		notRefundProposals = append(notRefundProposals, noRefund...)
+		for _, p := range passed {
+			if err := keeper.OnProposalPassed(contexts[i], p); err != nil {
+				logger.Error("Failed to execute the passed proposal", "proposalId", p.GetProposalID(), "err", err)
+			}
+		}
 	}
 	baseCtx.EventManager().EmitEvents(events)
 	return
 }
 
-func settleProposals(ctx sdk.Context, keeper Keeper, chainId string) (resEvents sdk.Events, refundProposals, notRefundProposals []SimpleProposal) {
+func settleProposals(ctx sdk.Context, keeper Keeper, chainId string) (resEvents sdk.Events, refundProposals, notRefundProposals []SimpleProposal, passedProposals []Proposal) {
 
 	logger := ctx.Logger().With("module", "x/gov")
 
 	resEvents = sdk.EmptyEvents()
 	refundProposals = make([]SimpleProposal, 0)
 	notRefundProposals = make([]SimpleProposal, 0)
+	passedProposals = make([]Proposal, 0)
 
 	// Delete proposals that haven't met minDeposit
 	for ShouldPopInactiveProposalQueue(ctx, keeper) {
@@ -194,6 +201,8 @@ func settleProposals(ctx sdk.Context, keeper Keeper, chainId string) (resEvents 
 		}
 
 		passes, refundDeposits, tallyResults := Tally(ctx, keeper, activeProposal)
+		activeProposal.SetTallyResult(tallyResults)
+
 		var action string
 		if passes {
 			activeProposal.SetStatus(StatusPassed)
@@ -202,6 +211,7 @@ func settleProposals(ctx sdk.Context, keeper Keeper, chainId string) (resEvents 
 			// refund deposits
 			keeper.RefundDeposits(ctx, activeProposal.GetProposalID())
 			refundProposals = append(refundProposals, SimpleProposal{activeProposal.GetProposalID(), chainId})
+			passedProposals = append(passedProposals, activeProposal)
 		} else {
 			activeProposal.SetStatus(StatusRejected)
 			action = events.EventTypeProposalRejected
@@ -215,8 +225,6 @@ func settleProposals(ctx sdk.Context, keeper Keeper, chainId string) (resEvents 
 				notRefundProposals = append(notRefundProposals, SimpleProposal{activeProposal.GetProposalID(), chainId})
 			}
 		}
-
-		activeProposal.SetTallyResult(tallyResults)
 		keeper.SetProposal(ctx, activeProposal)
 
 		logger.Info(fmt.Sprintf("proposal %d (%s) tallied; passed: %v",
