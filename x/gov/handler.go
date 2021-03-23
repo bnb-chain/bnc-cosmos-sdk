@@ -142,9 +142,11 @@ func EndBlocker(baseCtx sdk.Context, keeper Keeper) (refundProposals, notRefundP
 		events = events.AppendEvents(resEvents)
 		refundProposals = append(refundProposals, refund...)
 		notRefundProposals = append(notRefundProposals, noRefund...)
-		for _, p := range passed {
-			if err := keeper.OnProposalPassed(contexts[i], p); err != nil {
-				logger.Error("Failed to execute the passed proposal", "proposalId", p.GetProposalID(), "err", err)
+		if sdk.IsUpgrade(sdk.ListRefactor) {
+			for _, p := range passed {
+				if err := keeper.OnProposalPassed(contexts[i], p); err != nil {
+					logger.Error("Failed to execute the passed proposal", "proposalId", p.GetProposalID(), "err", err)
+				}
 			}
 		}
 	}
