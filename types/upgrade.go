@@ -13,6 +13,8 @@ const (
 	LaunchBscUpgrade     = "LaunchBscUpgrade"
 	BEP82                = "BEP82"                // https://github.com/binance-chain/BEPs/pull/82
 	FixFailAckPackage    = "FixFailAckPackage"
+	ListRefactor         = "ListRefactor"         // refactor list process
+	TradingPairPromotion = "TradingPairPromotion" // upgrade for enabling promotion of trading pair
 )
 
 var MainNetConfig = UpgradeConfig{
