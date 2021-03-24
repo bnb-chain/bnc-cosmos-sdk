@@ -78,7 +78,7 @@ func RegisterUpgradeBeginBlocker(paramHub *ParamHub) {
 	})
 	sdk.UpgradeMgr.RegisterBeginBlocker(sdk.ListRefactor, func(ctx sdk.Context) {
 		updateFeeParams := []param.FeeParam{
-			&param.FixedFeeParams{MsgType: "dexListGrowthMarket", Fee: ListGrowthMarketFee, FeeFor: sdk.FeeForProposer},
+			&param.FixedFeeParams{MsgType: "dexListGrowthMarket", Fee: ListGrowthMarketFee, FeeFor: sdk.FeeForAll},
 		}
 		paramHub.UpdateFeeParams(ctx, updateFeeParams)
 	})
