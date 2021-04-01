@@ -174,3 +174,58 @@ func TestMsgType(t *testing.T) {
 		require.Equal(t, tc.isSupported, IsMsgTypeSupported(MsgTypeTest))
 	}
 }
+
+func TestDismissMsgType(t *testing.T) {
+	UpgradeMgr = NewUpgradeManager(UpgradeConfig{})
+
+	type testCase struct {
+		config      UpgradeConfig
+		height      int64
+		isDismissed bool
+	}
+
+	testCases := []testCase{
+		{
+			config: UpgradeConfig{
+				HeightMap: map[string]int64{},
+			},
+			height:      10000,
+			isDismissed: false,
+		},
+		{
+			config: UpgradeConfig{
+				HeightMap: map[string]int64{
+					UpgradeTest: 545000,
+				},
+			},
+			height:      10000,
+			isDismissed: false,
+		}, {
+			config: UpgradeConfig{
+				HeightMap: map[string]int64{
+					UpgradeTest: 545000,
+				},
+			},
+			height:      545000,
+			isDismissed: true,
+		}, {
+			config: UpgradeConfig{
+				HeightMap: map[string]int64{
+					UpgradeTest: 545000,
+				},
+			},
+			height:      545001,
+			isDismissed: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		UpgradeMgr.AddConfig(tc.config)
+		if UpgradeMgr.GetUpgradeHeight(UpgradeTest) != 0 {
+			UpgradeMgr.DismissMsgTypes(UpgradeTest, MsgTypeTest)
+		}
+		UpgradeMgr.SetHeight(tc.height)
+		require.Equal(t, tc.isDismissed, IsMsgTypeDismissed(MsgTypeTest))
+	}
+
+}

@@ -68,6 +68,7 @@ var (
 		"miniIssueMsg":         {},
 		"miniTokensSetURI":     {},
 		"dexListMini":          {},
+		"dexListGrowthMarket":  {},
 	}
 
 	ValidTransferFeeMsgTypes = map[string]struct{}{
