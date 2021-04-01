@@ -708,6 +708,11 @@ func validateBasicTxMsgs(msgs []sdk.Msg) sdk.Error {
 				msg.Type(), sdk.UpgradeMgr.GetMsgTypeHeight(msg.Type())))
 		}
 
+		if sdk.IsMsgTypeDismissed(msg.Type()) {
+			return sdk.ErrMsgNotSupported(fmt.Sprintf("msg type(%s) is not supported after height %d",
+				msg.Type(), sdk.UpgradeMgr.GetMsgTypeDismissHeight(msg.Type())))
+		}
+
 		// Validate the Msg.
 		err := msg.ValidateBasic()
 		if err != nil {

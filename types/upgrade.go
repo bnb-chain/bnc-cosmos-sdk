@@ -11,7 +11,7 @@ const (
 	BEP3                 = "BEP3"                 // https://github.com/binance-chain/BEPs/pull/30
 	BEP8                 = "BEP8"                 // Mini-BEP2 token
 	LaunchBscUpgrade     = "LaunchBscUpgrade"
-	BEP82                = "BEP82"                // https://github.com/binance-chain/BEPs/pull/82
+	BEP82                = "BEP82" // https://github.com/binance-chain/BEPs/pull/82
 	FixFailAckPackage    = "FixFailAckPackage"
 	ListRefactor         = "ListRefactor"         // refactor list process
 	TradingPairPromotion = "TradingPairPromotion" // upgrade for enabling promotion of trading pair
@@ -22,10 +22,11 @@ var MainNetConfig = UpgradeConfig{
 }
 
 type UpgradeConfig struct {
-	HeightMap     map[string]int64
-	StoreKeyMap   map[string]int64
-	MsgTypeMap    map[string]int64
-	BeginBlockers map[int64][]func(ctx Context)
+	HeightMap           map[string]int64
+	StoreKeyMap         map[string]int64
+	MsgTypeMap          map[string]int64
+	DismissedMsgTypeMap map[string]int64
+	BeginBlockers       map[int64][]func(ctx Context)
 }
 
 type UpgradeManager struct {
@@ -125,6 +126,21 @@ func (mgr *UpgradeManager) RegisterMsgTypes(upgradeName string, msgTypes ...stri
 	}
 }
 
+func (mgr *UpgradeManager) DismissMsgTypes(upgradeName string, msgTypes ...string) {
+	height := mgr.GetUpgradeHeight(upgradeName)
+	if height == 0 {
+		panic(fmt.Errorf("no UpgradeHeight found for %s", upgradeName))
+	}
+
+	if mgr.Config.DismissedMsgTypeMap == nil {
+		mgr.Config.DismissedMsgTypeMap = map[string]int64{}
+	}
+
+	for _, msgType := range msgTypes {
+		mgr.Config.DismissedMsgTypeMap[msgType] = height
+	}
+}
+
 func (mgr *UpgradeManager) GetStoreKeyHeight(storeKeyName string) int64 {
 	if mgr.Config.StoreKeyMap == nil {
 		return 0
@@ -139,6 +155,14 @@ func (mgr *UpgradeManager) GetMsgTypeHeight(msgType string) int64 {
 	}
 
 	return mgr.Config.MsgTypeMap[msgType]
+}
+
+func (mgr *UpgradeManager) GetMsgTypeDismissHeight(msgType string) int64 {
+	if mgr.Config.DismissedMsgTypeMap == nil {
+		return 0
+	}
+
+	return mgr.Config.DismissedMsgTypeMap[msgType]
 }
 
 func IsUpgradeHeight(name string) bool {
@@ -184,6 +208,15 @@ func IsMsgTypeSupported(msgType string) bool {
 	}
 
 	return UpgradeMgr.GetHeight() >= msgTypeHeight
+}
+
+func IsMsgTypeDismissed(msgType string) bool {
+	msgTypeDismissHeight := UpgradeMgr.GetMsgTypeDismissHeight(msgType)
+	if msgTypeDismissHeight == 0 {
+		return false
+	}
+
+	return UpgradeMgr.GetHeight() >= msgTypeDismissHeight
 }
 
 func Upgrade(name string, before func(), in func(), after func()) {
