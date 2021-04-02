@@ -873,7 +873,6 @@ func GetCmdSubmitListPromotionProposal(cdc *codec.Codec) *cobra.Command {
 
 			promotionParams := gov.ListPromotionParams{
 				BaseAssetSymbol: baseAsset,
-				IsExecuted:      false,
 			}
 
 			promotionParamsBz, err := json.Marshal(promotionParams)
