@@ -2,10 +2,30 @@ package keeper
 
 import (
 	"fmt"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
+	"time"
 )
+
+func (k Keeper) DistributeBatchRewards(ctx sdk.Context) {
+	if sdk.IsUpgrade(sdk.LaunchBscUpgrade) && k.ScKeeper != nil {
+		sideChainId := "bsc"
+		bondDenom := k.BondDenom(ctx)
+
+		distributeStart := time.Now()
+		rewards := k.GetRewards(ctx, sideChainId, 0)
+		if rewards != nil {
+			for i := range rewards {
+				if _, _, err := k.bankKeeper.AddCoins(ctx, rewards[i].AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, rewards[i].Amount)}); err != nil {
+					panic(err)
+				}
+			}
+			distributeElapsed := time.Since(distributeStart)
+			fmt.Println("PERF_STAKING delegation rewards batch distribute: ", distributeElapsed)
+			fmt.Println("PERF_STAKING delegation rewards batch size: ", len(rewards))
+		}
+	}
+}
 
 func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 
@@ -18,6 +38,12 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 
 	bondDenom := k.BondDenom(ctx)
 	var toPublish []types.DistributionData
+
+	//------------------------------
+	start := time.Now()
+	fmt.Println("PERF_STAKING start distribute: ", start.Format("20060102150405"))
+	//------------------------------
+
 	for _, validator := range validators {
 		distAccCoins := k.bankKeeper.GetCoins(ctx, validator.DistributionAddr)
 		totalReward := distAccCoins.AmountOf(bondDenom)
@@ -37,25 +63,50 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 			if err := k.bankKeeper.SetCoins(ctx, validator.DistributionAddr, distAccCoins); err != nil {
 				panic(err)
 			}
+			calStart := time.Now()
 			rewards = allocate(simDelsToSharers(delegations), remainReward)
+			calElapsed := time.Since(calStart)
+			fmt.Println("PERF_STAKING cal rewards: ", calElapsed)
+
+			commissionStart := time.Now()
 			if commission.RawInt() > 0 { // assign rewards to self-delegator
 				if _, _, err := k.bankKeeper.AddCoins(ctx, validator.GetFeeAddr(), sdk.Coins{sdk.NewCoin(bondDenom, commission.RawInt())}); err != nil {
 					panic(err)
 				}
 			}
-			// assign rewards to delegator
-			changedAddrs := make([]sdk.AccAddress, len(rewards)+1)
-			for i := range rewards {
-				if _, _, err := k.bankKeeper.AddCoins(ctx, rewards[i].AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, rewards[i].Amount)}); err != nil {
-					panic(err)
-				}
-				changedAddrs[i] = rewards[i].AccAddr
+			commissionElapsed := time.Since(commissionStart)
+			fmt.Println("PERF_STAKING commission distribute: ", commissionElapsed)
+
+			storeStart := time.Now()
+			//todo: not totally correct, refine later
+			batchSize := 1000
+			batchCount := len(rewards) / batchSize
+			if len(rewards)%batchSize != 0 {
+				batchCount = batchCount + 1
 			}
 
-			changedAddrs[len(rewards)] = validator.DistributionAddr
-			if k.addrPool != nil {
-				k.addrPool.AddAddrs(changedAddrs)
+			for i := 0; i < batchCount-1; i++ {
+				k.SetRewards(ctx, sideChainId, int64(i), rewards[i*batchSize:(i+1)*batchSize])
 			}
+			k.SetRewards(ctx, sideChainId, int64(batchCount), rewards[batchCount*batchSize:])
+
+			storeElapsed := time.Since(storeStart)
+			fmt.Println("PERF_STAKING delegation rewards store: ", storeElapsed)
+			fmt.Println("PERF_STAKING delegation rewards total size: ", len(rewards))
+
+			// assign rewards to delegator
+			//changedAddrs := make([]sdk.AccAddress, len(rewards)+1)
+			//for i := range rewards {
+			//	if _, _, err := k.bankKeeper.AddCoins(ctx, rewards[i].AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, rewards[i].Amount)}); err != nil {
+			//		panic(err)
+			//	}
+			//	changedAddrs[i] = rewards[i].AccAddr
+			//}
+
+			//changedAddrs[len(rewards)] = validator.DistributionAddr
+			//if k.addrPool != nil {
+			//	k.addrPool.AddAddrs(changedAddrs)
+			//}
 		}
 
 		if ctx.IsDeliverTx() && k.PbsbServer != nil {

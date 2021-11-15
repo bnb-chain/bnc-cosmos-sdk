@@ -41,6 +41,8 @@ var (
 	ValidatorQueueKey    = []byte{0x43} // prefix for the timestamps in validator queue
 
 	SideChainStorePrefixByIdKey = []byte{0x51} // prefix for each key to a side chain store prefix, by side chain id
+
+	RewardKey = []byte{0x60} // key for the staking reward
 )
 
 const (

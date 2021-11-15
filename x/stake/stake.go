@@ -93,6 +93,8 @@ var (
 	TestingUpdateValidator       = keeper.TestingUpdateValidator
 	MigratePowerRankKey          = keeper.MigratePowerRankKey
 
+	RewardKey                    = keeper.RewardKey
+
 	DefaultParamspace = keeper.DefaultParamspace
 	KeyUnbondingTime  = types.KeyUnbondingTime
 	KeyMaxValidators  = types.KeyMaxValidators

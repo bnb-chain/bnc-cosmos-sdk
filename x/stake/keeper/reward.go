@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"encoding/binary"
 	"math"
 	"math/big"
 
@@ -85,4 +86,34 @@ func mulQuoBigIntWithExtraDecimal(a, b, c, extra *big.Int) (afterRoundDown int64
 	afterRoundDown = afterRoundDownBig.Int64()
 	extraDecimalValue = int(expectedDecimalValueBig.Int64())
 	return afterRoundDown, extraDecimalValue
+}
+
+func (k Keeper) SetRewards(ctx sdk.Context, sideChainId string, batchNo int64, rewards []types.Reward) {
+	store := ctx.KVStore(k.storeKey)
+	bz := types.MustMarshalRewards(k.cdc, rewards)
+	store.Set(GetSideChainBatchKey(sideChainId, batchNo), bz)
+}
+
+func GetSideChainBatchKey(sideChainId string, batchNo int64) []byte {
+	bz1 := make([]byte, 8)
+	copy(bz1, sideChainId)
+
+	bz2 := []byte{'-'}
+
+	bz3 := make([]byte, 8)
+	binary.BigEndian.PutUint64(bz3, uint64(batchNo))
+
+	bz := append(RewardKey, bz1...)
+	bz = append(bz, bz2...)
+	bz = append(bz, bz3...)
+
+	return bz
+}
+
+func (k Keeper) GetRewards(ctx sdk.Context, sideChainId string, batchNo int64) (rewards []types.Reward) {
+	store := ctx.KVStore(k.storeKey)
+
+	value := store.Get(GetSideChainBatchKey(sideChainId, batchNo))
+	rewards = types.MustUnmarshalRewards(k.cdc, value)
+	return
 }

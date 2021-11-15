@@ -146,6 +146,7 @@ func (k Keeper) AllocateSlashAmtToValidators(ctx sdk.Context, slashedConsAddr []
 		return false, nil, nil
 	}
 
+	//todo: ignore reward store here for now
 	bondDenom := k.BondDenom(ctx)
 	sharers := convertValidators2Shares(validators)
 	rewards := allocate(sharers, amount)
