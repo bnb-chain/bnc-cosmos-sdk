@@ -13,6 +13,7 @@ func (k Keeper) DistributeBatchRewards(ctx sdk.Context) {
 		bondDenom := k.BondDenom(ctx)
 
 		distributeStart := time.Now()
+		fmt.Println("PERF_STAKING start distribute batch: ", distributeStart.Format("20060102150405"))
 		rewards := k.GetRewards(ctx, sideChainId, 0)
 		if rewards != nil {
 			for i := range rewards {
@@ -64,7 +65,7 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 				panic(err)
 			}
 			calStart := time.Now()
-			rewards = allocate(simDelsToSharers(delegations), remainReward)
+			rewardsThisValidator := allocate(simDelsToSharers(delegations), remainReward)
 			calElapsed := time.Since(calStart)
 			fmt.Println("PERF_STAKING cal rewards: ", calElapsed)
 
@@ -77,22 +78,7 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 			commissionElapsed := time.Since(commissionStart)
 			fmt.Println("PERF_STAKING commission distribute: ", commissionElapsed)
 
-			storeStart := time.Now()
-			//todo: not totally correct, refine later
-			batchSize := 1000
-			batchCount := len(rewards) / batchSize
-			if len(rewards)%batchSize != 0 {
-				batchCount = batchCount + 1
-			}
-
-			for i := 0; i < batchCount-1; i++ {
-				k.SetRewards(ctx, sideChainId, int64(i), rewards[i*batchSize:(i+1)*batchSize])
-			}
-			k.SetRewards(ctx, sideChainId, int64(batchCount), rewards[batchCount*batchSize:])
-
-			storeElapsed := time.Since(storeStart)
-			fmt.Println("PERF_STAKING delegation rewards store: ", storeElapsed)
-			fmt.Println("PERF_STAKING delegation rewards total size: ", len(rewards))
+			rewards = append(rewards, rewardsThisValidator...)
 
 			// assign rewards to delegator
 			//changedAddrs := make([]sdk.AccAddress, len(rewards)+1)
@@ -108,6 +94,28 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 			//	k.addrPool.AddAddrs(changedAddrs)
 			//}
 		}
+
+		storeStart := time.Now()
+		//todo: not totally correct, refine later
+		batchSize := 1000
+		batchCount := len(rewards) / batchSize
+		if len(rewards)%batchSize != 0 {
+			batchCount = batchCount + 1
+		}
+
+		for i := 0; i < batchCount-1; i++ {
+			k.SetRewards(ctx, sideChainId, int64(i), rewards[i*batchSize:(i+1)*batchSize])
+		}
+		k.SetRewards(ctx, sideChainId, int64(batchCount), rewards[batchCount*batchSize:])
+
+		storeElapsed := time.Since(storeStart)
+		fmt.Println("PERF_STAKING delegation rewards store: ", storeElapsed)
+		fmt.Println("PERF_STAKING delegation rewards total size: ", len(rewards))
+
+		//------------------------------
+		totalElapsed := time.Since(start)
+		fmt.Println("PERF_STAKING total: ", totalElapsed)
+		//------------------------------
 
 		if ctx.IsDeliverTx() && k.PbsbServer != nil {
 			toPublish = append(toPublish, types.DistributionData{
