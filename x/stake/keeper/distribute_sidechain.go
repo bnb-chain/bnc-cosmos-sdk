@@ -133,6 +133,24 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 	fmt.Println("PERF_STAKING total: ", totalElapsed)
 	//------------------------------
 
+	distributeStart := time.Now()
+	fmt.Println("PERF_STAKING start distribute batch: ", distributeStart.Format("20060102150405"))
+	for i := 0; i < batchCount; i++ {
+		rewards = k.GetRewards(ctx, sideChainId, int64(i))
+		if rewards != nil {
+			for i := range rewards {
+				if _, _, err := k.bankKeeper.AddCoins(ctx, rewards[i].AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, rewards[i].Amount)}); err != nil {
+					panic(err)
+				}
+			}
+			distributeElapsed := time.Since(distributeStart)
+			fmt.Println("PERF_STAKING delegation rewards batch size: ", len(rewards))
+			fmt.Println("PERF_STAKING delegation rewards batch distribute: ", distributeElapsed)
+		}
+	}
+	distributeTotalElapsed := time.Since(distributeStart)
+	fmt.Println("PERF_STAKING distribute batch total: ", distributeTotalElapsed)
+
 	if ctx.IsDeliverTx() && len(toPublish) > 0 && k.PbsbServer != nil {
 		event := types.SideDistributionEvent{
 			SideChainId: sideChainId,
