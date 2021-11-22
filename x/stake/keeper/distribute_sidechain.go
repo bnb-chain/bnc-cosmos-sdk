@@ -136,6 +136,7 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 	distributeStart := time.Now()
 	fmt.Println("PERF_STAKING start distribute batch: ", distributeStart.Format("20060102150405"))
 	for i := 0; i < batchCount; i++ {
+		batchStart := time.Now()
 		rewards = k.GetRewards(ctx, sideChainId, int64(i))
 		if rewards != nil {
 			for i := range rewards {
@@ -143,7 +144,7 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 					panic(err)
 				}
 			}
-			distributeElapsed := time.Since(distributeStart)
+			distributeElapsed := time.Since(batchStart)
 			fmt.Println("PERF_STAKING delegation rewards batch size: ", len(rewards))
 			fmt.Println("PERF_STAKING delegation rewards batch distribute: ", distributeElapsed)
 		}
