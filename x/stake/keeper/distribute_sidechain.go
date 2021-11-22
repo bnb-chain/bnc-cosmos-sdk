@@ -96,6 +96,7 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 		}
 
 		storeStart := time.Now()
+		fmt.Println("PERF_STAKING delegation rewards total size: ", len(rewards))
 		//todo: not totally correct, refine later
 		batchSize := 1000
 		batchCount := len(rewards) / batchSize
@@ -106,11 +107,10 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 		for i := 0; i < batchCount-1; i++ {
 			k.SetRewards(ctx, sideChainId, int64(i), rewards[i*batchSize:(i+1)*batchSize])
 		}
-		k.SetRewards(ctx, sideChainId, int64(batchCount), rewards[batchCount*batchSize:])
+		k.SetRewards(ctx, sideChainId, int64(batchCount), rewards[(batchCount-1)*batchSize:])
 
 		storeElapsed := time.Since(storeStart)
 		fmt.Println("PERF_STAKING delegation rewards store: ", storeElapsed)
-		fmt.Println("PERF_STAKING delegation rewards total size: ", len(rewards))
 
 		//------------------------------
 		totalElapsed := time.Since(start)
