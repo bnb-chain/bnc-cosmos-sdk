@@ -135,7 +135,8 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 
 	distributeStart := time.Now()
 	fmt.Println("PERF_STAKING start distribute batch: ", distributeStart.Format("20060102150405"))
-	for i := 0; i < batchCount; i++ {
+	//not totally correct, just test
+	for i := 0; i < batchCount-1; i++ {
 		batchStart := time.Now()
 		rewards = k.GetRewards(ctx, sideChainId, int64(i))
 		if rewards != nil {
