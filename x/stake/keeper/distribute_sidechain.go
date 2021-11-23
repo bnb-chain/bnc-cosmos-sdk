@@ -114,7 +114,7 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 	storeStart := time.Now()
 	fmt.Println("PERF_STAKING delegation rewards total size: ", len(rewards))
 	//todo: not totally correct, refine later
-	batchSize := 1000
+	batchSize := 100
 	batchCount := len(rewards) / batchSize
 	if len(rewards)%batchSize != 0 {
 		batchCount = batchCount + 1

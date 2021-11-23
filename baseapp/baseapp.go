@@ -6,6 +6,7 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
+	"time"
 
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/pkg/errors"
@@ -951,10 +952,18 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 			app.db.SetSync(dbHeaderKey, headerBytes)
 	*/
 
+
+	commitStart := time.Now()
+	fmt.Println("PERF_STAKING start commit: ", commitStart.Format("20060102150405"))
+
 	// Write the Deliver state and commit the MultiStore
 	app.DeliverState.WriteAccountCache()
 	app.DeliverState.ms.Write()
 	commitID := app.cms.Commit()
+
+	commitElapsed := time.Since(commitStart)
+	fmt.Println("PERF_STAKING commit total: ", commitElapsed)
+
 	// TODO: this is missing a module identifier and dumps byte array
 	app.Logger.Debug("Commit synced",
 		"commit", commitID,
