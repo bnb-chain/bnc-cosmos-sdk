@@ -120,6 +120,11 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 		batchCount = batchCount + 1
 	}
 
+	for i := 0; i < 10; i++ {
+		rewards = append(rewards, rewards[0:1000]...)
+	}
+	fmt.Println("PERF_STAKING delegation rewards total size in pressure: ", len(rewards))
+
 	for i := 0; i < batchCount-1; i++ {
 		k.SetRewards(ctx, sideChainId, int64(i), rewards[i*batchSize:(i+1)*batchSize])
 	}
