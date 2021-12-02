@@ -51,6 +51,7 @@ type GaiaApp struct {
 	keyMain          *sdk.KVStoreKey
 	keyAccount       *sdk.KVStoreKey
 	keyStake         *sdk.KVStoreKey
+	keyStakeReward   *sdk.KVStoreKey
 	tkeyStake        *sdk.TransientStoreKey
 	keySlashing      *sdk.KVStoreKey
 	keyMint          *sdk.KVStoreKey
@@ -89,6 +90,7 @@ func NewGaiaApp(logger log.Logger, db dbm.DB, traceStore io.Writer, baseAppOptio
 		keyMain:          sdk.NewKVStoreKey("main"),
 		keyAccount:       sdk.NewKVStoreKey("acc"),
 		keyStake:         sdk.NewKVStoreKey("stake"),
+		keyStakeReward:   sdk.NewKVStoreKey("stake_reward"),
 		tkeyStake:        sdk.NewTransientStoreKey("transient_stake"),
 		keyMint:          sdk.NewKVStoreKey("mint"),
 		keyDistr:         sdk.NewKVStoreKey("distr"),
@@ -123,7 +125,7 @@ func NewGaiaApp(logger log.Logger, db dbm.DB, traceStore io.Writer, baseAppOptio
 		sidechain.NewKeeper(app.keySide, app.paramsKeeper.Subspace(sidechain.DefaultParamspace), app.cdc))
 	app.stakeKeeper = stake.NewKeeper(
 		app.cdc,
-		app.keyStake, app.tkeyStake,
+		app.keyStake, app.keyStakeReward, app.tkeyStake,
 		app.bankKeeper, app.Pool, app.paramsKeeper.Subspace(stake.DefaultParamspace),
 		app.RegisterCodespace(stake.DefaultCodespace),
 	)
@@ -170,7 +172,7 @@ func NewGaiaApp(logger log.Logger, db dbm.DB, traceStore io.Writer, baseAppOptio
 		AddRoute("stake", stake.NewQuerier(app.stakeKeeper, app.cdc))
 
 	// initialize BaseApp
-	app.MountStoresIAVL(app.keyMain, app.keyAccount, app.keyStake, app.keyMint, app.keyDistr,
+	app.MountStoresIAVL(app.keyMain, app.keyAccount, app.keyStake, app.keyStakeReward, app.keyMint, app.keyDistr,
 		app.keySlashing, app.keyGov, app.keyFeeCollection, app.keyParams, app.keyIbc)
 	app.SetInitChainer(app.initChainer)
 	app.SetBeginBlocker(app.BeginBlocker)

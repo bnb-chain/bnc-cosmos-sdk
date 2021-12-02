@@ -502,7 +502,7 @@ func TestCheckTx(t *testing.T) {
 		tx := newTxCounter(i, 0)
 		txBytes, err := codec.MarshalBinaryLengthPrefixed(tx)
 		require.NoError(t, err)
-		r := app.CheckTx(abci.RequestCheckTx{Tx:txBytes})
+		r := app.CheckTx(abci.RequestCheckTx{Tx: txBytes})
 		assert.True(t, r.IsOK(), fmt.Sprintf("%v", r))
 	}
 
@@ -550,7 +550,7 @@ func TestDeliverTx(t *testing.T) {
 			tx := newTxCounter(counter, counter)
 			txBytes, err := codec.MarshalBinaryLengthPrefixed(tx)
 			require.NoError(t, err)
-			res := app.DeliverTx(abci.RequestDeliverTx{Tx:txBytes})
+			res := app.DeliverTx(abci.RequestDeliverTx{Tx: txBytes})
 			require.True(t, res.IsOK(), fmt.Sprintf("%v", res))
 		}
 		app.EndBlock(abci.RequestEndBlock{})
@@ -628,7 +628,7 @@ func TestPreCheckTx(t *testing.T) {
 		tx := newTxCounter(i, 0)
 		txBytes, err := codec.MarshalBinaryLengthPrefixed(tx)
 		require.NoError(t, err)
-		r := app.PreCheckTx(abci.RequestCheckTx{Tx:txBytes})
+		r := app.PreCheckTx(abci.RequestCheckTx{Tx: txBytes})
 		assert.False(t, r.IsOK(), fmt.Sprintf("%v", r))
 	}
 
@@ -645,7 +645,7 @@ func TestPreCheckTx(t *testing.T) {
 
 	tx := newTxCounter(0, 0)
 	txBytes, _ := codec.MarshalBinaryLengthPrefixed(tx)
-	r := app.PreCheckTx(abci.RequestCheckTx{Tx:txBytes})
+	r := app.PreCheckTx(abci.RequestCheckTx{Tx: txBytes})
 	assert.True(t, r.IsOK(), fmt.Sprintf("%v", r))
 	assert.Equal(t, 1, app.txMsgCache.Len())
 }

@@ -114,6 +114,24 @@ type DistributionData struct {
 	Rewards        []Reward
 }
 
+// side chain reward distribution event after bgc
+type SideDistributionEventV2 struct {
+	StakeEvent
+	SideChainId string
+	Data        []DistributionDataV2
+}
+
+type DistributionDataV2 struct {
+	Validator      sdk.ValAddress
+	SelfDelegator  sdk.AccAddress
+	DistributeAddr sdk.AccAddress
+	ValShares      sdk.Dec
+	ValTokens      sdk.Dec
+	TotalReward    sdk.Dec
+	Commission     sdk.Dec
+	Rewards        []StoredReward
+}
+
 // delegate event
 type DelegateEvent struct {
 	StakeEvent

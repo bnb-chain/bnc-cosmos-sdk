@@ -419,9 +419,11 @@ func NewMsgRemoveValidator(launcherAddr sdk.AccAddress, valAddr sdk.ValAddress,
 }
 
 //nolint
-func (msg MsgRemoveValidator) Route() string                { return MsgRoute }
-func (msg MsgRemoveValidator) Type() string                 { return "remove_validator" }
-func (msg MsgRemoveValidator) GetSigners() []sdk.AccAddress { return []sdk.AccAddress{msg.LauncherAddr} }
+func (msg MsgRemoveValidator) Route() string { return MsgRoute }
+func (msg MsgRemoveValidator) Type() string  { return "remove_validator" }
+func (msg MsgRemoveValidator) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.LauncherAddr}
+}
 
 // get the bytes for the message signer to sign on
 func (msg MsgRemoveValidator) GetSignBytes() []byte {

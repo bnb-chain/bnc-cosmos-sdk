@@ -131,15 +131,16 @@ type GaiaApp struct {
 	cdc *codec.Codec
 
 	// keys to access the substores
-	keyMain     *sdk.KVStoreKey
-	keyAccount  *sdk.KVStoreKey
-	keyStake    *sdk.KVStoreKey
-	tkeyStake   *sdk.TransientStoreKey
-	keySlashing *sdk.KVStoreKey
-	keyParams   *sdk.KVStoreKey
-	tkeyParams  *sdk.TransientStoreKey
-	keyIbc      *sdk.KVStoreKey
-	keySide     *sdk.KVStoreKey
+	keyMain        *sdk.KVStoreKey
+	keyAccount     *sdk.KVStoreKey
+	keyStake       *sdk.KVStoreKey
+	keyStakeReward *sdk.KVStoreKey
+	tkeyStake      *sdk.TransientStoreKey
+	keySlashing    *sdk.KVStoreKey
+	keyParams      *sdk.KVStoreKey
+	tkeyParams     *sdk.TransientStoreKey
+	keyIbc         *sdk.KVStoreKey
+	keySide        *sdk.KVStoreKey
 
 	// Manage getting and setting accounts
 	accountKeeper  auth.AccountKeeper
@@ -158,17 +159,18 @@ func NewGaiaApp(logger log.Logger, db dbm.DB, baseAppOptions ...func(*bam.BaseAp
 
 	// create your application object
 	var app = &GaiaApp{
-		BaseApp:     bApp,
-		cdc:         cdc,
-		keyMain:     sdk.NewKVStoreKey("main"),
-		keyAccount:  sdk.NewKVStoreKey("acc"),
-		keyStake:    sdk.NewKVStoreKey("stake"),
-		tkeyStake:   sdk.NewTransientStoreKey("transient_stake"),
-		keySlashing: sdk.NewKVStoreKey("slashing"),
-		keyParams:   sdk.NewKVStoreKey("params"),
-		tkeyParams:  sdk.NewTransientStoreKey("transient_params"),
-		keyIbc:      sdk.NewKVStoreKey("ibc"),
-		keySide:     sdk.NewKVStoreKey("sc"),
+		BaseApp:        bApp,
+		cdc:            cdc,
+		keyMain:        sdk.NewKVStoreKey("main"),
+		keyAccount:     sdk.NewKVStoreKey("acc"),
+		keyStake:       sdk.NewKVStoreKey("stake"),
+		keyStakeReward: sdk.NewKVStoreKey("stake_reward"),
+		tkeyStake:      sdk.NewTransientStoreKey("transient_stake"),
+		keySlashing:    sdk.NewKVStoreKey("slashing"),
+		keyParams:      sdk.NewKVStoreKey("params"),
+		tkeyParams:     sdk.NewTransientStoreKey("transient_params"),
+		keyIbc:         sdk.NewKVStoreKey("ibc"),
+		keySide:        sdk.NewKVStoreKey("sc"),
 	}
 
 	// define the accountKeeper
@@ -183,7 +185,7 @@ func NewGaiaApp(logger log.Logger, db dbm.DB, baseAppOptions ...func(*bam.BaseAp
 	app.paramsKeeper = params.NewKeeper(app.cdc, app.keyParams, app.tkeyParams)
 	app.ibcKeeper = ibc.NewKeeper(app.keyIbc, app.paramsKeeper.Subspace(ibc.DefaultParamspace), ibc.DefaultCodespace, sidechain.NewKeeper(app.keySide, app.paramsKeeper.Subspace(sidechain.DefaultParamspace), app.cdc))
 
-	app.stakeKeeper = stake.NewKeeper(app.cdc, app.keyStake, app.tkeyStake, app.bankKeeper, nil, app.paramsKeeper.Subspace(stake.DefaultParamspace), app.RegisterCodespace(stake.DefaultCodespace))
+	app.stakeKeeper = stake.NewKeeper(app.cdc, app.keyStake, app.keyStakeReward, app.tkeyStake, app.bankKeeper, nil, app.paramsKeeper.Subspace(stake.DefaultParamspace), app.RegisterCodespace(stake.DefaultCodespace))
 	app.slashingKeeper = slashing.NewKeeper(app.cdc, app.keySlashing, app.stakeKeeper, app.paramsKeeper.Subspace(slashing.DefaultParamspace), app.RegisterCodespace(slashing.DefaultCodespace), app.bankKeeper)
 
 	// register message routes

@@ -60,6 +60,7 @@ func getAccountCache(cdc *codec.Codec, ms sdk.MultiStore, accountKey *sdk.KVStor
 func createTestInput(t *testing.T, defaults Params) (sdk.Context, bank.Keeper, stake.Keeper, params.Subspace, Keeper) {
 	keyAcc := sdk.NewKVStoreKey("acc")
 	keyStake := sdk.NewKVStoreKey("stake")
+	keyStakeReward := sdk.NewKVStoreKey("stake_reward")
 	tkeyStake := sdk.NewTransientStoreKey("transient_stake")
 	keySlashing := sdk.NewKVStoreKey("slashing")
 	keyParams := sdk.NewKVStoreKey("params")
@@ -72,6 +73,7 @@ func createTestInput(t *testing.T, defaults Params) (sdk.Context, bank.Keeper, s
 	ms.MountStoreWithDB(keyAcc, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(tkeyStake, sdk.StoreTypeTransient, nil)
 	ms.MountStoreWithDB(keyStake, sdk.StoreTypeIAVL, db)
+	ms.MountStoreWithDB(keyStakeReward, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(keySlashing, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(keyParams, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(tkeyParams, sdk.StoreTypeTransient, db)
@@ -90,7 +92,7 @@ func createTestInput(t *testing.T, defaults Params) (sdk.Context, bank.Keeper, s
 	paramsKeeper := params.NewKeeper(cdc, keyParams, tkeyParams)
 	scKeeper := sidechain.NewKeeper(keySideChain, paramsKeeper.Subspace(sidechain.DefaultParamspace), cdc)
 	ibcKeeper := ibc.NewKeeper(keyIbc, paramsKeeper.Subspace(ibc.DefaultParamspace), ibc.DefaultCodespace, scKeeper)
-	sk := stake.NewKeeper(cdc, keyStake, tkeyStake, ck, nil, paramsKeeper.Subspace(stake.DefaultParamspace), stake.DefaultCodespace)
+	sk := stake.NewKeeper(cdc, keyStake, keyStakeReward, tkeyStake, ck, nil, paramsKeeper.Subspace(stake.DefaultParamspace), stake.DefaultCodespace)
 	sk.SetupForSideChain(&scKeeper, &ibcKeeper)
 	genesis := stake.DefaultGenesisState()
 
@@ -119,6 +121,7 @@ func createTestInput(t *testing.T, defaults Params) (sdk.Context, bank.Keeper, s
 func createSideTestInput(t *testing.T, defaults Params) (sdk.Context, sdk.Context, bank.Keeper, stake.Keeper, params.Subspace, Keeper) {
 	keyAcc := sdk.NewKVStoreKey("acc")
 	keyStake := sdk.NewKVStoreKey("stake")
+	keyStakeReward := sdk.NewKVStoreKey("stake_reward")
 	tkeyStake := sdk.NewTransientStoreKey("transient_stake")
 	keySlashing := sdk.NewKVStoreKey("slashing")
 	keyParams := sdk.NewKVStoreKey("params")
@@ -131,6 +134,7 @@ func createSideTestInput(t *testing.T, defaults Params) (sdk.Context, sdk.Contex
 	ms.MountStoreWithDB(keyAcc, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(tkeyStake, sdk.StoreTypeTransient, nil)
 	ms.MountStoreWithDB(keyStake, sdk.StoreTypeIAVL, db)
+	ms.MountStoreWithDB(keyStakeReward, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(keySlashing, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(keyParams, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(tkeyParams, sdk.StoreTypeTransient, db)
@@ -161,7 +165,7 @@ func createSideTestInput(t *testing.T, defaults Params) (sdk.Context, sdk.Contex
 	storePrefix := scKeeper.GetSideChainStorePrefix(ctx, "bsc")
 	ibcKeeper.SetParams(ctx.WithSideChainKeyPrefix(storePrefix), ibc.Params{RelayerFee: ibc.DefaultRelayerFeeParam})
 
-	sk := stake.NewKeeper(cdc, keyStake, tkeyStake, ck, nil, paramsKeeper.Subspace(stake.DefaultParamspace), stake.DefaultCodespace)
+	sk := stake.NewKeeper(cdc, keyStake, keyStakeReward, tkeyStake, ck, nil, paramsKeeper.Subspace(stake.DefaultParamspace), stake.DefaultCodespace)
 	sk.SetupForSideChain(&scKeeper, &ibcKeeper)
 	genesis := stake.DefaultGenesisState()
 	sideCtx := ctx.WithSideChainKeyPrefix(bscStorePrefix)

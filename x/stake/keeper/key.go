@@ -41,6 +41,10 @@ var (
 	ValidatorQueueKey    = []byte{0x43} // prefix for the timestamps in validator queue
 
 	SideChainStorePrefixByIdKey = []byte{0x51} // prefix for each key to a side chain store prefix, by side chain id
+
+	// Keys for reward store prefix
+	RewardBatchKey       = []byte{0x01} // key for batch of rewards
+	RewardValDistAddrKey = []byte{0x02} // key for rewards' validator <-> distribution address mapping
 )
 
 const (

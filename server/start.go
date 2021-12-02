@@ -8,13 +8,13 @@ import (
 	"github.com/cosmos/cosmos-sdk/server/concurrent"
 
 	"github.com/tendermint/tendermint/abci/server"
-	tmstore "github.com/tendermint/tendermint/store"
 	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
 	cmn "github.com/tendermint/tendermint/libs/common"
 	"github.com/tendermint/tendermint/node"
 	"github.com/tendermint/tendermint/p2p"
 	pvm "github.com/tendermint/tendermint/privval"
 	"github.com/tendermint/tendermint/proxy"
+	tmstore "github.com/tendermint/tendermint/store"
 )
 
 const (

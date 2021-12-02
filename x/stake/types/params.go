@@ -27,15 +27,19 @@ const (
 
 	// defaultMinDelegationChange represents the default minimal allowed amount for delegator to transfer their delegation tokens, including delegate, unDelegate, reDelegate
 	defaultMinDelegationChange int64 = 1e8
+
+	// defaultRewardDistributionBatchSize represents the default batch size for distributing delegators' staking rewards in blocks
+	defaultRewardDistributionBatchSize = 100
 )
 
 // nolint - Keys for parameter access
 var (
-	KeyUnbondingTime       = []byte("UnbondingTime")
-	KeyMaxValidators       = []byte("MaxValidators")
-	KeyBondDenom           = []byte("BondDenom")
-	KeyMinSelfDelegation   = []byte("MinSelfDelegation")
-	KeyMinDelegationChange = []byte("MinDelegationChanged")
+	KeyUnbondingTime               = []byte("UnbondingTime")
+	KeyMaxValidators               = []byte("MaxValidators")
+	KeyBondDenom                   = []byte("BondDenom")
+	KeyMinSelfDelegation           = []byte("MinSelfDelegation")
+	KeyMinDelegationChange         = []byte("MinDelegationChanged")
+	KeyRewardDistributionBatchSize = []byte("RewardDistributionBatchSize")
 )
 
 var _ params.ParamSet = (*Params)(nil)
@@ -44,10 +48,11 @@ var _ params.ParamSet = (*Params)(nil)
 type Params struct {
 	UnbondingTime time.Duration `json:"unbonding_time"`
 
-	MaxValidators       uint16 `json:"max_validators"`        // maximum number of validators
-	BondDenom           string `json:"bond_denom"`            // bondable coin denomination
-	MinSelfDelegation   int64  `json:"min_self_delegation"`   // the minimal self-delegation amount
-	MinDelegationChange int64  `json:"min_delegation_change"` // the minimal delegation amount changed
+	MaxValidators               uint16 `json:"max_validators"`                 // maximum number of validators
+	BondDenom                   string `json:"bond_denom"`                     // bondable coin denomination
+	MinSelfDelegation           int64  `json:"min_self_delegation"`            // the minimal self-delegation amount
+	MinDelegationChange         int64  `json:"min_delegation_change"`          // the minimal delegation amount changed
+	RewardDistributionBatchSize int64  `json:"reward_distribution_batch_size"` // the batch size for distributing rewards in blocks
 }
 
 func (p *Params) GetParamAttribute() (string, bool) {
@@ -74,6 +79,11 @@ func (p *Params) UpdateCheck() error {
 	if p.MinDelegationChange < 1e5 {
 		return fmt.Errorf("the min_delegation_change should be no less than 1e5")
 	}
+
+	if p.RewardDistributionBatchSize < 100 || p.RewardDistributionBatchSize > 1000 {
+		return fmt.Errorf("the reward_distribution_batch_size should be in range 100 to 1000")
+	}
+
 	return nil
 }
 
@@ -85,6 +95,7 @@ func (p *Params) KeyValuePairs() params.KeyValuePairs {
 		{KeyBondDenom, &p.BondDenom},
 		{KeyMinSelfDelegation, &p.MinSelfDelegation},
 		{KeyMinDelegationChange, &p.MinDelegationChange},
+		{KeyRewardDistributionBatchSize, &p.RewardDistributionBatchSize},
 	}
 }
 
@@ -98,11 +109,12 @@ func (p Params) Equal(p2 Params) bool {
 // DefaultParams returns a default set of parameters.
 func DefaultParams() Params {
 	return Params{
-		UnbondingTime:       defaultUnbondingTime,
-		MaxValidators:       100,
-		BondDenom:           "steak",
-		MinSelfDelegation:   defaultMinSelfDelegation,
-		MinDelegationChange: defaultMinDelegationChange,
+		UnbondingTime:               defaultUnbondingTime,
+		MaxValidators:               100,
+		BondDenom:                   "steak",
+		MinSelfDelegation:           defaultMinSelfDelegation,
+		MinDelegationChange:         defaultMinDelegationChange,
+		RewardDistributionBatchSize: defaultRewardDistributionBatchSize,
 	}
 }
 
@@ -116,6 +128,7 @@ func (p Params) HumanReadableString() string {
 	resp += fmt.Sprintf("Bonded Coin Denomination: %s\n", p.BondDenom)
 	resp += fmt.Sprintf("Minimal self-delegation amount: %d\n", p.MinSelfDelegation)
 	resp += fmt.Sprintf("The minimum value allowed to change the delegation amount: %d\n", p.MinDelegationChange)
+	resp += fmt.Sprintf("The batch size to distribute staking rewards: %d\n", p.RewardDistributionBatchSize)
 	return resp
 }
 

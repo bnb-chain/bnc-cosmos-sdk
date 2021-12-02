@@ -19,13 +19,14 @@ import (
 
 // keeper of the stake store
 type Keeper struct {
-	storeKey   sdk.StoreKey
-	storeTKey  sdk.StoreKey
-	cdc        *codec.Codec
-	bankKeeper bank.Keeper
-	addrPool   *sdk.Pool
-	hooks      sdk.StakingHooks
-	paramstore params.Subspace
+	storeKey       sdk.StoreKey
+	rewardStoreKey sdk.StoreKey
+	storeTKey      sdk.StoreKey
+	cdc            *codec.Codec
+	bankKeeper     bank.Keeper
+	addrPool       *sdk.Pool
+	hooks          sdk.StakingHooks
+	paramstore     params.Subspace
 
 	// codespace
 	codespace sdk.CodespaceType
@@ -38,17 +39,18 @@ type Keeper struct {
 	PbsbServer *pubsub.Server
 }
 
-func NewKeeper(cdc *codec.Codec, key, tkey sdk.StoreKey, ck bank.Keeper, addrPool *sdk.Pool,
+func NewKeeper(cdc *codec.Codec, key, rewardKey, tkey sdk.StoreKey, ck bank.Keeper, addrPool *sdk.Pool,
 	paramstore params.Subspace, codespace sdk.CodespaceType) Keeper {
 	keeper := Keeper{
-		storeKey:   key,
-		storeTKey:  tkey,
-		cdc:        cdc,
-		bankKeeper: ck,
-		addrPool:   addrPool,
-		paramstore: paramstore.WithTypeTable(ParamTypeTable()),
-		hooks:      nil,
-		codespace:  codespace,
+		storeKey:       key,
+		rewardStoreKey: rewardKey,
+		storeTKey:      tkey,
+		cdc:            cdc,
+		bankKeeper:     ck,
+		addrPool:       addrPool,
+		paramstore:     paramstore.WithTypeTable(ParamTypeTable()),
+		hooks:          nil,
+		codespace:      codespace,
 	}
 
 	return keeper

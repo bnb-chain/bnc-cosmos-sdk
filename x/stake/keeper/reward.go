@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"encoding/binary"
 	"math"
 	"math/big"
 
@@ -85,4 +86,70 @@ func mulQuoBigIntWithExtraDecimal(a, b, c, extra *big.Int) (afterRoundDown int64
 	afterRoundDown = afterRoundDownBig.Int64()
 	extraDecimalValue = int(expectedDecimalValueBig.Int64())
 	return afterRoundDown, extraDecimalValue
+}
+
+//___________________________________________________________________________
+
+func GetRewardBatchKey(batchNo int64) []byte {
+	bz := make([]byte, 8)
+	binary.BigEndian.PutUint64(bz, uint64(batchNo))
+	return append(RewardBatchKey, bz...)
+}
+
+func (k Keeper) HasNextBatchRewards(ctx sdk.Context) bool {
+	store := ctx.KVStore(k.rewardStoreKey)
+
+	iterator := sdk.KVStorePrefixIterator(store, RewardBatchKey)
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		return true
+	}
+	return false
+}
+
+func (k Keeper) GetBatchRewards(ctx sdk.Context) (rewards []types.StoredReward, key []byte) {
+	store := ctx.KVStore(k.rewardStoreKey)
+
+	iterator := sdk.KVStorePrefixIterator(store, RewardBatchKey)
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		value := iterator.Value()
+		rewards = types.MustUnmarshalRewards(k.cdc, value)
+		key = iterator.Key()
+		return
+	}
+	return nil, nil
+}
+
+func (k Keeper) SetBatchRewards(ctx sdk.Context, batchNo int64, rewards []types.StoredReward) {
+	store := ctx.KVStore(k.rewardStoreKey)
+	bz := types.MustMarshalRewards(k.cdc, rewards)
+	store.Set(GetRewardBatchKey(batchNo), bz)
+}
+
+func (k Keeper) RemoveBatchRewards(ctx sdk.Context, key []byte) {
+	store := ctx.KVStore(k.rewardStoreKey)
+	store.Delete(key)
+}
+
+func (k Keeper) SetRewardValDistAddr(ctx sdk.Context, valDistAddrMap map[string]string) {
+	store := ctx.KVStore(k.rewardStoreKey)
+	bz := types.MustMarshalValDistAddr(k.cdc, valDistAddrMap)
+	store.Set(RewardValDistAddrKey, bz)
+}
+
+func (k Keeper) GetRewardValDistAddr(ctx sdk.Context) (valDistAddr map[string]string, found bool) {
+	store := ctx.KVStore(k.rewardStoreKey)
+	value := store.Get(RewardValDistAddrKey)
+	if value != nil {
+		return types.MustUnmarshalValDistAddr(k.cdc, value), true
+	}
+	return nil, false
+}
+
+func (k Keeper) RemoveRewardValDistAddr(ctx sdk.Context) {
+	store := ctx.KVStore(k.rewardStoreKey)
+	store.Delete(RewardValDistAddrKey)
 }

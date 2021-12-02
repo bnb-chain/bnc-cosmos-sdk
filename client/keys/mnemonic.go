@@ -84,4 +84,3 @@ func printPrefixed(msg string) {
 func printStep() {
 	printPrefixed("-------------------------------------")
 }
-
