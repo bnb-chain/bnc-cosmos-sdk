@@ -23,7 +23,7 @@ func getMockApp(t *testing.T) (*mock.App, Keeper) {
 	RegisterCodec(mApp.Cdc)
 
 	keyStake := sdk.NewKVStoreKey("stake")
-
+	keyStakeReward := sdk.NewKVStoreKey("stake_reward")
 	tkeyStake := sdk.NewTransientStoreKey("transient_stake")
 	keyParams := sdk.NewKVStoreKey("params")
 	tkeyParams := sdk.NewTransientStoreKey("transient_params")
@@ -34,7 +34,7 @@ func getMockApp(t *testing.T) (*mock.App, Keeper) {
 	pk := params.NewKeeper(mApp.Cdc, keyParams, tkeyParams)
 	scKeeper := sidechain.NewKeeper(keySideChain, pk.Subspace(sidechain.DefaultParamspace), mApp.Cdc)
 	ibcKeeper := ibc.NewKeeper(keyIbc, pk.Subspace(ibc.DefaultParamspace), ibc.DefaultCodespace, scKeeper)
-	keeper := NewKeeper(mApp.Cdc, keyStake, tkeyStake, bankKeeper, nil, pk.Subspace(DefaultParamspace), mApp.RegisterCodespace(DefaultCodespace))
+	keeper := NewKeeper(mApp.Cdc, keyStake, keyStakeReward, tkeyStake, bankKeeper, nil, pk.Subspace(DefaultParamspace), mApp.RegisterCodespace(DefaultCodespace))
 	keeper.SetupForSideChain(&scKeeper, &ibcKeeper)
 
 	mApp.Router().AddRoute("stake", NewStakeHandler(keeper))

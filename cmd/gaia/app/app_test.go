@@ -40,21 +40,22 @@ func NewMockGaiaApp(logger log.Logger, db dbm.DB, traceStore io.Writer, baseAppO
 	bApp.SetCommitMultiStoreTracer(traceStore)
 
 	gApp := &GaiaApp{
-		BaseApp:     bApp,
-		cdc:         cdc,
-		keyMain:     sdk.NewKVStoreKey("main"),
-		keyAccount:  sdk.NewKVStoreKey("acc"),
-		keyStake:    sdk.NewKVStoreKey("stake"),
-		tkeyStake:   sdk.NewTransientStoreKey("transient_stake"),
-		keyMint:     sdk.NewKVStoreKey("mint"),
-		keyDistr:    sdk.NewKVStoreKey("distr"),
-		tkeyDistr:   sdk.NewTransientStoreKey("transient_distr"),
-		keySlashing: sdk.NewKVStoreKey("slashing"),
-		keyGov:      sdk.NewKVStoreKey("gov"),
-		keyParams:   sdk.NewKVStoreKey("params"),
-		tkeyParams:  sdk.NewTransientStoreKey("transient_params"),
-		keyIbc:      sdk.NewKVStoreKey("ibc"),
-		keySide:     sdk.NewKVStoreKey("side"),
+		BaseApp:        bApp,
+		cdc:            cdc,
+		keyMain:        sdk.NewKVStoreKey("main"),
+		keyAccount:     sdk.NewKVStoreKey("acc"),
+		keyStake:       sdk.NewKVStoreKey("stake"),
+		keyStakeReward: sdk.NewKVStoreKey("stake_reward"),
+		tkeyStake:      sdk.NewTransientStoreKey("transient_stake"),
+		keyMint:        sdk.NewKVStoreKey("mint"),
+		keyDistr:       sdk.NewKVStoreKey("distr"),
+		tkeyDistr:      sdk.NewTransientStoreKey("transient_distr"),
+		keySlashing:    sdk.NewKVStoreKey("slashing"),
+		keyGov:         sdk.NewKVStoreKey("gov"),
+		keyParams:      sdk.NewKVStoreKey("params"),
+		tkeyParams:     sdk.NewTransientStoreKey("transient_params"),
+		keyIbc:         sdk.NewKVStoreKey("ibc"),
+		keySide:        sdk.NewKVStoreKey("side"),
 	}
 
 	var app = &MockGaiaApp{gApp}
@@ -77,7 +78,7 @@ func NewMockGaiaApp(logger log.Logger, db dbm.DB, traceStore io.Writer, baseAppO
 
 	app.stakeKeeper = stake.NewKeeper(
 		app.cdc,
-		app.keyStake, app.tkeyStake,
+		app.keyStake, app.keyStakeReward, app.tkeyStake,
 		app.bankKeeper, nil, app.paramsKeeper.Subspace(stake.DefaultParamspace),
 		app.RegisterCodespace(stake.DefaultCodespace),
 	)

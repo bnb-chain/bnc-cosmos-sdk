@@ -30,6 +30,7 @@ func getMockApp(t *testing.T, numGenAccs int) (*mock.App, bank.BaseKeeper, gov.K
 	keyGlobalParams := sdk.NewKVStoreKey("params")
 	tkeyGlobalParams := sdk.NewTransientStoreKey("transient_params")
 	keyStake := sdk.NewKVStoreKey("stake")
+	keyStakeReward := sdk.NewKVStoreKey("stake_reward")
 	tkeyStake := sdk.NewTransientStoreKey("transient_stake")
 	keyGov := sdk.NewKVStoreKey("gov")
 	keyIbc := sdk.NewKVStoreKey("ibc")
@@ -40,7 +41,7 @@ func getMockApp(t *testing.T, numGenAccs int) (*mock.App, bank.BaseKeeper, gov.K
 	scKeeper := sidechain.NewKeeper(keySideChain, pk.Subspace(sidechain.DefaultParamspace), mapp.Cdc)
 	ibcKeeper := ibc.NewKeeper(keyIbc, pk.Subspace(ibc.DefaultParamspace), ibc.DefaultCodespace, scKeeper)
 
-	sk := stake.NewKeeper(mapp.Cdc, keyStake, tkeyStake, ck, nil, pk.Subspace(stake.DefaultParamspace), mapp.RegisterCodespace(stake.DefaultCodespace))
+	sk := stake.NewKeeper(mapp.Cdc, keyStake, keyStakeReward, tkeyStake, ck, nil, pk.Subspace(stake.DefaultParamspace), mapp.RegisterCodespace(stake.DefaultCodespace))
 	sk.SetupForSideChain(&scKeeper, &ibcKeeper)
 	keeper := gov.NewKeeper(mapp.Cdc, keyGov, pk, pk.Subspace("testgov"), ck, sk, gov.DefaultCodespace, new(sdk.Pool))
 

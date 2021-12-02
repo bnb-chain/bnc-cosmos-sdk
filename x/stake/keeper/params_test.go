@@ -17,6 +17,7 @@ import (
 
 func TestSetParams(t *testing.T) {
 	keyStake := sdk.NewKVStoreKey("stake")
+	keyStakeReward := sdk.NewKVStoreKey("stake_reward")
 	tkeyStake := sdk.NewTransientStoreKey("transient_stake")
 	keyParams := sdk.NewKVStoreKey("params")
 	tkeyParams := sdk.NewTransientStoreKey("transient_params")
@@ -34,7 +35,7 @@ func TestSetParams(t *testing.T) {
 	mode := sdk.RunTxModeDeliver
 	ctx := sdk.NewContext(ms, abci.Header{ChainID: "foochainid"}, mode, log.NewNopLogger())
 	pk := params.NewKeeper(cdc, keyParams, tkeyParams)
-	k := NewKeeper(cdc, keyStake, tkeyStake, nil, nil, pk.Subspace(DefaultParamspace), types.DefaultCodespace)
+	k := NewKeeper(cdc, keyStake, keyStakeReward, tkeyStake, nil, nil, pk.Subspace(DefaultParamspace), types.DefaultCodespace)
 	sdk.UpgradeMgr.AddUpgradeHeight(sdk.LaunchBscUpgrade, 10)
 	sdk.UpgradeMgr.SetHeight(1)
 	k.SetParams(ctx, types.DefaultParams())

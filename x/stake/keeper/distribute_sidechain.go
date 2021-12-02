@@ -92,9 +92,9 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) {
 		return
 	}
 
-	var toPublish []types.DistributionDataV2 // data to be published in breathe blocks
-	var toSaveRewards []types.StoredReward   // rewards to be saved
-	var toSaveValDistAddr map[string]string  // mapping between validator and distribution address, to be saved
+	var toPublish []types.DistributionDataV2         // data to be published in breathe blocks
+	var toSaveRewards []types.StoredReward           // rewards to be saved
+	var toSaveValDistAddrs []types.StoredValDistAddr // mapping between validator and distribution address, to be saved
 
 	bondDenom := k.BondDenom(ctx)
 	for _, validator := range validators {
@@ -135,7 +135,9 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) {
 			}
 
 			//track validator and distribution address mapping
-			toSaveValDistAddr[validator.GetOperator().String()] = validator.DistributionAddr.String()
+			toSaveValDistAddrs = append(toSaveValDistAddrs, types.StoredValDistAddr{
+				Validator:      validator.OperatorAddr,
+				DistributeAddr: validator.DistributionAddr})
 
 			//update address pool
 			changedAddrs := [2]sdk.AccAddress{validator.FeeAddr, validator.DistributionAddr}
@@ -173,7 +175,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) {
 	k.SetBatchRewards(ctx, int64(batchNo), toSaveRewards[batchNo*batchSize:])
 
 	// save validator <-> distribution address map
-	k.SetRewardValDistAddr(ctx, toSaveValDistAddr)
+	k.SetRewardValDistAddrs(ctx, toSaveValDistAddrs)
 
 	// publish data if needed
 	if ctx.IsDeliverTx() && len(toPublish) > 0 && k.PbsbServer != nil {
@@ -195,7 +197,12 @@ func (k Keeper) DistributeInBlock(ctx sdk.Context, sideChainId string) {
 
 	// get batch rewards and validator <-> distribute address mapping
 	rewards, key := k.GetBatchRewards(ctx)
-	valDistAddrMap, _ := k.GetRewardValDistAddr(ctx)
+	valDistAddrs, _ := k.GetRewardValDistAddrs(ctx)
+
+	valDistAddrMap := make(map[string]sdk.AccAddress)
+	for _, valDist := range valDistAddrs {
+		valDistAddrMap[valDist.Validator.String()] = valDist.DistributeAddr
+	}
 
 	var distAddrBalanceMap = make(map[string]int64) // track distribute address balance changes
 	var toPublish []types.DistributionDataV2        // data to be published in blocks
@@ -204,10 +211,10 @@ func (k Keeper) DistributeInBlock(ctx sdk.Context, sideChainId string) {
 	bondDenom := k.BondDenom(ctx)
 	for _, reward := range rewards {
 		distAddr := valDistAddrMap[reward.Validator.String()]
-		if value, ok := distAddrBalanceMap[distAddr]; ok {
-			distAddrBalanceMap[distAddr] = reward.Amount + value
+		if value, ok := distAddrBalanceMap[distAddr.String()]; ok {
+			distAddrBalanceMap[distAddr.String()] = reward.Amount + value
 		} else {
-			distAddrBalanceMap[distAddr] = reward.Amount
+			distAddrBalanceMap[distAddr.String()] = reward.Amount
 		}
 
 		if _, _, err := k.bankKeeper.AddCoins(ctx, reward.AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, reward.Amount)}); err != nil {
@@ -232,7 +239,7 @@ func (k Keeper) DistributeInBlock(ctx sdk.Context, sideChainId string) {
 
 	// check if this batch is the last one
 	if hasNext := k.HasNextBatchRewards(ctx); hasNext == false {
-		k.RemoveRewardValDistAddr(ctx)
+		k.RemoveRewardValDistAddrs(ctx)
 	}
 
 	// publish data if needed
