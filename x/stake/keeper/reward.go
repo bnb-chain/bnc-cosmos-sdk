@@ -108,6 +108,18 @@ func (k Keeper) HasNextBatchRewards(ctx sdk.Context) bool {
 	return false
 }
 
+func (k Keeper) CountBatchRewards(ctx sdk.Context) (count int64) {
+	store := ctx.KVStore(k.rewardStoreKey)
+
+	iterator := sdk.KVStorePrefixIterator(store, RewardBatchKey)
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		count = count + 1
+	}
+	return
+}
+
 func (k Keeper) GetBatchRewards(ctx sdk.Context) (rewards []types.StoredReward, key []byte) {
 	store := ctx.KVStore(k.rewardStoreKey)
 
