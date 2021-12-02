@@ -134,7 +134,8 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initCoins int64) (sdk.Context
 	keeper.SetPool(ctx, types.InitialPool())
 	keeper.SetParams(ctx, types.DefaultParams())
 	sdk.UpgradeMgr.AddUpgradeHeight(sdk.LaunchBscUpgrade, 1)
-	sdk.UpgradeMgr.Height = 1
+	sdk.UpgradeMgr.AddUpgradeHeight(sdk.LaunchBgcUpgrade, 100)
+	sdk.UpgradeMgr.Height = 100
 	keeper.SetParams(ctx, types.DefaultParams())
 	keeper.SetupForSideChain(&scKeeper, &ibcKeeper)
 

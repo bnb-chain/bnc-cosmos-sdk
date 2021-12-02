@@ -47,7 +47,7 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 
 			storeValidatorsWithHeight(sideChainCtx, newVals, k)
 
-			if sdk.IsUpgrade(sdk.LaunchBgcUpgrade) {
+			if !sdk.IsUpgrade(sdk.LaunchBgcUpgrade) {
 				k.Distribute(sideChainCtx, sideChainIds[i])
 			} else {
 				k.DistributeInBreathBlock(sideChainCtx, sideChainIds[i])

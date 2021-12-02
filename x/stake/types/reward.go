@@ -23,44 +23,31 @@ type StoredReward struct {
 	Amount    int64
 }
 
-func MustUnmarshalReward(cdc *codec.Codec, value []byte) StoredReward {
-	reward, err := UnmarshalReward(cdc, value)
-	if err != nil {
-		panic(err)
-	}
-	return reward
-}
-
-func UnmarshalReward(cdc *codec.Codec, value []byte) (reward StoredReward, err error) {
-	err = cdc.UnmarshalBinaryLengthPrefixed(value, &reward)
-	return reward, err
+type StoredValDistAddr struct {
+	Validator      sdk.ValAddress
+	DistributeAddr sdk.AccAddress
 }
 
 func MustMarshalRewards(cdc *codec.Codec, rewards []StoredReward) []byte {
 	return cdc.MustMarshalBinaryLengthPrefixed(rewards)
 }
 
-func MustUnmarshalRewards(cdc *codec.Codec, value []byte) []StoredReward {
-	rewards, err := UnmarshalRewards(cdc, value)
+func MustUnmarshalRewards(cdc *codec.Codec, value []byte) (rewards []StoredReward) {
+	err := cdc.UnmarshalBinaryLengthPrefixed(value, &rewards)
 	if err != nil {
 		panic(err)
 	}
 	return rewards
 }
 
-func UnmarshalRewards(cdc *codec.Codec, value []byte) (rewards []StoredReward, err error) {
-	err = cdc.UnmarshalBinaryLengthPrefixed(value, &rewards)
-	return rewards, err
+func MustMarshalValDistAddrs(cdc *codec.Codec, valDistAddrs []StoredValDistAddr) []byte {
+	return cdc.MustMarshalBinaryLengthPrefixed(valDistAddrs)
 }
 
-func MustMarshalValDistAddr(cdc *codec.Codec, valDistAddrMap map[string]string) []byte {
-	return cdc.MustMarshalBinaryLengthPrefixed(valDistAddrMap)
-}
-
-func MustUnmarshalValDistAddr(cdc *codec.Codec, value []byte) (valDistAddrMap map[string]string) {
-	err := cdc.UnmarshalBinaryLengthPrefixed(value, &valDistAddrMap)
+func MustUnmarshalValDistAddrs(cdc *codec.Codec, value []byte) (valDistAddrs []StoredValDistAddr) {
+	err := cdc.UnmarshalBinaryLengthPrefixed(value, &valDistAddrs)
 	if err != nil {
 		panic(err)
 	}
-	return valDistAddrMap
+	return valDistAddrs
 }

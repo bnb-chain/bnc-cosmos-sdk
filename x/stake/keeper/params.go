@@ -115,17 +115,17 @@ func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
 
 		k.paramstore.SetParamSet(ctx, &pb)
 	}, nil, func() {
-		k.paramstore.SetParamSet(ctx, &params)
-	})
+		sdk.Upgrade(sdk.LaunchBgcUpgrade, func() {
+			var pb paramBeforeBgcUpgrade
+			pb.UnbondingTime = params.UnbondingTime
+			pb.MaxValidators = params.MaxValidators
+			pb.BondDenom = params.BondDenom
+			pb.MinSelfDelegation = params.MinSelfDelegation
+			pb.MinDelegationChange = params.MinDelegationChange
 
-	sdk.Upgrade(sdk.LaunchBgcUpgrade, func() {
-		var pb paramBeforeBgcUpgrade
-		pb.UnbondingTime = params.UnbondingTime
-		pb.MaxValidators = params.MaxValidators
-		pb.BondDenom = params.BondDenom
-
-		k.paramstore.SetParamSet(ctx, &pb)
-	}, nil, func() {
-		k.paramstore.SetParamSet(ctx, &params)
+			k.paramstore.SetParamSet(ctx, &pb)
+		}, nil, func() {
+			k.paramstore.SetParamSet(ctx, &params)
+		})
 	})
 }

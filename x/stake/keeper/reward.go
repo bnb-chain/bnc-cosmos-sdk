@@ -134,22 +134,22 @@ func (k Keeper) RemoveBatchRewards(ctx sdk.Context, key []byte) {
 	store.Delete(key)
 }
 
-func (k Keeper) SetRewardValDistAddr(ctx sdk.Context, valDistAddrMap map[string]string) {
+func (k Keeper) SetRewardValDistAddrs(ctx sdk.Context, valDistAddrs []types.StoredValDistAddr) {
 	store := ctx.KVStore(k.rewardStoreKey)
-	bz := types.MustMarshalValDistAddr(k.cdc, valDistAddrMap)
+	bz := types.MustMarshalValDistAddrs(k.cdc, valDistAddrs)
 	store.Set(RewardValDistAddrKey, bz)
 }
 
-func (k Keeper) GetRewardValDistAddr(ctx sdk.Context) (valDistAddr map[string]string, found bool) {
+func (k Keeper) GetRewardValDistAddrs(ctx sdk.Context) (valDistAddrs []types.StoredValDistAddr, found bool) {
 	store := ctx.KVStore(k.rewardStoreKey)
 	value := store.Get(RewardValDistAddrKey)
 	if value != nil {
-		return types.MustUnmarshalValDistAddr(k.cdc, value), true
+		return types.MustUnmarshalValDistAddrs(k.cdc, value), true
 	}
 	return nil, false
 }
 
-func (k Keeper) RemoveRewardValDistAddr(ctx sdk.Context) {
+func (k Keeper) RemoveRewardValDistAddrs(ctx sdk.Context) {
 	store := ctx.KVStore(k.rewardStoreKey)
 	store.Delete(RewardValDistAddrKey)
 }

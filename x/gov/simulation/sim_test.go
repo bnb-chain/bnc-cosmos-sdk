@@ -28,6 +28,7 @@ func TestGovWithRandomMessages(t *testing.T) {
 
 	bankKeeper := bank.NewBaseKeeper(mapper)
 	stakeKey := sdk.NewKVStoreKey("stake")
+	stakeRewardKey := sdk.NewKVStoreKey("stake_reward")
 	stakeTKey := sdk.NewTransientStoreKey("transient_stake")
 	paramKey := sdk.NewKVStoreKey("params")
 	paramTKey := sdk.NewTransientStoreKey("transient_params")
@@ -36,7 +37,7 @@ func TestGovWithRandomMessages(t *testing.T) {
 	keySideChain := sdk.NewKVStoreKey("sc")
 	scKeeper := sidechain.NewKeeper(keySideChain, paramKeeper.Subspace(sidechain.DefaultParamspace), mapp.Cdc)
 	ibcKeeper := ibc.NewKeeper(keyIbc, paramKeeper.Subspace(ibc.DefaultParamspace), ibc.DefaultCodespace, scKeeper)
-	stakeKeeper := stake.NewKeeper(mapp.Cdc, stakeKey, stakeTKey, bankKeeper, nil, paramKeeper.Subspace(stake.DefaultParamspace), stake.DefaultCodespace)
+	stakeKeeper := stake.NewKeeper(mapp.Cdc, stakeKey, stakeRewardKey, stakeTKey, bankKeeper, nil, paramKeeper.Subspace(stake.DefaultParamspace), stake.DefaultCodespace)
 	stakeKeeper.SetupForSideChain(&scKeeper, &ibcKeeper)
 	govKey := sdk.NewKVStoreKey("gov")
 	govKeeper := gov.NewKeeper(mapp.Cdc, govKey, paramKeeper, paramKeeper.Subspace(gov.DefaultParamSpace), bankKeeper, stakeKeeper, gov.DefaultCodespace, &sdk.Pool{})

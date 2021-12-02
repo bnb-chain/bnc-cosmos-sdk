@@ -11,7 +11,7 @@ const (
 	BEP3                 = "BEP3"                 // https://github.com/binance-chain/BEPs/pull/30
 	BEP8                 = "BEP8"                 // Mini-BEP2 token
 	LaunchBscUpgrade     = "LaunchBscUpgrade"
-	BEP82                = "BEP82" // https://github.com/binance-chain/BEPs/pull/82
+	BEP82                = "BEP82"                // https://github.com/binance-chain/BEPs/pull/82
 	FixFailAckPackage    = "FixFailAckPackage"
 	LaunchBgcUpgrade     = "LaunchBgcUpgrade"
 )

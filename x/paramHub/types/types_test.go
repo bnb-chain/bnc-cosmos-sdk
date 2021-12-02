@@ -2,9 +2,6 @@ package types_test
 
 import (
 	"encoding/hex"
-	"testing"
-	"time"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/ibc"
 	"github.com/cosmos/cosmos-sdk/x/oracle/types"
@@ -14,9 +11,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/libs/common"
+	"testing"
+	"time"
 )
 
-var testScParams = `[{"type": "params/StakeParamSet","value": {"unbonding_time": "604800000000000","max_validators": 11,"bond_denom": "BNB","min_self_delegation": "5000000000000","min_delegation_change": "100000000"}},{"type": "params/SlashParamSet","value": {"max_evidence_age": "259200000000000","signed_blocks_window": "0","min_signed_per_window": "0","double_sign_unbond_duration": "9223372036854775807","downtime_unbond_duration": "172800000000000","too_low_del_unbond_duration": "86400000000000","slash_fraction_double_sign": "0","slash_fraction_downtime": "0","double_sign_slash_amount": "1000000000000","downtime_slash_amount": "5000000000","submitter_reward": "100000000000","downtime_slash_fee": "1000000000"}},{"type": "params/OracleParamSet","value": {"ConsensusNeeded": "70000000"}},{"type": "params/IbcParamSet","value": {"relayer_fee": "1000000"}}]`
+var testScParams = `[{"type": "params/StakeParamSet","value": {"unbonding_time": "604800000000000","max_validators": 11,"bond_denom": "BNB","min_self_delegation": "5000000000000","min_delegation_change": "100000000", "reward_distribution_batch_size": "200"}},{"type": "params/SlashParamSet","value": {"max_evidence_age": "259200000000000","signed_blocks_window": "0","min_signed_per_window": "0","double_sign_unbond_duration": "9223372036854775807","downtime_unbond_duration": "172800000000000","too_low_del_unbond_duration": "86400000000000","slash_fraction_double_sign": "0","slash_fraction_downtime": "0","double_sign_slash_amount": "1000000000000","downtime_slash_amount": "5000000000","submitter_reward": "100000000000","downtime_slash_fee": "1000000000"}},{"type": "params/OracleParamSet","value": {"ConsensusNeeded": "70000000"}},{"type": "params/IbcParamSet","value": {"relayer_fee": "1000000"}}]`
 
 func TestFixedFeeParamTypeCheck(t *testing.T) {
 	testCases := []struct {
@@ -150,11 +149,13 @@ func TestSCParamCheck(t *testing.T) {
 		{cp: generatSCParamChange(&types.Params{ConsensusNeeded: sdk.NewDecWithPrec(7, 1)}, 2), expectError: false},
 		{cp: generatSCParamChange(&types.Params{ConsensusNeeded: sdk.NewDecWithPrec(7, 0)}, 2), expectError: true},
 		{cp: generatSCParamChange(&types.Params{ConsensusNeeded: sdk.ZeroDec()}, 2), expectError: true},
-		{cp: generatSCParamChange(&stake.Params{UnbondingTime: 24 * time.Hour, MaxValidators: 10, BondDenom: "BNB", MinSelfDelegation: 100e8, MinDelegationChange: 1e5}, 0), expectError: false},
-		{cp: generatSCParamChange(&stake.Params{UnbondingTime: 24 * time.Hour, MaxValidators: 10, BondDenom: "BNB1", MinSelfDelegation: 100e8, MinDelegationChange: 1e5}, 0), expectError: true},
-		{cp: generatSCParamChange(&stake.Params{UnbondingTime: 1 * time.Second, MaxValidators: 10, BondDenom: "BNB", MinSelfDelegation: 100e8, MinDelegationChange: 1e5}, 0), expectError: true},
-		{cp: generatSCParamChange(&stake.Params{UnbondingTime: 24 * time.Hour, MaxValidators: 0, BondDenom: "BNB", MinSelfDelegation: 100e8, MinDelegationChange: 1e5}, 0), expectError: true},
-		{cp: generatSCParamChange(&stake.Params{UnbondingTime: 24 * time.Hour, MaxValidators: 10, BondDenom: "BNB", MinSelfDelegation: 1e7, MinDelegationChange: 1e5}, 0), expectError: true},
+		{cp: generatSCParamChange(&stake.Params{UnbondingTime: 24 * time.Hour, MaxValidators: 10, BondDenom: "BNB", MinSelfDelegation: 100e8, MinDelegationChange: 1e5, RewardDistributionBatchSize: 100}, 0), expectError: false},
+		{cp: generatSCParamChange(&stake.Params{UnbondingTime: 24 * time.Hour, MaxValidators: 10, BondDenom: "BNB1", MinSelfDelegation: 100e8, MinDelegationChange: 1e5, RewardDistributionBatchSize: 100}, 0), expectError: true},
+		{cp: generatSCParamChange(&stake.Params{UnbondingTime: 1 * time.Second, MaxValidators: 10, BondDenom: "BNB", MinSelfDelegation: 100e8, MinDelegationChange: 1e5, RewardDistributionBatchSize: 200}, 0), expectError: true},
+		{cp: generatSCParamChange(&stake.Params{UnbondingTime: 24 * time.Hour, MaxValidators: 0, BondDenom: "BNB", MinSelfDelegation: 100e8, MinDelegationChange: 1e5, RewardDistributionBatchSize: 300}, 0), expectError: true},
+		{cp: generatSCParamChange(&stake.Params{UnbondingTime: 24 * time.Hour, MaxValidators: 10, BondDenom: "BNB", MinSelfDelegation: 1e7, MinDelegationChange: 1e5, RewardDistributionBatchSize: 800}, 0), expectError: true},
+		{cp: generatSCParamChange(&stake.Params{UnbondingTime: 24 * time.Hour, MaxValidators: 10, BondDenom: "BNB", MinSelfDelegation: 100e8, MinDelegationChange: 1e5, RewardDistributionBatchSize: 10}, 0), expectError: true},
+		{cp: generatSCParamChange(&stake.Params{UnbondingTime: 24 * time.Hour, MaxValidators: 10, BondDenom: "BNB", MinSelfDelegation: 100e8, MinDelegationChange: 1e5, RewardDistributionBatchSize: 1010}, 0), expectError: true},
 		{cp: fTypes.SCChangeParams{SCParams: []fTypes.SCParam{nil}}, expectError: true},
 		{cp: fTypes.SCChangeParams{SCParams: []fTypes.SCParam{}}, expectError: true},
 	}
