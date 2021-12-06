@@ -131,10 +131,10 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) {
 					panic(err)
 				}
 				storedReward := types.Reward{
-					Validator: validator.GetOperator(),
-					AccAddr:   rewards[i].AccAddr,
-					Tokens:    tokens,
-					Amount:    rewards[i].Amount,
+					ValAddr: validator.GetOperator(),
+					AccAddr: rewards[i].AccAddr,
+					Tokens:  tokens,
+					Amount:  rewards[i].Amount,
 				}
 				toSaveRewards = append(toSaveRewards, storedReward)
 			}
@@ -220,7 +220,7 @@ func (k Keeper) DistributeInBlock(ctx sdk.Context, sideChainId string) {
 
 	bondDenom := k.BondDenom(ctx)
 	for _, reward := range rewards {
-		distAddr := valDistAddrMap[reward.Validator.String()]
+		distAddr := valDistAddrMap[reward.ValAddr.String()]
 		if value, ok := distAddrBalanceMap[distAddr.String()]; ok {
 			distAddrBalanceMap[distAddr.String()] = reward.Amount + value
 		} else {

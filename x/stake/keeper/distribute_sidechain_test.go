@@ -165,7 +165,7 @@ func TestDistributeInBreathBlock(t *testing.T) {
 
 	expectedDistAddrBalanceMap := make(map[string]int64)
 	for _, reward := range savedRewards {
-		distAddr := valDistAddrMap[reward.Validator.String()]
+		distAddr := valDistAddrMap[reward.ValAddr.String()]
 		if value, ok := expectedDistAddrBalanceMap[distAddr.String()]; ok {
 			expectedDistAddrBalanceMap[distAddr.String()] = reward.Amount + value
 		} else {
@@ -230,7 +230,7 @@ func TestDistributeInBlock(t *testing.T) {
 		}
 
 		for _, reward := range rewards {
-			distAddr := valDistAddrMap[reward.Validator.String()]
+			distAddr := valDistAddrMap[reward.ValAddr.String()]
 			distAcc := am.GetAccount(ctx, distAddr)
 			distBalance := distAcc.GetCoins().AmountOf(bondDenom)
 			distBalanceMap[distAddr.String()] = distBalance

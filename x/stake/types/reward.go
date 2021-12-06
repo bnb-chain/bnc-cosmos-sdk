@@ -18,10 +18,10 @@ type PreReward struct {
 }
 
 type Reward struct {
-	Validator sdk.ValAddress // Validator will be published for downstreams
-	AccAddr   sdk.AccAddress
-	Tokens    sdk.Dec // Shares in PreReward does not publish
-	Amount    int64
+	ValAddr sdk.ValAddress // Validator will be published for downstreams
+	AccAddr sdk.AccAddress
+	Tokens  sdk.Dec // Shares in PreReward does not publish
+	Amount  int64
 }
 
 type StoredValDistAddr struct {
