@@ -11,10 +11,10 @@ import (
 
 const threshold = 5
 
-func allocate(sharers []types.Sharer, totalRewards sdk.Dec) (rewards []types.Reward) {
+func allocate(sharers []types.Sharer, totalRewards sdk.Dec) (rewards []types.PreReward) {
 	var minToDistribute int64
-	var shouldCarry []types.Reward
-	var shouldNotCarry []types.Reward
+	var shouldCarry []types.PreReward
+	var shouldNotCarry []types.PreReward
 
 	totalShares := sdk.ZeroDec()
 	for _, sharer := range sharers {
@@ -26,9 +26,9 @@ func allocate(sharers []types.Sharer, totalRewards sdk.Dec) (rewards []types.Rew
 		afterRoundDown, firstDecimalValue := mulQuoDecWithExtraDecimal(sharer.Shares, totalRewards, totalShares, 1)
 
 		if firstDecimalValue < threshold {
-			shouldNotCarry = append(shouldNotCarry, types.Reward{AccAddr: sharer.AccAddr, Shares: sharer.Shares, Amount: afterRoundDown})
+			shouldNotCarry = append(shouldNotCarry, types.PreReward{AccAddr: sharer.AccAddr, Shares: sharer.Shares, Amount: afterRoundDown})
 		} else {
-			shouldCarry = append(shouldCarry, types.Reward{AccAddr: sharer.AccAddr, Shares: sharer.Shares, Amount: afterRoundDown})
+			shouldCarry = append(shouldCarry, types.PreReward{AccAddr: sharer.AccAddr, Shares: sharer.Shares, Amount: afterRoundDown})
 		}
 		minToDistribute += afterRoundDown
 	}
@@ -120,7 +120,7 @@ func (k Keeper) CountBatchRewards(ctx sdk.Context) (count int64) {
 	return
 }
 
-func (k Keeper) GetBatchRewards(ctx sdk.Context) (rewards []types.StoredReward, key []byte) {
+func (k Keeper) GetBatchRewards(ctx sdk.Context) (rewards []types.Reward, key []byte) {
 	store := ctx.KVStore(k.rewardStoreKey)
 
 	iterator := sdk.KVStorePrefixIterator(store, RewardBatchKey)
@@ -135,7 +135,7 @@ func (k Keeper) GetBatchRewards(ctx sdk.Context) (rewards []types.StoredReward, 
 	return nil, nil
 }
 
-func (k Keeper) SetBatchRewards(ctx sdk.Context, batchNo int64, rewards []types.StoredReward) {
+func (k Keeper) SetBatchRewards(ctx sdk.Context, batchNo int64, rewards []types.Reward) {
 	store := ctx.KVStore(k.rewardStoreKey)
 	bz := types.MustMarshalRewards(k.cdc, rewards)
 	store.Set(GetRewardBatchKey(batchNo), bz)

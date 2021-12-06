@@ -116,7 +116,7 @@ func TestDistributeInBreathBlock(t *testing.T) {
 
 	k.DistributeInBreathBlock(ctx, "")
 
-	var savedRewards []types.StoredReward
+	var savedRewards []types.Reward
 
 	// verify stored batches
 	batchSize := k.GetParams(ctx).RewardDistributionBatchSize

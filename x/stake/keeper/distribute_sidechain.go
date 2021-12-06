@@ -17,13 +17,13 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 	}
 
 	bondDenom := k.BondDenom(ctx)
-	var toPublish []types.DistributionData
+	var toPublish []types.PreDistributionData
 	for _, validator := range validators {
 		distAccCoins := k.bankKeeper.GetCoins(ctx, validator.DistributionAddr)
 		totalReward := distAccCoins.AmountOf(bondDenom)
 		totalRewardDec := sdk.ZeroDec()
 		commission := sdk.ZeroDec()
-		rewards := make([]types.Reward, 0)
+		rewards := make([]types.PreReward, 0)
 		if totalReward > 0 {
 			delegations, found := k.GetSimplifiedDelegations(ctx, height, validator.OperatorAddr)
 			if !found {
@@ -59,7 +59,7 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 		}
 
 		if ctx.IsDeliverTx() && k.PbsbServer != nil {
-			toPublish = append(toPublish, types.DistributionData{
+			toPublish = append(toPublish, types.PreDistributionData{
 				Validator:      validator.GetOperator(),
 				SelfDelegator:  validator.GetFeeAddr(),
 				DistributeAddr: validator.DistributionAddr,
@@ -74,7 +74,7 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 	}
 
 	if ctx.IsDeliverTx() && len(toPublish) > 0 && k.PbsbServer != nil {
-		event := types.SideDistributionEvent{
+		event := types.PreSideDistributionEvent{
 			SideChainId: sideChainId,
 			Data:        toPublish,
 		}
@@ -92,8 +92,8 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) {
 		return
 	}
 
-	var toPublish []types.DistributionDataV2         // data to be published in breathe blocks
-	var toSaveRewards []types.StoredReward           // rewards to be saved
+	var toPublish []types.DistributionData           // data to be published in breathe blocks
+	var toSaveRewards []types.Reward                 // rewards to be saved
 	var toSaveValDistAddrs []types.StoredValDistAddr // mapping between validator and distribution address, to be saved
 
 	bondDenom := k.BondDenom(ctx)
@@ -102,7 +102,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) {
 		totalReward := distAccCoins.AmountOf(bondDenom)
 		totalRewardDec := sdk.ZeroDec()
 		commission := sdk.ZeroDec()
-		rewards := make([]types.Reward, 0)
+		rewards := make([]types.PreReward, 0)
 		if totalReward > 0 {
 			delegations, found := k.GetSimplifiedDelegations(ctx, height, validator.OperatorAddr)
 			if !found {
@@ -125,10 +125,15 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) {
 			remainReward := totalRewardDec.Sub(commission)
 			rewards = allocate(simDelsToSharers(delegations), remainReward)
 			for i := range rewards {
-				storedReward := types.StoredReward{
+				// previous tokens calculation is in `node` repo, move it to here
+				tokens, err := sdk.MulQuoDec(validator.GetTokens(), rewards[i].Shares, validator.GetDelegatorShares())
+				if err != nil {
+					panic(err)
+				}
+				storedReward := types.Reward{
 					Validator: validator.GetOperator(),
 					AccAddr:   rewards[i].AccAddr,
-					Shares:    rewards[i].Shares,
+					Tokens:    tokens,
 					Amount:    rewards[i].Amount,
 				}
 				toSaveRewards = append(toSaveRewards, storedReward)
@@ -147,7 +152,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) {
 		}
 
 		if ctx.IsDeliverTx() && k.PbsbServer != nil {
-			toPublish = append(toPublish, types.DistributionDataV2{
+			toPublish = append(toPublish, types.DistributionData{
 				Validator:      validator.GetOperator(),
 				SelfDelegator:  validator.GetFeeAddr(),
 				DistributeAddr: validator.DistributionAddr,
@@ -179,7 +184,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) {
 
 	// publish data if needed
 	if ctx.IsDeliverTx() && len(toPublish) > 0 && k.PbsbServer != nil {
-		event := types.SideDistributionEventV2{
+		event := types.SideDistributionEvent{
 			SideChainId: sideChainId,
 			Data:        toPublish,
 		}
@@ -208,8 +213,8 @@ func (k Keeper) DistributeInBlock(ctx sdk.Context, sideChainId string) {
 	}
 
 	distAddrBalanceMap := make(map[string]int64) // track distribute address balance changes
-	var toPublish []types.DistributionDataV2     // data to be published in blocks
-	var toPublishRewards []types.StoredReward    // rewards to be published in blocks
+	var toPublish []types.DistributionData       // data to be published in blocks
+	var toPublishRewards []types.Reward          // rewards to be published in blocks
 
 	var changedAddrs []sdk.AccAddress //changed addresses
 
@@ -256,7 +261,7 @@ func (k Keeper) DistributeInBlock(ctx sdk.Context, sideChainId string) {
 
 	// publish data if needed
 	if ctx.IsDeliverTx() && len(toPublish) > 0 && k.PbsbServer != nil {
-		toPublish = append(toPublish, types.DistributionDataV2{
+		toPublish = append(toPublish, types.DistributionData{
 			Validator:      nil,
 			SelfDelegator:  nil,
 			DistributeAddr: nil,
@@ -264,9 +269,9 @@ func (k Keeper) DistributeInBlock(ctx sdk.Context, sideChainId string) {
 			ValTokens:      sdk.Dec{},
 			TotalReward:    sdk.Dec{},
 			Commission:     sdk.Dec{},
-			Rewards:        toPublishRewards,
+			Rewards:        toPublishRewards, // only publish rewards in
 		})
-		event := types.SideDistributionEventV2{
+		event := types.SideDistributionEvent{
 			SideChainId: sideChainId,
 			Data:        toPublish,
 		}
