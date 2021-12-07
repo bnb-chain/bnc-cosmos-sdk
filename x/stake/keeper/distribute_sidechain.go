@@ -130,13 +130,13 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) {
 				if err != nil {
 					panic(err)
 				}
-				storedReward := types.Reward{
+				toSaveReward := types.Reward{
 					ValAddr: validator.GetOperator(),
 					AccAddr: rewards[i].AccAddr,
 					Tokens:  tokens,
 					Amount:  rewards[i].Amount,
 				}
-				toSaveRewards = append(toSaveRewards, storedReward)
+				toSaveRewards = append(toSaveRewards, toSaveReward)
 			}
 
 			//track validator and distribution address mapping
@@ -196,7 +196,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) {
 
 // DistributeInBlock will 1) actually distribute rewards to delegators, using reward store, 2) clear reward store if needed
 func (k Keeper) DistributeInBlock(ctx sdk.Context, sideChainId string) {
-	if hasNext := k.HasNextBatchRewards(ctx); hasNext == false { // already done the distribution of rewards
+	if hasNext := k.HasNextBatchRewards(ctx); !hasNext { // already done the distribution of rewards
 		return
 	}
 
@@ -250,7 +250,7 @@ func (k Keeper) DistributeInBlock(ctx sdk.Context, sideChainId string) {
 	k.RemoveBatchRewards(ctx, key)
 
 	// check if this batch is the last one
-	if hasNext := k.HasNextBatchRewards(ctx); hasNext == false {
+	if hasNext := k.HasNextBatchRewards(ctx); !hasNext {
 		k.RemoveRewardValDistAddrs(ctx)
 	}
 
