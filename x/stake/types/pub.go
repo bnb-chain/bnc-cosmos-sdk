@@ -96,24 +96,6 @@ type SideCompletedREDEvent struct {
 	CompREDs    []DVVTriplet
 }
 
-// side distribution event before bgc
-type PreSideDistributionEvent struct {
-	StakeEvent
-	SideChainId string
-	Data        []PreDistributionData
-}
-
-type PreDistributionData struct {
-	Validator      sdk.ValAddress
-	SelfDelegator  sdk.AccAddress
-	DistributeAddr sdk.AccAddress
-	ValShares      sdk.Dec
-	ValTokens      sdk.Dec
-	TotalReward    sdk.Dec
-	Commission     sdk.Dec
-	Rewards        []PreReward
-}
-
 // side chain reward distribution event after bgc
 type SideDistributionEvent struct {
 	StakeEvent

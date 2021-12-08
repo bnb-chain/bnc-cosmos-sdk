@@ -17,7 +17,7 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 	}
 
 	bondDenom := k.BondDenom(ctx)
-	var toPublish []types.PreDistributionData
+	var toPublish []types.DistributionData
 	for _, validator := range validators {
 		distAccCoins := k.bankKeeper.GetCoins(ctx, validator.DistributionAddr)
 		totalReward := distAccCoins.AmountOf(bondDenom)
@@ -59,7 +59,22 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 		}
 
 		if ctx.IsDeliverTx() && k.PbsbServer != nil {
-			toPublish = append(toPublish, types.PreDistributionData{
+			var toPublishRewards []types.Reward
+			for i := range rewards {
+				tokens, err := sdk.MulQuoDec(validator.GetTokens(), rewards[i].Shares, validator.GetDelegatorShares())
+				if err != nil {
+					panic(err)
+				}
+				toPublishReward := types.Reward{
+					ValAddr: validator.GetOperator(),
+					AccAddr: rewards[i].AccAddr,
+					Tokens:  tokens,
+					Amount:  rewards[i].Amount,
+				}
+				toPublishRewards = append(toPublishRewards, toPublishReward)
+			}
+
+			toPublish = append(toPublish, types.DistributionData{
 				Validator:      validator.GetOperator(),
 				SelfDelegator:  validator.GetFeeAddr(),
 				DistributeAddr: validator.DistributionAddr,
@@ -67,14 +82,14 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 				ValTokens:      validator.GetTokens(),
 				TotalReward:    totalRewardDec,
 				Commission:     commission,
-				Rewards:        rewards,
+				Rewards:        toPublishRewards,
 			})
 
 		}
 	}
 
 	if ctx.IsDeliverTx() && len(toPublish) > 0 && k.PbsbServer != nil {
-		event := types.PreSideDistributionEvent{
+		event := types.SideDistributionEvent{
 			SideChainId: sideChainId,
 			Data:        toPublish,
 		}
