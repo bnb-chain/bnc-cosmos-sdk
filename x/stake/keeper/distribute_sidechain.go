@@ -12,7 +12,7 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 	// The rewards collected yesterday is decided by the validators the day before yesterday.
 	// So this distribution is for the validators bonded 2 days ago
 	validators, height, found := k.GetHeightValidatorsByIndex(ctx, 3)
-	if !found { // do nothing, if there is no validators to be rewarded.
+	if !found || len(validators) == 0 { // do nothing, if there is no validators to be rewarded.
 		return
 	}
 
@@ -260,7 +260,7 @@ func (k Keeper) DistributeInBlock(ctx sdk.Context, sideChainId string) {
 	}
 
 	// publish data if needed
-	if ctx.IsDeliverTx() && len(toPublish) > 0 && k.PbsbServer != nil {
+	if ctx.IsDeliverTx() && len(toPublishRewards) > 0 && k.PbsbServer != nil {
 		toPublish = append(toPublish, types.DistributionData{
 			Validator:      nil,
 			SelfDelegator:  nil,
@@ -269,7 +269,7 @@ func (k Keeper) DistributeInBlock(ctx sdk.Context, sideChainId string) {
 			ValTokens:      sdk.Dec{},
 			TotalReward:    sdk.Dec{},
 			Commission:     sdk.Dec{},
-			Rewards:        toPublishRewards, // only publish rewards in
+			Rewards:        toPublishRewards, // only publish rewards in normal block
 		})
 		event := types.SideDistributionEvent{
 			SideChainId: sideChainId,
