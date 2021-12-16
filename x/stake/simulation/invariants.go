@@ -1,7 +1,9 @@
 package simulation
 
 import (
+	"bytes"
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/x/stake/keeper"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -21,7 +23,7 @@ func AllInvariants(ck bank.Keeper, k stake.Keeper, d distribution.Keeper, am aut
 		if err != nil {
 			return err
 		}
-		err = PositivePowerInvariant(k)(app)
+		err = PowerStoreInvariant(k)(app)
 		if err != nil {
 			return err
 		}
@@ -88,19 +90,28 @@ func SupplyInvariants(ck bank.Keeper, k stake.Keeper, d distribution.Keeper, am 
 	}
 }
 
-// PositivePowerInvariant checks that all stored validators have > 0 power
-func PositivePowerInvariant(k stake.Keeper) simulation.Invariant {
+// PowerStoreInvariant checks that a validator's power aligns with its key in the power store
+func PowerStoreInvariant(k stake.Keeper) simulation.Invariant {
 	return func(app *baseapp.BaseApp) error {
-		ctx := app.NewContext(sdk.RunTxModeDeliver, abci.Header{})
-		var err error
-		k.IterateValidatorsBonded(ctx, func(_ int64, validator sdk.Validator) bool {
-			if !validator.GetPower().GT(sdk.ZeroDec()) {
-				err = fmt.Errorf("validator with non-positive power stored. (pubkey %v)", validator.GetConsPubKey())
-				return true
+		ctx := app.NewContext(sdk.RunTxModeCheck, abci.Header{})
+
+		iterator := k.ValidatorsPowerStoreIterator(ctx)
+
+		for ; iterator.Valid(); iterator.Next() {
+			validator, found := k.GetValidator(ctx, iterator.Value())
+			if !found {
+				panic(fmt.Sprintf("validator record not found for address: %X\n", iterator.Value()))
 			}
-			return false
-		})
-		return err
+
+			powerKey := keeper.GetValidatorsByPowerIndexKey(validator)
+
+			if !bytes.Equal(iterator.Key(), powerKey) {
+				return fmt.Errorf("power store invariance:\n\tvalidator.Power: %v"+
+					"\n\tkey should be: %v\n\tkey in store: %v", validator.GetPower(), powerKey, iterator.Key())
+			}
+		}
+		iterator.Close()
+		return nil
 	}
 }
 

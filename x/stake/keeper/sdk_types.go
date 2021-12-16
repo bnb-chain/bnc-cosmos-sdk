@@ -27,10 +27,31 @@ func (k Keeper) IterateValidators(ctx sdk.Context, fn func(index int64, validato
 }
 
 // iterate through the active validator set and perform the provided function
-func (k Keeper) IterateValidatorsBonded(ctx sdk.Context, fn func(index int64, validator sdk.Validator) (stop bool)) {
-	store := ctx.KVStore(k.storeKey)
-	iterator := sdk.KVStorePrefixIterator(store, LastValidatorPowerKey)
+func (k Keeper) IterateBondedValidatorsByPower(ctx sdk.Context, fn func(index int64, validator sdk.Validator) (stop bool)) {
+	maxValidators := k.MaxValidators(ctx)
+
+	iterator := k.ValidatorsPowerStoreIterator(ctx)
 	defer iterator.Close()
+
+	i := int64(0)
+	for ; iterator.Valid() && i < int64(maxValidators); iterator.Next() {
+		address := iterator.Value()
+		validator := k.mustGetValidator(ctx, address)
+
+		if validator.Status == sdk.Bonded {
+			stop := fn(i, validator)
+			if stop {
+				break
+			}
+			i++
+		}
+	}
+}
+
+func (k Keeper) IterateLastValidators(ctx sdk.Context, fn func(index int64, validator sdk.Validator) (stop bool)) {
+	iterator := k.LastValidatorsIterator(ctx)
+	defer iterator.Close()
+
 	i := int64(0)
 	for ; iterator.Valid(); iterator.Next() {
 		address := AddressFromLastValidatorPowerKey(iterator.Key())
@@ -38,8 +59,7 @@ func (k Keeper) IterateValidatorsBonded(ctx sdk.Context, fn func(index int64, va
 		if !found {
 			panic(fmt.Sprintf("validator record not found for address: %v\n", address))
 		}
-
-		stop := fn(i, validator) // XXX is this safe will the validator unexposed fields be able to get written to?
+		stop := fn(i, validator)
 		if stop {
 			break
 		}

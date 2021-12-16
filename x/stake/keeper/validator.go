@@ -464,3 +464,17 @@ func (k Keeper) UnbondAllMatureValidatorQueue(ctx sdk.Context) {
 		store.Delete(validatorTimesliceIterator.Key())
 	}
 }
+
+// returns an iterator for the consensus validators in the last block
+func (k Keeper) LastValidatorsIterator(ctx sdk.Context) (iterator sdk.Iterator) {
+	store := ctx.KVStore(k.storeKey)
+	iterator = sdk.KVStorePrefixIterator(store, LastValidatorPowerKey)
+	return iterator
+}
+
+// returns an iterator for the current validator power store
+func (k Keeper) ValidatorsPowerStoreIterator(ctx sdk.Context) (iterator sdk.Iterator) {
+	store := ctx.KVStore(k.storeKey)
+	iterator = sdk.KVStoreReversePrefixIterator(store, ValidatorsByPowerIndexKey)
+	return iterator
+}

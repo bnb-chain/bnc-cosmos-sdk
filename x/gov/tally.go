@@ -23,7 +23,7 @@ func Tally(ctx sdk.Context, keeper Keeper, proposal Proposal) (passes bool, refu
 	totalVotingPower := sdk.ZeroDec()
 	currValidators := make(map[string]validatorGovInfo)
 
-	keeper.vs.IterateValidatorsBonded(ctx, func(index int64, validator sdk.Validator) (stop bool) {
+	keeper.vs.IterateBondedValidatorsByPower(ctx, func(index int64, validator sdk.Validator) (stop bool) {
 		currValidators[validator.GetOperator().String()] = validatorGovInfo{
 			Address:             validator.GetOperator(),
 			Power:               validator.GetPower(),
