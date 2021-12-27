@@ -352,28 +352,6 @@ func TestSeedPhrase(t *testing.T) {
 	require.Equal(t, info.GetPubKey(), newInfo.GetPubKey())
 }
 
-func TestCreateHDPath(t *testing.T) {
-	type args struct {
-		account uint32
-		index   uint32
-	}
-	tests := []struct {
-		name string
-		args args
-		want hd.BIP44Params
-	}{
-		{"m/44'/714'/0'/0/0", args{0, 0}, *hd.NewParams(44, 714, 0, false, 0)},
-		{"m/44'/714'/1'/1/0", args{1, 1}, *hd.NewParams(44, 714, 1, false, 1)},
-	}
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			tt := tt
-			require.Equal(t, tt.want, *hd.NewFundraiserParams(tt.args.account, tt.args.index))
-		})
-	}
-}
-
 func ExampleNew() {
 	// Select the encryption and storage for your cryptostore
 	cstore := New(
