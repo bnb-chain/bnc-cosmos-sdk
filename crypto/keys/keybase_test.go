@@ -131,7 +131,7 @@ func TestSignVerify(t *testing.T) {
 	// Import a public key
 	armor, err := cstore.ExportPubKey(n2)
 	require.Nil(t, err)
-	cstore.ImportPubKey(n3, armor)
+	require.NoError(t, cstore.ImportPubKey(n3, armor))
 	i3, err := cstore.Get(n3)
 	require.NoError(t, err)
 	require.Equal(t, i3.GetName(), n3)
@@ -350,6 +350,28 @@ func TestSeedPhrase(t *testing.T) {
 	require.Equal(t, n2, newInfo.GetName())
 	require.Equal(t, info.GetPubKey().Address(), newInfo.GetPubKey().Address())
 	require.Equal(t, info.GetPubKey(), newInfo.GetPubKey())
+}
+
+func TestCreateHDPath(t *testing.T) {
+	type args struct {
+		account uint32
+		index   uint32
+	}
+	tests := []struct {
+		name string
+		args args
+		want hd.BIP44Params
+	}{
+		{"m/44'/714'/0'/0/0", args{0, 0}, *hd.NewParams(44, 714, 0, false, 0)},
+		{"m/44'/714'/1'/1/0", args{1, 1}, *hd.NewParams(44, 714, 1, false, 1)},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			tt := tt
+			require.Equal(t, tt.want, *hd.NewFundraiserParams(tt.args.account, tt.args.index))
+		})
+	}
 }
 
 func ExampleNew() {
