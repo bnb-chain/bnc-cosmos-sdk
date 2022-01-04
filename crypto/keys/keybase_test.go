@@ -131,7 +131,7 @@ func TestSignVerify(t *testing.T) {
 	// Import a public key
 	armor, err := cstore.ExportPubKey(n2)
 	require.Nil(t, err)
-	cstore.ImportPubKey(n3, armor)
+	require.NoError(t, cstore.ImportPubKey(n3, armor))
 	i3, err := cstore.Get(n3)
 	require.NoError(t, err)
 	require.Equal(t, i3.GetName(), n3)
