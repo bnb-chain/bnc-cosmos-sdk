@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -437,10 +438,10 @@ func BenchmarkCoinsAdditionIntersect(b *testing.B) {
 			coinsA := Coins(make([]Coin, numCoinsA))
 			coinsB := Coins(make([]Coin, numCoinsB))
 			for i := 0; i < numCoinsA; i++ {
-				coinsA[i] = NewCoin("COINZ_"+string(i), int64(i))
+				coinsA[i] = NewCoin("COINZ_"+strconv.Itoa(i), int64(i))
 			}
 			for i := 0; i < numCoinsB; i++ {
-				coinsB[i] = NewCoin("COINZ_"+string(i), int64(i))
+				coinsB[i] = NewCoin("COINZ_"+strconv.Itoa(i), int64(i))
 			}
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
@@ -463,10 +464,10 @@ func BenchmarkCoinsAdditionNoIntersect(b *testing.B) {
 			coinsA := Coins(make([]Coin, numCoinsA))
 			coinsB := Coins(make([]Coin, numCoinsB))
 			for i := 0; i < numCoinsA; i++ {
-				coinsA[i] = NewCoin("COINZ_"+string(numCoinsB+i), int64(i))
+				coinsA[i] = NewCoin("COINZ_"+strconv.Itoa(numCoinsB+i), int64(i))
 			}
 			for i := 0; i < numCoinsB; i++ {
-				coinsB[i] = NewCoin("COINZ_"+string(i), int64(i))
+				coinsB[i] = NewCoin("COINZ_"+strconv.Itoa(i), int64(i))
 			}
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
