@@ -1,5 +1,13 @@
 # Changelog
 
+##v0.25.0-binance.25
+* [sdk] [\#260](https://github.com/binance-chain/bnc-cosmos-sdk/pull/260) Bug fixes (e.g., unclosed iterator)
+* [stake] [\#261](https://github.com/binance-chain/bnc-cosmos-sdk/pull/261) Remove GetValidator caching to fix concurrency error 
+* [keys] [\#263](https://github.com/binance-chain/bnc-cosmos-sdk/pull/263) Add 'm/' prefix to hd path 
+* [core] [\#264](https://github.com/binance-chain/bnc-cosmos-sdk/pull/264) Upgrade Tendermint to v0.32.3-binance.6
+    * Update go version to 1.16
+    * Fix infinite recursion in Secp256k1 String() method
+
 ##v0.25.0-binance.24
 * [sdk] [\#248](https://github.com/binance-chain/bnc-cosmos-sdk/pull/248) owner transfer
 * [sdk] Allow tx send (generate-only) to actually work offline #4234

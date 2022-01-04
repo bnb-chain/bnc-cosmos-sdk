@@ -40,7 +40,7 @@ func TestSubscribe(t *testing.T) {
 	})
 	require.Nil(t, err)
 	err = sub.Subscribe(blockT, func(event Event) {})
-	require.Equal(t, pubsub.ErrAlreadySubscribed, err)
+	require.Equal(t, pubsub.ErrAlreadySubscribed.Error(), err.Error())
 
 	server.Publish(BlockCompleteEvent{txNum: 100})
 	require.NotEqual(t, 100, getTxNum)

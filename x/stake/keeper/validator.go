@@ -398,6 +398,8 @@ func (k Keeper) ValidatorQueueIterator(ctx sdk.Context, endTime time.Time) sdk.I
 func (k Keeper) GetAllMatureValidatorQueue(ctx sdk.Context, currTime time.Time) (matureValsAddrs []sdk.ValAddress) {
 	// gets an iterator for all timeslices from time 0 until the current Blockheader time
 	validatorTimesliceIterator := k.ValidatorQueueIterator(ctx, ctx.BlockHeader().Time)
+	defer validatorTimesliceIterator.Close()
+
 	for ; validatorTimesliceIterator.Valid(); validatorTimesliceIterator.Next() {
 		timeslice := []sdk.ValAddress{}
 		k.cdc.MustUnmarshalBinaryLengthPrefixed(validatorTimesliceIterator.Value(), &timeslice)
