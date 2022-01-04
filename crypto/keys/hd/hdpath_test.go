@@ -182,6 +182,7 @@ func TestBIP32Vecs(t *testing.T) {
 	// c4c11d8c03625515905d7e89d25dfc66126fbc629ecca6db489a1a72fc4bda78
 }
 
+
 // Tests to ensure that any index value is in the range [0, max(int32)] as per
 // the extended keys specification. If the index belongs to that of a hardened key,
 // its 0x80000000 bit will be set, so we can still accept values in [0, max(int32)] and then
@@ -248,6 +249,28 @@ func TestDeriveHDPathRange(t *testing.T) {
 				require.Error(t, err, "expected a report of an int overflow")
 				require.Contains(t, err.Error(), tt.wantErr)
 			}
+		})
+	}
+}
+
+// Ensuring that we don't crash if values have trailing slashes
+func TestDerivePrivateKeyForPathDoNotCrash(t *testing.T) {
+	paths := []string{
+		"m/5/",
+		"m/5",
+		"/44",
+		"m//5",
+		"m/0/7",
+		"/",
+		" m       /0/7",
+		"              /       ",
+		"m///7//////",
+	}
+
+	for _, path := range paths {
+		path := path
+		t.Run(path, func(t *testing.T) {
+			DerivePrivateKeyForPath([32]byte{}, [32]byte{}, path)
 		})
 	}
 }
