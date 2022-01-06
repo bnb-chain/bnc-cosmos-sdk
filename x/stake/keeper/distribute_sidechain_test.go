@@ -121,10 +121,10 @@ func TestDistributeInBreathBlock(t *testing.T) {
 	// verify stored batches
 	batchSize := k.GetParams(ctx).RewardDistributionBatchSize
 	batchCount := int64(0)
-	for ; k.HasNextBatchRewards(ctx); {
-		rewards, key := k.GetBatchRewards(ctx)
+	for ; k.hasNextBatchRewards(ctx); {
+		rewards, key := k.getNextBatchRewards(ctx)
 		savedRewards = append(savedRewards, rewards...)
-		k.RemoveBatchRewards(ctx, key)
+		k.removeBatchRewards(ctx, key)
 
 		batchCount = batchCount + 1
 		require.True(t, batchSize >= int64(len(rewards)))
@@ -197,10 +197,10 @@ func TestDistributeInBlock(t *testing.T) {
 
 	k.DistributeInBreathBlock(ctx, "")
 
-	batchCount := k.CountBatchRewards(ctx)
+	batchCount := k.countBatchRewards(ctx)
 
 	for i := int64(0); i < batchCount; i++ {
-		rewards, _ := k.GetBatchRewards(ctx)
+		rewards, _ := k.getNextBatchRewards(ctx)
 
 		// record delegator
 		delegatorBalanceMap := make(map[string]int64) // record delegator balance before
@@ -265,7 +265,7 @@ func TestDistributeInBlock(t *testing.T) {
 	}
 
 	// verify reward store
-	require.True(t, !k.HasNextBatchRewards(ctx))
-	_, found := k.GetRewardValDistAddrs(ctx)
+	require.True(t, !k.hasNextBatchRewards(ctx))
+	_, found := k.getRewardValDistAddrs(ctx)
 	require.True(t, !found)
 }

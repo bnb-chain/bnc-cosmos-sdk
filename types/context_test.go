@@ -96,12 +96,6 @@ func TestContextWithCustom(t *testing.T) {
 	var ctx types.Context
 	require.True(t, ctx.IsZero())
 
-	//require.Panics(t, func() { ctx.BlockHeader() })
-	//require.Panics(t, func() { ctx.BlockHeight() })
-	//require.Panics(t, func() { ctx.ChainID() })
-	//require.Panics(t, func() { ctx.Logger() })
-	//require.Panics(t, func() { ctx.VoteInfos() })
-
 	header := abci.Header{}
 	height := int64(1)
 	chainid := "chainid"

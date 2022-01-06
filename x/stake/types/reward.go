@@ -17,10 +17,11 @@ type PreReward struct {
 	Amount  int64
 }
 
+// reward model after bgc upgrade
 type Reward struct {
-	ValAddr sdk.ValAddress // Validator will be published for downstreams
+	ValAddr sdk.ValAddress // Validator will be published for downstream usage
 	AccAddr sdk.AccAddress
-	Tokens  sdk.Dec // Shares in PreReward does not publish
+	Tokens  sdk.Dec // delegator Tokens will be published for downstream usage
 	Amount  int64
 }
 

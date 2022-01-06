@@ -103,7 +103,7 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 // 3) save delegator's rewards to reward store for later distribution.
 func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) {
 	validators, height, found := k.GetHeightValidatorsByIndex(ctx, 3)
-	if !found {
+	if !found || len(validators) == 0 {
 		return
 	}
 
@@ -180,22 +180,24 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) {
 		}
 	}
 
-	//1) get batch size from parameters, 2) hard limit to make sure rewards can be distributed in a day
-	batchSize := getDistributionBatchSize(k.GetParams(ctx).RewardDistributionBatchSize, int64(len(toSaveRewards)))
-	batchCount := int64(len(toSaveRewards)) / batchSize
-	if int64(len(toSaveRewards))%batchSize != 0 {
-		batchCount = batchCount + 1
-	}
+	if len(toSaveRewards) > 0 { //to save rewards
+		//1) get batch size from parameters, 2) hard limit to make sure rewards can be distributed in a day
+		batchSize := getDistributionBatchSize(k.GetParams(ctx).RewardDistributionBatchSize, int64(len(toSaveRewards)))
+		batchCount := int64(len(toSaveRewards)) / batchSize
+		if int64(len(toSaveRewards))%batchSize != 0 {
+			batchCount = batchCount + 1
+		}
 
-	// save rewards
-	var batchNo = int64(0)
-	for ; batchNo < batchCount-1; batchNo++ {
-		k.SetBatchRewards(ctx, batchNo, toSaveRewards[batchNo*batchSize:(batchNo+1)*batchSize])
-	}
-	k.SetBatchRewards(ctx, batchNo, toSaveRewards[batchNo*batchSize:])
+		// save rewards
+		var batchNo = int64(0)
+		for ; batchNo < batchCount-1; batchNo++ {
+			k.setBatchRewards(ctx, batchNo, toSaveRewards[batchNo*batchSize:(batchNo+1)*batchSize])
+		}
+		k.setBatchRewards(ctx, batchNo, toSaveRewards[batchNo*batchSize:])
 
-	// save validator <-> distribution address map
-	k.SetRewardValDistAddrs(ctx, toSaveValDistAddrs)
+		// save validator <-> distribution address map
+		k.setRewardValDistAddrs(ctx, toSaveValDistAddrs)
+	}
 
 	// publish data if needed
 	if ctx.IsDeliverTx() && len(toPublish) > 0 && k.PbsbServer != nil {
@@ -211,13 +213,13 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) {
 
 // DistributeInBlock will 1) actually distribute rewards to delegators, using reward store, 2) clear reward store if needed
 func (k Keeper) DistributeInBlock(ctx sdk.Context, sideChainId string) {
-	if hasNext := k.HasNextBatchRewards(ctx); !hasNext { // already done the distribution of rewards
+	if hasNext := k.hasNextBatchRewards(ctx); !hasNext { // already done the distribution of rewards
 		return
 	}
 
 	// get batch rewards and validator <-> distribution address mapping
-	rewards, key := k.GetBatchRewards(ctx)
-	valDistAddrs, found := k.GetRewardValDistAddrs(ctx)
+	rewards, key := k.getNextBatchRewards(ctx)
+	valDistAddrs, found := k.getRewardValDistAddrs(ctx)
 	if !found {
 		panic("cannot find required mapping")
 	}
@@ -262,11 +264,11 @@ func (k Keeper) DistributeInBlock(ctx sdk.Context, sideChainId string) {
 	}
 
 	// delete the batch in store
-	k.RemoveBatchRewards(ctx, key)
+	k.removeBatchRewards(ctx, key)
 
-	// check if this batch is the last one
-	if hasNext := k.HasNextBatchRewards(ctx); !hasNext {
-		k.RemoveRewardValDistAddrs(ctx)
+	// check whether this batch is the last one
+	if hasNext := k.hasNextBatchRewards(ctx); !hasNext {
+		k.removeRewardValDistAddrs(ctx)
 	}
 
 	//update address pool
@@ -297,7 +299,7 @@ func (k Keeper) DistributeInBlock(ctx sdk.Context, sideChainId string) {
 // getDistributionBatchSize will adjust batch size to make sure all rewards will be distribute in a day (pre-defined block number)
 // usually the batch size will not be changed, just for prevention
 func getDistributionBatchSize(batchSize, totalRewardLen int64) int64 {
-	//TODO: define maxBlockCount somewhere else
+	//TODO: define maxBlockCount somewhere else, for different environments
 	maxBlockCount := int64(1000000)
 	if totalRewardLen/maxBlockCount >= batchSize {
 		batchSize = totalRewardLen / (maxBlockCount / 2)
