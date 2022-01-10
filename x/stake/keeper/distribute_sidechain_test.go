@@ -204,7 +204,7 @@ func TestDistributeInBlock(t *testing.T) {
 
 		// record delegator
 		delegatorBalanceMap := make(map[string]int64) // record delegator balance before
-		delegatorRewardMap := make(map[string]int64)  // record reward for each delegator is this batch
+		delegatorRewardMap := make(map[string]int64)  // record reward for each delegator in this batch
 		for _, reward := range rewards {
 			delegatorAcc := am.GetAccount(ctx, reward.AccAddr)
 			if delegatorAcc != nil {

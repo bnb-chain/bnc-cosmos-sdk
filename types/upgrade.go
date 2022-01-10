@@ -9,11 +9,11 @@ const (
 	BEP9                 = "BEP9"                 // https://github.com/binance-chain/BEPs/pull/9
 	BEP12                = "BEP12"                // https://github.com/binance-chain/BEPs/pull/17
 	BEP3                 = "BEP3"                 // https://github.com/binance-chain/BEPs/pull/30
-	BEP8                 = "BEP8"                 // Mini-BEP2 token
+	BEP8                 = "BEP8"                 // https://github.com/binance-chain/BEPs/pull/69
 	LaunchBscUpgrade     = "LaunchBscUpgrade"
 	BEP82                = "BEP82"                // https://github.com/binance-chain/BEPs/pull/82
 	FixFailAckPackage    = "FixFailAckPackage"
-	LaunchBgcUpgrade     = "LaunchBgcUpgrade"
+	BEP128               = "BEP128" 			  //https://github.com/binance-chain/BEPs/pull/128
 )
 
 var MainNetConfig = UpgradeConfig{

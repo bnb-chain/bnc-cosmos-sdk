@@ -37,7 +37,7 @@ func TestSetParams(t *testing.T) {
 	pk := params.NewKeeper(cdc, keyParams, tkeyParams)
 	k := NewKeeper(cdc, keyStake, keyStakeReward, tkeyStake, nil, nil, pk.Subspace(DefaultParamspace), types.DefaultCodespace)
 	sdk.UpgradeMgr.AddUpgradeHeight(sdk.LaunchBscUpgrade, 10)
-	sdk.UpgradeMgr.AddUpgradeHeight(sdk.LaunchBgcUpgrade, 100)
+	sdk.UpgradeMgr.AddUpgradeHeight(sdk.BEP128, 100)
 
 	sdk.UpgradeMgr.SetHeight(1)
 	k.SetParams(ctx, types.DefaultParams())

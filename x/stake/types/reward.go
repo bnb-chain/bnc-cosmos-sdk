@@ -10,14 +10,14 @@ type Sharer struct {
 	Shares  sdk.Dec
 }
 
-// reward model before bgc upgrade
+// reward model before BEP128 upgrade
 type PreReward struct {
 	AccAddr sdk.AccAddress
 	Shares  sdk.Dec
 	Amount  int64
 }
 
-// reward model after bgc upgrade
+// reward model after BEP128 upgrade
 type Reward struct {
 	ValAddr sdk.ValAddress // Validator will be published for downstream usage
 	AccAddr sdk.AccAddress

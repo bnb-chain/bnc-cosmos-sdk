@@ -13,7 +13,7 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.Valid
 	var events sdk.Events
 	_, validatorUpdates, completedUbds, _, events = handleValidatorAndDelegations(ctx, k)
 	ctx.EventManager().EmitEvents(events)
-	if sdk.IsUpgrade(sdk.LaunchBgcUpgrade) {
+	if sdk.IsUpgrade(sdk.BEP128) {
 		sideChainIds, storePrefixes := k.ScKeeper.GetAllSideChainPrefixes(ctx)
 		if len(sideChainIds) == len(storePrefixes) {
 			for i := range storePrefixes {
@@ -47,7 +47,7 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 
 			storeValidatorsWithHeight(sideChainCtx, newVals, k)
 
-			if !sdk.IsUpgrade(sdk.LaunchBgcUpgrade) {
+			if !sdk.IsUpgrade(sdk.BEP128) {
 				k.Distribute(sideChainCtx, sideChainIds[i])
 			} else {
 				k.DistributeInBreathBlock(sideChainCtx, sideChainIds[i])

@@ -85,7 +85,7 @@ func (p *paramBeforeBscUpgrade) KeyValuePairs() params.KeyValuePairs {
 }
 
 // in order to be compatible with before
-type paramBeforeBgcUpgrade struct {
+type paramBeforeBEP128Upgrade struct {
 	UnbondingTime time.Duration `json:"unbonding_time"`
 
 	MaxValidators       uint16 `json:"max_validators"`        // maximum number of validators
@@ -95,7 +95,7 @@ type paramBeforeBgcUpgrade struct {
 }
 
 // Implements params.ParamSet
-func (p *paramBeforeBgcUpgrade) KeyValuePairs() params.KeyValuePairs {
+func (p *paramBeforeBEP128Upgrade) KeyValuePairs() params.KeyValuePairs {
 	return params.KeyValuePairs{
 		{types.KeyUnbondingTime, &p.UnbondingTime},
 		{types.KeyMaxValidators, &p.MaxValidators},
@@ -115,8 +115,8 @@ func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
 
 		k.paramstore.SetParamSet(ctx, &pb)
 	}, nil, func() {
-		sdk.Upgrade(sdk.LaunchBgcUpgrade, func() {
-			var pb paramBeforeBgcUpgrade
+		sdk.Upgrade(sdk.BEP128, func() {
+			var pb paramBeforeBEP128Upgrade
 			pb.UnbondingTime = params.UnbondingTime
 			pb.MaxValidators = params.MaxValidators
 			pb.BondDenom = params.BondDenom
