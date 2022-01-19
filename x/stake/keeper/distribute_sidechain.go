@@ -12,7 +12,8 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 	// The rewards collected yesterday is decided by the validators the day before yesterday.
 	// So this distribution is for the validators bonded 2 days ago
 	validators, height, found := k.GetHeightValidatorsByIndex(ctx, 3)
-	if !found || len(validators) == 0 { // do nothing, if there is no validators to be rewarded.
+	// be noted: if len(validators) == 0, it still needs to call removeValidatorsAndDelegationsAtHeight
+	if !found { // do nothing, if there is no validators to be rewarded.
 		return
 	}
 
@@ -103,7 +104,7 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 // 3) save delegator's rewards to reward store for later distribution.
 func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) {
 	validators, height, found := k.GetHeightValidatorsByIndex(ctx, 3)
-	if !found || len(validators) == 0 {
+	if !found {
 		return
 	}
 
