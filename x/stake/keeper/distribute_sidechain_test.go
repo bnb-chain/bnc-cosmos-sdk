@@ -1,12 +1,12 @@
 package keeper
 
 import (
-	"github.com/cosmos/cosmos-sdk/x/auth"
 	"math/rand"
 	"testing"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 	"github.com/stretchr/testify/require"
 )
