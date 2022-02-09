@@ -80,8 +80,8 @@ func (p *Params) UpdateCheck() error {
 		return fmt.Errorf("the min_delegation_change should be no less than 1e5")
 	}
 
-	if p.RewardDistributionBatchSize < 100 || p.RewardDistributionBatchSize > 1000 {
-		return fmt.Errorf("the reward_distribution_batch_size should be in range 100 to 1000")
+	if p.RewardDistributionBatchSize < 100 || p.RewardDistributionBatchSize > 5000 {
+		return fmt.Errorf("the reward_distribution_batch_size should be in range 100 to 5000")
 	}
 
 	return nil

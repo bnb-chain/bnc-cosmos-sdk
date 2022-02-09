@@ -105,6 +105,13 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 // DistributeInBreathBlock will 1) calculate rewards as Distribute does, 2) transfer commissions to all validators, and
 // 3) save delegator's rewards to reward store for later distribution.
 func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) {
+	// if there are left reward distribution batches in the previous day, will distribute all of them here
+	// this is only a safe guard to make sure that all the previous day's rewards are distributed
+	// because this case should happen in very very special case (e.g., bc maintenance for a long time), so there is no much optimization here
+	for ; k.hasNextBatchRewards(ctx);  {
+		k.distributeSingleBatch(ctx, sideChainId)
+	}
+
 	validators, height, found := k.GetHeightValidatorsByIndex(ctx, daysBackward)
 	if !found {
 		return
@@ -220,6 +227,11 @@ func (k Keeper) DistributeInBlock(ctx sdk.Context, sideChainId string) {
 		return
 	}
 
+	k.distributeSingleBatch(ctx, sideChainId)
+}
+
+// distributeSingleBatch will distribute an single batch of rewards if there is any
+func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) {
 	// get batch rewards and validator <-> distribution address mapping
 	rewards, key := k.getNextBatchRewards(ctx)
 	valDistAddrs, found := k.getRewardValDistAddrs(ctx)

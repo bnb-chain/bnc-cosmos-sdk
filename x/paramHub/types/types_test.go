@@ -155,7 +155,7 @@ func TestSCParamCheck(t *testing.T) {
 		{cp: generatSCParamChange(&stake.Params{UnbondingTime: 24 * time.Hour, MaxValidators: 0, BondDenom: "BNB", MinSelfDelegation: 100e8, MinDelegationChange: 1e5, RewardDistributionBatchSize: 300}, 0), expectError: true},
 		{cp: generatSCParamChange(&stake.Params{UnbondingTime: 24 * time.Hour, MaxValidators: 10, BondDenom: "BNB", MinSelfDelegation: 1e7, MinDelegationChange: 1e5, RewardDistributionBatchSize: 800}, 0), expectError: true},
 		{cp: generatSCParamChange(&stake.Params{UnbondingTime: 24 * time.Hour, MaxValidators: 10, BondDenom: "BNB", MinSelfDelegation: 100e8, MinDelegationChange: 1e5, RewardDistributionBatchSize: 10}, 0), expectError: true},
-		{cp: generatSCParamChange(&stake.Params{UnbondingTime: 24 * time.Hour, MaxValidators: 10, BondDenom: "BNB", MinSelfDelegation: 100e8, MinDelegationChange: 1e5, RewardDistributionBatchSize: 1010}, 0), expectError: true},
+		{cp: generatSCParamChange(&stake.Params{UnbondingTime: 24 * time.Hour, MaxValidators: 10, BondDenom: "BNB", MinSelfDelegation: 100e8, MinDelegationChange: 1e5, RewardDistributionBatchSize: 5010}, 0), expectError: true},
 		{cp: fTypes.SCChangeParams{SCParams: []fTypes.SCParam{nil}}, expectError: true},
 		{cp: fTypes.SCChangeParams{SCParams: []fTypes.SCParam{}}, expectError: true},
 	}
