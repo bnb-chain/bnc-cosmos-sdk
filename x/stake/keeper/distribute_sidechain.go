@@ -315,7 +315,7 @@ func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) {
 // usually the batch size will not be changed, just for prevention
 func getDistributionBatchSize(batchSize, totalRewardLen int64) int64 {
 	//TODO: define maxBlockCount somewhere else, for different environments
-	maxBlockCount := int64(1000000)
+	maxBlockCount := int64(10000)
 	if totalRewardLen/maxBlockCount >= batchSize {
 		batchSize = totalRewardLen / (maxBlockCount / 2)
 	}
