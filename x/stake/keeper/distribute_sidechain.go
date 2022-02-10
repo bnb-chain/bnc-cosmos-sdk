@@ -7,13 +7,18 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
 
-const daysBackward = 3
+const (
+	// for getting the snapshot of validators in the specific days ago
+	daysBackwardForValidatorSnapshot = 3
+	// the count of blocks to distribute a day's rewards should be smaller than this value
+	boundOfRewardDistributionBlockCount = int64(10000)
+)
 
 func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 
 	// The rewards collected yesterday is decided by the validators the day before yesterday.
 	// So this distribution is for the validators bonded 2 days ago
-	validators, height, found := k.GetHeightValidatorsByIndex(ctx, daysBackward)
+	validators, height, found := k.GetHeightValidatorsByIndex(ctx, daysBackwardForValidatorSnapshot)
 	// be noted: if len(validators) == 0, it still needs to call removeValidatorsAndDelegationsAtHeight
 	if !found { // do nothing, if there is no validators to be rewarded.
 		return
@@ -108,11 +113,11 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) {
 	// if there are left reward distribution batches in the previous day, will distribute all of them here
 	// this is only a safe guard to make sure that all the previous day's rewards are distributed
 	// because this case should happen in very very special case (e.g., bc maintenance for a long time), so there is no much optimization here
-	for ; k.hasNextBatchRewards(ctx);  {
+	for ; k.hasNextBatchRewards(ctx); {
 		k.distributeSingleBatch(ctx, sideChainId)
 	}
 
-	validators, height, found := k.GetHeightValidatorsByIndex(ctx, daysBackward)
+	validators, height, found := k.GetHeightValidatorsByIndex(ctx, daysBackwardForValidatorSnapshot)
 	if !found {
 		return
 	}
@@ -314,10 +319,8 @@ func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) {
 // getDistributionBatchSize will adjust batch size to make sure all rewards will be distribute in a day (pre-defined block number)
 // usually the batch size will not be changed, just for prevention
 func getDistributionBatchSize(batchSize, totalRewardLen int64) int64 {
-	//TODO: define maxBlockCount somewhere else, for different environments
-	maxBlockCount := int64(10000)
-	if totalRewardLen/maxBlockCount >= batchSize {
-		batchSize = totalRewardLen / (maxBlockCount / 2)
+	if totalRewardLen/boundOfRewardDistributionBlockCount >= batchSize {
+		batchSize = totalRewardLen / (boundOfRewardDistributionBlockCount / 2)
 	}
 	return batchSize
 }
