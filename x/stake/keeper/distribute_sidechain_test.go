@@ -6,11 +6,12 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 	"github.com/stretchr/testify/require"
 )
 
-func TestDistribute(t *testing.T) {
+func prepare(t *testing.T) (sdk.Context, auth.AccountKeeper, Keeper, int64, []types.Validator, [][]sdk.AccAddress, []int64, int) {
 	ctx, am, k := CreateTestInput(t, false, 0)
 	k.addrPool = new(sdk.Pool)
 	bondDenom := k.BondDenom(ctx)
@@ -78,6 +79,12 @@ func TestDistribute(t *testing.T) {
 	k.SetValidatorsByHeight(ctx, height, validators)
 	k.SetValidatorsByHeight(ctx, height2, make([]types.Validator, 0))
 	k.SetValidatorsByHeight(ctx, height3, make([]types.Validator, 0))
+	return ctx, am, k, height, validators, delegators, rewards, totalDelNum
+}
+
+func TestDistribute(t *testing.T) {
+	ctx, am, k, height, validators, delegators, rewards, totalDelNum := prepare(t)
+	bondDenom := k.BondDenom(ctx)
 
 	k.Distribute(ctx, "")
 
@@ -101,5 +108,164 @@ func TestDistribute(t *testing.T) {
 	require.False(t, found)
 
 	require.EqualValues(t, len(k.addrPool.TxRelatedAddrs()), totalDelNum+21) // add 21 distribution addresses
+}
 
+func TestDistributeInBreathBlock(t *testing.T) {
+	ctx, am, k, height, validators, _, rewards, totalDelNum := prepare(t)
+	bondDenom := k.BondDenom(ctx)
+
+	k.DistributeInBreathBlock(ctx, "")
+
+	var savedRewards []types.Reward
+
+	// verify stored batches
+	batchSize := k.GetParams(ctx).RewardDistributionBatchSize
+	batchCount := int64(0)
+	for ; k.hasNextBatchRewards(ctx); {
+		rewards, key := k.getNextBatchRewards(ctx)
+		savedRewards = append(savedRewards, rewards...)
+		k.removeBatchRewards(ctx, key)
+
+		batchCount = batchCount + 1
+		require.True(t, batchSize >= int64(len(rewards)))
+	}
+	if int64(totalDelNum)%batchSize == 0 {
+		require.True(t, batchCount == int64(totalDelNum)/batchSize)
+	} else {
+		require.True(t, batchCount == int64(totalDelNum)/batchSize+1)
+	}
+
+	// verify validator
+	for i, validator := range validators {
+		_, found := k.GetSimplifiedDelegations(ctx, height, validator.OperatorAddr)
+		require.False(t, found)
+
+		valAcc := am.GetAccount(ctx, validator.FeeAddr)
+		valBalance := valAcc.GetCoins().AmountOf(bondDenom)
+
+		distAcc := am.GetAccount(ctx, validator.DistributionAddr)
+		distBalance := distAcc.GetCoins().AmountOf(bondDenom)
+
+		totalRewardDec := sdk.NewDec(rewards[i])
+		require.Equal(t, totalRewardDec.Mul(validator.Commission.Rate).RawInt(), valBalance)
+		require.Equal(t, rewards[i]-totalRewardDec.Mul(validator.Commission.Rate).RawInt(), distBalance)
+		require.Equal(t, rewards[i], valBalance+distBalance)
+
+		require.NotEqual(t, int64(0), distBalance)
+		require.NotEqual(t, int64(0), valBalance)
+	}
+
+	// verify delegator rewards
+	require.Equal(t, totalDelNum, len(savedRewards))
+
+	valDistAddrMap := make(map[string]sdk.AccAddress)
+	for _, validator := range validators {
+		valDistAddrMap[validator.OperatorAddr.String()] = validator.DistributionAddr
+	}
+
+	expectedDistAddrBalanceMap := make(map[string]int64)
+	for _, reward := range savedRewards {
+		distAddr := valDistAddrMap[reward.ValAddr.String()]
+		if value, ok := expectedDistAddrBalanceMap[distAddr.String()]; ok {
+			expectedDistAddrBalanceMap[distAddr.String()] = reward.Amount + value
+		} else {
+			expectedDistAddrBalanceMap[distAddr.String()] = reward.Amount
+		}
+	}
+
+	for i, validator := range validators {
+		totalRewardDec := sdk.NewDec(rewards[i])
+
+		// rewards amount are correctly saved in reward store
+		require.Equal(t, rewards[i]-totalRewardDec.Mul(validator.Commission.Rate).RawInt(), expectedDistAddrBalanceMap[validator.DistributionAddr.String()])
+
+		// rewards are correctly left in distribution address
+		distAcc := am.GetAccount(ctx, validator.DistributionAddr)
+		distBalance := distAcc.GetCoins().AmountOf(bondDenom)
+		require.Equal(t, distBalance, expectedDistAddrBalanceMap[validator.DistributionAddr.String()])
+	}
+
+	_, found := k.GetValidatorsByHeight(ctx, height)
+	require.False(t, found)
+
+	require.EqualValues(t, len(k.addrPool.TxRelatedAddrs()), 21+21) // validator fee address + distribution address
+}
+
+func TestDistributeInBlock(t *testing.T) {
+	ctx, am, k, _, validators, _, _, _ := prepare(t)
+	bondDenom := k.BondDenom(ctx)
+
+	k.DistributeInBreathBlock(ctx, "")
+
+	batchCount := k.countBatchRewards(ctx)
+
+	for i := int64(0); i < batchCount; i++ {
+		rewards, _ := k.getNextBatchRewards(ctx)
+
+		// record delegator
+		delegatorBalanceMap := make(map[string]int64) // record delegator balance before
+		delegatorRewardMap := make(map[string]int64)  // record reward for each delegator in this batch
+		for _, reward := range rewards {
+			delegatorAcc := am.GetAccount(ctx, reward.AccAddr)
+			if delegatorAcc != nil {
+				delegatorBalance := delegatorAcc.GetCoins().AmountOf(bondDenom)
+				delegatorBalanceMap[reward.AccAddr.String()] = delegatorBalance
+			} else {
+				delegatorBalanceMap[reward.AccAddr.String()] = 0
+			}
+
+			if value, ok := delegatorRewardMap[reward.AccAddr.String()]; ok {
+				delegatorRewardMap[reward.AccAddr.String()] = reward.Amount + value
+			} else {
+				delegatorRewardMap[reward.AccAddr.String()] = reward.Amount
+			}
+		}
+
+		// record distribution address
+		distBalanceMap := make(map[string]int64) // record distribution address balance before
+		distConsumeMap := make(map[string]int64) // record distribution address will cost amount
+		valDistAddrMap := make(map[string]sdk.AccAddress)
+		for _, validator := range validators {
+			valDistAddrMap[validator.OperatorAddr.String()] = validator.DistributionAddr
+		}
+
+		for _, reward := range rewards {
+			distAddr := valDistAddrMap[reward.ValAddr.String()]
+			distAcc := am.GetAccount(ctx, distAddr)
+			distBalance := distAcc.GetCoins().AmountOf(bondDenom)
+			distBalanceMap[distAddr.String()] = distBalance
+
+			if value, ok := distConsumeMap[distAddr.String()]; ok {
+				distConsumeMap[distAddr.String()] = reward.Amount + value
+			} else {
+				distConsumeMap[distAddr.String()] = reward.Amount
+			}
+		}
+
+		// do distribution
+		k.DistributeInBlock(ctx, "")
+
+		// verify distribute address balance
+		for dist, balance := range distBalanceMap {
+			distAddr, _ := sdk.AccAddressFromBech32(dist)
+			distAcc := am.GetAccount(ctx, distAddr)
+			newBalance := distAcc.GetCoins().AmountOf(bondDenom)
+
+			require.Equal(t, newBalance, balance-distConsumeMap[dist])
+		}
+
+		// verify delegator balance
+		for delegator, balance := range delegatorBalanceMap {
+			delegatorAddr, _ := sdk.AccAddressFromBech32(delegator)
+			delegatorAcc := am.GetAccount(ctx, delegatorAddr)
+			newBalance := delegatorAcc.GetCoins().AmountOf(bondDenom)
+
+			require.Equal(t, newBalance, balance+delegatorRewardMap[delegator])
+		}
+	}
+
+	// verify reward store
+	require.True(t, !k.hasNextBatchRewards(ctx))
+	_, found := k.getRewardValDistAddrs(ctx)
+	require.True(t, !found)
 }

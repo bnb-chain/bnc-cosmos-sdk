@@ -96,7 +96,7 @@ type SideCompletedREDEvent struct {
 	CompREDs    []DVVTriplet
 }
 
-// side distribution event
+// side chain reward distribution event after BEP128
 type SideDistributionEvent struct {
 	StakeEvent
 	SideChainId string

@@ -87,6 +87,7 @@ func getAccountCache(cdc *codec.Codec, ms sdk.MultiStore, accountKey *sdk.KVStor
 func CreateTestInput(t *testing.T, isCheckTx bool, initCoins int64) (sdk.Context, auth.AccountKeeper, Keeper) {
 
 	keyStake := sdk.NewKVStoreKey("stake")
+	keyStakeReward := sdk.NewKVStoreKey("stake_reward")
 	tkeyStake := sdk.NewTransientStoreKey("transient_stake")
 	keyAcc := sdk.NewKVStoreKey("acc")
 	keyParams := sdk.NewKVStoreKey("params")
@@ -98,6 +99,7 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initCoins int64) (sdk.Context
 	ms := store.NewCommitMultiStore(db)
 	ms.MountStoreWithDB(tkeyStake, sdk.StoreTypeTransient, nil)
 	ms.MountStoreWithDB(keyStake, sdk.StoreTypeIAVL, db)
+	ms.MountStoreWithDB(keyStakeReward, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(keyAcc, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(keyParams, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(tkeyParams, sdk.StoreTypeTransient, db)
@@ -128,11 +130,12 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initCoins int64) (sdk.Context
 	scKeeper := sidechain.NewKeeper(keySideChain, pk.Subspace(sidechain.DefaultParamspace), cdc)
 
 	ibcKeeper := ibc.NewKeeper(keyIbc, pk.Subspace(ibc.DefaultParamspace), ibc.DefaultCodespace, scKeeper)
-	keeper := NewKeeper(cdc, keyStake, tkeyStake, ck, nil, pk.Subspace(DefaultParamspace), types.DefaultCodespace)
+	keeper := NewKeeper(cdc, keyStake, keyStakeReward, tkeyStake, ck, nil, pk.Subspace(DefaultParamspace), types.DefaultCodespace)
 	keeper.SetPool(ctx, types.InitialPool())
 	keeper.SetParams(ctx, types.DefaultParams())
 	sdk.UpgradeMgr.AddUpgradeHeight(sdk.LaunchBscUpgrade, 1)
-	sdk.UpgradeMgr.Height = 1
+	sdk.UpgradeMgr.AddUpgradeHeight(sdk.BEP128, 100)
+	sdk.UpgradeMgr.Height = 100
 	keeper.SetParams(ctx, types.DefaultParams())
 	keeper.SetupForSideChain(&scKeeper, &ibcKeeper)
 
@@ -154,6 +157,7 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initCoins int64) (sdk.Context
 func CreateTestInputWithGov(t *testing.T, isCheckTx bool, initCoins int64) (sdk.Context, auth.AccountKeeper, Keeper, gov.Keeper, *codec.Codec) {
 
 	keyStake := sdk.NewKVStoreKey("stake")
+	keyStakeReward := sdk.NewKVStoreKey("stake_reward")
 	tkeyStake := sdk.NewTransientStoreKey("transient_stake")
 	keyAcc := sdk.NewKVStoreKey("acc")
 	keyParams := sdk.NewKVStoreKey("params")
@@ -164,6 +168,7 @@ func CreateTestInputWithGov(t *testing.T, isCheckTx bool, initCoins int64) (sdk.
 	ms := store.NewCommitMultiStore(db)
 	ms.MountStoreWithDB(tkeyStake, sdk.StoreTypeTransient, nil)
 	ms.MountStoreWithDB(keyStake, sdk.StoreTypeIAVL, db)
+	ms.MountStoreWithDB(keyStakeReward, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(keyAcc, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(keyParams, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(tkeyParams, sdk.StoreTypeTransient, db)
@@ -190,7 +195,7 @@ func CreateTestInputWithGov(t *testing.T, isCheckTx bool, initCoins int64) (sdk.
 
 	ck := bank.NewBaseKeeper(accountKeeper)
 	pk := params.NewKeeper(cdc, keyParams, tkeyParams)
-	keeper := NewKeeper(cdc, keyStake, tkeyStake, ck, nil, pk.Subspace(DefaultParamspace), types.DefaultCodespace)
+	keeper := NewKeeper(cdc, keyStake, keyStakeReward, tkeyStake, ck, nil, pk.Subspace(DefaultParamspace), types.DefaultCodespace)
 
 	govKeeper := gov.NewKeeper(cdc, govKey, pk, pk.Subspace(gov.DefaultParamSpace), ck, keeper, gov.DefaultCodespace, &sdk.Pool{})
 

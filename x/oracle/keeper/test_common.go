@@ -26,6 +26,7 @@ func getMockApp(t *testing.T, numGenAccs int) (*mock.App, bank.BaseKeeper, Keepe
 	keyGlobalParams := sdk.NewKVStoreKey("params")
 	tkeyGlobalParams := sdk.NewTransientStoreKey("transient_params")
 	keyStake := sdk.NewKVStoreKey("stake")
+	keyStakeReward := sdk.NewKVStoreKey("stake_reward")
 	tkeyStake := sdk.NewTransientStoreKey("transient_stake")
 	keyOracle := sdk.NewKVStoreKey("oracle")
 	keyIbc := sdk.NewKVStoreKey("ibc")
@@ -33,7 +34,7 @@ func getMockApp(t *testing.T, numGenAccs int) (*mock.App, bank.BaseKeeper, Keepe
 
 	pk := params.NewKeeper(mapp.Cdc, keyGlobalParams, tkeyGlobalParams)
 	ck := bank.NewBaseKeeper(mapp.AccountKeeper)
-	sk := stake.NewKeeper(mapp.Cdc, keyStake, tkeyStake, ck, nil, pk.Subspace(stake.DefaultParamspace), mapp.RegisterCodespace(stake.DefaultCodespace))
+	sk := stake.NewKeeper(mapp.Cdc, keyStake, keyStakeReward, tkeyStake, ck, nil, pk.Subspace(stake.DefaultParamspace), mapp.RegisterCodespace(stake.DefaultCodespace))
 	scK := sidechain.NewKeeper(keySideChain, pk.Subspace(sidechain.DefaultParamspace), mapp.Cdc)
 	ibcKeeper := ibc.NewKeeper(keyIbc, pk.Subspace(ibc.DefaultParamspace), ibc.DefaultCodespace, scK)
 

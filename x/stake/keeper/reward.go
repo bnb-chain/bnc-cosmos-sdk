@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"encoding/binary"
 	"math"
 	"math/big"
 
@@ -10,10 +11,10 @@ import (
 
 const threshold = 5
 
-func allocate(sharers []types.Sharer, totalRewards sdk.Dec) (rewards []types.Reward) {
+func allocate(sharers []types.Sharer, totalRewards sdk.Dec) (rewards []types.PreReward) {
 	var minToDistribute int64
-	var shouldCarry []types.Reward
-	var shouldNotCarry []types.Reward
+	var shouldCarry []types.PreReward
+	var shouldNotCarry []types.PreReward
 
 	totalShares := sdk.ZeroDec()
 	for _, sharer := range sharers {
@@ -25,9 +26,9 @@ func allocate(sharers []types.Sharer, totalRewards sdk.Dec) (rewards []types.Rew
 		afterRoundDown, firstDecimalValue := mulQuoDecWithExtraDecimal(sharer.Shares, totalRewards, totalShares, 1)
 
 		if firstDecimalValue < threshold {
-			shouldNotCarry = append(shouldNotCarry, types.Reward{AccAddr: sharer.AccAddr, Shares: sharer.Shares, Amount: afterRoundDown})
+			shouldNotCarry = append(shouldNotCarry, types.PreReward{AccAddr: sharer.AccAddr, Shares: sharer.Shares, Amount: afterRoundDown})
 		} else {
-			shouldCarry = append(shouldCarry, types.Reward{AccAddr: sharer.AccAddr, Shares: sharer.Shares, Amount: afterRoundDown})
+			shouldCarry = append(shouldCarry, types.PreReward{AccAddr: sharer.AccAddr, Shares: sharer.Shares, Amount: afterRoundDown})
 		}
 		minToDistribute += afterRoundDown
 	}
@@ -85,4 +86,82 @@ func mulQuoBigIntWithExtraDecimal(a, b, c, extra *big.Int) (afterRoundDown int64
 	afterRoundDown = afterRoundDownBig.Int64()
 	extraDecimalValue = int(expectedDecimalValueBig.Int64())
 	return afterRoundDown, extraDecimalValue
+}
+
+//___________________________________________________________________________
+
+func getRewardBatchKey(batchNo int64) []byte {
+	bz := make([]byte, 8)
+	binary.BigEndian.PutUint64(bz, uint64(batchNo))
+	return append(RewardBatchKey, bz...)
+}
+
+func (k Keeper) hasNextBatchRewards(ctx sdk.Context) bool {
+	store := ctx.KVStore(k.rewardStoreKey)
+
+	iterator := sdk.KVStorePrefixIterator(store, RewardBatchKey)
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		return true
+	}
+	return false
+}
+
+func (k Keeper) countBatchRewards(ctx sdk.Context) (count int64) {
+	store := ctx.KVStore(k.rewardStoreKey)
+
+	iterator := sdk.KVStorePrefixIterator(store, RewardBatchKey)
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		count = count + 1
+	}
+	return
+}
+
+func (k Keeper) getNextBatchRewards(ctx sdk.Context) (rewards []types.Reward, key []byte) {
+	store := ctx.KVStore(k.rewardStoreKey)
+
+	iterator := sdk.KVStorePrefixIterator(store, RewardBatchKey)
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		value := iterator.Value()
+		rewards = types.MustUnmarshalRewards(k.cdc, value)
+		key = iterator.Key()
+		return
+	}
+	return nil, nil
+}
+
+func (k Keeper) setBatchRewards(ctx sdk.Context, batchNo int64, rewards []types.Reward) {
+	store := ctx.KVStore(k.rewardStoreKey)
+	bz := types.MustMarshalRewards(k.cdc, rewards)
+	store.Set(getRewardBatchKey(batchNo), bz)
+}
+
+func (k Keeper) removeBatchRewards(ctx sdk.Context, key []byte) {
+	store := ctx.KVStore(k.rewardStoreKey)
+	store.Delete(key)
+}
+
+func (k Keeper) setRewardValDistAddrs(ctx sdk.Context, valDistAddrs []types.StoredValDistAddr) {
+	store := ctx.KVStore(k.rewardStoreKey)
+	bz := types.MustMarshalValDistAddrs(k.cdc, valDistAddrs)
+	store.Set(RewardValDistAddrKey, bz)
+}
+
+func (k Keeper) getRewardValDistAddrs(ctx sdk.Context) (valDistAddrs []types.StoredValDistAddr, found bool) {
+	store := ctx.KVStore(k.rewardStoreKey)
+	value := store.Get(RewardValDistAddrKey)
+	if value != nil {
+		return types.MustUnmarshalValDistAddrs(k.cdc, value), true
+	}
+	return nil, false
+}
+
+func (k Keeper) removeRewardValDistAddrs(ctx sdk.Context) {
+	store := ctx.KVStore(k.rewardStoreKey)
+	store.Delete(RewardValDistAddrKey)
 }

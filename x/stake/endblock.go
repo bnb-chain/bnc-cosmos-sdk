@@ -13,6 +13,17 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.Valid
 	var events sdk.Events
 	_, validatorUpdates, completedUbds, _, events = handleValidatorAndDelegations(ctx, k)
 	ctx.EventManager().EmitEvents(events)
+	if sdk.IsUpgrade(sdk.BEP128) {
+		sideChainIds, storePrefixes := k.ScKeeper.GetAllSideChainPrefixes(ctx)
+		if len(sideChainIds) == len(storePrefixes) {
+			for i := range storePrefixes {
+				sideChainCtx := ctx.WithSideChainKeyPrefix(storePrefixes[i])
+				k.DistributeInBlock(sideChainCtx, sideChainIds[i])
+			}
+		} else {
+			panic("sideChainIds does not equal to sideChainStores")
+		}
+	}
 	return
 }
 
@@ -35,7 +46,12 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 			// TODO: need to add UBDs for side chains to the return value
 
 			storeValidatorsWithHeight(sideChainCtx, newVals, k)
-			k.Distribute(sideChainCtx, sideChainIds[i])
+
+			if !sdk.IsUpgrade(sdk.BEP128) {
+				k.Distribute(sideChainCtx, sideChainIds[i])
+			} else {
+				k.DistributeInBreathBlock(sideChainCtx, sideChainIds[i])
+			}
 
 			publishCompletedUBD(k, completedUbds, sideChainIds[i], ctx.BlockHeight())
 			publishCompletedRED(k, completedREDs, sideChainIds[i])
