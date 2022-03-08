@@ -1,7 +1,7 @@
 # Changelog
 
 ##v0.25.0-binance.26
-* [sdk] [\#259](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/259) Improve staking reward distribution
+* [stake] [\#259](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/259) Improve staking reward distribution
 
 ##v0.25.0-binance.25
 * [sdk] [\#260](https://github.com/binance-chain/bnc-cosmos-sdk/pull/260) Bug fixes (e.g., unclosed iterator)
