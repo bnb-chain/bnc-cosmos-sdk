@@ -1,5 +1,8 @@
 # Changelog
 
+##v0.25.0-binance.26
+* [stake] [\#259](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/259) Improve staking reward distribution
+
 ##v0.25.0-binance.25
 * [sdk] [\#260](https://github.com/binance-chain/bnc-cosmos-sdk/pull/260) Bug fixes (e.g., unclosed iterator)
 * [stake] [\#261](https://github.com/binance-chain/bnc-cosmos-sdk/pull/261) Remove GetValidator caching to fix concurrency error 
