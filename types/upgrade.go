@@ -21,6 +21,7 @@ const (
 	BEP159Phase2         = "BEP159Phase2" // phase 2 activation height of BEP159, enable create validator and active oracle relayer whitelist
 	BEP173               = "BEP173"       // https://github.com/bnb-chain/BEPs/pull/173
 	FixDoubleSignChainId = "FixDoubleSignChainId"
+	BEP126               = "BEP126" //https://github.com/binance-chain/BEPs/pull/126
 )
 
 var MainNetConfig = UpgradeConfig{
