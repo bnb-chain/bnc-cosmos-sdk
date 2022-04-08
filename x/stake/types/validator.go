@@ -22,10 +22,11 @@ import (
 // exchange rate. Voting power can be calculated as total bonds multiplied by
 // exchange rate.
 type Validator struct {
-	FeeAddr      sdk.AccAddress `json:"fee_addr"`                   // address for fee collection
-	OperatorAddr sdk.ValAddress `json:"operator_address"`           // address of the validator's operator; bech encoded in JSON
-	ConsPubKey   crypto.PubKey  `json:"consensus_pubkey,omitempty"` // the consensus public key of the validator; bech encoded in JSON
-	Jailed       bool           `json:"jailed"`                     // has the validator been jailed from bonded status?
+	FeeAddr      sdk.AccAddress  `json:"fee_addr"`                   // address for fee collection
+	OperatorAddr sdk.ValAddress  `json:"operator_address"`           // address of the validator's operator; bech encoded in JSON
+	ConsPubKey   crypto.PubKey   `json:"consensus_pubkey,omitempty"` // the consensus public key of the validator; bech encoded in JSON
+	Jailed       bool            `json:"jailed"`                     // has the validator been jailed from bonded status?
+	VoteAddr     sdk.VoteAddress `json:"vote_addr"`                  // public key of BLS
 
 	Status          sdk.BondStatus `json:"status"`           // validator status (bonded/unbonding/unbonded)
 	Tokens          sdk.Dec        `json:"tokens"`           // delegated tokens (incl. self-delegation)
@@ -47,17 +48,18 @@ type Validator struct {
 }
 
 // NewValidator - initialize a new validator
-func NewValidator(operator sdk.ValAddress, pubKey crypto.PubKey, description Description) Validator {
-	return NewValidatorWithFeeAddr(sdk.AccAddress(operator), operator, pubKey, description)
+func NewValidator(operator sdk.ValAddress, pubKey crypto.PubKey, bLSKey sdk.VoteAddress, description Description) Validator {
+	return NewValidatorWithFeeAddr(sdk.AccAddress(operator), operator, pubKey, bLSKey, description)
 }
 
-// Note a few fields are initialized with default value. They will be updated later
-func NewValidatorWithFeeAddr(feeAddr sdk.AccAddress, operator sdk.ValAddress, pubKey crypto.PubKey, description Description) Validator {
+// NewValidatorWithFeeAddr - Note a few fields are initialized with default value. They will be updated later
+func NewValidatorWithFeeAddr(feeAddr sdk.AccAddress, operator sdk.ValAddress, pubKey crypto.PubKey, bLSKey sdk.VoteAddress, description Description) Validator {
 	return Validator{
 		FeeAddr:            feeAddr,
 		OperatorAddr:       operator,
 		ConsPubKey:         pubKey,
 		Jailed:             false,
+		VoteAddr:           bLSKey,
 		Status:             sdk.Unbonded,
 		Tokens:             sdk.ZeroDec(),
 		DelegatorShares:    sdk.ZeroDec(),
@@ -76,6 +78,7 @@ func NewSideChainValidator(feeAddr sdk.AccAddress, operator sdk.ValAddress, desc
 		OperatorAddr:       operator,
 		ConsPubKey:         nil, // side chain validators do not need this
 		Jailed:             false,
+		VoteAddr:           nil,
 		Status:             sdk.Unbonded,
 		Tokens:             sdk.ZeroDec(),
 		DelegatorShares:    sdk.ZeroDec(),
@@ -99,12 +102,12 @@ func generateDistributionAddr(operator sdk.ValAddress, sideChainId string) sdk.A
 	return sdk.XOR(tmhash.SumTruncated([]byte(sideChainId)), operator)
 }
 
-// return the redelegation without fields contained within the key for the store
+// MustMarshalValidator return the redelegation without fields contained within the key for the store
 func MustMarshalValidator(cdc *codec.Codec, validator Validator) []byte {
 	return cdc.MustMarshalBinaryLengthPrefixed(validator)
 }
 
-// unmarshal a redelegation from a store key and value
+// MustUnmarshalValidator unmarshal a redelegation from a store key and value
 func MustUnmarshalValidator(cdc *codec.Codec, value []byte) Validator {
 	validator, err := UnmarshalValidator(cdc, value)
 	if err != nil {
@@ -151,6 +154,7 @@ func (v Validator) HumanReadableString() (string, error) {
 	resp += fmt.Sprintf("Fee Address: %s\n", v.FeeAddr)
 	resp += fmt.Sprintf("Operator Address: %s\n", v.OperatorAddr)
 	resp += fmt.Sprintf("Validator Consensus Pubkey: %s\n", bechConsPubKey)
+	resp += fmt.Sprintf("Validator BLS Pubkey: %s\n", v.VoteAddr)
 	resp += fmt.Sprintf("Jailed: %v\n", v.Jailed)
 	resp += fmt.Sprintf("Status: %s\n", sdk.BondStatusToString(v.Status))
 	resp += fmt.Sprintf("Tokens: %s\n", v.Tokens)
@@ -174,10 +178,11 @@ func (v Validator) HumanReadableString() (string, error) {
 
 // this is a helper struct used for JSON de- and encoding only
 type bechValidator struct {
-	FeeAddr      sdk.AccAddress `json:"fee_addr"`                   // the bech32 address for fee collection
-	OperatorAddr sdk.ValAddress `json:"operator_address"`           // the bech32 address of the validator's operator
-	ConsPubKey   string         `json:"consensus_pubkey,omitempty"` // the bech32 consensus public key of the validator
-	Jailed       bool           `json:"jailed"`                     // has the validator been jailed from bonded status?
+	FeeAddr      sdk.AccAddress  `json:"fee_addr"`                   // the bech32 address for fee collection
+	OperatorAddr sdk.ValAddress  `json:"operator_address"`           // the bech32 address of the validator's operator
+	ConsPubKey   string          `json:"consensus_pubkey,omitempty"` // the bech32 consensus public key of the validator
+	Jailed       bool            `json:"jailed"`                     // has the validator been jailed from bonded status?
+	VoteAddr     sdk.VoteAddress `json:"vote_addr"`                  // public key of BLS
 
 	Status          sdk.BondStatus `json:"status"`           // validator status (bonded/unbonding/unbonded)
 	Tokens          sdk.Dec        `json:"tokens"`           // delegated tokens (incl. self-delegation)
@@ -214,6 +219,7 @@ func (v Validator) MarshalJSON() ([]byte, error) {
 		OperatorAddr:       v.OperatorAddr,
 		ConsPubKey:         bechConsPubKey,
 		Jailed:             v.Jailed,
+		VoteAddr:           v.VoteAddr,
 		Status:             v.Status,
 		Tokens:             v.Tokens,
 		DelegatorShares:    v.DelegatorShares,
@@ -250,6 +256,7 @@ func (v *Validator) UnmarshalJSON(data []byte) error {
 		OperatorAddr:       bv.OperatorAddr,
 		ConsPubKey:         consPubKey,
 		Jailed:             bv.Jailed,
+		VoteAddr:           bv.VoteAddr,
 		Tokens:             bv.Tokens,
 		Status:             bv.Status,
 		DelegatorShares:    bv.DelegatorShares,
@@ -280,11 +287,12 @@ func (v *Validator) UnmarshalJSON(data []byte) error {
 
 //___________________________________________________________________
 
-// only the vitals - does not check bond height of IntraTxCounter
+// Equal - only the vitals - does not check bond height of IntraTxCounter
 func (v Validator) Equal(v2 Validator) bool {
 	return v.FeeAddr.Equals(v2.FeeAddr) &&
 		v.ConsPubKey.Equals(v2.ConsPubKey) &&
 		v.OperatorAddr.Equals(v2.OperatorAddr) &&
+		v.VoteAddr.Equals(v2.VoteAddr) &&
 		v.Status.Equal(v2.Status) &&
 		v.Tokens.Equal(v2.Tokens) &&
 		v.DelegatorShares.Equal(v2.DelegatorShares) &&
@@ -296,12 +304,12 @@ func (v Validator) Equal(v2 Validator) bool {
 		bytes.Equal(v.SideFeeAddr, v2.SideFeeAddr)
 }
 
-// return the TM validator address
+// ConsAddress return the TM validator address
 func (v Validator) ConsAddress() sdk.ConsAddress {
 	return sdk.ConsAddress(v.ConsPubKey.Address())
 }
 
-// constant used in flags to indicate that description field should not be updated
+// DoNotModifyDesc - constant used in flags to indicate that description field should not be updated
 const DoNotModifyDesc = "[do-not-modify]"
 
 // Description - description fields for a validator
@@ -427,7 +435,7 @@ func (v Validator) UpdateStatus(pool Pool, NewStatus sdk.BondStatus) (Validator,
 	return v, pool
 }
 
-// calculate the token worth of provided shares
+// TokensFromShares calculate the token worth of provided shares
 func (v Validator) TokensFromShares(shares sdk.Dec) sdk.Dec {
 	if v.DelegatorShares.IsZero() {
 		return sdk.ZeroDec()
@@ -452,7 +460,7 @@ func (v Validator) SharesFromTokens(amt sdk.Dec) sdk.Dec {
 	return result
 }
 
-// removes tokens from a validator
+// RemoveTokens removes tokens from a validator
 func (v Validator) RemoveTokens(pool Pool, tokens sdk.Dec) (Validator, Pool) {
 	if v.Status == sdk.Bonded {
 		pool = pool.bondedTokensToLoose(tokens)
@@ -531,7 +539,7 @@ func (v Validator) DelegatorShareExRate() sdk.Dec {
 	return v.Tokens.Quo(v.DelegatorShares)
 }
 
-// Get the bonded tokens which the validator holds
+// BondedTokens - Get the bonded tokens which the validator holds
 func (v Validator) BondedTokens() sdk.Dec {
 	if v.Status == sdk.Bonded {
 		return v.Tokens
@@ -566,6 +574,7 @@ func (v Validator) GetStatus() sdk.BondStatus    { return v.Status }
 func (v Validator) GetFeeAddr() sdk.AccAddress   { return v.FeeAddr }
 func (v Validator) GetOperator() sdk.ValAddress  { return v.OperatorAddr }
 func (v Validator) GetConsPubKey() crypto.PubKey { return v.ConsPubKey }
+func (v Validator) GetVoteAddr() sdk.VoteAddress { return v.VoteAddr }
 func (v Validator) GetConsAddr() sdk.ConsAddress { return sdk.ConsAddress(v.ConsPubKey.Address()) }
 func (v Validator) GetPower() sdk.Dec            { return v.BondedTokens() }
 func (v Validator) GetTokens() sdk.Dec           { return v.Tokens }

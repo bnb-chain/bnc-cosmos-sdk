@@ -104,6 +104,11 @@ func (config *Config) GetBech32ConsensusPubPrefix() string {
 	return config.bech32AddressPrefix["consensus_pub"]
 }
 
+// GetBech32BLSPubPrefix returns the Bech32 prefix for validator BLS public key
+func (config *Config) GetBech32BLSPubPrefix() string {
+	return config.bech32AddressPrefix["vote_addr"]
+}
+
 // CollectConfig is the structure that holds configuration parameters whether to collect specified info during apply blocks.
 type CollectConfig struct {
 	CollectAccountBalance bool

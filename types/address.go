@@ -64,7 +64,7 @@ func AccAddressFromBech32(address string) (addr AccAddress, err error) {
 	return AccAddress(bz), nil
 }
 
-// Returns boolean for whether two AccAddresses are Equal
+// Equals returns boolean for whether two AccAddresses are Equal
 func (aa AccAddress) Equals(aa2 AccAddress) bool {
 	if aa.Empty() && aa2.Empty() {
 		return true
@@ -73,7 +73,7 @@ func (aa AccAddress) Equals(aa2 AccAddress) bool {
 	return bytes.Compare(aa.Bytes(), aa2.Bytes()) == 0
 }
 
-// Returns boolean for whether an AccAddress is empty
+// Empty returns boolean for whether an AccAddress is empty
 func (aa AccAddress) Empty() bool {
 	if aa == nil {
 		return true
@@ -180,7 +180,7 @@ func ValAddressFromBech32(address string) (addr ValAddress, err error) {
 	return ValAddress(bz), nil
 }
 
-// Returns boolean for whether two ValAddresses are Equal
+// Equals returns boolean for whether two ValAddresses are Equal
 func (va ValAddress) Equals(va2 ValAddress) bool {
 	if va.Empty() && va2.Empty() {
 		return true
@@ -189,7 +189,7 @@ func (va ValAddress) Equals(va2 ValAddress) bool {
 	return bytes.Compare(va.Bytes(), va2.Bytes()) == 0
 }
 
-// Returns boolean for whether an AccAddress is empty
+// Empty returns boolean for whether an AccAddress is empty
 func (va ValAddress) Empty() bool {
 	if va == nil {
 		return true
@@ -297,12 +297,12 @@ func ConsAddressFromBech32(address string) (addr ConsAddress, err error) {
 	return ConsAddress(bz), nil
 }
 
-// get ConsAddress from pubkey
+// GetConsAddress get ConsAddress from pubkey
 func GetConsAddress(pubkey crypto.PubKey) ConsAddress {
 	return ConsAddress(pubkey.Address())
 }
 
-// Returns boolean for whether two ConsAddress are Equal
+// Equals returns boolean for whether two ConsAddress are Equal
 func (ca ConsAddress) Equals(ca2 ConsAddress) bool {
 	if ca.Empty() && ca2.Empty() {
 		return true
@@ -311,7 +311,7 @@ func (ca ConsAddress) Equals(ca2 ConsAddress) bool {
 	return bytes.Compare(ca.Bytes(), ca2.Bytes()) == 0
 }
 
-// Returns boolean for whether an ConsAddress is empty
+// Empty returns boolean for whether an ConsAddress is empty
 func (ca ConsAddress) Empty() bool {
 	if ca == nil {
 		return true
@@ -383,6 +383,119 @@ func (ca ConsAddress) Format(s fmt.State, verb rune) {
 		s.Write([]byte(fmt.Sprintf("%p", ca)))
 	default:
 		s.Write([]byte(fmt.Sprintf("%X", []byte(ca))))
+	}
+}
+
+// VoteAddress defines a wrapper around bytes meant to present a validator's
+// BLS public key. When marshaled to a string or JSON, it uses Bech32.
+type VoteAddress []byte
+
+// VoteAddressFromHex creates a ValAddress from a hex string.
+func VoteAddressFromHex(address string) (addr VoteAddress, err error) {
+	if len(address) == 0 {
+		return addr, errors.New("decoding Bech32 address failed: must provide an address")
+	}
+
+	bz, err := hex.DecodeString(address)
+	if err != nil {
+		return nil, err
+	}
+
+	return bz, nil
+}
+
+// VoteAddressFromBech32 creates a VoteAddress from a Bech32 string.
+func VoteAddressFromBech32(address string) (addr VoteAddress, err error) {
+	bech32PrefixValAddr := GetConfig().GetBech32BLSPubPrefix()
+	bz, err := GetFromBech32(address, bech32PrefixValAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	return bz, nil
+}
+
+// Equals returns boolean for whether two ValAddresses are Equal
+func (va VoteAddress) Equals(va2 VoteAddress) bool {
+	if va.Empty() && va2.Empty() {
+		return true
+	}
+
+	return bytes.Compare(va.Bytes(), va2.Bytes()) == 0
+}
+
+// Empty returns boolean for whether an AccAddress is empty
+func (va VoteAddress) Empty() bool {
+	if va == nil {
+		return true
+	}
+
+	va2 := ValAddress{}
+	return bytes.Compare(va.Bytes(), va2.Bytes()) == 0
+}
+
+// Marshal returns the raw address bytes. It is needed for protobuf
+// compatibility.
+func (va VoteAddress) Marshal() ([]byte, error) {
+	return va, nil
+}
+
+// Unmarshal sets the address to the given data. It is needed for protobuf
+// compatibility.
+func (va *VoteAddress) Unmarshal(data []byte) error {
+	*va = data
+	return nil
+}
+
+// MarshalJSON marshals to JSON using Bech32.
+func (va VoteAddress) MarshalJSON() ([]byte, error) {
+	return json.Marshal(va.String())
+}
+
+// UnmarshalJSON unmarshals from JSON assuming Bech32 encoding.
+func (va *VoteAddress) UnmarshalJSON(data []byte) error {
+	var s string
+
+	err := json.Unmarshal(data, &s)
+	if err != nil {
+		return err
+	}
+
+	va2, err := VoteAddressFromBech32(s)
+	if err != nil {
+		return err
+	}
+
+	*va = va2
+	return nil
+}
+
+// Bytes returns the raw address bytes.
+func (va VoteAddress) Bytes() []byte {
+	return va
+}
+
+// String implements the Stringer interface.
+func (va VoteAddress) String() string {
+	bech32PrefixVoteAddr := GetConfig().GetBech32BLSPubPrefix()
+	bech32Addr, err := bech32.ConvertAndEncode(bech32PrefixVoteAddr, va.Bytes())
+	if err != nil {
+		panic(err)
+	}
+
+	return bech32Addr
+}
+
+// Format implements the fmt.Formatter interface.
+// nolint: errcheck
+func (va VoteAddress) Format(s fmt.State, verb rune) {
+	switch verb {
+	case 's':
+		s.Write([]byte(fmt.Sprintf("%s", va.String())))
+	case 'p':
+		s.Write([]byte(fmt.Sprintf("%p", va)))
+	default:
+		s.Write([]byte(fmt.Sprintf("%X", []byte(va))))
 	}
 }
 

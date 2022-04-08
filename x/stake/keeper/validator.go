@@ -9,7 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
 
-// get a single validator
+// GetValidator gets a single validator
 func (k Keeper) GetValidator(ctx sdk.Context, addr sdk.ValAddress) (validator types.Validator, found bool) {
 	store := ctx.KVStore(k.storeKey)
 	value := store.Get(GetValidatorKey(addr))
@@ -29,7 +29,7 @@ func (k Keeper) mustGetValidator(ctx sdk.Context, addr sdk.ValAddress) types.Val
 	return validator
 }
 
-// get a single validator by consensus address
+// GetValidatorByConsAddr gets a single validator by consensus address
 func (k Keeper) GetValidatorByConsAddr(ctx sdk.Context, consAddr sdk.ConsAddress) (validator types.Validator, found bool) {
 	store := ctx.KVStore(k.storeKey)
 	opAddr := store.Get(GetValidatorByConsAddrKey(consAddr))
