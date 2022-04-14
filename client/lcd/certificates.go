@@ -11,7 +11,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math/big"
 	"net"
 	"os"
@@ -76,7 +76,7 @@ func writeCertAndPrivKey(certBytes []byte, priv *ecdsa.PrivateKey) (certFile str
 }
 
 func writeCertificateFile(certBytes []byte) (filename string, err error) {
-	f, err := ioutil.TempFile("", "cert_")
+	f, err := os.CreateTemp("", "cert_")
 	if err != nil {
 		return
 	}
@@ -89,7 +89,7 @@ func writeCertificateFile(certBytes []byte) (filename string, err error) {
 }
 
 func writeKeyFile(priv *ecdsa.PrivateKey) (filename string, err error) {
-	f, err := ioutil.TempFile("", "key_")
+	f, err := os.CreateTemp("", "key_")
 	if err != nil {
 		return
 	}
@@ -162,7 +162,7 @@ func fingerprintFromFile(certFile string) (string, error) {
 		return "", err
 	}
 	defer f.Close()
-	data, err := ioutil.ReadAll(f)
+	data, err := io.ReadAll(f)
 	if err != nil {
 		return "", err
 	}

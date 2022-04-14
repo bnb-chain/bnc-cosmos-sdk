@@ -7,7 +7,6 @@ import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/pelletier/go-toml"
 	"github.com/spf13/cobra"
-	"io/ioutil"
 	"os"
 	"path"
 )
@@ -127,5 +126,5 @@ func createGaiaCLIConfig(cfg *cliConfig) error {
 		}
 	}
 
-	return ioutil.WriteFile(cfgFile, data, os.ModePerm)
+	return os.WriteFile(cfgFile, data, os.ModePerm)
 }

@@ -3,7 +3,7 @@ package rest
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -84,7 +84,7 @@ func bscEvidenceSubmitRequestHandlerFn(cdc *codec.Codec, kb keys.Keybase, cliCtx
 
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		body, err := ioutil.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			utils.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
 			return

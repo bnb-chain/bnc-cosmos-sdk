@@ -1,7 +1,7 @@
 package rest
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
@@ -38,7 +38,7 @@ func BroadcastTxRequestHandlerFn(cdc *codec.Codec, cliCtx context.CLIContext) ht
 }
 
 func unmarshalBodyOrReturnBadRequest(cliCtx context.CLIContext, w http.ResponseWriter, r *http.Request, m *broadcastBody) bool {
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		utils.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
 		return false

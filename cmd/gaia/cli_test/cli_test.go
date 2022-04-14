@@ -1,3 +1,4 @@
+//go:build cli_test
 // +build cli_test
 
 package clitest
@@ -5,7 +6,6 @@ package clitest
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -391,7 +391,7 @@ func TestGaiaCLIConfig(t *testing.T) {
 	node := fmt.Sprintf("%s:%s", servAddr, port)
 	chainID := executeInit(t, fmt.Sprintf("gaiad init -o --name=foo --home=%s --home-client=%s", gaiadHome, gaiacliHome))
 	executeWrite(t, fmt.Sprintf("gaiacli --home=%s config", gaiadHome), gaiacliHome, node, "y")
-	config, err := ioutil.ReadFile(path.Join(gaiacliHome, "config", "config.toml"))
+	config, err := os.ReadFile(path.Join(gaiacliHome, "config", "config.toml"))
 	require.NoError(t, err)
 	expectedConfig := fmt.Sprintf(`chain_id = "%s"
 encoding = "btc"
@@ -404,7 +404,7 @@ trust_node = true
 	require.Equal(t, expectedConfig, string(config))
 	// ensure a backup gets created
 	executeWrite(t, "gaiacli config", gaiacliHome, node, "y", "y")
-	configBackup, err := ioutil.ReadFile(path.Join(gaiacliHome, "config", "config.toml-old"))
+	configBackup, err := os.ReadFile(path.Join(gaiacliHome, "config", "config.toml-old"))
 	require.NoError(t, err)
 	require.Equal(t, expectedConfig, string(configBackup))
 
@@ -420,7 +420,7 @@ output = "text"
 trace = false
 trust_node = true
 `, gaiacliHome, node)
-	config, err = ioutil.ReadFile(path.Join(gaiacliHome, "config", "config.toml"))
+	config, err = os.ReadFile(path.Join(gaiacliHome, "config", "config.toml"))
 	require.NoError(t, err)
 	require.Equal(t, expectedConfig, string(config))
 }
@@ -456,7 +456,7 @@ func unmarshalStdTx(t *testing.T, s string) (stdTx auth.StdTx) {
 }
 
 func writeToNewTempFile(t *testing.T, s string) *os.File {
-	fp, err := ioutil.TempFile(os.TempDir(), "cosmos_cli_test_")
+	fp, err := os.TempFile(os.TempDir(), "cosmos_cli_test_")
 	require.Nil(t, err)
 	_, err = fp.WriteString(s)
 	require.Nil(t, err)

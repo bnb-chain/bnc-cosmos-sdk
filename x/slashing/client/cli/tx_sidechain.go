@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
-
 	"github.com/cosmos/cosmos-sdk/bsc"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/utils"
@@ -16,6 +14,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/slashing"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"os"
 )
 
 const (
@@ -49,7 +48,7 @@ func GetCmdBscSubmitEvidence(cdc *codec.Codec) *cobra.Command {
 			filePath := viper.GetString(flagEvidenceFile)
 			evidenceBytes := make([]byte, 0)
 			if filePath != "" {
-				evidenceBytes, err = ioutil.ReadFile(filePath)
+				evidenceBytes, err = os.ReadFile(filePath)
 				if err != nil {
 					return err
 				}

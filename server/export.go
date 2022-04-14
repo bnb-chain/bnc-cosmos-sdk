@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -9,7 +10,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	tmtypes "github.com/tendermint/tendermint/types"
-	"io/ioutil"
 	"path"
 )
 
@@ -29,7 +29,7 @@ func ExportCmd(ctx *Context, cdc *codec.Codec, appExporter AppExporter) *cobra.C
 			if emptyState {
 				fmt.Println("WARNING: State is not initialized. Returning genesis file.")
 				genesisFile := path.Join(home, "config", "genesis.json")
-				genesis, err := ioutil.ReadFile(genesisFile)
+				genesis, err := os.ReadFile(genesisFile)
 				if err != nil {
 					return err
 				}
@@ -70,7 +70,7 @@ func ExportCmd(ctx *Context, cdc *codec.Codec, appExporter AppExporter) *cobra.C
 }
 
 func isEmptyState(home string) (bool, error) {
-	files, err := ioutil.ReadDir(path.Join(home, "data"))
+	files, err := os.ReadDir(path.Join(home, "data"))
 	if err != nil {
 		return false, err
 	}

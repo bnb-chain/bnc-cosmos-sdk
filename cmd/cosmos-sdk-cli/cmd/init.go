@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"go/build"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -65,7 +64,7 @@ func copyBasecoinTemplate(projectName string, projectPath string, remoteProjectP
 	basecoinProjectPath := resolveProjectPath(remoteBasecoinPath)
 	filepath.Walk(basecoinProjectPath, func(path string, f os.FileInfo, err error) error {
 		if !f.IsDir() {
-			data, err := ioutil.ReadFile(path)
+			data, err := os.ReadFile(path)
 			if err != nil {
 				return err
 			}
@@ -83,7 +82,7 @@ func copyBasecoinTemplate(projectName string, projectPath string, remoteProjectP
 			fmt.Println("Creating " + projectFilePath)
 			// Writing the contents to a file in the project folder
 			contents = replacer.Replace(contents)
-			ioutil.WriteFile(projectFilePath, []byte(contents), os.ModePerm)
+			os.WriteFile(projectFilePath, []byte(contents), os.ModePerm)
 		}
 		return nil
 	})
@@ -110,7 +109,7 @@ func createGopkg(projectPath string) {
 		contents += "[[override]]\n\tname = \"" + dependency + "\"\n\tversion = \"=" + version + "\"\n\n"
 	}
 	contents += "[prune]\n\tgo-tests = true\n\tunused-packages = true"
-	ioutil.WriteFile(projectPath+"/Gopkg.toml", []byte(contents), os.ModePerm)
+	os.WriteFile(projectPath+"/Gopkg.toml", []byte(contents), os.ModePerm)
 }
 
 // nolint: errcheck
@@ -142,7 +141,7 @@ benchmark:
 	// Replacing instances of base* to project specific names
 	makefileContents = replacer.Replace(makefileContents)
 
-	ioutil.WriteFile(projectPath+"/Makefile", []byte(makefileContents), os.ModePerm)
+	os.WriteFile(projectPath+"/Makefile", []byte(makefileContents), os.ModePerm)
 
 }
 
