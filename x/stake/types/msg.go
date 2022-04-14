@@ -327,16 +327,16 @@ func (msg MsgBeginRedelegate) GetInvolvedAddresses() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.DelegatorAddr, sdk.AccAddress(msg.ValidatorSrcAddr), sdk.AccAddress(msg.DelegatorAddr)}
 }
 
-// quick validity check
+// ValidateBasic is used to quickly disqualify obviously invalid messages quickly
 func (msg MsgBeginRedelegate) ValidateBasic() sdk.Error {
-	if msg.DelegatorAddr == nil {
-		return ErrNilDelegatorAddr(DefaultCodespace)
+	if len(msg.DelegatorAddr) != sdk.AddrLen {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected delegator address length is %d, actual length is %d", sdk.AddrLen, len(msg.DelegatorAddr)))
 	}
-	if msg.ValidatorSrcAddr == nil {
-		return ErrNilValidatorAddr(DefaultCodespace)
+	if len(msg.ValidatorSrcAddr) != sdk.AddrLen {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected validator address length is %d, actual length is %d", sdk.AddrLen, len(msg.ValidatorSrcAddr)))
 	}
-	if msg.ValidatorDstAddr == nil {
-		return ErrNilValidatorAddr(DefaultCodespace)
+	if len(msg.ValidatorDstAddr) != sdk.AddrLen {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected validator address length is %d, actual length is %d", sdk.AddrLen, len(msg.ValidatorDstAddr)))
 	}
 	if msg.SharesAmount.LTE(sdk.ZeroDec()) {
 		return ErrBadSharesAmount(DefaultCodespace)
@@ -362,9 +362,11 @@ func NewMsgBeginUnbonding(delAddr sdk.AccAddress, valAddr sdk.ValAddress, shares
 }
 
 //nolint
-func (msg MsgBeginUnbonding) Route() string                { return MsgRoute }
-func (msg MsgBeginUnbonding) Type() string                 { return "begin_unbonding" }
-func (msg MsgBeginUnbonding) GetSigners() []sdk.AccAddress { return []sdk.AccAddress{msg.DelegatorAddr} }
+func (msg MsgBeginUnbonding) Route() string { return MsgRoute }
+func (msg MsgBeginUnbonding) Type() string  { return "begin_unbonding" }
+func (msg MsgBeginUnbonding) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.DelegatorAddr}
+}
 
 // get the bytes for the message signer to sign on
 func (msg MsgBeginUnbonding) GetSignBytes() []byte {

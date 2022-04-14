@@ -233,7 +233,7 @@ func (msg MsgSideChainDelegate) GetSignBytes() []byte {
 	return sdk.MustSortJSON(bz)
 }
 
-// quick validity check
+// ValidateBasic is used to quickly disqualify obviously invalid messages quickly
 func (msg MsgSideChainDelegate) ValidateBasic() sdk.Error {
 	if len(msg.DelegatorAddr) != sdk.AddrLen {
 		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected delegator address length is %d, actual length is %d", sdk.AddrLen, len(msg.DelegatorAddr)))
