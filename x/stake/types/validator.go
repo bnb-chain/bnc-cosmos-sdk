@@ -2,6 +2,7 @@ package types
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -22,11 +23,10 @@ import (
 // exchange rate. Voting power can be calculated as total bonds multiplied by
 // exchange rate.
 type Validator struct {
-	FeeAddr      sdk.AccAddress  `json:"fee_addr"`                   // address for fee collection
-	OperatorAddr sdk.ValAddress  `json:"operator_address"`           // address of the validator's operator; bech encoded in JSON
-	ConsPubKey   crypto.PubKey   `json:"consensus_pubkey,omitempty"` // the consensus public key of the validator; bech encoded in JSON
-	Jailed       bool            `json:"jailed"`                     // has the validator been jailed from bonded status?
-	VoteAddr     sdk.VoteAddress `json:"vote_addr"`                  // public key of BLS
+	FeeAddr      sdk.AccAddress `json:"fee_addr"`                   // address for fee collection
+	OperatorAddr sdk.ValAddress `json:"operator_address"`           // address of the validator's operator; bech encoded in JSON
+	ConsPubKey   crypto.PubKey  `json:"consensus_pubkey,omitempty"` // the consensus public key of the validator; bech encoded in JSON
+	Jailed       bool           `json:"jailed"`                     // has the validator been jailed from bonded status?
 
 	Status          sdk.BondStatus `json:"status"`           // validator status (bonded/unbonding/unbonded)
 	Tokens          sdk.Dec        `json:"tokens"`           // delegated tokens (incl. self-delegation)
@@ -45,21 +45,21 @@ type Validator struct {
 	SideChainId      string         `json:"side_chain_id,omitempty"`     // side chain id to distinguish different side chains
 	SideConsAddr     []byte         `json:"side_cons_addr,omitempty"`    // consensus address of the side chain validator, this replaces the `ConsPubKey`
 	SideFeeAddr      []byte         `json:"side_fee_addr,omitempty"`     // fee address on the side chain
+	SideVoteAddr     []byte         `json:"side_vote_addr,omitempty"`    // public key of BLS on the side chain
 }
 
 // NewValidator - initialize a new validator
-func NewValidator(operator sdk.ValAddress, pubKey crypto.PubKey, bLSKey sdk.VoteAddress, description Description) Validator {
-	return NewValidatorWithFeeAddr(sdk.AccAddress(operator), operator, pubKey, bLSKey, description)
+func NewValidator(operator sdk.ValAddress, pubKey crypto.PubKey, description Description) Validator {
+	return NewValidatorWithFeeAddr(sdk.AccAddress(operator), operator, pubKey, description)
 }
 
 // NewValidatorWithFeeAddr - Note a few fields are initialized with default value. They will be updated later
-func NewValidatorWithFeeAddr(feeAddr sdk.AccAddress, operator sdk.ValAddress, pubKey crypto.PubKey, bLSKey sdk.VoteAddress, description Description) Validator {
+func NewValidatorWithFeeAddr(feeAddr sdk.AccAddress, operator sdk.ValAddress, pubKey crypto.PubKey, description Description) Validator {
 	return Validator{
 		FeeAddr:            feeAddr,
 		OperatorAddr:       operator,
 		ConsPubKey:         pubKey,
 		Jailed:             false,
-		VoteAddr:           bLSKey,
 		Status:             sdk.Unbonded,
 		Tokens:             sdk.ZeroDec(),
 		DelegatorShares:    sdk.ZeroDec(),
@@ -72,26 +72,48 @@ func NewValidatorWithFeeAddr(feeAddr sdk.AccAddress, operator sdk.ValAddress, pu
 	}
 }
 
-func NewSideChainValidator(feeAddr sdk.AccAddress, operator sdk.ValAddress, description Description, sideChainId string, sideConsAddr, sideFeeAddr []byte) Validator {
-	return Validator{
-		FeeAddr:            feeAddr,
-		OperatorAddr:       operator,
-		ConsPubKey:         nil, // side chain validators do not need this
-		Jailed:             false,
-		VoteAddr:           nil,
-		Status:             sdk.Unbonded,
-		Tokens:             sdk.ZeroDec(),
-		DelegatorShares:    sdk.ZeroDec(),
-		Description:        description,
-		BondHeight:         int64(0),
-		BondIntraTxCounter: int16(0),
-		UnbondingMinTime:   time.Unix(0, 0).UTC(),
-		UnbondingHeight:    int64(0),
-		Commission:         NewCommission(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec()),
-		DistributionAddr:   generateDistributionAddr(operator, sideChainId),
-		SideChainId:        sideChainId,
-		SideConsAddr:       sideConsAddr,
-		SideFeeAddr:        sideFeeAddr,
+func NewSideChainValidator(feeAddr sdk.AccAddress, operator sdk.ValAddress, description Description, sideChainId string, sideConsAddr, sideFeeAddr, sideVoteAddr []byte) Validator {
+	if sdk.IsUpgrade(sdk.BEP126) {
+		return Validator{
+			FeeAddr:            feeAddr,
+			OperatorAddr:       operator,
+			ConsPubKey:         nil, // side chain validators do not need this
+			Jailed:             false,
+			Status:             sdk.Unbonded,
+			Tokens:             sdk.ZeroDec(),
+			DelegatorShares:    sdk.ZeroDec(),
+			Description:        description,
+			BondHeight:         int64(0),
+			BondIntraTxCounter: int16(0),
+			UnbondingMinTime:   time.Unix(0, 0).UTC(),
+			UnbondingHeight:    int64(0),
+			Commission:         NewCommission(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec()),
+			DistributionAddr:   generateDistributionAddr(operator, sideChainId),
+			SideChainId:        sideChainId,
+			SideConsAddr:       sideConsAddr,
+			SideFeeAddr:        sideFeeAddr,
+			SideVoteAddr:       sideVoteAddr,
+		}
+	} else {
+		return Validator{
+			FeeAddr:            feeAddr,
+			OperatorAddr:       operator,
+			ConsPubKey:         nil, // side chain validators do not need this
+			Jailed:             false,
+			Status:             sdk.Unbonded,
+			Tokens:             sdk.ZeroDec(),
+			DelegatorShares:    sdk.ZeroDec(),
+			Description:        description,
+			BondHeight:         int64(0),
+			BondIntraTxCounter: int16(0),
+			UnbondingMinTime:   time.Unix(0, 0).UTC(),
+			UnbondingHeight:    int64(0),
+			Commission:         NewCommission(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec()),
+			DistributionAddr:   generateDistributionAddr(operator, sideChainId),
+			SideChainId:        sideChainId,
+			SideConsAddr:       sideConsAddr,
+			SideFeeAddr:        sideFeeAddr,
+		}
 	}
 }
 
@@ -102,12 +124,12 @@ func generateDistributionAddr(operator sdk.ValAddress, sideChainId string) sdk.A
 	return sdk.XOR(tmhash.SumTruncated([]byte(sideChainId)), operator)
 }
 
-// MustMarshalValidator return the redelegation without fields contained within the key for the store
+// MustMarshalValidator returns the redelegation without fields contained within the key for the store
 func MustMarshalValidator(cdc *codec.Codec, validator Validator) []byte {
 	return cdc.MustMarshalBinaryLengthPrefixed(validator)
 }
 
-// MustUnmarshalValidator unmarshal a redelegation from a store key and value
+// MustUnmarshalValidator unmarshals a redelegation from a store key and value
 func MustUnmarshalValidator(cdc *codec.Codec, value []byte) Validator {
 	validator, err := UnmarshalValidator(cdc, value)
 	if err != nil {
@@ -154,7 +176,6 @@ func (v Validator) HumanReadableString() (string, error) {
 	resp += fmt.Sprintf("Fee Address: %s\n", v.FeeAddr)
 	resp += fmt.Sprintf("Operator Address: %s\n", v.OperatorAddr)
 	resp += fmt.Sprintf("Validator Consensus Pubkey: %s\n", bechConsPubKey)
-	resp += fmt.Sprintf("Validator BLS Pubkey: %s\n", v.VoteAddr)
 	resp += fmt.Sprintf("Jailed: %v\n", v.Jailed)
 	resp += fmt.Sprintf("Status: %s\n", sdk.BondStatusToString(v.Status))
 	resp += fmt.Sprintf("Tokens: %s\n", v.Tokens)
@@ -169,6 +190,7 @@ func (v Validator) HumanReadableString() (string, error) {
 		resp += fmt.Sprintf("Side Chain Id: %s\n", v.SideChainId)
 		resp += fmt.Sprintf("Consensus Addr on Side Chain: %s\n", sdk.HexAddress(v.SideConsAddr))
 		resp += fmt.Sprintf("Fee Addr on Side Chain: %s\n", sdk.HexAddress(v.SideFeeAddr))
+		resp += fmt.Sprintf("Vote address on Side Chain: %s\n", hex.EncodeToString(v.SideVoteAddr))
 	}
 
 	return resp, nil
@@ -178,11 +200,10 @@ func (v Validator) HumanReadableString() (string, error) {
 
 // this is a helper struct used for JSON de- and encoding only
 type bechValidator struct {
-	FeeAddr      sdk.AccAddress  `json:"fee_addr"`                   // the bech32 address for fee collection
-	OperatorAddr sdk.ValAddress  `json:"operator_address"`           // the bech32 address of the validator's operator
-	ConsPubKey   string          `json:"consensus_pubkey,omitempty"` // the bech32 consensus public key of the validator
-	Jailed       bool            `json:"jailed"`                     // has the validator been jailed from bonded status?
-	VoteAddr     sdk.VoteAddress `json:"vote_addr"`                  // public key of BLS
+	FeeAddr      sdk.AccAddress `json:"fee_addr"`                   // the bech32 address for fee collection
+	OperatorAddr sdk.ValAddress `json:"operator_address"`           // the bech32 address of the validator's operator
+	ConsPubKey   string         `json:"consensus_pubkey,omitempty"` // the bech32 consensus public key of the validator
+	Jailed       bool           `json:"jailed"`                     // has the validator been jailed from bonded status?
 
 	Status          sdk.BondStatus `json:"status"`           // validator status (bonded/unbonding/unbonded)
 	Tokens          sdk.Dec        `json:"tokens"`           // delegated tokens (incl. self-delegation)
@@ -201,6 +222,7 @@ type bechValidator struct {
 	SideChainId      string         `json:"side_chain_id,omitempty"`     // side chain id to distinguish different side chains
 	SideConsAddr     string         `json:"side_cons_addr,omitempty"`    // consensus address of the side chain validator, this replaces the `ConsPubKey`
 	SideFeeAddr      string         `json:"side_fee_addr,omitempty"`     // fee address on the side chain
+	SideVoteAddr     string         `json:"side_vote_addr,omitempty"`    // public key of BLS on the side chain used for voting
 }
 
 // MarshalJSON marshals the validator to JSON using Bech32
@@ -213,27 +235,48 @@ func (v Validator) MarshalJSON() ([]byte, error) {
 			return nil, err
 		}
 	}
-
-	return codec.Cdc.MarshalJSON(bechValidator{
-		FeeAddr:            v.FeeAddr,
-		OperatorAddr:       v.OperatorAddr,
-		ConsPubKey:         bechConsPubKey,
-		Jailed:             v.Jailed,
-		VoteAddr:           v.VoteAddr,
-		Status:             v.Status,
-		Tokens:             v.Tokens,
-		DelegatorShares:    v.DelegatorShares,
-		Description:        v.Description,
-		BondHeight:         v.BondHeight,
-		BondIntraTxCounter: v.BondIntraTxCounter,
-		UnbondingHeight:    v.UnbondingHeight,
-		UnbondingMinTime:   v.UnbondingMinTime,
-		Commission:         v.Commission,
-		DistributionAddr:   v.DistributionAddr,
-		SideChainId:        v.SideChainId,
-		SideConsAddr:       sdk.HexAddress(v.SideConsAddr),
-		SideFeeAddr:        sdk.HexAddress(v.SideFeeAddr),
-	})
+	if sdk.IsUpgrade(sdk.BEP126) {
+		return codec.Cdc.MarshalJSON(bechValidator{
+			FeeAddr:            v.FeeAddr,
+			OperatorAddr:       v.OperatorAddr,
+			ConsPubKey:         bechConsPubKey,
+			Jailed:             v.Jailed,
+			Status:             v.Status,
+			Tokens:             v.Tokens,
+			DelegatorShares:    v.DelegatorShares,
+			Description:        v.Description,
+			BondHeight:         v.BondHeight,
+			BondIntraTxCounter: v.BondIntraTxCounter,
+			UnbondingHeight:    v.UnbondingHeight,
+			UnbondingMinTime:   v.UnbondingMinTime,
+			Commission:         v.Commission,
+			DistributionAddr:   v.DistributionAddr,
+			SideChainId:        v.SideChainId,
+			SideConsAddr:       sdk.HexAddress(v.SideConsAddr),
+			SideFeeAddr:        sdk.HexAddress(v.SideFeeAddr),
+			SideVoteAddr:       sdk.HexAddress(v.SideVoteAddr),
+		})
+	} else {
+		return codec.Cdc.MarshalJSON(bechValidator{
+			FeeAddr:            v.FeeAddr,
+			OperatorAddr:       v.OperatorAddr,
+			ConsPubKey:         bechConsPubKey,
+			Jailed:             v.Jailed,
+			Status:             v.Status,
+			Tokens:             v.Tokens,
+			DelegatorShares:    v.DelegatorShares,
+			Description:        v.Description,
+			BondHeight:         v.BondHeight,
+			BondIntraTxCounter: v.BondIntraTxCounter,
+			UnbondingHeight:    v.UnbondingHeight,
+			UnbondingMinTime:   v.UnbondingMinTime,
+			Commission:         v.Commission,
+			DistributionAddr:   v.DistributionAddr,
+			SideChainId:        v.SideChainId,
+			SideConsAddr:       sdk.HexAddress(v.SideConsAddr),
+			SideFeeAddr:        sdk.HexAddress(v.SideFeeAddr),
+		})
+	}
 }
 
 // UnmarshalJSON unmarshals the validator from JSON using Bech32
@@ -256,7 +299,6 @@ func (v *Validator) UnmarshalJSON(data []byte) error {
 		OperatorAddr:       bv.OperatorAddr,
 		ConsPubKey:         consPubKey,
 		Jailed:             bv.Jailed,
-		VoteAddr:           bv.VoteAddr,
 		Tokens:             bv.Tokens,
 		Status:             bv.Status,
 		DelegatorShares:    bv.DelegatorShares,
@@ -280,6 +322,13 @@ func (v *Validator) UnmarshalJSON(data []byte) error {
 		} else {
 			v.SideFeeAddr = sideFeeAddr
 		}
+		if sdk.IsUpgrade(sdk.BEP126) {
+			if sideVoteAddr, err := sdk.HexDecode(bv.SideVoteAddr); err != nil {
+				return err
+			} else {
+				v.SideVoteAddr = sideVoteAddr
+			}
+		}
 	}
 
 	return nil
@@ -292,7 +341,6 @@ func (v Validator) Equal(v2 Validator) bool {
 	return v.FeeAddr.Equals(v2.FeeAddr) &&
 		v.ConsPubKey.Equals(v2.ConsPubKey) &&
 		v.OperatorAddr.Equals(v2.OperatorAddr) &&
-		v.VoteAddr.Equals(v2.VoteAddr) &&
 		v.Status.Equal(v2.Status) &&
 		v.Tokens.Equal(v2.Tokens) &&
 		v.DelegatorShares.Equal(v2.DelegatorShares) &&
@@ -301,10 +349,11 @@ func (v Validator) Equal(v2 Validator) bool {
 		v.SideChainId == v2.SideChainId &&
 		v.DistributionAddr.Equals(v2.DistributionAddr) &&
 		bytes.Equal(v.SideConsAddr, v2.SideConsAddr) &&
-		bytes.Equal(v.SideFeeAddr, v2.SideFeeAddr)
+		bytes.Equal(v.SideFeeAddr, v2.SideFeeAddr) &&
+		bytes.Equal(v.SideVoteAddr, v2.SideVoteAddr)
 }
 
-// ConsAddress return the TM validator address
+// ConsAddress returns the TM validator address
 func (v Validator) ConsAddress() sdk.ConsAddress {
 	return sdk.ConsAddress(v.ConsPubKey.Address())
 }
@@ -435,7 +484,7 @@ func (v Validator) UpdateStatus(pool Pool, NewStatus sdk.BondStatus) (Validator,
 	return v, pool
 }
 
-// TokensFromShares calculate the token worth of provided shares
+// TokensFromShares calculates the token worth of provided shares
 func (v Validator) TokensFromShares(shares sdk.Dec) sdk.Dec {
 	if v.DelegatorShares.IsZero() {
 		return sdk.ZeroDec()
@@ -539,7 +588,7 @@ func (v Validator) DelegatorShareExRate() sdk.Dec {
 	return v.Tokens.Quo(v.DelegatorShares)
 }
 
-// BondedTokens - Get the bonded tokens which the validator holds
+// BondedTokens gets the bonded tokens which the validator holds
 func (v Validator) BondedTokens() sdk.Dec {
 	if v.Status == sdk.Bonded {
 		return v.Tokens
@@ -574,7 +623,6 @@ func (v Validator) GetStatus() sdk.BondStatus    { return v.Status }
 func (v Validator) GetFeeAddr() sdk.AccAddress   { return v.FeeAddr }
 func (v Validator) GetOperator() sdk.ValAddress  { return v.OperatorAddr }
 func (v Validator) GetConsPubKey() crypto.PubKey { return v.ConsPubKey }
-func (v Validator) GetVoteAddr() sdk.VoteAddress { return v.VoteAddr }
 func (v Validator) GetConsAddr() sdk.ConsAddress { return sdk.ConsAddress(v.ConsPubKey.Address()) }
 func (v Validator) GetPower() sdk.Dec            { return v.BondedTokens() }
 func (v Validator) GetTokens() sdk.Dec           { return v.Tokens }

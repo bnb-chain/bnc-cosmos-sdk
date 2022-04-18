@@ -231,3 +231,11 @@ func ErrInvalidSideChainId(codespace sdk.CodespaceType) sdk.Error {
 func ErrInvalidCrosschainPackage(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidCrossChainPackage, "invalid cross chain package")
 }
+
+func ErrNilValidatorSideVoteAddr(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidInput, "validator side-chain vote address is nil")
+}
+
+func ErrBadValidatorSideVoteAddr(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidInput, "validator side-chain vote address is invalid")
+}

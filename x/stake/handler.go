@@ -34,6 +34,10 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 			return handleMsgCreateSideChainValidator(ctx, msg, k)
 		case types.MsgEditSideChainValidator:
 			return handleMsgEditSideChainValidator(ctx, msg, k)
+		case types.MsgCreateSideChainValidatorWithVoteAddr:
+			return handleMsgCreateSideChainValidatorWithVoteAddr(ctx, msg, k)
+		case types.MsgEditSideChainValidatorWithVoteAddr:
+			return handleMsgEditSideChainValidatorWithVoteAddr(ctx, msg, k)
 		case types.MsgSideChainDelegate:
 			return handleMsgSideChainDelegate(ctx, msg, k)
 		case types.MsgSideChainRedelegate:

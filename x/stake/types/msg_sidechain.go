@@ -9,11 +9,13 @@ import (
 )
 
 const (
-	MsgTypeCreateSideChainValidator = "side_create_validator"
-	MsgTypeEditSideChainValidator   = "side_edit_validator"
-	MsgTypeSideChainDelegate        = "side_delegate"
-	MsgTypeSideChainRedelegate      = "side_redelegate"
-	MsgTypeSideChainUndelegate      = "side_undelegate"
+	MsgTypeCreateSideChainValidator             = "side_create_validator"
+	MsgTypeEditSideChainValidator               = "side_edit_validator"
+	MsgTypeCreateSideChainValidatorWithVoteAddr = "side_create_validator_with_vote_addr"
+	MsgTypeEditSideChainValidatorWithVoteAddr   = "side_edit_validator_with_vote_addr"
+	MsgTypeSideChainDelegate                    = "side_delegate"
+	MsgTypeSideChainRedelegate                  = "side_redelegate"
+	MsgTypeSideChainUndelegate                  = "side_undelegate"
 )
 
 type SideChainIder interface {
@@ -31,13 +33,25 @@ type MsgCreateSideChainValidator struct {
 	SideFeeAddr   []byte         `json:"side_fee_addr"`
 }
 
+type MsgCreateSideChainValidatorWithVoteAddr struct {
+	Description   Description    `json:"description"`
+	Commission    CommissionMsg  `json:"commission"`
+	DelegatorAddr sdk.AccAddress `json:"delegator_address"`
+	ValidatorAddr sdk.ValAddress `json:"validator_address"`
+	Delegation    sdk.Coin       `json:"delegation"`
+	SideChainId   string         `json:"side_chain_id"`
+	SideConsAddr  []byte         `json:"side_cons_addr"`
+	SideFeeAddr   []byte         `json:"side_fee_addr"`
+	SideVoteAddr  []byte         `json:"side_vote_addr"`
+}
+
 func NewMsgCreateSideChainValidator(valAddr sdk.ValAddress, delegation sdk.Coin,
-	description Description, commission CommissionMsg, sideChainId string, sideConsAddr []byte, sideFeeAddr []byte) MsgCreateSideChainValidator {
+	description Description, commission CommissionMsg, sideChainId string, sideConsAddr, sideFeeAddr []byte) MsgCreateSideChainValidator {
 	return NewMsgCreateSideChainValidatorOnBehalfOf(sdk.AccAddress(valAddr), valAddr, delegation, description, commission, sideChainId, sideConsAddr, sideFeeAddr)
 }
 
 func NewMsgCreateSideChainValidatorOnBehalfOf(delegatorAddr sdk.AccAddress, valAddr sdk.ValAddress, delegation sdk.Coin,
-	description Description, commission CommissionMsg, sideChainId string, sideConsAddr []byte, sideFeeAddr []byte) MsgCreateSideChainValidator {
+	description Description, commission CommissionMsg, sideChainId string, sideConsAddr, sideFeeAddr []byte) MsgCreateSideChainValidator {
 	return MsgCreateSideChainValidator{
 		Description:   description,
 		Commission:    commission,
@@ -50,11 +64,31 @@ func NewMsgCreateSideChainValidatorOnBehalfOf(delegatorAddr sdk.AccAddress, valA
 	}
 }
 
+func NewMsgCreateSideChainValidatorWithVoteAddr(valAddr sdk.ValAddress, delegation sdk.Coin,
+	description Description, commission CommissionMsg, sideChainId string, sideConsAddr, sideFeeAddr, sideVoteAddr []byte) MsgCreateSideChainValidatorWithVoteAddr {
+	return NewMsgCreateSideChainValidatorWithVoteAddrOnBehalfOf(sdk.AccAddress(valAddr), valAddr, delegation, description, commission, sideChainId, sideConsAddr, sideFeeAddr, sideVoteAddr)
+}
+
+func NewMsgCreateSideChainValidatorWithVoteAddrOnBehalfOf(delegatorAddr sdk.AccAddress, valAddr sdk.ValAddress, delegation sdk.Coin,
+	description Description, commission CommissionMsg, sideChainId string, sideConsAddr, sideFeeAddr, sideVoteAddr []byte) MsgCreateSideChainValidatorWithVoteAddr {
+	return MsgCreateSideChainValidatorWithVoteAddr{
+		Description:   description,
+		Commission:    commission,
+		DelegatorAddr: delegatorAddr,
+		ValidatorAddr: valAddr,
+		Delegation:    delegation,
+		SideChainId:   sideChainId,
+		SideConsAddr:  sideConsAddr,
+		SideFeeAddr:   sideFeeAddr,
+		SideVoteAddr:  sideVoteAddr,
+	}
+}
+
 //nolint
 func (msg MsgCreateSideChainValidator) Route() string { return MsgRoute }
 func (msg MsgCreateSideChainValidator) Type() string  { return MsgTypeCreateSideChainValidator }
 
-// Return address(es) that must sign over msg.GetSignBytes()
+// GetSigners returns address(es) that must sign over msg.GetSignBytes()
 func (msg MsgCreateSideChainValidator) GetSigners() []sdk.AccAddress {
 	// delegator is first signer so delegator pays fees
 	addrs := []sdk.AccAddress{msg.DelegatorAddr}
@@ -67,7 +101,7 @@ func (msg MsgCreateSideChainValidator) GetSigners() []sdk.AccAddress {
 	return addrs
 }
 
-// get the bytes for the message signer to sign on
+// GetSignBytes gets the bytes for the message signer to sign on
 func (msg MsgCreateSideChainValidator) GetSignBytes() []byte {
 	bz := MsgCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(bz)
@@ -114,6 +148,76 @@ func (msg MsgCreateSideChainValidator) GetSideChainId() string {
 	return msg.SideChainId
 }
 
+//nolint
+func (msg MsgCreateSideChainValidatorWithVoteAddr) Route() string { return MsgRoute }
+func (msg MsgCreateSideChainValidatorWithVoteAddr) Type() string {
+	return MsgTypeCreateSideChainValidatorWithVoteAddr
+}
+
+// GetSigners returns address(es) that must sign over msg.GetSignBytes()
+func (msg MsgCreateSideChainValidatorWithVoteAddr) GetSigners() []sdk.AccAddress {
+	// delegator is first signer so delegator pays fees
+	addrs := []sdk.AccAddress{msg.DelegatorAddr}
+
+	if !bytes.Equal(msg.DelegatorAddr.Bytes(), msg.ValidatorAddr.Bytes()) {
+		// if validator addr is not same as delegator addr, validator must sign
+		// msg as well
+		addrs = append(addrs, sdk.AccAddress(msg.ValidatorAddr))
+	}
+	return addrs
+}
+
+// GetSignBytes gets the bytes for the message signer to sign on
+func (msg MsgCreateSideChainValidatorWithVoteAddr) GetSignBytes() []byte {
+	bz := MsgCdc.MustMarshalJSON(msg)
+	return sdk.MustSortJSON(bz)
+}
+
+func (msg MsgCreateSideChainValidatorWithVoteAddr) GetInvolvedAddresses() []sdk.AccAddress {
+	return msg.GetSigners()
+}
+
+func (msg MsgCreateSideChainValidatorWithVoteAddr) ValidateBasic() sdk.Error {
+	if len(msg.DelegatorAddr) != sdk.AddrLen {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected delegator address length is %d, actual length is %d", sdk.AddrLen, len(msg.DelegatorAddr)))
+	}
+	if len(msg.ValidatorAddr) != sdk.AddrLen {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected validator address length is %d, actual length is %d", sdk.AddrLen, len(msg.ValidatorAddr)))
+	}
+	if msg.Description == (Description{}) {
+		return sdk.NewError(DefaultCodespace, CodeInvalidInput, "description must be included")
+	}
+	if _, err := msg.Description.EnsureLength(); err != nil {
+		return err
+	}
+	commission := NewCommission(msg.Commission.Rate, msg.Commission.MaxRate, msg.Commission.MaxChangeRate)
+	if err := commission.Validate(); err != nil {
+		return err
+	}
+
+	if len(msg.SideChainId) == 0 || len(msg.SideChainId) > types.MaxSideChainIdLength {
+		return sdk.NewError(DefaultCodespace, CodeInvalidInput, "side chain id must be included and max length is 20 bytes")
+	}
+
+	if err := checkSideChainAddr("SideConsAddr", msg.SideConsAddr); err != nil {
+		return err
+	}
+
+	if err := checkSideChainAddr("SideFeeAddr", msg.SideFeeAddr); err != nil {
+		return err
+	}
+
+	if err := checkSideChainVoteAddr("SideVoteAddr", msg.SideVoteAddr); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (msg MsgCreateSideChainValidatorWithVoteAddr) GetSideChainId() string {
+	return msg.SideChainId
+}
+
 //______________________________________________________________________
 type MsgEditSideChainValidator struct {
 	Description   Description    `json:"description"`
@@ -131,6 +235,23 @@ type MsgEditSideChainValidator struct {
 	SideFeeAddr []byte `json:"side_fee_addr"`
 }
 
+type MsgEditSideChainValidatorWithVoteAddr struct {
+	Description   Description    `json:"description"`
+	ValidatorAddr sdk.ValAddress `json:"address"`
+
+	// We pass a reference to the new commission rate as it's not mandatory to
+	// update. If not updated, the deserialized rate will be zero with no way to
+	// distinguish if an update was intended.
+	//
+	// REF: #2373
+	CommissionRate *sdk.Dec `json:"commission_rate"`
+
+	SideChainId string `json:"side_chain_id"`
+	// for SideFeeAddr and SideVoteAddr, we do not update the values if they are not provided.
+	SideFeeAddr  []byte `json:"side_fee_addr"`
+	SideVoteAddr []byte `json:"side_vote_addr"`
+}
+
 func NewMsgEditSideChainValidator(sideChainId string, validatorAddr sdk.ValAddress, description Description, commissionRate *sdk.Dec, sideFeeAddr []byte) MsgEditSideChainValidator {
 	return MsgEditSideChainValidator{
 		Description:    description,
@@ -141,6 +262,17 @@ func NewMsgEditSideChainValidator(sideChainId string, validatorAddr sdk.ValAddre
 	}
 }
 
+func NewMsgEditSideChainValidatorWithVoteAddr(sideChainId string, validatorAddr sdk.ValAddress, description Description, commissionRate *sdk.Dec, sideFeeAddr, sideVoteAddr []byte) MsgEditSideChainValidatorWithVoteAddr {
+	return MsgEditSideChainValidatorWithVoteAddr{
+		Description:    description,
+		ValidatorAddr:  validatorAddr,
+		CommissionRate: commissionRate,
+		SideChainId:    sideChainId,
+		SideFeeAddr:    sideFeeAddr,
+		SideVoteAddr:   sideVoteAddr,
+	}
+}
+
 //nolint
 func (msg MsgEditSideChainValidator) Route() string { return MsgRoute }
 func (msg MsgEditSideChainValidator) Type() string  { return MsgTypeEditSideChainValidator }
@@ -148,7 +280,7 @@ func (msg MsgEditSideChainValidator) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{sdk.AccAddress(msg.ValidatorAddr)}
 }
 
-// get the bytes for the message signer to sign on
+// GetSignBytes gets the bytes for the message signer to sign on
 func (msg MsgEditSideChainValidator) GetSignBytes() []byte {
 	bz := MsgCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(bz)
@@ -194,10 +326,79 @@ func (msg MsgEditSideChainValidator) GetSideChainId() string {
 	return msg.SideChainId
 }
 
+//nolint
+func (msg MsgEditSideChainValidatorWithVoteAddr) Route() string { return MsgRoute }
+func (msg MsgEditSideChainValidatorWithVoteAddr) Type() string {
+	return MsgTypeEditSideChainValidatorWithVoteAddr
+}
+func (msg MsgEditSideChainValidatorWithVoteAddr) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{sdk.AccAddress(msg.ValidatorAddr)}
+}
+
+// GetSignBytes gets the bytes for the message signer to sign on
+func (msg MsgEditSideChainValidatorWithVoteAddr) GetSignBytes() []byte {
+	bz := MsgCdc.MustMarshalJSON(msg)
+	return sdk.MustSortJSON(bz)
+}
+
+func (msg MsgEditSideChainValidatorWithVoteAddr) ValidateBasic() sdk.Error {
+	if len(msg.ValidatorAddr) != sdk.AddrLen {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected validator address length is %d, actual length is %d", sdk.AddrLen, len(msg.ValidatorAddr)))
+	}
+
+	if msg.Description == (Description{}) {
+		return sdk.NewError(DefaultCodespace, CodeInvalidInput, "description must be included")
+	}
+	if _, err := msg.Description.EnsureLength(); err != nil {
+		return err
+	}
+
+	if msg.CommissionRate != nil {
+		if msg.CommissionRate.GT(sdk.OneDec()) || msg.CommissionRate.LT(sdk.ZeroDec()) {
+			return sdk.NewError(DefaultCodespace, CodeInvalidInput, "commission rate must be between 0 and 1 (inclusive)")
+		}
+	}
+
+	if len(msg.SideChainId) == 0 || len(msg.SideChainId) > types.MaxSideChainIdLength {
+		return sdk.NewError(DefaultCodespace, CodeInvalidInput, "side chain id must be included and max length is 20 bytes")
+	}
+
+	// if SideFeeAddr or SideVoteAddr is empty, we do not update it.
+	if len(msg.SideFeeAddr) != 0 {
+		if err := checkSideChainAddr("SideFeeAddr", msg.SideFeeAddr); err != nil {
+			return err
+		}
+	}
+	// if SideFeeAddr is empty, we do not update it.
+	if len(msg.SideVoteAddr) != 0 {
+		if err := checkSideChainVoteAddr("SideVoteAddr", msg.SideVoteAddr); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (msg MsgEditSideChainValidatorWithVoteAddr) GetInvolvedAddresses() []sdk.AccAddress {
+	return msg.GetSigners()
+}
+
+func (msg MsgEditSideChainValidatorWithVoteAddr) GetSideChainId() string {
+	return msg.SideChainId
+}
+
 func checkSideChainAddr(addrName string, addr []byte) sdk.Error {
 	if len(addr) != sdk.AddrLen {
 		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected %s length is %d, got %d",
 			addrName, sdk.AddrLen, len(addr)))
+	}
+	return nil
+}
+
+func checkSideChainVoteAddr(addrName string, addr []byte) sdk.Error {
+	if len(addr) != sdk.VoteAddrLen {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected %s length is %d, got %d",
+			addrName, sdk.VoteAddrLen, len(addr)))
 	}
 	return nil
 }
@@ -227,7 +428,7 @@ func (msg MsgSideChainDelegate) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.DelegatorAddr}
 }
 
-// get the bytes for the message signer to sign on
+// GetSignBytes gets the bytes for the message signer to sign on
 func (msg MsgSideChainDelegate) GetSignBytes() []byte {
 	bz := MsgCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(bz)
@@ -281,7 +482,7 @@ func (msg MsgSideChainRedelegate) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.DelegatorAddr}
 }
 
-// get the bytes for the message signer to sign on
+// GetSignBytes gets the bytes for the message signer to sign on
 func (msg MsgSideChainRedelegate) GetSignBytes() []byte {
 	b := MsgCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(b)
