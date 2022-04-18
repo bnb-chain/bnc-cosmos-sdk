@@ -145,7 +145,7 @@ func (k Keeper) RemoveDelegation(ctx sdk.Context, delegation types.Delegation) {
 	}
 }
 
-// remove a delegation stored within key grouped in order of validator and delegator
+// RemoveDelegationByVal removes a delegation stored within key grouped in order of validator and delegator
 func (k Keeper) RemoveDelegationByVal(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) {
 	store := ctx.KVStore(k.storeKey)
 	store.Delete(GetDelegationKeyByValIndexKey(valAddr, delAddr))

@@ -30,7 +30,7 @@ const (
 	CodeUnknownRequest               CodeType = sdk.CodeUnknownRequest
 )
 
-//validator
+// validator
 func ErrNilValidatorAddr(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidInput, "validator address is nil")
 }
@@ -258,4 +258,12 @@ func ErrNotEnoughBalance(msg string) sdk.Error {
 
 func ErrNotSelfDelegate(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidValidator, "only self delegate is allowed")
+}
+
+func ErrNilValidatorSideVoteAddr(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidInput, "validator side-chain vote address is nil")
+}
+
+func ErrBadValidatorSideVoteAddr(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidInput, "validator side-chain vote address is invalid")
 }

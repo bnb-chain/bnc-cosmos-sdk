@@ -34,7 +34,7 @@ func (b BondStatus) Equal(b2 BondStatus) bool {
 	return byte(b) == byte(b2)
 }
 
-// Validator - validator for a delegated proof of stake system
+// Validator for a delegated proof of stake system
 type Validator interface {
 	GetJailed() bool                 // whether the validator is jailed
 	GetMoniker() string              // moniker of the validator
@@ -43,7 +43,6 @@ type Validator interface {
 	GetOperator() ValAddress         // operator address to receive/return validators coins
 	GetConsPubKey() crypto.PubKey    // validation consensus pubkey
 	GetConsAddr() ConsAddress        // validation consensus address
-	GetVoteAddr() VoteAddress        // validation BLS public key
 	GetPower() Dec                   // validation power
 	GetTokens() Dec                  // validation tokens
 	TokensFromShares(shares Dec) Dec // calculate the token worth of provided shares
@@ -54,7 +53,7 @@ type Validator interface {
 	IsSideChainValidator() bool      // if it belongs to side chain
 }
 
-// ABCIValidator - validator which fulfills abci validator interface for use in Tendermint
+// ABCIValidator which fulfills abci validator interface for use in Tendermint
 func ABCIValidator(v Validator) abci.Validator {
 	return abci.Validator{
 		Address: v.GetConsPubKey().Address(),
@@ -64,11 +63,11 @@ func ABCIValidator(v Validator) abci.Validator {
 
 // ValidatorSet - properties for the set of all validators
 type ValidatorSet interface {
-	// IterateValidators iterate through validators by operator address, execute func for each validator
+	// IterateValidators iterates through validators by operator address, execute func for each validator
 	IterateValidators(Context,
 		func(index int64, validator Validator) (stop bool))
 
-	// IterateValidatorsBonded iterate through bonded validators by operator address, execute func for each validator
+	// IterateValidatorsBonded iterates through bonded validators by operator address, execute func for each validator
 	IterateValidatorsBonded(Context,
 		func(index int64, validator Validator) (stop bool))
 
@@ -76,7 +75,7 @@ type ValidatorSet interface {
 	ValidatorByConsAddr(Context, ConsAddress) Validator // get a particular validator by consensus address
 	TotalPower(Context) Dec                             // total power of the validator set
 
-	// Slash - slash the validator and delegators of the validator, specifying offence height, offence power, and slash fraction
+	// Slash slashes the validator and delegators of the validator, specifying offence height, offence power, and slash fraction
 	Slash(Context, ConsAddress, int64, int64, Dec)
 	Jail(Context, ConsAddress)   // jail a validator
 	Unjail(Context, ConsAddress) // unjail a validator
@@ -90,7 +89,7 @@ type ValidatorSet interface {
 	UnjailSideChain(Context, []byte)
 	SlashSideChain(ctx Context, sideChainId string, sideConsAddr []byte, slashAmount Dec) (validator Validator, slashedAmount Dec, err error)
 
-	// AllocateSlashAmtToValidators - allocate remaining slashed amount to validators who are going to be distributed next time
+	// AllocateSlashAmtToValidators allocates remaining slashed amount to validators who are going to be distributed next time
 	AllocateSlashAmtToValidators(ctx Context, slashedConsAddr []byte, amount Dec) (bool, map[string]int64, error)
 
 	MinSelfDelegation(ctx Context) int64 // validator minimum self delegation
@@ -99,7 +98,7 @@ type ValidatorSet interface {
 
 //_______________________________________________________________________________
 
-// Delegation - delegation bond for a delegated proof of stake system
+// Delegation bond for a delegated proof of stake system
 type Delegation interface {
 	GetDelegatorAddr() AccAddress // delegator AccAddress for the bond
 	GetValidatorAddr() ValAddress // validator operator address
@@ -110,7 +109,7 @@ type Delegation interface {
 type DelegationSet interface {
 	GetValidatorSet() ValidatorSet // validator set for which delegation set is based upon
 
-	// IterateDelegations iterate through all delegations from one delegator by validator-AccAddress,
+	// IterateDelegations iterates through all delegations from one delegator by validator-AccAddress,
 	// execute func for each validator
 	IterateDelegations(ctx Context, delegator AccAddress,
 		fn func(index int64, delegation Delegation) (stop bool))

@@ -20,6 +20,7 @@ const (
 	AddrLen = 20
 	// SmartChainAddressLength defines a valid smart chain address length
 	SmartChainAddressLength = 20
+	VoteAddrLen             = 48
 
 	// Bech32PrefixAccAddr defines the Bech32 prefix of an account's address
 	Bech32PrefixAccAddr = "cosmos"
