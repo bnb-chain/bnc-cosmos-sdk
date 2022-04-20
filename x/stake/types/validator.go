@@ -190,7 +190,9 @@ func (v Validator) HumanReadableString() (string, error) {
 		resp += fmt.Sprintf("Side Chain Id: %s\n", v.SideChainId)
 		resp += fmt.Sprintf("Consensus Addr on Side Chain: %s\n", sdk.HexAddress(v.SideConsAddr))
 		resp += fmt.Sprintf("Fee Addr on Side Chain: %s\n", sdk.HexAddress(v.SideFeeAddr))
-		resp += fmt.Sprintf("Vote address on Side Chain: %s\n", hex.EncodeToString(v.SideVoteAddr))
+		if v.SideVoteAddr != nil {
+			resp += fmt.Sprintf("Vote address on Side Chain: %s\n", hex.EncodeToString(v.SideVoteAddr))
+		}
 	}
 
 	return resp, nil
@@ -235,48 +237,26 @@ func (v Validator) MarshalJSON() ([]byte, error) {
 			return nil, err
 		}
 	}
-	if sdk.IsUpgrade(sdk.BEP126) {
-		return codec.Cdc.MarshalJSON(bechValidator{
-			FeeAddr:            v.FeeAddr,
-			OperatorAddr:       v.OperatorAddr,
-			ConsPubKey:         bechConsPubKey,
-			Jailed:             v.Jailed,
-			Status:             v.Status,
-			Tokens:             v.Tokens,
-			DelegatorShares:    v.DelegatorShares,
-			Description:        v.Description,
-			BondHeight:         v.BondHeight,
-			BondIntraTxCounter: v.BondIntraTxCounter,
-			UnbondingHeight:    v.UnbondingHeight,
-			UnbondingMinTime:   v.UnbondingMinTime,
-			Commission:         v.Commission,
-			DistributionAddr:   v.DistributionAddr,
-			SideChainId:        v.SideChainId,
-			SideConsAddr:       sdk.HexAddress(v.SideConsAddr),
-			SideFeeAddr:        sdk.HexAddress(v.SideFeeAddr),
-			SideVoteAddr:       sdk.HexAddress(v.SideVoteAddr),
-		})
-	} else {
-		return codec.Cdc.MarshalJSON(bechValidator{
-			FeeAddr:            v.FeeAddr,
-			OperatorAddr:       v.OperatorAddr,
-			ConsPubKey:         bechConsPubKey,
-			Jailed:             v.Jailed,
-			Status:             v.Status,
-			Tokens:             v.Tokens,
-			DelegatorShares:    v.DelegatorShares,
-			Description:        v.Description,
-			BondHeight:         v.BondHeight,
-			BondIntraTxCounter: v.BondIntraTxCounter,
-			UnbondingHeight:    v.UnbondingHeight,
-			UnbondingMinTime:   v.UnbondingMinTime,
-			Commission:         v.Commission,
-			DistributionAddr:   v.DistributionAddr,
-			SideChainId:        v.SideChainId,
-			SideConsAddr:       sdk.HexAddress(v.SideConsAddr),
-			SideFeeAddr:        sdk.HexAddress(v.SideFeeAddr),
-		})
-	}
+	return codec.Cdc.MarshalJSON(bechValidator{
+		FeeAddr:            v.FeeAddr,
+		OperatorAddr:       v.OperatorAddr,
+		ConsPubKey:         bechConsPubKey,
+		Jailed:             v.Jailed,
+		Status:             v.Status,
+		Tokens:             v.Tokens,
+		DelegatorShares:    v.DelegatorShares,
+		Description:        v.Description,
+		BondHeight:         v.BondHeight,
+		BondIntraTxCounter: v.BondIntraTxCounter,
+		UnbondingHeight:    v.UnbondingHeight,
+		UnbondingMinTime:   v.UnbondingMinTime,
+		Commission:         v.Commission,
+		DistributionAddr:   v.DistributionAddr,
+		SideChainId:        v.SideChainId,
+		SideConsAddr:       sdk.HexAddress(v.SideConsAddr),
+		SideFeeAddr:        sdk.HexAddress(v.SideFeeAddr),
+		SideVoteAddr:       hex.EncodeToString(v.SideVoteAddr),
+	})
 }
 
 // UnmarshalJSON unmarshals the validator from JSON using Bech32
@@ -322,12 +302,10 @@ func (v *Validator) UnmarshalJSON(data []byte) error {
 		} else {
 			v.SideFeeAddr = sideFeeAddr
 		}
-		if sdk.IsUpgrade(sdk.BEP126) {
-			if sideVoteAddr, err := sdk.HexDecode(bv.SideVoteAddr); err != nil {
-				return err
-			} else {
-				v.SideVoteAddr = sideVoteAddr
-			}
+		if sideVoteAddr, err := sdk.HexDecode(bv.SideVoteAddr); err != nil {
+			return err
+		} else {
+			v.SideVoteAddr = sideVoteAddr
 		}
 	}
 
