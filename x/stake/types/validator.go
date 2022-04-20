@@ -198,10 +198,12 @@ func (v Validator) HumanReadableString() (string, error) {
 		resp += fmt.Sprintf("Side Chain Id: %s\n", v.SideChainId)
 		resp += fmt.Sprintf("Consensus Addr on Side Chain: %s\n", sdk.HexAddress(v.SideConsAddr))
 		resp += fmt.Sprintf("Fee Addr on Side Chain: %s\n", sdk.HexAddress(v.SideFeeAddr))
-		resp += fmt.Sprintf("Vote address on Side Chain: %s\n", hex.EncodeToString(v.SideVoteAddr))
+		resp += fmt.Sprintf("StakeSnapshots: %s\n", v.StakeSnapshots)
+		resp += fmt.Sprintf("AccumulatedStake: %s\n", v.AccumulatedStake)
+		if v.SideVoteAddr != nil {
+			resp += fmt.Sprintf("Vote address on Side Chain: %s\n", hex.EncodeToString(v.SideVoteAddr))
+		}
 	}
-	resp += fmt.Sprintf("StakeSnapshots: %s\n", v.StakeSnapshots)
-	resp += fmt.Sprintf("AccumulatedStake: %s\n", v.AccumulatedStake)
 
 	return resp, nil
 }
@@ -341,12 +343,10 @@ func (v *Validator) UnmarshalJSON(data []byte) error {
 		} else {
 			v.SideFeeAddr = sideFeeAddr
 		}
-		if sdk.IsUpgrade(sdk.BEP126) {
-			if sideVoteAddr, err := sdk.HexDecode(bv.SideVoteAddr); err != nil {
-				return err
-			} else {
-				v.SideVoteAddr = sideVoteAddr
-			}
+		if sideVoteAddr, err := sdk.HexDecode(bv.SideVoteAddr); err != nil {
+			return err
+		} else {
+			v.SideVoteAddr = sideVoteAddr
 		}
 	}
 
