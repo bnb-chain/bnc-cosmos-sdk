@@ -2,7 +2,7 @@ package utils
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -135,7 +135,7 @@ unmarshals to the req interface.
     err := ReadRESTReq(w, r, cdc, req)
 */
 func ReadRESTReq(w http.ResponseWriter, r *http.Request, cdc *codec.Codec, req interface{}) error {
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		WriteErrorResponse(w, http.StatusBadRequest, err.Error())
 		return err

@@ -2,7 +2,7 @@ package tests
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -97,7 +97,7 @@ func waitForHeight(height int64, url string) {
 			panic(err)
 		}
 
-		body, err := ioutil.ReadAll(res.Body)
+		body, err := io.ReadAll(res.Body)
 		if err != nil {
 			panic(err)
 		}
@@ -151,7 +151,7 @@ func WaitForStart(url string) {
 		if err != nil || res == nil {
 			continue
 		}
-		//		body, _ := ioutil.ReadAll(res.Body)
+		//		body, _ := io.ReadAll(res.Body)
 		//		fmt.Println("BODY", string(body))
 		err = res.Body.Close()
 		if err != nil {

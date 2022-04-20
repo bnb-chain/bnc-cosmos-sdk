@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -87,7 +87,7 @@ func GetConfig() *tmcfg.Config {
 // NOTE: memDB cannot be used because the request is expecting to interact with
 // the default location.
 func GetKeyBase(t *testing.T) crkeys.Keybase {
-	dir, err := ioutil.TempDir("", "lcd_test")
+	dir, err := os.MkdirTemp("", "lcd_test")
 	require.NoError(t, err)
 
 	viper.Set(cli.HomeFlag, dir)
@@ -265,7 +265,7 @@ func InitializeTestLCD(
 	viper.Set(client.FlagNode, config.RPC.ListenAddress)
 	viper.Set(client.FlagChainID, genDoc.ChainID)
 	viper.Set(client.FlagTrustNode, false)
-	dir, err := ioutil.TempDir("", "lcd_test")
+	dir, err := os.MkdirTemp("", "lcd_test")
 	require.NoError(t, err)
 	viper.Set(cli.HomeFlag, dir)
 
@@ -358,7 +358,7 @@ func Request(t *testing.T, port, method, path string, payload []byte) (*http.Res
 	res, err = http.DefaultClient.Do(req)
 	require.Nil(t, err)
 
-	output, err := ioutil.ReadAll(res.Body)
+	output, err := io.ReadAll(res.Body)
 	res.Body.Close()
 	require.Nil(t, err)
 
