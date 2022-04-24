@@ -52,8 +52,8 @@ func (msg MsgUnjail) GetSignBytes() []byte {
 
 // quick validity check
 func (msg MsgUnjail) ValidateBasic() sdk.Error {
-	if msg.ValidatorAddr == nil {
-		return ErrBadValidatorAddr(DefaultCodespace)
+	if len(msg.ValidatorAddr) != sdk.AddrLen {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected validator address length is %d, actual length is %d", sdk.AddrLen, len(msg.ValidatorAddr)))
 	}
 	return nil
 }
@@ -95,8 +95,8 @@ func (msg MsgSideChainUnjail) GetSignBytes() []byte {
 
 // quick validity check
 func (msg MsgSideChainUnjail) ValidateBasic() sdk.Error {
-	if msg.ValidatorAddr == nil {
-		return ErrBadValidatorAddr(DefaultCodespace)
+	if len(msg.ValidatorAddr) != sdk.AddrLen {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected validator address length is %d, actual length is %d", sdk.AddrLen, len(msg.ValidatorAddr)))
 	}
 	if len(msg.SideChainId) == 0 || len(msg.SideChainId) > types.MaxSideChainIdLength {
 		return ErrInvalidInput(DefaultCodespace, fmt.Sprintf("side chain id must be included and max length is %d bytes", types.MaxSideChainIdLength))

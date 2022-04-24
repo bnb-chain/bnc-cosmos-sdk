@@ -387,11 +387,11 @@ func (msg MsgBeginUnbonding) GetSignBytes() []byte {
 
 // quick validity check
 func (msg MsgBeginUnbonding) ValidateBasic() sdk.Error {
-	if msg.DelegatorAddr == nil {
-		return ErrNilDelegatorAddr(DefaultCodespace)
+	if len(msg.DelegatorAddr) != sdk.AddrLen {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected delegator address length is %d, actual length is %d", sdk.AddrLen, len(msg.DelegatorAddr)))
 	}
-	if msg.ValidatorAddr == nil {
-		return ErrNilValidatorAddr(DefaultCodespace)
+	if len(msg.ValidatorAddr) != sdk.AddrLen {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected validator address length is %d, actual length is %d", sdk.AddrLen, len(msg.ValidatorAddr)))
 	}
 	if msg.SharesAmount.LTE(sdk.ZeroDec()) {
 		return ErrBadSharesAmount(DefaultCodespace)
