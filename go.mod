@@ -7,7 +7,7 @@ require (
 	github.com/bgentry/speakeasy v0.1.0
 	github.com/binance-chain/tss v0.1.2
 	github.com/binance-chain/tss-lib v1.0.0
-	github.com/btcsuite/btcd v0.20.0-beta
+	github.com/btcsuite/btcd v0.20.1-beta
 	github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d
 	github.com/go-kit/kit v0.9.0
 	github.com/gorilla/mux v1.7.3
