@@ -1,33 +1,41 @@
 # Changelog
 
+##v0.25.0-binance.27
+* [store] [\#272](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/272) Change default saved recent iavl version from 10K to 100K
+* [sdk] [\#273](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/273) Change default file permissions
+* [sdk] [\#274](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/274) Bump up go version and replace ioutil with io/os
+* [sdk] [\#275](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/275) [\#277](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/277)  Enhance checks of ValidateBasic for messages
+* [sdk] [\#278](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/278) Fix checksum mismatch issue of btcd
+* [core] [\#279](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/279) Upgrade Tendermint to v0.32.3-binance.7
+
 ##v0.25.0-binance.26
 * [stake] [\#259](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/259) Improve staking reward distribution
 
 ##v0.25.0-binance.25
-* [sdk] [\#260](https://github.com/binance-chain/bnc-cosmos-sdk/pull/260) Bug fixes (e.g., unclosed iterator)
-* [stake] [\#261](https://github.com/binance-chain/bnc-cosmos-sdk/pull/261) Remove GetValidator caching to fix concurrency error 
-* [keys] [\#263](https://github.com/binance-chain/bnc-cosmos-sdk/pull/263) Add 'm/' prefix to hd path 
-* [core] [\#264](https://github.com/binance-chain/bnc-cosmos-sdk/pull/264) Upgrade Tendermint to v0.32.3-binance.6
+* [sdk] [\#260](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/260) Bug fixes (e.g., unclosed iterator)
+* [stake] [\#261](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/261) Remove GetValidator caching to fix concurrency error 
+* [keys] [\#263](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/263) Add 'm/' prefix to hd path 
+* [core] [\#264](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/264) Upgrade Tendermint to v0.32.3-binance.6
     * Update go version to 1.16
     * Fix infinite recursion in Secp256k1 String() method
 
 ##v0.25.0-binance.24
-* [sdk] [\#248](https://github.com/binance-chain/bnc-cosmos-sdk/pull/248) owner transfer
+* [sdk] [\#248](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/248) owner transfer
 * [sdk] Allow tx send (generate-only) to actually work offline #4234
 * [store] (iavl) #5276 Fix potential race condition in iavlIterator#Close.
-* [sdk] [\#247](https://github.com/binance-chain/bnc-cosmos-sdk/pull/247) Fix failack payload
-* [sdk] [\#251](https://github.com/binance-chain/bnc-cosmos-sdk/pull/251) change minimum length to 2
-* [sdk] [\#252](https://github.com/binance-chain/bnc-cosmos-sdk/pull/252) Fix Fee compatibility issue
+* [sdk] [\#247](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/247) Fix failack payload
+* [sdk] [\#251](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/251) change minimum length to 2
+* [sdk] [\#252](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/252) Fix Fee compatibility issue
 
 
 
 ## v0.25.0 binance.20
 
-* [sdk] [\#163](https://github.com/binance-chain/bnc-cosmos-sdk/pull/163) Tss for project team
-* [sdk] [\#165](https://github.com/binance-chain/bnc-cosmos-sdk/pull/165) Improve perf
-* [sdk] [\#166](https://github.com/binance-chain/bnc-cosmos-sdk/pull/166) Upgrade tendermint to 0.32.3 and use go mod instead of deps
-* [sdk] [\#167](https://github.com/binance-chain/bnc-cosmos-sdk/pull/167) Add blockhash context
-* [sdk] [\#168](https://github.com/binance-chain/bnc-cosmos-sdk/pull/168) Fix sign bytes issue
+* [sdk] [\#163](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/163) Tss for project team
+* [sdk] [\#165](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/165) Improve perf
+* [sdk] [\#166](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/166) Upgrade tendermint to 0.32.3 and use go mod instead of deps
+* [sdk] [\#167](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/167) Add blockhash context
+* [sdk] [\#168](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/168) Fix sign bytes issue
 
 ## 0.25.0
 
