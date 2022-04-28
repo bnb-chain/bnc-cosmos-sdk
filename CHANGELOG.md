@@ -6,7 +6,7 @@
 * [sdk] [\#274](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/274) Bump up go version and replace ioutil with io/os
 * [sdk] [\#275](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/275) [\#277](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/277)  Enhance checks of ValidateBasic for messages
 * [sdk] [\#278](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/278) Fix checksum mismatch issue of btcd
-* [core] [\#279](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/264) Upgrade Tendermint to v0.32.3-binance.7
+* [core] [\#279](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/279) Upgrade Tendermint to v0.32.3-binance.7
 
 ##v0.25.0-binance.26
 * [stake] [\#259](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/259) Improve staking reward distribution
