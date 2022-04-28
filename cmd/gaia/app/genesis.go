@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -189,8 +188,8 @@ func GaiaAppGenStateJSON(cdc *codec.Codec, appGenTxs []json.RawMessage) (appStat
 // appGenTxs, and persistent peers required to generate genesis.json.
 func CollectStdTxs(moniker string, genTxsDir string, cdc *codec.Codec) (
 	validators []tmtypes.GenesisValidator, appGenTxs []auth.StdTx, persistentPeers string, err error) {
-	var fos []os.FileInfo
-	fos, err = ioutil.ReadDir(genTxsDir)
+	var fos []os.DirEntry
+	fos, err = os.ReadDir(genTxsDir)
 	if err != nil {
 		return
 	}
@@ -204,7 +203,7 @@ func CollectStdTxs(moniker string, genTxsDir string, cdc *codec.Codec) (
 
 		// get the genStdTx
 		var jsonRawTx []byte
-		jsonRawTx, err = ioutil.ReadFile(filename)
+		jsonRawTx, err = os.ReadFile(filename)
 		if err != nil {
 			return
 		}

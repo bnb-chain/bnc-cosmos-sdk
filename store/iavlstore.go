@@ -118,8 +118,8 @@ func (st *IavlStore) SetPruning(pruning sdk.PruningStrategy) {
 	case sdk.PruneNothing:
 		st.storeEvery = 1
 	case sdk.PruneSyncable:
-		st.numRecent = 10000 // fork github.com/cosmos/cosmos-sdk/blob/9a16e2675f392b083dd1074ff92ff1f9fbda750d/store/types/pruning.go#L34
-		st.storeEvery = 10000
+		st.numRecent = 100000 // fork github.com/cosmos/cosmos-sdk/blob/9a16e2675f392b083dd1074ff92ff1f9fbda750d/store/types/pruning.go#L34
+		st.storeEvery = 100000
 	}
 }
 

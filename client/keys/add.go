@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path"
@@ -225,7 +225,7 @@ func AddNewKeyRequestHandler(indent bool) http.HandlerFunc {
 			return
 		}
 
-		body, err := ioutil.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte(err.Error()))
@@ -323,7 +323,7 @@ func RecoverRequestHandler(indent bool) http.HandlerFunc {
 		vars := mux.Vars(r)
 		name := vars["name"]
 		var m RecoverKeyBody
-		body, err := ioutil.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte(err.Error()))

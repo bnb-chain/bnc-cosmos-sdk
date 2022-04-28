@@ -3,13 +3,12 @@ package keys
 import (
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/stretchr/testify/require"
-	"io/ioutil"
 	"os"
 	"testing"
 )
 
 func TestGetKeyBaseLocks(t *testing.T) {
-	dir, err := ioutil.TempDir("", "cosmos-sdk-keys")
+	dir, err := os.MkdirTemp("", "cosmos-sdk-keys")
 	require.Nil(t, err)
 	defer os.RemoveAll(dir)
 

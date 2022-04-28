@@ -2,9 +2,8 @@ package cli
 
 import (
 	"fmt"
-	"io/ioutil"
-
 	"github.com/spf13/viper"
+	"os"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
@@ -94,7 +93,7 @@ func printSignatures(stdTx auth.StdTx) {
 
 func readAndUnmarshalStdTx(cdc *amino.Codec, filename string) (stdTx auth.StdTx, err error) {
 	var bytes []byte
-	if bytes, err = ioutil.ReadFile(filename); err != nil {
+	if bytes, err = os.ReadFile(filename); err != nil {
 		return
 	}
 	if err = cdc.UnmarshalJSON(bytes, &stdTx); err != nil {

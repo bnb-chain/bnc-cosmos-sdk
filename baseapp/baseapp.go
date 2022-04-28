@@ -257,8 +257,6 @@ func (app *BaseApp) initFromStore(mainKey sdk.StoreKey) error {
 		blockDB.Close()
 	}
 
-	//TODO(#118): figure out what does this mean! If we keep this, we will get panic: Router() on sealed BaseApp at github.com/BiJie/BinanceChain/app.(*BinanceChain).GetRouter(0xc0004bc080, 0xc000c14000, 0xc0007b9808)
-	//        /Users/zhaocong/go/src/github.com/BiJie/BinanceChain/app/app.go:297 +0x6b
 	//app.Seal()
 
 	return nil

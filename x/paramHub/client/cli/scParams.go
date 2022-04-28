@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -49,7 +49,7 @@ func SubmitSCParamChangeProposalCmd(cdc *codec.Codec) *cobra.Command {
 				return errors.New("sc-param-file is missing")
 			}
 
-			bz, err := ioutil.ReadFile(scParamFile)
+			bz, err := os.ReadFile(scParamFile)
 			if err != nil {
 				return err
 			}

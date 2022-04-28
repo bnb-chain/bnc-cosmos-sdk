@@ -1,7 +1,7 @@
 package cli
 
 import (
-	"io/ioutil"
+	"io"
 	"os"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
@@ -41,9 +41,9 @@ in place of an input filename, the command reads from standard input.`,
 func readAndUnmarshalStdTx(cdc *amino.Codec, filename string) (stdTx auth.StdTx, err error) {
 	var bytes []byte
 	if filename == "-" {
-		bytes, err = ioutil.ReadAll(os.Stdin)
+		bytes, err = io.ReadAll(os.Stdin)
 	} else {
-		bytes, err = ioutil.ReadFile(filename)
+		bytes, err = os.ReadFile(filename)
 	}
 	if err != nil {
 		return

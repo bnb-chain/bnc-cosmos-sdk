@@ -3,7 +3,6 @@ package tests
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strings"
 	"testing"
 
@@ -93,7 +92,7 @@ func GoExecuteTWithStdout(t *testing.T, cmd string) (proc *Process) {
 
 	// Without this, the test halts ?!
 	go func() {
-		_, err := ioutil.ReadAll(proc.StdoutPipe)
+		_, err := io.ReadAll(proc.StdoutPipe)
 		if err != nil {
 			fmt.Println("-------------ERR-----------------------", err)
 			return

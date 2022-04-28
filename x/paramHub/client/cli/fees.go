@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -47,7 +47,7 @@ func SubmitFeeChangeProposalCmd(cdc *codec.Codec) *cobra.Command {
 				return errors.New("fee-param-file is missing")
 			}
 
-			bz, err := ioutil.ReadFile(feeParamFile)
+			bz, err := os.ReadFile(feeParamFile)
 			if err != nil {
 				return err
 			}

@@ -6,7 +6,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/cmd/gaia/app"
 	"github.com/tendermint/tendermint/libs/cli"
 	"io"
-	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -39,7 +38,7 @@ func TestInitCmd(t *testing.T) {
 }
 
 func setupClientHome(t *testing.T) func() {
-	clientDir, err := ioutil.TempDir("", "mock-sdk-cmd")
+	clientDir, err := os.MkdirTemp("", "mock-sdk-cmd")
 	require.Nil(t, err)
 	viper.Set(flagClientHome, clientDir)
 	viper.Set(flagOverwriteKey, true)
@@ -92,7 +91,7 @@ func TestEmptyState(t *testing.T) {
 }
 
 func TestStartStandAlone(t *testing.T) {
-	home, err := ioutil.TempDir("", "mock-sdk-cmd")
+	home, err := os.MkdirTemp("", "mock-sdk-cmd")
 	require.Nil(t, err)
 	defer func() {
 		os.RemoveAll(home)
@@ -130,7 +129,7 @@ func TestStartStandAlone(t *testing.T) {
 }
 
 func TestInitNodeValidatorFiles(t *testing.T) {
-	home, err := ioutil.TempDir("", "mock-sdk-cmd")
+	home, err := os.MkdirTemp("", "mock-sdk-cmd")
 	require.Nil(t, err)
 	defer func() {
 		os.RemoveAll(home)
