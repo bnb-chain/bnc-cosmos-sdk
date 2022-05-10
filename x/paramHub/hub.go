@@ -37,8 +37,6 @@ func RegisterUpgradeBeginBlocker(paramHub *ParamHub) {
 		updateFeeParams := []param.FeeParam{
 			&param.FixedFeeParams{MsgType: "side_create_validator", Fee: CreateSideChainValidatorFee, FeeFor: sdk.FeeForProposer},
 			&param.FixedFeeParams{MsgType: "side_edit_validator", Fee: EditSideChainValidatorFee, FeeFor: sdk.FeeForProposer},
-			&param.FixedFeeParams{MsgType: "side_create_validator_with_vote_addr", Fee: CreateSideChainValidatorFee, FeeFor: sdk.FeeForProposer},
-			&param.FixedFeeParams{MsgType: "side_edit_validator_with_vote_addr", Fee: EditSideChainValidatorFee, FeeFor: sdk.FeeForProposer},
 			&param.FixedFeeParams{MsgType: "side_delegate", Fee: SideChainDelegateFee, FeeFor: sdk.FeeForProposer},
 			&param.FixedFeeParams{MsgType: "side_redelegate", Fee: SideChainRedelegateFee, FeeFor: sdk.FeeForProposer},
 			&param.FixedFeeParams{MsgType: "side_undelegate", Fee: SideChainUndelegateFee, FeeFor: sdk.FeeForProposer},
@@ -93,6 +91,13 @@ func RegisterUpgradeBeginBlocker(paramHub *ParamHub) {
 			&param.FixedFeeParams{MsgType: "redelegate", Fee: ChainRedelegateFee, FeeFor: sdk.FeeForProposer},
 			&param.FixedFeeParams{MsgType: "undelegate", Fee: ChainUndelegateFee, FeeFor: sdk.FeeForProposer},
 			&param.FixedFeeParams{MsgType: "unjail", Fee: Unjail, FeeFor: sdk.FeeForProposer},
+		}
+		paramHub.UpdateFeeParams(ctx, updateFeeParams)
+	})
+	sdk.UpgradeMgr.RegisterBeginBlocker(sdk.BEP126, func(ctx sdk.Context) {
+		updateFeeParams := []param.FeeParam{
+			&param.FixedFeeParams{MsgType: "side_create_validator_with_vote_addr", Fee: CreateSideChainValidatorFee, FeeFor: sdk.FeeForProposer},
+			&param.FixedFeeParams{MsgType: "side_edit_validator_with_vote_addr", Fee: EditSideChainValidatorFee, FeeFor: sdk.FeeForProposer},
 		}
 		paramHub.UpdateFeeParams(ctx, updateFeeParams)
 	})
