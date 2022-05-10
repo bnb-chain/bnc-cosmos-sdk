@@ -201,7 +201,7 @@ func (v Validator) HumanReadableString() (string, error) {
 		resp += fmt.Sprintf("StakeSnapshots: %s\n", v.StakeSnapshots)
 		resp += fmt.Sprintf("AccumulatedStake: %s\n", v.AccumulatedStake)
 		if v.SideVoteAddr != nil {
-			resp += fmt.Sprintf("Vote address on Side Chain: %s\n", hex.EncodeToString(v.SideVoteAddr))
+			resp += fmt.Sprintf("Vote address on Side Chain: %s\n", "0x"+hex.EncodeToString(v.SideVoteAddr))
 		}
 	}
 
