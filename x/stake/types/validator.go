@@ -191,7 +191,7 @@ func (v Validator) HumanReadableString() (string, error) {
 		resp += fmt.Sprintf("Consensus Addr on Side Chain: %s\n", sdk.HexAddress(v.SideConsAddr))
 		resp += fmt.Sprintf("Fee Addr on Side Chain: %s\n", sdk.HexAddress(v.SideFeeAddr))
 		if v.SideVoteAddr != nil {
-			resp += fmt.Sprintf("Vote address on Side Chain: %s\n", hex.EncodeToString(v.SideVoteAddr))
+			resp += fmt.Sprintf("Vote address on Side Chain: %s\n", "0x"+hex.EncodeToString(v.SideVoteAddr))
 		}
 	}
 
