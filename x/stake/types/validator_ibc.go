@@ -22,3 +22,16 @@ type IbcValidatorSetPackage struct {
 	Type         PackageType
 	ValidatorSet []IbcValidator
 }
+
+type IbcValidatorWithVoteAddr struct {
+	ConsAddr []byte
+	FeeAddr  []byte
+	DistAddr sdk.AccAddress
+	Power    uint64
+	VoteAddr []byte
+}
+
+type IbcValidatorWithVoteAddrSetPackage struct {
+	Type         PackageType
+	ValidatorSet []IbcValidatorWithVoteAddr
+}

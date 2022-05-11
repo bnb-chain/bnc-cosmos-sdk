@@ -82,23 +82,45 @@ func publishCompletedRED(k keeper.Keeper, completedReds []types.DVVTriplet, side
 }
 
 func saveSideChainValidatorsToIBC(ctx sdk.Context, sideChainId string, newVals []types.Validator, k keeper.Keeper) {
-	ibcPackage := types.IbcValidatorSetPackage{
-		Type:         types.StakePackageType,
-		ValidatorSet: make([]types.IbcValidator, len(newVals)),
-	}
-	for i := range newVals {
-		ibcPackage.ValidatorSet[i] = types.IbcValidator{
-			ConsAddr: newVals[i].SideConsAddr,
-			FeeAddr:  newVals[i].SideFeeAddr,
-			DistAddr: newVals[i].DistributionAddr,
-			Power:    uint64(newVals[i].GetPower().RawInt()),
+	if sdk.IsUpgrade(sdk.BEP126) {
+		ibcPackage := types.IbcValidatorWithVoteAddrSetPackage{
+			Type:         types.StakePackageType,
+			ValidatorSet: make([]types.IbcValidatorWithVoteAddr, len(newVals)),
+		}
+		for i := range newVals {
+			ibcPackage.ValidatorSet[i] = types.IbcValidatorWithVoteAddr{
+				ConsAddr: newVals[i].SideConsAddr,
+				FeeAddr:  newVals[i].SideFeeAddr,
+				DistAddr: newVals[i].DistributionAddr,
+				Power:    uint64(newVals[i].GetPower().RawInt()),
+				VoteAddr: newVals[i].SideVoteAddr,
+			}
+		}
+		_, err := k.SaveValidatorWithVoteAddrSetToIbc(ctx, sideChainId, ibcPackage)
+		if err != nil {
+			k.Logger(ctx).Error("save validators to ibc package failed: " + err.Error())
+			return
+		}
+	} else {
+		ibcPackage := types.IbcValidatorSetPackage{
+			Type:         types.StakePackageType,
+			ValidatorSet: make([]types.IbcValidator, len(newVals)),
+		}
+		for i := range newVals {
+			ibcPackage.ValidatorSet[i] = types.IbcValidator{
+				ConsAddr: newVals[i].SideConsAddr,
+				FeeAddr:  newVals[i].SideFeeAddr,
+				DistAddr: newVals[i].DistributionAddr,
+				Power:    uint64(newVals[i].GetPower().RawInt()),
+			}
+		}
+		_, err := k.SaveValidatorSetToIbc(ctx, sideChainId, ibcPackage)
+		if err != nil {
+			k.Logger(ctx).Error("save validators to ibc package failed: " + err.Error())
+			return
 		}
 	}
-	_, err := k.SaveValidatorSetToIbc(ctx, sideChainId, ibcPackage)
-	if err != nil {
-		k.Logger(ctx).Error("save validators to ibc package failed: " + err.Error())
-		return
-	}
+
 	if k.PbsbServer != nil {
 		sideValidatorsEvent := types.SideElectedValidatorsEvent{
 			Validators:  newVals,
