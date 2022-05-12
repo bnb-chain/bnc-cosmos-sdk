@@ -152,6 +152,11 @@ func handleMsgCreateSideChainValidatorWithVoteAddr(ctx sdk.Context, msg MsgCreat
 		return ErrValidatorSideConsAddrExist(k.Codespace()).Result()
 	}
 
+	_, found = k.GetValidatorBySideVoteAddr(ctx, msg.SideVoteAddr)
+	if found {
+		return ErrValidatorSideVoteAddrExist(k.Codespace()).Result()
+	}
+
 	minSelfDelegation := k.MinSelfDelegation(ctx)
 	if msg.Delegation.Amount < minSelfDelegation {
 		return ErrBadDelegationAmount(DefaultCodespace,
@@ -176,6 +181,7 @@ func handleMsgCreateSideChainValidatorWithVoteAddr(ctx sdk.Context, msg MsgCreat
 
 	k.SetValidator(ctx, validator)
 	k.SetValidatorByConsAddr(ctx, validator) // here consAddr is the sideConsAddr
+	k.SetValidatorBySideVoteAddr(ctx, validator)
 	k.SetNewValidatorByPowerIndex(ctx, validator)
 	k.OnValidatorCreated(ctx, validator.OperatorAddr)
 
@@ -234,7 +240,12 @@ func handleMsgEditSideChainValidatorWithVoteAddr(ctx sdk.Context, msg MsgEditSid
 	}
 
 	if len(msg.SideVoteAddr) != 0 {
+		_, found = k.GetValidatorBySideVoteAddr(ctx, msg.SideVoteAddr)
+		if found {
+			return ErrValidatorSideVoteAddrExist(k.Codespace()).Result()
+		}
 		validator.SideVoteAddr = msg.SideVoteAddr
+		k.SetValidatorBySideVoteAddr(ctx, validator)
 	}
 
 	k.SetValidator(ctx, validator)

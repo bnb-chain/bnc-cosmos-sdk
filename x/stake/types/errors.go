@@ -63,6 +63,10 @@ func ErrValidatorSideConsAddrExists(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidValidator, "validator already exist for this sideConsAddr, must use new validator sideConsAddr")
 }
 
+func ErrValidatorSideVoteAddrExists(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidValidator, "validator already exist for this sideVoteAddr, must use new validator sideVoteAddr")
+}
+
 func ErrValidatorJailed(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidValidator, "validator for this address is currently jailed")
 }

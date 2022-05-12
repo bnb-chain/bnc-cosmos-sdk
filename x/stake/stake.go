@@ -78,6 +78,7 @@ var (
 	LastTotalPowerKey                = keeper.LastTotalPowerKey
 	ValidatorsKey                    = keeper.ValidatorsKey
 	ValidatorsByConsAddrKey          = keeper.ValidatorsByConsAddrKey
+	ValidatorsByVoteAddrKey          = keeper.ValidatorsBySideVoteAddrKey
 	ValidatorsByPowerIndexKey        = keeper.ValidatorsByPowerIndexKey
 	DelegationKey                    = keeper.DelegationKey
 	GetUBDKey                        = keeper.GetUBDKey
@@ -179,6 +180,7 @@ var (
 	ErrValidatorOwnerExists       = types.ErrValidatorOwnerExists
 	ErrValidatorPubKeyExists      = types.ErrValidatorPubKeyExists
 	ErrValidatorSideConsAddrExist = types.ErrValidatorSideConsAddrExists
+	ErrValidatorSideVoteAddrExist = types.ErrValidatorSideVoteAddrExists
 	ErrInvalidDelegator           = types.ErrInvalidDelegator
 	ErrValidatorJailed            = types.ErrValidatorJailed
 	ErrInvalidProposal            = types.ErrInvalidProposal

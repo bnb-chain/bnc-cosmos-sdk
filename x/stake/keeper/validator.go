@@ -61,6 +61,15 @@ func (k Keeper) GetValidatorBySideConsAddr(ctx sdk.Context, sideConsAddr []byte)
 	return k.GetValidator(ctx, opAddr)
 }
 
+func (k Keeper) GetValidatorBySideVoteAddr(ctx sdk.Context, sideVoteAddr []byte) (validator types.Validator, found bool) {
+	store := ctx.KVStore(k.storeKey)
+	opAddr := store.Get(GetValidatorBySideVoteAddrKey(sideVoteAddr))
+	if opAddr == nil {
+		return validator, false
+	}
+	return k.GetValidator(ctx, opAddr)
+}
+
 func (k Keeper) mustGetValidatorBySideConsAddr(ctx sdk.Context, sideConsAddr []byte) types.Validator {
 	store := ctx.KVStore(k.storeKey)
 	opAddr := store.Get(GetValidatorBySideConsAddrKey(sideConsAddr))
@@ -174,6 +183,16 @@ func (k Keeper) UpdateValidatorPubKey(ctx sdk.Context, validator types.Validator
 		}
 		k.AddPendingABCIValidatorUpdate(ctx, []abci.ValidatorUpdate{oldValidatorUpdate, newValidatorUpdate})
 	}
+}
+
+// validator index
+func (k Keeper) SetValidatorBySideVoteAddr(ctx sdk.Context, validator types.Validator) {
+	// jailed validators are not kept in the power index
+	if validator.Jailed {
+		return
+	}
+	store := ctx.KVStore(k.storeKey)
+	store.Set(GetValidatorBySideVoteAddrKey(validator.SideVoteAddr), validator.OperatorAddr)
 }
 
 // validator index

@@ -25,10 +25,11 @@ var (
 	LastValidatorPowerKey = []byte{0x11} // prefix for each key to a validator index, for bonded validators
 	LastTotalPowerKey     = []byte{0x12} // prefix for the total power
 
-	ValidatorsKey             = []byte{0x21} // prefix for each key to a validator
-	ValidatorsByConsAddrKey   = []byte{0x22} // prefix for each key to a validator index, by pubkey
-	ValidatorsByPowerIndexKey = []byte{0x23} // prefix for each key to a validator index, sorted by power
-	ValidatorsByHeightKey     = []byte{0x24} // prefix for each key to a validator index, by height
+	ValidatorsKey               = []byte{0x21} // prefix for each key to a validator
+	ValidatorsByConsAddrKey     = []byte{0x22} // prefix for each key to a validator index, by pubkey
+	ValidatorsByPowerIndexKey   = []byte{0x23} // prefix for each key to a validator index, sorted by power
+	ValidatorsByHeightKey       = []byte{0x24} // prefix for each key to a validator index, by height
+	ValidatorsBySideVoteAddrKey = []byte{0x25} // prefix for each key to a validator index, by vote address
 
 	DelegationKey                    = []byte{0x31} // key for a delegation
 	UnbondingDelegationKey           = []byte{0x32} // key for an unbonding-delegation
@@ -71,6 +72,10 @@ func GetValidatorByConsAddrKey(addr sdk.ConsAddress) []byte {
 // NOTE: here we reuse the `ValidatorsByConsAddrKey` as side chain validator does not need a main chain pubkey(consAddr).
 func GetValidatorBySideConsAddrKey(sideConsAddr []byte) []byte {
 	return append(ValidatorsByConsAddrKey, sideConsAddr...)
+}
+
+func GetValidatorBySideVoteAddrKey(sideVoteAddr []byte) []byte {
+	return append(ValidatorsBySideVoteAddrKey, sideVoteAddr...)
 }
 
 // Get the validator operator address from LastValidatorPowerKey
