@@ -14,6 +14,7 @@ const (
 	BEP82                = "BEP82" // https://github.com/bnb-chain/BEPs/pull/82
 	FixFailAckPackage    = "FixFailAckPackage"
 	BEP128               = "BEP128" //https://github.com/bnb-chain/BEPs/pull/128
+	BEP145               = "BEP145" //https://github.com/bnb-chain/BEPs/pull/145
 )
 
 var MainNetConfig = UpgradeConfig{

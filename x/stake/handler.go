@@ -17,18 +17,27 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 		// NOTE msg already has validate basic run
 		switch msg := msg.(type) {
 		case types.MsgCreateValidatorProposal:
-			return handleMsgCreateValidatorAfterProposal(ctx, msg, k, govKeeper)
+			if sdk.IsUpgrade(sdk.BEP145) {
+				return sdk.ErrTxDecode("MsgCreateValidatorProposal disabled in BEP145").Result()
+			} else {
+				return handleMsgCreateValidatorAfterProposal(ctx, msg, k, govKeeper)
+			}
 		case types.MsgRemoveValidator:
-			return handleMsgRemoveValidatorAfterProposal(ctx, msg, k, govKeeper)
-		// disabled other msg handling
-		//case types.MsgEditValidator:
-		//	return handleMsgEditValidator(ctx, msg, k)
-		//case types.MsgDelegate:
-		//	return handleMsgDelegate(ctx, msg, k)
-		//case types.MsgBeginRedelegate:
-		//	return handleMsgBeginRedelegate(ctx, msg, k)
-		//case types.MsgBeginUnbonding:
-		//	return handleMsgBeginUnbonding(ctx, msg, k)
+			if sdk.IsUpgrade(sdk.BEP145) {
+				return sdk.ErrTxDecode("MsgRemoveValidator disabled in BEP145").Result()
+			} else {
+				return handleMsgRemoveValidatorAfterProposal(ctx, msg, k, govKeeper)
+			}
+		case types.MsgCreateValidator:
+			return handleMsgCreateValidator(ctx, msg, k)
+		case types.MsgEditValidator:
+			return handleMsgEditValidator(ctx, msg, k)
+		case types.MsgDelegate:
+			return handleMsgDelegate(ctx, msg, k)
+		case types.MsgBeginRedelegate:
+			return handleMsgBeginRedelegate(ctx, msg, k)
+		case types.MsgBeginUnbonding:
+			return handleMsgBeginUnbonding(ctx, msg, k)
 		//case MsgSideChain
 		case types.MsgCreateSideChainValidator:
 			return handleMsgCreateSideChainValidator(ctx, msg, k)
