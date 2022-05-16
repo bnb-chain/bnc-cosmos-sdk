@@ -271,7 +271,7 @@ func (v Validator) MarshalJSON() ([]byte, error) {
 			SideFeeAddr:        sdk.HexAddress(v.SideFeeAddr),
 			StakeSnapshots:     v.StakeSnapshots,
 			AccumulatedStake:   v.AccumulatedStake,
-			SideVoteAddr:       sdk.HexAddress(v.SideVoteAddr),
+			SideVoteAddr:       "0x" + hex.EncodeToString(v.SideVoteAddr),
 		})
 	} else {
 		return codec.Cdc.MarshalJSON(bechValidator{
