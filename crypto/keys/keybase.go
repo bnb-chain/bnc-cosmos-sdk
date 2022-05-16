@@ -67,6 +67,9 @@ var (
 	// ErrUnsupportedLanguage is raised when the caller tries to use a
 	// different language than english for creating a mnemonic sentence.
 	ErrUnsupportedLanguage = errors.New("unsupported language: only english is supported")
+
+	// ErrTssUnsupported is raised when the caller tries to use TSS, which is not supported.
+	ErrTssUnsupported = errors.New("tss unsupported: tss is not supported")
 )
 
 // dbKeybase combines encryption and storage implementation to provide
@@ -170,7 +173,7 @@ func (kb dbKeybase) CreateLedger(name string, path crypto.DerivationPath, algo S
 }
 
 func (kb dbKeybase) CreateTss(name, tssHome, tssVault string, pubkey tmcrypto.PubKey) (info Info, err error) {
-	return kb.writeTssKey(name, tssHome, tssVault, pubkey)
+	return nil, ErrTssUnsupported
 }
 
 // CreateOffline creates a new reference to an offline keypair
@@ -263,11 +266,8 @@ func (kb dbKeybase) Sign(name, passphrase string, msg []byte) (sig []byte, pub t
 			return
 		}
 	case tssInfo:
-		linfo := info.(tssInfo)
-		priv, err = crypto.NewPrivKeyTss(linfo.Home, linfo.Vault, passphrase, fmt.Sprintf("%x", msg))
-		if err != nil {
-			return
-		}
+		err = ErrTssUnsupported
+		return
 	case offlineInfo:
 		linfo := info.(offlineInfo)
 		_, err := fmt.Fprintf(os.Stderr, "Bytes to sign:\n%s", msg)
@@ -458,15 +458,6 @@ func (kb dbKeybase) writeLedgerKey(pub tmcrypto.PubKey, path crypto.DerivationPa
 	info := newLedgerInfo(name, pub, path)
 	kb.writeInfo(info, name)
 	return info
-}
-
-func (kb dbKeybase) writeTssKey(name, tssHome, tssVault string, pubkey tmcrypto.PubKey) (Info, error) {
-	if info, err := newTssInfo(name, tssHome, tssVault, pubkey); err == nil {
-		kb.writeInfo(info, name)
-		return info, nil
-	} else {
-		return nil, err
-	}
 }
 
 func (kb dbKeybase) writeOfflineKey(pub tmcrypto.PubKey, name string) Info {
