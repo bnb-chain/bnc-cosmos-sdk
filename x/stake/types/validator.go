@@ -255,7 +255,7 @@ func (v Validator) MarshalJSON() ([]byte, error) {
 		SideChainId:        v.SideChainId,
 		SideConsAddr:       sdk.HexAddress(v.SideConsAddr),
 		SideFeeAddr:        sdk.HexAddress(v.SideFeeAddr),
-		SideVoteAddr:       hex.EncodeToString(v.SideVoteAddr),
+		SideVoteAddr:       "0x" + hex.EncodeToString(v.SideVoteAddr),
 	})
 }
 
