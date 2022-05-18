@@ -1,5 +1,8 @@
 # Changelog
 
+##v0.25.0-binance.28
+* [sdk] [\#284](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/284) Disable TSS support
+
 ##v0.25.0-binance.27
 * [store] [\#272](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/272) Change default saved recent iavl version from 10K to 100K
 * [sdk] [\#273](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/273) Change default file permissions
