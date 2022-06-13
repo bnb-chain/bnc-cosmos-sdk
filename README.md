@@ -1,66 +1,33 @@
 # Why we create this repo
 
-This repo is forked from [https://github.com/cosmos/cosmos-sdk](https://github.com/cosmos/cosmos-sdk).
+This repo is forked from [cosmos-sdk](https://github.com/cosmos/cosmos-sdk).
 
-Our BinanceChain app leverages cosmos-sdk to fast build a dApp running with tendermint. As our app becomes more and more complex, the original cosmos-sdk can hardly fit all our requirements. 
-We changed a lot to our copied sdk, but it makes the future integration harder and harder. So we decided to fork cosmos-sdk.
+The BNB Beacon Chain leverages cosmos-sdk to fast build a dApp running with tendermint. As the app becomes more and more complex, the original cosmos-sdk can hardly fit all requirements. 
+We changed a lot to the copied sdk, but it makes the future integration harder and harder. So we decided to fork cosmos-sdk and add features onto it.
 
-# How to use this repo
+## Key Features
 
-We need to remove the original cosmos-sdk repo and clone our repo into that directory.
-The reason is that we need to keep the import path.
-
-```bash
-> cd $GOPATH/src/github.com
-> rm -rf cosmos/cosmos-sdk
-> git clone https://github.com/binance-chain/bnc-cosmos-sdk.git cosmos/cosmos-sdk
-> cd cosmos-sdk
-> git checkout develop
-> make get_vendor_deps
-```
-
-# Cosmos SDK
-![banner](docs/graphics/cosmos-sdk-image.png)
-
-[![version](https://img.shields.io/github/tag/cosmos/cosmos-sdk.svg)](https://github.com/cosmos/cosmos-sdk/releases/latest)
-[![CircleCI](https://circleci.com/gh/cosmos/cosmos-sdk/tree/master.svg?style=shield)](https://circleci.com/gh/cosmos/cosmos-sdk/tree/master)
-[![codecov](https://codecov.io/gh/cosmos/cosmos-sdk/branch/master/graph/badge.svg)](https://codecov.io/gh/cosmos/cosmos-sdk)
-[![Go Report Card](https://goreportcard.com/badge/github.com/cosmos/cosmos-sdk)](https://goreportcard.com/report/github.com/cosmos/cosmos-sdk)
-[![license](https://img.shields.io/github/license/cosmos/cosmos-sdk.svg)](https://github.com/cosmos/cosmos-sdk/blob/master/LICENSE)
-[![LoC](https://tokei.rs/b1/github/cosmos/cosmos-sdk)](https://github.com/cosmos/cosmos-sdk)
-[![API Reference](https://godoc.org/github.com/cosmos/cosmos-sdk?status.svg
-)](https://godoc.org/github.com/cosmos/cosmos-sdk)
-[![riot.im](https://img.shields.io/badge/riot.im-JOIN%20CHAT-green.svg)](https://riot.im/app/#/room/#cosmos-sdk:matrix.org)
-
-The Cosmos-SDK is a framework for building blockchain applications in Golang.
-It is being used to build `Gaia`, the first implementation of the [Cosmos Hub](https://cosmos.network/docs/),
-
-**WARNING**: The SDK has mostly stabilized, but we are still making some
-breaking changes.
-
-**Note**: Requires [Go 1.10+](https://golang.org/dl/)
-
-## Gaia Testnet
-
-To join the latest testnet, follow
-[the guide](https://cosmos.network/docs/getting-started/full-node.html#setting-up-a-new-node).
-
-For status updates and genesis files, see the
-[testnets repo](https://github.com/cosmos/testnets).
-
-## Install
-
-See the
-[install instructions](https://cosmos.network/docs/getting-started/installation.html).
+1. **Native Cross Chain Support**. Cross-chain communication is the key foundation to allow the community to take advantage of the BNB Beacon Chain and BNB Smart Chain dual chain structure.
+2. **Staking**. Staking and reward logic should be built into the blockchain, and automatically executed as the blocking happens. Cosmos Hub, who shares the same Tendermint consensus and libraries with BNB Beacon Chain, works in this way. In order to keep the compatibility and reuse the good foundation of BC, the staking logic of BSC is implemented on BC. The BSC validator set is determined by its staking and delegation logic, via a staking module built on BC for BSC, and propagated every day UTC 00:00 from BC to BSC via Cross-Chain communication.
+3. **Rewarding**. Both the validator update and reward distribution happen every day around UTC 00:00. This is to save the cost of frequent staking updates and block reward distribution. This cost can be significant, as the blocking reward is collected on BSC and distributed on BC to BSC validators and delegators. 
+4. **Slashing**. Slashing is part of the on-chain governance, to ensure the malicious or negative behaviors are punished. BSC slash can be submitted by anyone. The transaction submission requires slash evidence and cost fees but also brings a larger reward when it is successful. So far there are two slashable cases: Double Sign and Inavailability.
+5. **ParamHub && Governance**. There are many system parameters to control the behavior of the BNB Beacon Chain and BNB Smart Chain, e.g. slash amount, cross-chain transfer fees. All these parameters will be determined by BSC and BC Validator Set together through a proposal-vote process based on their staking. Such the process will be carried on cosmos sdk.
+6. **Performance Improvement** Parallelization, dedicated cache, priority lock and many other program skills are applied to improvement the capacity of BNB Beacon Chain.
 
 ## Quick Start
 
-See the [Cosmos Docs](https://cosmos.network/docs/)
+See the [Cosmos Docs](https://cosmos.network/docs/) and [Getting started with the SDK](https://cosmos.network/docs/sdk/core/intro.html).
 
-- [Getting started with the SDK](https://cosmos.network/docs/sdk/core/intro.html)
-- [SDK Examples](/examples)
-- [Join the testnet](https://cosmos.network/docs/getting-started/full-node.html#run-a-full-node)
+## Contribution
 
-## Disambiguation
+Thank you for considering to help out with the source code! We welcome contributions from anyone on the internet, and are grateful for even the smallest of fixes!
 
-This Cosmos-SDK project is not related to the [React-Cosmos](https://github.com/react-cosmos/react-cosmos) project (yet). Many thanks to Evan Coury and Ovidiu (@skidding) for this Github organization name. As per our agreement, this disambiguation notice will stay here.
+If you'd like to contribute to bnc-cosmos-sdk, please fork, fix, commit and send a pull request for the maintainers to review and merge into the main code base. 
+
+Please make sure your contributions adhere to our coding guidelines:
+
+- Code must adhere to the official Go formatting guidelines (i.e. uses gofmt).
+- Code must be documented adhering to the official Go [commentary guidelines](https://go.dev/doc/effective_go#commentary).
+- Pull requests need to be based on and opened against the master branch.
+Commit messages should be prefixed with the working progress.
+E.g. "\[WIP\] make trace configs optional", "\[R4R\] make trace configs optional". 
