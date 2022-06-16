@@ -88,7 +88,7 @@ func NewMsgCreateSideChainValidatorWithVoteAddrOnBehalfOf(delegatorAddr sdk.AccA
 func (msg MsgCreateSideChainValidator) Route() string { return MsgRoute }
 func (msg MsgCreateSideChainValidator) Type() string  { return MsgTypeCreateSideChainValidator }
 
-// GetSigners returns address(es) that must sign over msg.GetSignBytes()
+// Return address(es) that must sign over msg.GetSignBytes()
 func (msg MsgCreateSideChainValidator) GetSigners() []sdk.AccAddress {
 	// delegator is first signer so delegator pays fees
 	addrs := []sdk.AccAddress{msg.DelegatorAddr}
@@ -101,7 +101,7 @@ func (msg MsgCreateSideChainValidator) GetSigners() []sdk.AccAddress {
 	return addrs
 }
 
-// GetSignBytes gets the bytes for the message signer to sign on
+// get the bytes for the message signer to sign on
 func (msg MsgCreateSideChainValidator) GetSignBytes() []byte {
 	bz := MsgCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(bz)
@@ -280,7 +280,7 @@ func (msg MsgEditSideChainValidator) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{sdk.AccAddress(msg.ValidatorAddr)}
 }
 
-// GetSignBytes gets the bytes for the message signer to sign on
+// get the bytes for the message signer to sign on
 func (msg MsgEditSideChainValidator) GetSignBytes() []byte {
 	bz := MsgCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(bz)
@@ -428,7 +428,7 @@ func (msg MsgSideChainDelegate) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.DelegatorAddr}
 }
 
-// GetSignBytes gets the bytes for the message signer to sign on
+// get the bytes for the message signer to sign on
 func (msg MsgSideChainDelegate) GetSignBytes() []byte {
 	bz := MsgCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(bz)
@@ -482,7 +482,7 @@ func (msg MsgSideChainRedelegate) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.DelegatorAddr}
 }
 
-// GetSignBytes gets the bytes for the message signer to sign on
+// get the bytes for the message signer to sign on
 func (msg MsgSideChainRedelegate) GetSignBytes() []byte {
 	b := MsgCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(b)

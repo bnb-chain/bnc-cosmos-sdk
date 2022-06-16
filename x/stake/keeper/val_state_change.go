@@ -11,7 +11,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
 
-// ApplyAndReturnValidatorSetUpdates applies and return accumulated updates to the bonded validator set. Also,
+// Apply and return accumulated updates to the bonded validator set. Also,
 // * Updates the active valset as keyed by LastValidatorPowerKey.
 // * Updates the total power as keyed by LastTotalPowerKey.
 // * Updates validator status' according to updated powers.

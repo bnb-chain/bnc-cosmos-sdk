@@ -3,7 +3,6 @@ package types
 import (
 	"encoding/hex"
 	"errors"
-
 	"golang.org/x/crypto/sha3"
 )
 
@@ -38,7 +37,7 @@ func HexEncode(b []byte) string {
 	return string(enc)
 }
 
-// HexDecode decodes a hex string with 0x prefix.
+// Decode decodes a hex string with 0x prefix.
 func HexDecode(input string) ([]byte, error) {
 	if !Has0xPrefix(input) {
 		return nil, errors.New("hex string must have 0x prefix")
@@ -46,7 +45,7 @@ func HexDecode(input string) ([]byte, error) {
 	return hex.DecodeString(input[2:])
 }
 
-// Has0xPrefix validates str begins with '0x' or '0X'.
+// has0xPrefix validates str begins with '0x' or '0X'.
 func Has0xPrefix(input string) bool {
 	return len(input) >= 2 && input[0] == '0' && (input[1] == 'x' || input[1] == 'X')
 }
