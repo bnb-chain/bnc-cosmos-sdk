@@ -34,7 +34,7 @@ func (b BondStatus) Equal(b2 BondStatus) bool {
 	return byte(b) == byte(b2)
 }
 
-// Validator for a delegated proof of stake system
+// validator for a delegated proof of stake system
 type Validator interface {
 	GetJailed() bool                 // whether the validator is jailed
 	GetMoniker() string              // moniker of the validator
@@ -53,7 +53,7 @@ type Validator interface {
 	IsSideChainValidator() bool      // if it belongs to side chain
 }
 
-// ABCIValidator which fulfills abci validator interface for use in Tendermint
+// validator which fulfills abci validator interface for use in Tendermint
 func ABCIValidator(v Validator) abci.Validator {
 	return abci.Validator{
 		Address: v.GetConsPubKey().Address(),
@@ -61,13 +61,13 @@ func ABCIValidator(v Validator) abci.Validator {
 	}
 }
 
-// ValidatorSet - properties for the set of all validators
+// properties for the set of all validators
 type ValidatorSet interface {
-	// IterateValidators iterates through validators by operator address, execute func for each validator
+	// iterate through validators by operator address, execute func for each validator
 	IterateValidators(Context,
 		func(index int64, validator Validator) (stop bool))
 
-	// IterateValidatorsBonded iterates through bonded validators by operator address, execute func for each validator
+	// iterate through bonded validators by operator address, execute func for each validator
 	IterateValidatorsBonded(Context,
 		func(index int64, validator Validator) (stop bool))
 
@@ -75,7 +75,7 @@ type ValidatorSet interface {
 	ValidatorByConsAddr(Context, ConsAddress) Validator // get a particular validator by consensus address
 	TotalPower(Context) Dec                             // total power of the validator set
 
-	// Slash slashes the validator and delegators of the validator, specifying offence height, offence power, and slash fraction
+	// slash the validator and delegators of the validator, specifying offence height, offence power, and slash fraction
 	Slash(Context, ConsAddress, int64, int64, Dec)
 	Jail(Context, ConsAddress)   // jail a validator
 	Unjail(Context, ConsAddress) // unjail a validator
@@ -89,7 +89,7 @@ type ValidatorSet interface {
 	UnjailSideChain(Context, []byte)
 	SlashSideChain(ctx Context, sideChainId string, sideConsAddr []byte, slashAmount Dec) (validator Validator, slashedAmount Dec, err error)
 
-	// AllocateSlashAmtToValidators allocates remaining slashed amount to validators who are going to be distributed next time
+	// allocate remaining slashed amount to validators who are going to be distributed next time
 	AllocateSlashAmtToValidators(ctx Context, slashedConsAddr []byte, amount Dec) (bool, map[string]int64, error)
 
 	MinSelfDelegation(ctx Context) int64 // validator minimum self delegation
@@ -98,19 +98,19 @@ type ValidatorSet interface {
 
 //_______________________________________________________________________________
 
-// Delegation bond for a delegated proof of stake system
+// delegation bond for a delegated proof of stake system
 type Delegation interface {
 	GetDelegatorAddr() AccAddress // delegator AccAddress for the bond
 	GetValidatorAddr() ValAddress // validator operator address
 	GetShares() Dec               // amount of validator's shares held in this delegation
 }
 
-// DelegationSet - properties for the set of all delegations for a particular
+// properties for the set of all delegations for a particular
 type DelegationSet interface {
 	GetValidatorSet() ValidatorSet // validator set for which delegation set is based upon
 
-	// IterateDelegations iterates through all delegations from one delegator by validator-AccAddress,
-	// execute func for each validator
+	// iterate through all delegations from one delegator by validator-AccAddress,
+	//   execute func for each validator
 	IterateDelegations(ctx Context, delegator AccAddress,
 		fn func(index int64, delegation Delegation) (stop bool))
 }
@@ -124,7 +124,7 @@ type DelegationSet interface {
 
 // TODO refactor event hooks out to the receiver modules
 
-// StakingHooks - event hooks for staking validator object
+// event hooks for staking validator object
 type StakingHooks interface {
 	OnValidatorCreated(ctx Context, address ValAddress)  // Must be called when a validator is created
 	OnValidatorModified(ctx Context, address ValAddress) // Must be called when a validator's state changes

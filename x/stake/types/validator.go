@@ -58,7 +58,7 @@ func NewValidator(operator sdk.ValAddress, pubKey crypto.PubKey, description Des
 }
 
 // NewValidatorWithFeeAddr - Note a few fields are initialized with default value. They will be updated later
-func NewValidatorWithFeeAddr(feeAddr sdk.AccAddress, operator sdk.ValAddress, pubKey crypto.PubKey, bLSKey sdk.VoteAddress, description Description) Validator {
+func NewValidatorWithFeeAddr(feeAddr sdk.AccAddress, operator sdk.ValAddress, pubKey crypto.PubKey, description Description) Validator {
 	val := Validator{
 		FeeAddr:            feeAddr,
 		OperatorAddr:       operator,
@@ -132,12 +132,12 @@ func GenerateDistributionAddr(operator sdk.ValAddress, sideChainId string) sdk.A
 	return sdk.XOR(tmhash.SumTruncated([]byte(sideChainId)), operator)
 }
 
-// MustMarshalValidator returns the redelegation without fields contained within the key for the store
+// return the redelegation without fields contained within the key for the store
 func MustMarshalValidator(cdc *codec.Codec, validator Validator) []byte {
 	return cdc.MustMarshalBinaryLengthPrefixed(validator)
 }
 
-// MustUnmarshalValidator unmarshals a redelegation from a store key and value
+// unmarshal a redelegation from a store key and value
 func MustUnmarshalValidator(cdc *codec.Codec, value []byte) Validator {
 	validator, err := UnmarshalValidator(cdc, value)
 	if err != nil {
@@ -355,7 +355,7 @@ func (v *Validator) UnmarshalJSON(data []byte) error {
 
 //___________________________________________________________________
 
-// Equal - only the vitals - does not check bond height of IntraTxCounter
+// only the vitals - does not check bond height of IntraTxCounter
 func (v Validator) Equal(v2 Validator) bool {
 	return v.FeeAddr.Equals(v2.FeeAddr) &&
 		v.ConsPubKey.Equals(v2.ConsPubKey) &&
@@ -372,12 +372,12 @@ func (v Validator) Equal(v2 Validator) bool {
 		bytes.Equal(v.SideVoteAddr, v2.SideVoteAddr)
 }
 
-// ConsAddress returns the TM validator address
+// return the TM validator address
 func (v Validator) ConsAddress() sdk.ConsAddress {
 	return sdk.ConsAddress(v.ConsPubKey.Address())
 }
 
-// DoNotModifyDesc - constant used in flags to indicate that description field should not be updated
+// constant used in flags to indicate that description field should not be updated
 const DoNotModifyDesc = "[do-not-modify]"
 
 // Description - description fields for a validator
@@ -503,7 +503,7 @@ func (v Validator) UpdateStatus(pool Pool, NewStatus sdk.BondStatus) (Validator,
 	return v, pool
 }
 
-// TokensFromShares calculates the token worth of provided shares
+// calculate the token worth of provided shares
 func (v Validator) TokensFromShares(shares sdk.Dec) sdk.Dec {
 	if v.DelegatorShares.IsZero() {
 		return sdk.ZeroDec()
@@ -528,7 +528,7 @@ func (v Validator) SharesFromTokens(amt sdk.Dec) sdk.Dec {
 	return result
 }
 
-// RemoveTokens removes tokens from a validator
+// removes tokens from a validator
 func (v Validator) RemoveTokens(pool Pool, tokens sdk.Dec) (Validator, Pool) {
 	if v.Status == sdk.Bonded {
 		pool = pool.bondedTokensToLoose(tokens)
@@ -607,7 +607,7 @@ func (v Validator) DelegatorShareExRate() sdk.Dec {
 	return v.Tokens.Quo(v.DelegatorShares)
 }
 
-// BondedTokens gets the bonded tokens which the validator holds
+// Get the bonded tokens which the validator holds
 func (v Validator) BondedTokens() sdk.Dec {
 	if v.Status == sdk.Bonded {
 		return v.Tokens

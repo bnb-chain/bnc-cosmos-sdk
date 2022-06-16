@@ -69,7 +69,7 @@ func AccAddressFromBech32(address string) (addr AccAddress, err error) {
 	return AccAddress(bz), nil
 }
 
-// Equals returns boolean for whether two AccAddresses are Equal
+// Returns boolean for whether two AccAddresses are Equal
 func (aa AccAddress) Equals(aa2 AccAddress) bool {
 	if aa.Empty() && aa2.Empty() {
 		return true
@@ -78,7 +78,7 @@ func (aa AccAddress) Equals(aa2 AccAddress) bool {
 	return bytes.Compare(aa.Bytes(), aa2.Bytes()) == 0
 }
 
-// Empty returns boolean for whether an AccAddress is empty
+// Returns boolean for whether an AccAddress is empty
 func (aa AccAddress) Empty() bool {
 	if aa == nil {
 		return true
@@ -185,7 +185,7 @@ func ValAddressFromBech32(address string) (addr ValAddress, err error) {
 	return ValAddress(bz), nil
 }
 
-// Equals returns boolean for whether two ValAddresses are Equal
+// Returns boolean for whether two ValAddresses are Equal
 func (va ValAddress) Equals(va2 ValAddress) bool {
 	if va.Empty() && va2.Empty() {
 		return true
@@ -194,7 +194,7 @@ func (va ValAddress) Equals(va2 ValAddress) bool {
 	return bytes.Compare(va.Bytes(), va2.Bytes()) == 0
 }
 
-// Empty returns boolean for whether an AccAddress is empty
+// Returns boolean for whether an AccAddress is empty
 func (va ValAddress) Empty() bool {
 	if va == nil {
 		return true
@@ -302,12 +302,12 @@ func ConsAddressFromBech32(address string) (addr ConsAddress, err error) {
 	return ConsAddress(bz), nil
 }
 
-// GetConsAddress get ConsAddress from pubkey
+// get ConsAddress from pubkey
 func GetConsAddress(pubkey crypto.PubKey) ConsAddress {
 	return ConsAddress(pubkey.Address())
 }
 
-// Equals returns boolean for whether two ConsAddress are Equal
+// Returns boolean for whether two ConsAddress are Equal
 func (ca ConsAddress) Equals(ca2 ConsAddress) bool {
 	if ca.Empty() && ca2.Empty() {
 		return true
@@ -316,7 +316,7 @@ func (ca ConsAddress) Equals(ca2 ConsAddress) bool {
 	return bytes.Compare(ca.Bytes(), ca2.Bytes()) == 0
 }
 
-// Empty returns boolean for whether an ConsAddress is empty
+// Returns boolean for whether an ConsAddress is empty
 func (ca ConsAddress) Empty() bool {
 	if ca == nil {
 		return true

@@ -154,7 +154,6 @@ func saveSideChainValidatorsToIBC(ctx sdk.Context, sideChainId string, newVals [
 			return
 		}
 	}
-
 	if k.PbsbServer != nil {
 		sideValidatorsEvent := types.ElectedValidatorsEvent{
 			Validators: newVals,
