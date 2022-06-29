@@ -27,7 +27,7 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 	bondDenom := k.BondDenom(ctx)
 	var toPublish []types.DistributionData
 	for _, validator := range validators {
-		distAccCoins := k.bankKeeper.GetCoins(ctx, validator.DistributionAddr)
+		distAccCoins := k.BankKeeper.GetCoins(ctx, validator.DistributionAddr)
 		totalReward := distAccCoins.AmountOf(bondDenom)
 		totalRewardDec := sdk.ZeroDec()
 		commission := sdk.ZeroDec()
@@ -37,32 +37,42 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 			if !found {
 				panic(fmt.Sprintf("no delegations found with height=%d, validator=%s", height, validator.OperatorAddr))
 			}
+			for i, del := range delegations {
+				if del.Native {
+					newDelAddr, err := types.GetStakeCAoB(del.DelegatorAddr.Bytes(), "Reward")
+					if err != nil {
+						panic(err)
+					}
+					del.DelegatorAddr = newDelAddr
+					delegations[i] = del
+				}
+			}
 			totalRewardDec = sdk.NewDec(totalReward)
 			commission = totalRewardDec.Mul(validator.Commission.Rate)
 			remainReward := totalRewardDec.Sub(commission)
 			// remove all balance of bondDenom from Distribution account
 			distAccCoins = distAccCoins.Minus(sdk.Coins{sdk.NewCoin(bondDenom, totalReward)})
-			if err := k.bankKeeper.SetCoins(ctx, validator.DistributionAddr, distAccCoins); err != nil {
+			if err := k.BankKeeper.SetCoins(ctx, validator.DistributionAddr, distAccCoins); err != nil {
 				panic(err)
 			}
 			rewards = allocate(simDelsToSharers(delegations), remainReward)
 			if commission.RawInt() > 0 { // assign rewards to self-delegator
-				if _, _, err := k.bankKeeper.AddCoins(ctx, validator.GetFeeAddr(), sdk.Coins{sdk.NewCoin(bondDenom, commission.RawInt())}); err != nil {
+				if _, _, err := k.BankKeeper.AddCoins(ctx, validator.GetFeeAddr(), sdk.Coins{sdk.NewCoin(bondDenom, commission.RawInt())}); err != nil {
 					panic(err)
 				}
 			}
 			// assign rewards to delegator
 			changedAddrs := make([]sdk.AccAddress, len(rewards)+1)
 			for i := range rewards {
-				if _, _, err := k.bankKeeper.AddCoins(ctx, rewards[i].AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, rewards[i].Amount)}); err != nil {
+				if _, _, err := k.BankKeeper.AddCoins(ctx, rewards[i].AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, rewards[i].Amount)}); err != nil {
 					panic(err)
 				}
 				changedAddrs[i] = rewards[i].AccAddr
 			}
 
 			changedAddrs[len(rewards)] = validator.DistributionAddr
-			if k.addrPool != nil {
-				k.addrPool.AddAddrs(changedAddrs)
+			if k.AddrPool != nil {
+				k.AddrPool.AddAddrs(changedAddrs)
 			}
 		}
 
@@ -113,7 +123,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) {
 	// if there are left reward distribution batches in the previous day, will distribute all of them here
 	// this is only a safe guard to make sure that all the previous day's rewards are distributed
 	// because this case should happen in very very special case (e.g., bc maintenance for a long time), so there is no much optimization here
-	for ; k.hasNextBatchRewards(ctx); {
+	for k.hasNextBatchRewards(ctx) {
 		k.distributeSingleBatch(ctx, sideChainId)
 	}
 
@@ -128,7 +138,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) {
 
 	bondDenom := k.BondDenom(ctx)
 	for _, validator := range validators {
-		distAccCoins := k.bankKeeper.GetCoins(ctx, validator.DistributionAddr)
+		distAccCoins := k.BankKeeper.GetCoins(ctx, validator.DistributionAddr)
 		totalReward := distAccCoins.AmountOf(bondDenom)
 		totalRewardDec := sdk.ZeroDec()
 		commission := sdk.ZeroDec()
@@ -138,15 +148,25 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) {
 			if !found {
 				panic(fmt.Sprintf("no delegations found with height=%d, validator=%s", height, validator.OperatorAddr))
 			}
+			for i, del := range delegations {
+				if del.Native {
+					newDelAddr, err := types.GetStakeCAoB(del.DelegatorAddr.Bytes(), "Reward")
+					if err != nil {
+						panic(err)
+					}
+					del.DelegatorAddr = newDelAddr
+					delegations[i] = del
+				}
+			}
 			totalRewardDec = sdk.NewDec(totalReward)
 
 			//distribute commission
 			commission = totalRewardDec.Mul(validator.Commission.Rate)
 			if commission.RawInt() > 0 {
-				if _, _, err := k.bankKeeper.AddCoins(ctx, validator.GetFeeAddr(), sdk.Coins{sdk.NewCoin(bondDenom, commission.RawInt())}); err != nil {
+				if _, _, err := k.BankKeeper.AddCoins(ctx, validator.GetFeeAddr(), sdk.Coins{sdk.NewCoin(bondDenom, commission.RawInt())}); err != nil {
 					panic(err)
 				}
-				if _, _, err := k.bankKeeper.SubtractCoins(ctx, validator.DistributionAddr, sdk.Coins{sdk.NewCoin(bondDenom, commission.RawInt())}); err != nil {
+				if _, _, err := k.BankKeeper.SubtractCoins(ctx, validator.DistributionAddr, sdk.Coins{sdk.NewCoin(bondDenom, commission.RawInt())}); err != nil {
 					panic(err)
 				}
 			}
@@ -176,8 +196,8 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) {
 
 			//update address pool
 			changedAddrs := [2]sdk.AccAddress{validator.FeeAddr, validator.DistributionAddr}
-			if k.addrPool != nil {
-				k.addrPool.AddAddrs(changedAddrs[:])
+			if k.AddrPool != nil {
+				k.AddrPool.AddAddrs(changedAddrs[:])
 			}
 		}
 
@@ -264,7 +284,7 @@ func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) {
 			distAddrBalanceMap[distAddr.String()] = reward.Amount
 		}
 
-		if _, _, err := k.bankKeeper.AddCoins(ctx, reward.AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, reward.Amount)}); err != nil {
+		if _, _, err := k.BankKeeper.AddCoins(ctx, reward.AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, reward.Amount)}); err != nil {
 			panic(err)
 		}
 
@@ -277,7 +297,7 @@ func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) {
 		if err != nil {
 			panic(err)
 		}
-		if _, _, err := k.bankKeeper.SubtractCoins(ctx, accAddr, sdk.Coins{sdk.NewCoin(bondDenom, value)}); err != nil {
+		if _, _, err := k.BankKeeper.SubtractCoins(ctx, accAddr, sdk.Coins{sdk.NewCoin(bondDenom, value)}); err != nil {
 			panic(err)
 		}
 		changedAddrs = append(changedAddrs, accAddr)
@@ -292,8 +312,8 @@ func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) {
 	}
 
 	//update address pool
-	if k.addrPool != nil {
-		k.addrPool.AddAddrs(changedAddrs[:])
+	if k.AddrPool != nil {
+		k.AddrPool.AddAddrs(changedAddrs[:])
 	}
 
 	// publish data if needed

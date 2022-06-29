@@ -13,17 +13,20 @@ type CodeType = sdk.CodeType
 const (
 	DefaultCodespace sdk.CodespaceType = 4
 
-	CodeInvalidValidator         CodeType = 101
-	CodeInvalidDelegation        CodeType = 102
-	CodeInvalidInput             CodeType = 103
-	CodeValidatorJailed          CodeType = 104
-	CodeInvalidProposal          CodeType = 105
-	CodeInvalidSideChain         CodeType = 106
-	CodeInvalidCrossChainPackage CodeType = 107
-	CodeInvalidAddress           CodeType = sdk.CodeInvalidAddress
-	CodeUnauthorized             CodeType = sdk.CodeUnauthorized
-	CodeInternal                 CodeType = sdk.CodeInternal
-	CodeUnknownRequest           CodeType = sdk.CodeUnknownRequest
+	CodeInvalidValidator             CodeType = 101
+	CodeInvalidDelegation            CodeType = 102
+	CodeInvalidInput                 CodeType = 103
+	CodeValidatorJailed              CodeType = 104
+	CodeInvalidProposal              CodeType = 105
+	CodeInvalidSideChain             CodeType = 106
+	CodeInvalidCrossChainPackage     CodeType = 107
+	CodeDeserializePackageFailed     CodeType = 108
+	CodeCrossStakingNoBalance        CodeType = 109
+	CodeCrossStakingNotEnoughBalance CodeType = 110
+	CodeInvalidAddress               CodeType = sdk.CodeInvalidAddress
+	CodeUnauthorized                 CodeType = sdk.CodeUnauthorized
+	CodeInternal                     CodeType = sdk.CodeInternal
+	CodeUnknownRequest               CodeType = sdk.CodeUnknownRequest
 )
 
 //validator
@@ -230,4 +233,16 @@ func ErrInvalidSideChainId(codespace sdk.CodespaceType) sdk.Error {
 
 func ErrInvalidCrosschainPackage(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidCrossChainPackage, "invalid cross chain package")
+}
+
+func ErrDeserializePackageFailed(msg string) sdk.Error {
+	return sdk.NewError(DefaultCodespace, CodeDeserializePackageFailed, msg)
+}
+
+func ErrNoBalance(msg string) sdk.Error {
+	return sdk.NewError(DefaultCodespace, CodeCrossStakingNoBalance, msg)
+}
+
+func ErrNotEnoughBalance(msg string) sdk.Error {
+	return sdk.NewError(DefaultCodespace, CodeCrossStakingNotEnoughBalance, msg)
 }

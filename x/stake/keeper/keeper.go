@@ -23,8 +23,8 @@ type Keeper struct {
 	rewardStoreKey sdk.StoreKey
 	storeTKey      sdk.StoreKey
 	cdc            *codec.Codec
-	bankKeeper     bank.Keeper
-	addrPool       *sdk.Pool
+	BankKeeper     bank.Keeper
+	AddrPool       *sdk.Pool
 	hooks          sdk.StakingHooks
 	paramstore     params.Subspace
 
@@ -46,8 +46,8 @@ func NewKeeper(cdc *codec.Codec, key, rewardKey, tkey sdk.StoreKey, ck bank.Keep
 		rewardStoreKey: rewardKey,
 		storeTKey:      tkey,
 		cdc:            cdc,
-		bankKeeper:     ck,
-		addrPool:       addrPool,
+		BankKeeper:     ck,
+		AddrPool:       addrPool,
 		paramstore:     paramstore.WithTypeTable(ParamTypeTable()),
 		hooks:          nil,
 		codespace:      codespace,

@@ -66,7 +66,7 @@ func (k Keeper) GetSimplifiedDelegationsByValidator(ctx sdk.Context, validator s
 
 	for ; iterator.Valid(); iterator.Next() {
 		delegation := types.MustUnmarshalDelegationValAsKey(k.cdc, iterator.Key(), iterator.Value())
-		simDel := types.SimplifiedDelegation{DelegatorAddr: delegation.DelegatorAddr, Shares: delegation.Shares}
+		simDel := types.SimplifiedDelegation{DelegatorAddr: delegation.DelegatorAddr, Shares: delegation.Shares, Native: delegation.Native}
 		simDelegations = append(simDelegations, simDel)
 	}
 	return simDelegations
@@ -512,8 +512,8 @@ func (k Keeper) Delegate(ctx sdk.Context, delAddr sdk.AccAddress, bondAmt sdk.Co
 		if err != nil {
 			return
 		}
-		if ctx.IsDeliverTx() && ctx.BlockHeight() > 0 && k.addrPool != nil {
-			k.addrPool.AddAddrs([]sdk.AccAddress{DelegationAccAddr})
+		if ctx.IsDeliverTx() && ctx.BlockHeight() > 0 && k.AddrPool != nil {
+			k.AddrPool.AddAddrs([]sdk.AccAddress{DelegationAccAddr})
 		}
 	}
 
@@ -528,15 +528,15 @@ func (k Keeper) Delegate(ctx sdk.Context, delAddr sdk.AccAddress, bondAmt sdk.Co
 
 func (k Keeper) transferBondTokens(ctx sdk.Context, from, to sdk.AccAddress, bondAmt sdk.Coin) sdk.Error {
 	// we do not use k.bankKeeper.SendCoins to have a better error message
-	balanceCoins := k.bankKeeper.GetCoins(ctx, from)
+	balanceCoins := k.BankKeeper.GetCoins(ctx, from)
 	if balance := balanceCoins.AmountOf(bondAmt.Denom); balance < bondAmt.Amount {
 		return sdk.ErrInsufficientCoins(fmt.Sprintf("No enough balance to delegate, token: %s, balance: %d, amount: %d", bondAmt.Denom, balance, bondAmt.Amount))
 	}
-	delegationAccBalance := k.bankKeeper.GetCoins(ctx, to)
-	if err := k.bankKeeper.SetCoins(ctx, from, balanceCoins.Minus(sdk.Coins{bondAmt})); err != nil {
+	delegationAccBalance := k.BankKeeper.GetCoins(ctx, to)
+	if err := k.BankKeeper.SetCoins(ctx, from, balanceCoins.Minus(sdk.Coins{bondAmt})); err != nil {
 		return err
 	}
-	if err := k.bankKeeper.SetCoins(ctx, to, delegationAccBalance.Plus(sdk.Coins{bondAmt})); err != nil {
+	if err := k.BankKeeper.SetCoins(ctx, to, delegationAccBalance.Plus(sdk.Coins{bondAmt})); err != nil {
 		return err
 	}
 
@@ -670,12 +670,12 @@ func (k Keeper) CompleteUnbonding(ctx sdk.Context, delAddr sdk.AccAddress, valAd
 		return ubd, types.ErrNoUnbondingDelegation(k.Codespace())
 	}
 
-	_, err := k.bankKeeper.SendCoins(ctx, DelegationAccAddr, ubd.DelegatorAddr, sdk.Coins{ubd.Balance})
+	_, err := k.BankKeeper.SendCoins(ctx, DelegationAccAddr, ubd.DelegatorAddr, sdk.Coins{ubd.Balance})
 	if err != nil {
 		return ubd, err
 	}
-	if k.addrPool != nil {
-		k.addrPool.AddAddrs([]sdk.AccAddress{ubd.DelegatorAddr, DelegationAccAddr})
+	if k.AddrPool != nil {
+		k.AddrPool.AddAddrs([]sdk.AccAddress{ubd.DelegatorAddr, DelegationAccAddr})
 	}
 	k.RemoveUnbondingDelegation(ctx, ubd)
 	return ubd, nil

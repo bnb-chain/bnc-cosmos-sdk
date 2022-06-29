@@ -34,11 +34,13 @@ type Delegation struct {
 	ValidatorAddr sdk.ValAddress `json:"validator_addr"`
 	Shares        sdk.Dec        `json:"shares"`
 	Height        int64          `json:"-"` // Last height bond updated
+	Native        bool           `json:"native"`
 }
 
 type delegationValue struct {
 	Shares sdk.Dec
 	Height int64
+	Native bool
 }
 
 //________________________________________________________________
@@ -46,6 +48,7 @@ type delegationValue struct {
 type SimplifiedDelegation struct {
 	DelegatorAddr sdk.AccAddress `json:"delegator_addr"`
 	Shares        sdk.Dec        `json:"shares"`
+	Native        bool           `json:"native"`
 }
 
 func MustMarshalSimplifiedDelegations(cdc *codec.Codec, simDels []SimplifiedDelegation) []byte {
@@ -65,6 +68,7 @@ func MustMarshalDelegation(cdc *codec.Codec, delegation Delegation) []byte {
 	val := delegationValue{
 		delegation.Shares,
 		delegation.Height,
+		delegation.Native,
 	}
 	return cdc.MustMarshalBinaryLengthPrefixed(val)
 }
@@ -101,6 +105,7 @@ func UnmarshalDelegation(cdc *codec.Codec, key, value []byte) (delegation Delega
 		ValidatorAddr: valAddr,
 		Shares:        storeValue.Shares,
 		Height:        storeValue.Height,
+		Native:        storeValue.Native,
 	}, nil
 }
 
