@@ -89,7 +89,7 @@ func (app *CrossStakeApp) handleDelegate(ctx sdk.Context, payload []byte, relaye
 		ctx = scCtx
 	}
 
-	stakeAddr, err := types.GetStakeCAoB(pack.DelAddr[:], "stake")
+	stakeAddr, err := types.GetStakeCAoB(pack.DelAddr[:], "Delegator")
 	if err != nil {
 		return sdk.ExecuteResult{}, err
 	}
@@ -176,7 +176,7 @@ func (app *CrossStakeApp) handleUndelegate(ctx sdk.Context, payload []byte, rela
 		ctx = scCtx
 	}
 
-	stakeAddr, err := types.GetStakeCAoB(pack.DelAddr[:], "stake")
+	stakeAddr, err := types.GetStakeCAoB(pack.DelAddr[:], "Delegator")
 	if err != nil {
 		return sdk.ExecuteResult{}, err
 	}
@@ -235,6 +235,7 @@ func (app *CrossStakeApp) handleClaimReward(ctx sdk.Context, payload []byte, rel
 		Receiver    types.SmartChainAddress
 		Amount      *big.Int
 		EventCode   uint8
+		RewardAddr  types.SmartChainAddress
 		Err         string
 	}
 
@@ -246,7 +247,7 @@ func (app *CrossStakeApp) handleClaimReward(ctx sdk.Context, payload []byte, rel
 	}
 
 	symbol := app.stakeKeeper.BondDenom(ctx)
-	stakeAddr, err := types.GetStakeCAoB(pack.DelAddr[:], "Stake")
+	stakeAddr, err := types.GetStakeCAoB(pack.DelAddr[:], "Delegator")
 	if err != nil {
 		return sdk.ExecuteResult{}, err
 	}
@@ -265,6 +266,7 @@ func (app *CrossStakeApp) handleClaimReward(ctx sdk.Context, payload []byte, rel
 			EventCode:   uint8(0),
 			Err:         sdkErr.Error(),
 		}
+		copy(ackPackage.RewardAddr[:], rewardAddr)
 		ackBytes, err := rlp.EncodeToBytes(ackPackage)
 		if err != nil {
 			return sdk.ExecuteResult{}, err
@@ -325,6 +327,7 @@ func (app *CrossStakeApp) handleClaimUndelegated(ctx sdk.Context, payload []byte
 		Receiver    types.SmartChainAddress
 		Amount      *big.Int
 		EventCode   uint8
+		StakeAddr   types.SmartChainAddress
 		Err         string
 	}
 
@@ -336,7 +339,7 @@ func (app *CrossStakeApp) handleClaimUndelegated(ctx sdk.Context, payload []byte
 	}
 
 	symbol := app.stakeKeeper.BondDenom(ctx)
-	delAddr, err := types.GetStakeCAoB(pack.DelAddr[:], "Stake")
+	delAddr, err := types.GetStakeCAoB(pack.DelAddr[:], "Delegator")
 	if err != nil {
 		return sdk.ExecuteResult{}, err
 	}
@@ -351,6 +354,7 @@ func (app *CrossStakeApp) handleClaimUndelegated(ctx sdk.Context, payload []byte
 			EventCode:   uint8(0),
 			Err:         sdkErr.Error(),
 		}
+		copy(ackPackage.StakeAddr[:], delAddr)
 		ackBytes, err := rlp.EncodeToBytes(ackPackage)
 		if err != nil {
 			return sdk.ExecuteResult{}, err
@@ -424,7 +428,7 @@ func (app *CrossStakeApp) handleReinvest(ctx sdk.Context, payload []byte, relaye
 		ctx = scCtx
 	}
 
-	delAddr, err := types.GetStakeCAoB(pack.DelAddr[:], "stake")
+	delAddr, err := types.GetStakeCAoB(pack.DelAddr[:], "Delegator")
 	if err != nil {
 		return sdk.ExecuteResult{}, err
 	}
@@ -571,7 +575,7 @@ func (app *CrossStakeApp) handleRedelegate(ctx sdk.Context, payload []byte, rela
 		}, nil
 	}
 
-	delAddr, err := types.GetStakeCAoB(pack.DelAddr[:], "stake")
+	delAddr, err := types.GetStakeCAoB(pack.DelAddr[:], "Delegator")
 	if err != nil {
 		return sdk.ExecuteResult{}, err
 	}

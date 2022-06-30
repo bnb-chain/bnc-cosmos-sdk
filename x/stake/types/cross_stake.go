@@ -78,7 +78,7 @@ func (addr *SmartChainAddress) UnmarshalJSON(input []byte) error {
 }
 
 func GetStakeCAoB(delAddr []byte, salt string) (sdk.AccAddress, error) {
-	saltBytes, err := hex.DecodeString("ccceStaking" + salt + "Address")
+	saltBytes, err := hex.DecodeString("Staking" + salt + "Anchor")
 	if err != nil {
 		return nil, err
 	}
