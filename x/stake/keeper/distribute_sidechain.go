@@ -1,8 +1,12 @@
 package keeper
 
 import (
+	"encoding/hex"
 	"fmt"
+	"math/big"
 
+	"github.com/cosmos/cosmos-sdk/bsc"
+	"github.com/cosmos/cosmos-sdk/bsc/rlp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
@@ -36,16 +40,6 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 			delegations, found := k.GetSimplifiedDelegations(ctx, height, validator.OperatorAddr)
 			if !found {
 				panic(fmt.Sprintf("no delegations found with height=%d, validator=%s", height, validator.OperatorAddr))
-			}
-			for i, del := range delegations {
-				if del.Native {
-					newDelAddr, err := types.GetStakeCAoB(del.DelegatorAddr.Bytes(), "Reward")
-					if err != nil {
-						panic(err)
-					}
-					del.DelegatorAddr = newDelAddr
-					delegations[i] = del
-				}
 			}
 			totalRewardDec = sdk.NewDec(totalReward)
 			commission = totalRewardDec.Mul(validator.Commission.Rate)
@@ -143,19 +137,15 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) {
 		totalRewardDec := sdk.ZeroDec()
 		commission := sdk.ZeroDec()
 		rewards := make([]types.PreReward, 0)
+		crossStakeSetMap := make(map[string]bool)
 		if totalReward > 0 {
 			delegations, found := k.GetSimplifiedDelegations(ctx, height, validator.OperatorAddr)
 			if !found {
 				panic(fmt.Sprintf("no delegations found with height=%d, validator=%s", height, validator.OperatorAddr))
 			}
-			for i, del := range delegations {
-				if del.Native {
-					newDelAddr, err := types.GetStakeCAoB(del.DelegatorAddr.Bytes(), "Reward")
-					if err != nil {
-						panic(err)
-					}
-					del.DelegatorAddr = newDelAddr
-					delegations[i] = del
+			for _, del := range delegations {
+				if !del.Native {
+					crossStakeSetMap[del.DelegatorAddr.String()] = true
 				}
 			}
 			totalRewardDec = sdk.NewDec(totalReward)
@@ -185,6 +175,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) {
 					AccAddr: rewards[i].AccAddr,
 					Tokens:  tokens,
 					Amount:  rewards[i].Amount,
+					Native:  crossStakeSetMap[rewards[i].AccAddr.String()],
 				}
 				toSaveRewards = append(toSaveRewards, toSaveReward)
 			}
@@ -276,6 +267,7 @@ func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) {
 	var changedAddrs []sdk.AccAddress //changed addresses
 
 	bondDenom := k.BondDenom(ctx)
+	crossStakeRewards := make(map[string]int64)
 	for _, reward := range rewards {
 		distAddr := valDistAddrMap[reward.ValAddr.String()]
 		if value, ok := distAddrBalanceMap[distAddr.String()]; ok {
@@ -284,12 +276,40 @@ func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) {
 			distAddrBalanceMap[distAddr.String()] = reward.Amount
 		}
 
-		if _, _, err := k.BankKeeper.AddCoins(ctx, reward.AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, reward.Amount)}); err != nil {
-			panic(err)
+		if reward.Native && sdk.IsUpgrade(sdk.BEP153) {
+			rewardCAoB, err := types.GetStakeCAoB(reward.AccAddr.Bytes(), "Reward")
+			if err != nil {
+				panic(err)
+			}
+			if reward.Amount < 1e7 {
+				balance := k.BankKeeper.GetCoins(ctx, rewardCAoB).AmountOf(bondDenom)
+				if (balance + reward.Amount) >= 1e7 {
+					if _, _, err := k.BankKeeper.SubtractCoins(ctx, rewardCAoB, sdk.Coins{sdk.NewCoin(bondDenom, balance)}); err != nil {
+						panic(err)
+					}
+					crossStakeRewards[reward.AccAddr.String()] = balance + reward.Amount
+				} else {
+					if _, _, err := k.BankKeeper.AddCoins(ctx, rewardCAoB, sdk.Coins{sdk.NewCoin(bondDenom, reward.Amount)}); err != nil {
+						panic(err)
+					}
+				}
+			} else {
+				crossStakeRewards[reward.AccAddr.String()] = reward.Amount
+			}
+		} else {
+			if _, _, err := k.BankKeeper.AddCoins(ctx, reward.AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, reward.Amount)}); err != nil {
+				panic(err)
+			}
 		}
 
 		toPublishRewards = append(toPublishRewards, reward)
 		changedAddrs = append(changedAddrs, reward.AccAddr)
+	}
+
+	if len(crossStakeRewards) > 0 {
+		if err := transferOutRewards(k, ctx, crossStakeRewards, sideChainId); err != nil {
+			panic(err)
+		}
 	}
 
 	for addr, value := range distAddrBalanceMap {
@@ -358,4 +378,54 @@ func removeValidatorsAndDelegationsAtHeight(height int64, k Keeper, ctx sdk.Cont
 		k.RemoveSimplifiedDelegations(ctx, height, validator.OperatorAddr)
 	}
 	k.RemoveValidatorsByHeight(ctx, height)
+}
+
+func transferOutRewards(k Keeper, ctx sdk.Context, rewardsMap map[string]int64, sideChainId string) error {
+	amounts := make([]*big.Int, len(rewardsMap))
+	recipients := make([]types.SmartChainAddress, len(rewardsMap))
+	refundAddrs := make([]sdk.AccAddress, len(rewardsMap))
+	for delAddr, amount := range rewardsMap {
+		bscTransferAmount := bsc.ConvertBCAmountToBSCAmount(amount)
+		delAddrBytes, err := hex.DecodeString(delAddr)
+		if err != nil {
+			return err
+		}
+		rewardCAoB, err := types.GetStakeCAoB(delAddrBytes, "Reward")
+		delBscAddr, err := types.GetStakeCAoB(delAddrBytes, "Stake")
+		if err != nil {
+			return err
+		}
+		recipient, err := types.NewSmartChainAddress(delBscAddr.String())
+		if err != nil {
+			return err
+		}
+		amounts = append(amounts, bscTransferAmount)
+		recipients = append(recipients, recipient)
+		refundAddrs = append(refundAddrs, rewardCAoB)
+	}
+
+	expireTime := ctx.BlockHeader().Time.Unix() + 150
+	transferPackage := types.CrossStakeTransferOutRewardSynPackage{
+		EventCode:   types.CrossStakeTypeClaimReward,
+		Amounts:     amounts,
+		Recipients:  recipients,
+		RefundAddrs: refundAddrs,
+		ExpireTime:  expireTime,
+	}
+	encodedPackage, err := rlp.EncodeToBytes(transferPackage)
+	if err != nil {
+		return err
+	}
+
+	chainId, err := sdk.ParseChainID(sideChainId)
+	if err != nil {
+		return err
+	}
+	_, sdkErr := k.ibcKeeper.CreateRawIBCPackageById(ctx, chainId, types.CrossStakeChannelID, sdk.SynCrossChainPackageType,
+		encodedPackage)
+	if sdkErr != nil {
+		return sdkErr
+	}
+
+	return nil
 }

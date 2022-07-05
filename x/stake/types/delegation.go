@@ -170,6 +170,7 @@ type UnbondingDelegation struct {
 	MinTime        time.Time      `json:"min_time"`        // unix time for unbonding completion
 	InitialBalance sdk.Coin       `json:"initial_balance"` // atoms initially scheduled to receive at completion
 	Balance        sdk.Coin       `json:"balance"`         // atoms to receive at completion
+	Native         bool           `json:"native"`          // native staking or cross-chain staking
 }
 
 type ubdValue struct {
@@ -177,6 +178,7 @@ type ubdValue struct {
 	MinTime        time.Time
 	InitialBalance sdk.Coin
 	Balance        sdk.Coin
+	Native         bool
 }
 
 // return the unbonding delegation without fields contained within the key for the store
@@ -186,6 +188,7 @@ func MustMarshalUBD(cdc *codec.Codec, ubd UnbondingDelegation) []byte {
 		ubd.MinTime,
 		ubd.InitialBalance,
 		ubd.Balance,
+		ubd.Native,
 	}
 	return cdc.MustMarshalBinaryLengthPrefixed(val)
 }
@@ -222,6 +225,7 @@ func UnmarshalUBD(cdc *codec.Codec, key, value []byte) (ubd UnbondingDelegation,
 		MinTime:        storeValue.MinTime,
 		InitialBalance: storeValue.InitialBalance,
 		Balance:        storeValue.Balance,
+		Native:         storeValue.Native,
 	}, nil
 }
 

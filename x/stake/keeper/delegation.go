@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/bsc"
+	"github.com/cosmos/cosmos-sdk/bsc/rlp"
 	"github.com/cosmos/cosmos-sdk/pubsub"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
@@ -647,6 +649,7 @@ func (k Keeper) BeginUnbonding(ctx sdk.Context,
 
 	balance := sdk.NewCoin(k.BondDenom(ctx), returnAmount.RawInt())
 
+	delegation, _ := k.GetDelegation(ctx, delAddr, valAddr)
 	completionTime := ctx.BlockHeader().Time.Add(k.UnbondingTime(ctx))
 	ubd := types.UnbondingDelegation{
 		DelegatorAddr:  delAddr,
@@ -655,6 +658,7 @@ func (k Keeper) BeginUnbonding(ctx sdk.Context,
 		MinTime:        completionTime,
 		Balance:        balance,
 		InitialBalance: balance,
+		Native:         delegation.Native,
 	}
 	k.SetUnbondingDelegation(ctx, ubd)
 	k.InsertUnbondingQueue(ctx, ubd)
@@ -670,9 +674,16 @@ func (k Keeper) CompleteUnbonding(ctx sdk.Context, delAddr sdk.AccAddress, valAd
 		return ubd, types.ErrNoUnbondingDelegation(k.Codespace())
 	}
 
-	_, err := k.BankKeeper.SendCoins(ctx, DelegationAccAddr, ubd.DelegatorAddr, sdk.Coins{ubd.Balance})
-	if err != nil {
-		return ubd, err
+	if ubd.Native {
+		err := k.transferOutUndelegated(ctx, delAddr, ubd.Balance.Amount, k.ScKeeper.BscSideChainId(ctx))
+		if err != nil {
+			return ubd, err
+		}
+	} else {
+		_, err := k.BankKeeper.SendCoins(ctx, DelegationAccAddr, ubd.DelegatorAddr, sdk.Coins{ubd.Balance})
+		if err != nil {
+			return ubd, err
+		}
 	}
 	if k.AddrPool != nil {
 		k.AddrPool.AddAddrs([]sdk.AccAddress{ubd.DelegatorAddr, DelegationAccAddr})
@@ -794,4 +805,41 @@ func (k Keeper) ValidateUnbondAmount(
 	shares = validator.SharesFromTokens(amountDec)
 
 	return shares, nil
+}
+
+func (k Keeper) transferOutUndelegated(ctx sdk.Context, delAddr sdk.AccAddress, amount int64, sideChainId string) sdk.Error {
+	bscTransferAmount := bsc.ConvertBCAmountToBSCAmount(amount)
+	delBscAddr, err := types.GetStakeCAoB(delAddr.Bytes(), "Stake")
+	if err != nil {
+		return sdk.ErrInternal(err.Error())
+	}
+	recipient, err := types.NewSmartChainAddress(delBscAddr.String())
+	if err != nil {
+		return sdk.ErrInternal(err.Error())
+	}
+
+	expireTime := ctx.BlockHeader().Time.Unix() + 150
+	transferPackage := types.CrossStakeTransferOutUndelegatedSynPackage{
+		EventCode:  types.CrossStakeTypeClaimReward,
+		Amount:     bscTransferAmount,
+		Recipient:  recipient,
+		RefundAddr: delAddr,
+		ExpireTime: expireTime,
+	}
+	encodedPackage, err := rlp.EncodeToBytes(transferPackage)
+	if err != nil {
+		return sdk.ErrInternal(err.Error())
+	}
+
+	chainId, err := sdk.ParseChainID(sideChainId)
+	if err != nil {
+		return sdk.ErrInternal(err.Error())
+	}
+	_, sdkErr := k.ibcKeeper.CreateRawIBCPackageById(ctx, chainId, types.CrossStakeChannelID, sdk.SynCrossChainPackageType,
+		encodedPackage)
+	if sdkErr != nil {
+		return sdkErr
+	}
+
+	return nil
 }

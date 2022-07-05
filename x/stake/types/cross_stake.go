@@ -10,16 +10,36 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+type CrossStakePackageType uint8
+
 const (
 	SmartChainAddressLength = 20
 
-	CrossStakeChannel              = "crossStake"
-	TagRelayerFee                  = "relayerFee"
-	TagCrossChainStakeClaimReward  = "crossCHainStakeClaimReward_%s_%s"
-	TagCrossChainStakeClaimUnstake = "crossCHainStakeClaimUnstake_%s_%s"
-
 	CrossStakeChannelID sdk.ChannelID = 16
+	CrossStakeChannel                 = "crossStake"
+
+	CrossStakeTypeDelegate         CrossStakePackageType = 1
+	CrossStakeTypeUndelegate       CrossStakePackageType = 2
+	CrossStakeTypeRedelegate       CrossStakePackageType = 3
+	CrossStakeTypeClaimReward      CrossStakePackageType = 4
+	CrossStakeTypeClaimUndelegated CrossStakePackageType = 5
 )
+
+type CrossStakeTransferOutRewardSynPackage struct {
+	EventCode   CrossStakePackageType
+	Amounts     []*big.Int
+	Recipients  []SmartChainAddress
+	RefundAddrs []sdk.AccAddress
+	ExpireTime  int64
+}
+
+type CrossStakeTransferOutUndelegatedSynPackage struct {
+	EventCode  CrossStakePackageType
+	Amount     *big.Int
+	Recipient  SmartChainAddress
+	RefundAddr sdk.AccAddress
+	ExpireTime int64
+}
 
 // SmartChainAddress defines a standard smart chain address
 type SmartChainAddress [SmartChainAddressLength]byte
@@ -77,15 +97,15 @@ func (addr *SmartChainAddress) UnmarshalJSON(input []byte) error {
 	return nil
 }
 
-func GetStakeCAoB(delAddr []byte, salt string) (sdk.AccAddress, error) {
+func GetStakeCAoB(sourceAddr []byte, salt string) (sdk.AccAddress, error) {
 	saltBytes, err := hex.DecodeString("Staking" + salt + "Anchor")
 	if err != nil {
 		return nil, err
 	}
 	saltSha := bsc.Keccak256(saltBytes)
-	accountBytes := make([]byte, len(delAddr))
-	for i := 0; i < len(delAddr); i++ {
-		accountBytes[i] = saltSha[i] ^ delAddr[i]
+	accountBytes := make([]byte, len(sourceAddr))
+	for i := 0; i < len(sourceAddr); i++ {
+		accountBytes[i] = saltSha[i] ^ sourceAddr[i]
 	}
 	account, err := sdk.AccAddressFromHex(hex.EncodeToString(accountBytes))
 	if err != nil {

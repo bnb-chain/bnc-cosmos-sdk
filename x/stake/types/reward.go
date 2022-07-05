@@ -23,6 +23,7 @@ type Reward struct {
 	AccAddr sdk.AccAddress
 	Tokens  sdk.Dec // delegator Tokens will be published for downstream usage
 	Amount  int64
+	Native  bool
 }
 
 type StoredValDistAddr struct {
