@@ -818,13 +818,11 @@ func (k Keeper) transferOutUndelegated(ctx sdk.Context, delAddr sdk.AccAddress, 
 		return sdk.ErrInternal(err.Error())
 	}
 
-	expireTime := ctx.BlockHeader().Time.Unix() + 150
 	transferPackage := types.CrossStakeTransferOutUndelegatedSynPackage{
-		EventCode:  types.CrossStakeTypeClaimReward,
+		EventCode:  types.CrossStakeTypeTransferOutUndelegated,
 		Amount:     bscTransferAmount,
 		Recipient:  recipient,
 		RefundAddr: delAddr,
-		ExpireTime: expireTime,
 	}
 	encodedPackage, err := rlp.EncodeToBytes(transferPackage)
 	if err != nil {

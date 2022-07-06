@@ -1,8 +1,6 @@
 package cross_stake
 
 import (
-	"math/big"
-
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/bsc"
 	"github.com/cosmos/cosmos-sdk/bsc/rlp"
@@ -55,23 +53,27 @@ func (app *CrossStakeApp) ExecuteSynPackage(ctx sdk.Context, payload []byte, rel
 }
 
 func (app *CrossStakeApp) handleDelegate(ctx sdk.Context, payload []byte, relayerFee int64) (sdk.ExecuteResult, error) {
-	type SynPackage struct {
-		PackageType types.CrossStakePackageType
-		DelAddr     types.SmartChainAddress
-		Validator   sdk.ValAddress
-		Amount      *big.Int
-	}
-
-	type AckPackage struct {
-		SynPackage
-		Err string
-	}
-
-	var pack SynPackage
+	var pack types.CrossStakeDelegateSynPackage
 	err := rlp.DecodeBytes(payload, &pack)
 	if err != nil {
 		app.stakeKeeper.Logger(ctx).Error("unmarshal cross stake delegate sync claim error", "err", err.Error(), "claim", string(payload))
 		return sdk.ExecuteResult{}, err
+	}
+
+	if ctx.BlockHeader().Time.Unix() > int64(pack.ExpireTime) {
+		ackPack := &types.CrossStakeDelegationAckPackage{
+			CrossStakeDelegateSynPackage: pack,
+			ErrorCode:                    CrossStakeErrCodeExpired,
+		}
+		ackPack.Amount = bsc.ConvertBCAmountToBSCAmount(ackPack.Amount.Int64())
+		ackBytes, err := rlp.EncodeToBytes(ackPack)
+		if err != nil {
+			return sdk.ExecuteResult{}, err
+		}
+		return sdk.ExecuteResult{
+			Err:     types.ErrExpiredCrossStakeSyncPackage("cross stake delegate package expired"),
+			Payload: ackBytes,
+		}, nil
 	}
 
 	sideChainId := app.stakeKeeper.ScKeeper.BscSideChainId(ctx)
@@ -89,12 +91,18 @@ func (app *CrossStakeApp) handleDelegate(ctx sdk.Context, payload []byte, relaye
 	validator, found := app.stakeKeeper.GetValidator(ctx, pack.Validator)
 	if !found || validator.Jailed {
 		var sdkErr sdk.Error
+		var errCode uint8
 		if !found {
 			sdkErr = types.ErrNoValidatorFound(types.DefaultCodespace)
+			errCode = CrossStakeErrValidatorNotFound
 		} else {
 			sdkErr = types.ErrValidatorJailed(types.DefaultCodespace)
+			errCode = CrossStakeErrValidatorJailed
 		}
-		ackPack := &AckPackage{pack, err.Error()}
+		ackPack := &types.CrossStakeDelegationAckPackage{
+			CrossStakeDelegateSynPackage: pack,
+			ErrorCode:                    errCode,
+		}
 		ackPack.Amount = bsc.ConvertBCAmountToBSCAmount(ackPack.Amount.Int64())
 		ackBytes, err := rlp.EncodeToBytes(ackPack)
 		if err != nil {
@@ -143,22 +151,27 @@ func (app *CrossStakeApp) handleDelegate(ctx sdk.Context, payload []byte, relaye
 }
 
 func (app *CrossStakeApp) handleUndelegate(ctx sdk.Context, payload []byte, relayerFee int64) (sdk.ExecuteResult, error) {
-	type SynPackage struct {
-		PackageType types.CrossStakePackageType
-		DelAddr     types.SmartChainAddress
-		Validator   sdk.ValAddress
-		Amount      *big.Int
-	}
-	type AckPackage struct {
-		SynPackage
-		Err string
-	}
-
-	var pack SynPackage
+	var pack types.CrossStakeUndelegateSynPackage
 	err := rlp.DecodeBytes(payload, &pack)
 	if err != nil {
 		app.stakeKeeper.Logger(ctx).Error("unmarshal cross stake undelegate sync claim error", "err", err.Error(), "claim", string(payload))
 		return sdk.ExecuteResult{}, err
+	}
+
+	if ctx.BlockHeader().Time.Unix() > int64(pack.ExpireTime) {
+		ackPack := &types.CrossStakeUndelegateAckPackage{
+			CrossStakeUndelegateSynPackage: pack,
+			ErrorCode:                      CrossStakeErrCodeExpired,
+		}
+		ackPack.Amount = bsc.ConvertBCAmountToBSCAmount(ackPack.Amount.Int64())
+		ackBytes, err := rlp.EncodeToBytes(ackPack)
+		if err != nil {
+			return sdk.ExecuteResult{}, err
+		}
+		return sdk.ExecuteResult{
+			Err:     types.ErrExpiredCrossStakeSyncPackage("cross stake undelegate package expired"),
+			Payload: ackBytes,
+		}, nil
 	}
 
 	sideChainId := app.stakeKeeper.ScKeeper.BscSideChainId(ctx)
@@ -175,7 +188,10 @@ func (app *CrossStakeApp) handleUndelegate(ctx sdk.Context, payload []byte, rela
 
 	shares, sdkErr := app.stakeKeeper.ValidateUnbondAmount(ctx, delAddr, pack.Validator, pack.Amount.Int64())
 	if shares.IsZero() && sdkErr != nil {
-		ackPack := &AckPackage{pack, err.Error()}
+		ackPack := &types.CrossStakeUndelegateAckPackage{
+			CrossStakeUndelegateSynPackage: pack,
+			ErrorCode:                      CrossStakeErrBadDelegation,
+		}
 		ackPack.Amount = bsc.ConvertBCAmountToBSCAmount(ackPack.Amount.Int64())
 		ackBytes, err := rlp.EncodeToBytes(ackPack)
 		if err != nil {
@@ -215,23 +231,27 @@ func (app *CrossStakeApp) handleUndelegate(ctx sdk.Context, payload []byte, rela
 }
 
 func (app *CrossStakeApp) handleRedelegate(ctx sdk.Context, payload []byte, relayerFee int64) (sdk.ExecuteResult, error) {
-	type SynPackage struct {
-		PackageType types.CrossStakePackageType
-		DelAddr     types.SmartChainAddress
-		ValSrc      sdk.ValAddress
-		ValDst      sdk.ValAddress
-		Amount      *big.Int
-	}
-	type AckPackage struct {
-		SynPackage
-		Err string
-	}
-
-	var pack SynPackage
+	var pack types.CrossStakeRedelegateSynPackage
 	err := rlp.DecodeBytes(payload, &pack)
 	if err != nil {
 		app.stakeKeeper.Logger(ctx).Error("unmarshal cross stake redelegate sync claim error", "err", err.Error(), "claim", string(payload))
 		return sdk.ExecuteResult{}, err
+	}
+
+	if ctx.BlockHeader().Time.Unix() > int64(pack.ExpireTime) {
+		ackPack := &types.CrossStakeRedelegateAckPackage{
+			CrossStakeRedelegateSynPackage: pack,
+			ErrorCode:                      CrossStakeErrCodeExpired,
+		}
+		ackPack.Amount = bsc.ConvertBCAmountToBSCAmount(ackPack.Amount.Int64())
+		ackBytes, err := rlp.EncodeToBytes(ackPack)
+		if err != nil {
+			return sdk.ExecuteResult{}, err
+		}
+		return sdk.ExecuteResult{
+			Err:     types.ErrExpiredCrossStakeSyncPackage("cross stake redelegate package expired"),
+			Payload: ackBytes,
+		}, nil
 	}
 
 	sideChainId := app.stakeKeeper.ScKeeper.BscSideChainId(ctx)
@@ -244,12 +264,18 @@ func (app *CrossStakeApp) handleRedelegate(ctx sdk.Context, payload []byte, rela
 	valDst, found := app.stakeKeeper.GetValidator(ctx, pack.ValDst)
 	if !found || valDst.Jailed {
 		var sdkErr sdk.Error
+		var errCode uint8
 		if !found {
 			sdkErr = types.ErrNoValidatorFound(types.DefaultCodespace)
+			errCode = CrossStakeErrValidatorNotFound
 		} else {
 			sdkErr = types.ErrValidatorJailed(types.DefaultCodespace)
+			errCode = CrossStakeErrValidatorJailed
 		}
-		ackPack := &AckPackage{pack, err.Error()}
+		ackPack := &types.CrossStakeRedelegateAckPackage{
+			CrossStakeRedelegateSynPackage: pack,
+			ErrorCode:                      errCode,
+		}
 		ackPack.Amount = bsc.ConvertBCAmountToBSCAmount(ackPack.Amount.Int64())
 		ackBytes, err := rlp.EncodeToBytes(ackPack)
 		if err != nil {
@@ -268,7 +294,10 @@ func (app *CrossStakeApp) handleRedelegate(ctx sdk.Context, payload []byte, rela
 
 	shares, sdkErr := app.stakeKeeper.ValidateUnbondAmount(ctx, delAddr, pack.ValSrc, pack.Amount.Int64())
 	if shares.IsZero() && sdkErr != nil {
-		ackPack := &AckPackage{pack, err.Error()}
+		ackPack := &types.CrossStakeRedelegateAckPackage{
+			CrossStakeRedelegateSynPackage: pack,
+			ErrorCode:                      CrossStakeErrBadDelegation,
+		}
 		ackPack.Amount = bsc.ConvertBCAmountToBSCAmount(ackPack.Amount.Int64())
 		ackBytes, err := rlp.EncodeToBytes(ackPack)
 		if err != nil {

@@ -21,8 +21,9 @@ const (
 	CodeInvalidSideChain             CodeType = 106
 	CodeInvalidCrossChainPackage     CodeType = 107
 	CodeDeserializePackageFailed     CodeType = 108
-	CodeCrossStakingNoBalance        CodeType = 109
-	CodeCrossStakingNotEnoughBalance CodeType = 110
+	CodeExpiredCrossStakeSyncPackage CodeType = 109
+	CodeCrossStakingNoBalance        CodeType = 110
+	CodeCrossStakingNotEnoughBalance CodeType = 111
 	CodeInvalidAddress               CodeType = sdk.CodeInvalidAddress
 	CodeUnauthorized                 CodeType = sdk.CodeUnauthorized
 	CodeInternal                     CodeType = sdk.CodeInternal
@@ -237,6 +238,10 @@ func ErrInvalidCrosschainPackage(codespace sdk.CodespaceType) sdk.Error {
 
 func ErrDeserializePackageFailed(msg string) sdk.Error {
 	return sdk.NewError(DefaultCodespace, CodeDeserializePackageFailed, msg)
+}
+
+func ErrExpiredCrossStakeSyncPackage(msg string) sdk.Error {
+	return sdk.NewError(DefaultCodespace, CodeExpiredCrossStakeSyncPackage, msg)
 }
 
 func ErrNoBalance(msg string) sdk.Error {

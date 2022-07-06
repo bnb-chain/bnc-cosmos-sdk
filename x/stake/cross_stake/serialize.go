@@ -5,6 +5,13 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
 
+const (
+	CrossStakeErrCodeExpired       uint8 = 1
+	CrossStakeErrValidatorNotFound uint8 = 2
+	CrossStakeErrValidatorJailed   uint8 = 3
+	CrossStakeErrBadDelegation     uint8 = 4
+)
+
 type CrossStakeSynPackage struct {
 	PackageType types.CrossStakePackageType
 	params      []byte

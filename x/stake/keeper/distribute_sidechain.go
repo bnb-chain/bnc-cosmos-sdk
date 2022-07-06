@@ -404,13 +404,11 @@ func transferOutRewards(k Keeper, ctx sdk.Context, rewardsMap map[string]int64, 
 		refundAddrs = append(refundAddrs, rewardCAoB)
 	}
 
-	expireTime := ctx.BlockHeader().Time.Unix() + 150
 	transferPackage := types.CrossStakeTransferOutRewardSynPackage{
-		EventCode:   types.CrossStakeTypeClaimReward,
+		EventCode:   types.CrossStakeTypeTransferOutReward,
 		Amounts:     amounts,
 		Recipients:  recipients,
 		RefundAddrs: refundAddrs,
-		ExpireTime:  expireTime,
 	}
 	encodedPackage, err := rlp.EncodeToBytes(transferPackage)
 	if err != nil {

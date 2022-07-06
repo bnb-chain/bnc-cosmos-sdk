@@ -18,19 +18,58 @@ const (
 	CrossStakeChannelID sdk.ChannelID = 16
 	CrossStakeChannel                 = "crossStake"
 
-	CrossStakeTypeDelegate         CrossStakePackageType = 1
-	CrossStakeTypeUndelegate       CrossStakePackageType = 2
-	CrossStakeTypeRedelegate       CrossStakePackageType = 3
-	CrossStakeTypeClaimReward      CrossStakePackageType = 4
-	CrossStakeTypeClaimUndelegated CrossStakePackageType = 5
+	CrossStakeTypeDelegate               CrossStakePackageType = 1
+	CrossStakeTypeUndelegate             CrossStakePackageType = 2
+	CrossStakeTypeRedelegate             CrossStakePackageType = 3
+	CrossStakeTypeTransferOutReward      CrossStakePackageType = 4
+	CrossStakeTypeTransferOutUndelegated CrossStakePackageType = 5
 )
+
+type CrossStakeDelegateSynPackage struct {
+	PackageType CrossStakePackageType
+	DelAddr     SmartChainAddress
+	Validator   sdk.ValAddress
+	Amount      *big.Int
+	ExpireTime  uint64
+}
+
+type CrossStakeDelegationAckPackage struct {
+	CrossStakeDelegateSynPackage
+	ErrorCode uint8
+}
+
+type CrossStakeUndelegateSynPackage struct {
+	PackageType CrossStakePackageType
+	DelAddr     SmartChainAddress
+	Validator   sdk.ValAddress
+	Amount      *big.Int
+	ExpireTime  uint64
+}
+
+type CrossStakeUndelegateAckPackage struct {
+	CrossStakeUndelegateSynPackage
+	ErrorCode uint8
+}
+
+type CrossStakeRedelegateSynPackage struct {
+	PackageType CrossStakePackageType
+	DelAddr     SmartChainAddress
+	ValSrc      sdk.ValAddress
+	ValDst      sdk.ValAddress
+	Amount      *big.Int
+	ExpireTime  uint64
+}
+
+type CrossStakeRedelegateAckPackage struct {
+	CrossStakeRedelegateSynPackage
+	ErrorCode uint8
+}
 
 type CrossStakeTransferOutRewardSynPackage struct {
 	EventCode   CrossStakePackageType
 	Amounts     []*big.Int
 	Recipients  []SmartChainAddress
 	RefundAddrs []sdk.AccAddress
-	ExpireTime  int64
 }
 
 type CrossStakeTransferOutUndelegatedSynPackage struct {
@@ -38,7 +77,6 @@ type CrossStakeTransferOutUndelegatedSynPackage struct {
 	Amount     *big.Int
 	Recipient  SmartChainAddress
 	RefundAddr sdk.AccAddress
-	ExpireTime int64
 }
 
 // SmartChainAddress defines a standard smart chain address
