@@ -29,15 +29,14 @@ func (app *CrossStakeApp) ExecuteFailAckPackage(ctx sdk.Context, payload []byte)
 }
 
 func (app *CrossStakeApp) ExecuteSynPackage(ctx sdk.Context, payload []byte, relayerFee int64) sdk.ExecuteResult {
-	crossStakeSyncPackage, sdkErr := DeserializeCrossStakeSynPackage(payload)
-	if sdkErr != nil {
-		app.stakeKeeper.Logger(ctx).Error("unmarshal cross stake sync claim error", "err", sdkErr.Error(), "claim", string(payload))
+	eventType, err := DeserializeCrossStakeSynPackage(payload)
+	if err != nil {
+		app.stakeKeeper.Logger(ctx).Error("unmarshal cross stake sync claim error", "err", err.Error(), "claim", string(payload))
 		panic("unmarshal cross stake claim error")
 	}
 
 	var result sdk.ExecuteResult
-	var err error
-	switch crossStakeSyncPackage.PackageType {
+	switch eventType {
 	case types.CrossStakeTypeDelegate:
 		result, err = app.handleDelegate(ctx, payload, relayerFee)
 	case types.CrossStakeTypeUndelegate:
@@ -54,8 +53,7 @@ func (app *CrossStakeApp) ExecuteSynPackage(ctx sdk.Context, payload []byte, rel
 
 func (app *CrossStakeApp) handleDelegate(ctx sdk.Context, payload []byte, relayerFee int64) (sdk.ExecuteResult, error) {
 	var pack types.CrossStakeDelegateSynPackage
-	err := rlp.DecodeBytes(payload, &pack)
-	if err != nil {
+	if err := rlp.DecodeBytes(payload, &pack); err != nil {
 		app.stakeKeeper.Logger(ctx).Error("unmarshal cross stake delegate sync claim error", "err", err.Error(), "claim", string(payload))
 		return sdk.ExecuteResult{}, err
 	}
@@ -152,8 +150,7 @@ func (app *CrossStakeApp) handleDelegate(ctx sdk.Context, payload []byte, relaye
 
 func (app *CrossStakeApp) handleUndelegate(ctx sdk.Context, payload []byte, relayerFee int64) (sdk.ExecuteResult, error) {
 	var pack types.CrossStakeUndelegateSynPackage
-	err := rlp.DecodeBytes(payload, &pack)
-	if err != nil {
+	if err := rlp.DecodeBytes(payload, &pack); err != nil {
 		app.stakeKeeper.Logger(ctx).Error("unmarshal cross stake undelegate sync claim error", "err", err.Error(), "claim", string(payload))
 		return sdk.ExecuteResult{}, err
 	}
@@ -232,8 +229,7 @@ func (app *CrossStakeApp) handleUndelegate(ctx sdk.Context, payload []byte, rela
 
 func (app *CrossStakeApp) handleRedelegate(ctx sdk.Context, payload []byte, relayerFee int64) (sdk.ExecuteResult, error) {
 	var pack types.CrossStakeRedelegateSynPackage
-	err := rlp.DecodeBytes(payload, &pack)
-	if err != nil {
+	if err := rlp.DecodeBytes(payload, &pack); err != nil {
 		app.stakeKeeper.Logger(ctx).Error("unmarshal cross stake redelegate sync claim error", "err", err.Error(), "claim", string(payload))
 		return sdk.ExecuteResult{}, err
 	}
