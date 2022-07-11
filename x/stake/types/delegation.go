@@ -34,13 +34,13 @@ type Delegation struct {
 	ValidatorAddr sdk.ValAddress `json:"validator_addr"`
 	Shares        sdk.Dec        `json:"shares"`
 	Height        int64          `json:"-"` // Last height bond updated
-	Native        bool           `json:"native"`
+	CrossStake    bool           `json:"cross_stake"`
 }
 
 type delegationValue struct {
-	Shares sdk.Dec
-	Height int64
-	Native bool
+	Shares     sdk.Dec
+	Height     int64
+	CrossStake bool
 }
 
 //________________________________________________________________
@@ -48,7 +48,7 @@ type delegationValue struct {
 type SimplifiedDelegation struct {
 	DelegatorAddr sdk.AccAddress `json:"delegator_addr"`
 	Shares        sdk.Dec        `json:"shares"`
-	Native        bool           `json:"native"`
+	CrossStake    bool           `json:"cross_stake"`
 }
 
 func MustMarshalSimplifiedDelegations(cdc *codec.Codec, simDels []SimplifiedDelegation) []byte {
@@ -68,7 +68,7 @@ func MustMarshalDelegation(cdc *codec.Codec, delegation Delegation) []byte {
 	val := delegationValue{
 		delegation.Shares,
 		delegation.Height,
-		delegation.Native,
+		delegation.CrossStake,
 	}
 	return cdc.MustMarshalBinaryLengthPrefixed(val)
 }
@@ -105,7 +105,7 @@ func UnmarshalDelegation(cdc *codec.Codec, key, value []byte) (delegation Delega
 		ValidatorAddr: valAddr,
 		Shares:        storeValue.Shares,
 		Height:        storeValue.Height,
-		Native:        storeValue.Native,
+		CrossStake:    storeValue.CrossStake,
 	}, nil
 }
 
@@ -170,7 +170,7 @@ type UnbondingDelegation struct {
 	MinTime        time.Time      `json:"min_time"`        // unix time for unbonding completion
 	InitialBalance sdk.Coin       `json:"initial_balance"` // atoms initially scheduled to receive at completion
 	Balance        sdk.Coin       `json:"balance"`         // atoms to receive at completion
-	Native         bool           `json:"native"`          // native staking or cross-chain staking
+	CrossStake     bool           `json:"cross_stake"`     // native staking or cross-chain staking
 }
 
 type ubdValue struct {
@@ -178,7 +178,7 @@ type ubdValue struct {
 	MinTime        time.Time
 	InitialBalance sdk.Coin
 	Balance        sdk.Coin
-	Native         bool
+	CrossStake     bool
 }
 
 // return the unbonding delegation without fields contained within the key for the store
@@ -188,7 +188,7 @@ func MustMarshalUBD(cdc *codec.Codec, ubd UnbondingDelegation) []byte {
 		ubd.MinTime,
 		ubd.InitialBalance,
 		ubd.Balance,
-		ubd.Native,
+		ubd.CrossStake,
 	}
 	return cdc.MustMarshalBinaryLengthPrefixed(val)
 }
@@ -225,7 +225,7 @@ func UnmarshalUBD(cdc *codec.Codec, key, value []byte) (ubd UnbondingDelegation,
 		MinTime:        storeValue.MinTime,
 		InitialBalance: storeValue.InitialBalance,
 		Balance:        storeValue.Balance,
-		Native:         storeValue.Native,
+		CrossStake:     storeValue.CrossStake,
 	}, nil
 }
 

@@ -18,6 +18,13 @@ const (
 	CrossStakeChannelID sdk.ChannelID = 16
 	CrossStakeChannel                 = "crossStake"
 
+	TagCrossStakeChannel      = "CrossStakeChannel"
+	TagCrossStakePackageType  = "CrossStakePackageType"
+	TagCrossStakeSendSequence = "CrossStakeSendSequence"
+
+	CrossStakeTransferOutRewardRelayFee      = "crossStakeTransferOutRewardRelayFee"
+	CrossStakeTransferOutUndelegatedRelayFee = "crossStakeTransferOutUndelegatedRelayFee"
+
 	CrossStakeTypeDelegate               CrossStakePackageType = 1
 	CrossStakeTypeUndelegate             CrossStakePackageType = 2
 	CrossStakeTypeRedelegate             CrossStakePackageType = 3
@@ -30,7 +37,6 @@ type CrossStakeDelegateSynPackage struct {
 	DelAddr     SmartChainAddress
 	Validator   sdk.ValAddress
 	Amount      *big.Int
-	ExpireTime  uint64
 }
 
 type CrossStakeDelegationAckPackage struct {
@@ -43,7 +49,6 @@ type CrossStakeUndelegateSynPackage struct {
 	DelAddr     SmartChainAddress
 	Validator   sdk.ValAddress
 	Amount      *big.Int
-	ExpireTime  uint64
 }
 
 type CrossStakeUndelegateAckPackage struct {
@@ -57,7 +62,6 @@ type CrossStakeRedelegateSynPackage struct {
 	ValSrc      sdk.ValAddress
 	ValDst      sdk.ValAddress
 	Amount      *big.Int
-	ExpireTime  uint64
 }
 
 type CrossStakeRedelegateAckPackage struct {
@@ -136,10 +140,7 @@ func (addr *SmartChainAddress) UnmarshalJSON(input []byte) error {
 }
 
 func GetStakeCAoB(sourceAddr []byte, salt string) (sdk.AccAddress, error) {
-	saltBytes, err := hex.DecodeString("Staking" + salt + "Anchor")
-	if err != nil {
-		return nil, err
-	}
+	saltBytes := []byte("Staking" + salt + "Address Anchor")
 	saltSha := bsc.Keccak256(saltBytes)
 	accountBytes := make([]byte, len(sourceAddr))
 	for i := 0; i < len(sourceAddr); i++ {

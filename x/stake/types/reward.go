@@ -19,11 +19,11 @@ type PreReward struct {
 
 // reward model after BEP128 upgrade
 type Reward struct {
-	ValAddr sdk.ValAddress // Validator will be published for downstream usage
-	AccAddr sdk.AccAddress
-	Tokens  sdk.Dec // delegator Tokens will be published for downstream usage
-	Amount  int64
-	Native  bool
+	ValAddr    sdk.ValAddress // Validator will be published for downstream usage
+	AccAddr    sdk.AccAddress
+	Tokens     sdk.Dec // delegator Tokens will be published for downstream usage
+	Amount     int64
+	CrossStake bool
 }
 
 type StoredValDistAddr struct {

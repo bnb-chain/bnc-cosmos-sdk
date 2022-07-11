@@ -1,65 +1,73 @@
 package cross_stake
 
 import (
-	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/pubsub"
-	"github.com/cosmos/cosmos-sdk/types"
-
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/stake/keeper"
+	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
 
 const (
 	CrossStakeTopic = pubsub.Topic("cross-stake")
 
-	CrossStakeDelegateType         string = "CSD"
-	CrossStakeUndelegateType       string = "CSU"
-	CrossStakeClaimRewardType      string = "CSCR"
-	CrossStakeClaimUndelegatedType string = "CSCU"
-	CrossStakeReinvestType         string = "CSRI"
-	CrossStakeRedelegateType       string = "CSRD"
+	CrossStakeDelegateType               string = "CSD"
+	CrossStakeUndelegateType             string = "CSU"
+	CrossStakeTransferOutRewardType      string = "CSTR"
+	CrossStakeTransferOutUndelegatedType string = "CSTU"
+	CrossStakeRedelegateType             string = "CSRD"
 )
 
 type CrossStakeEvent struct {
-	TxHash           string
-	ChainId          string
-	Type             string
-	Delegator        string
-	Receiver         string
-	ValidatorSrc     string
-	ValidatorDst     string
-	OracleRelayerFee int64
-	BSCRelayerFee    int64
-}
-
-type CrossReceiver struct {
-	Addr   string
-	Amount int64
+	ChainId      string
+	Type         string
+	Delegator    sdk.AccAddress
+	ValidatorSrc sdk.ValAddress
+	ValidatorDst sdk.ValAddress
+	RelayFee     int64
 }
 
 func (event CrossStakeEvent) GetTopic() pubsub.Topic {
 	return CrossStakeTopic
 }
 
-func publishCrossChainEvent(ctx types.Context, keeper keeper.Keeper, delegator string, receiver string, valSrc string,
-	valDst string, eventType string, oracleRelayerFee int64, bSCRelayerFee int64) {
+type TransferOutRewardEvent struct {
+	ChainId       string
+	Type          string
+	Delegators    []sdk.AccAddress
+	Receivers     []types.SmartChainAddress
+	Amounts       []int64
+	BSCRelayerFee int64
+}
+
+func (event TransferOutRewardEvent) GetTopic() pubsub.Topic {
+	return CrossStakeTopic
+}
+
+type TransferOutUndelegatedEvent struct {
+	ChainId       string
+	Type          string
+	Delegator     sdk.AccAddress
+	Receiver      types.SmartChainAddress
+	Amount        int64
+	BSCRelayerFee int64
+}
+
+func (event TransferOutUndelegatedEvent) GetTopic() pubsub.Topic {
+	return CrossStakeTopic
+}
+
+func PublishCrossChainEvent(ctx sdk.Context, keeper keeper.Keeper, delegator sdk.AccAddress, valSrc sdk.ValAddress,
+	valDst sdk.ValAddress, eventType string, relayFee int64) {
 	chainId := keeper.ScKeeper.BscSideChainId(ctx)
 	if keeper.PbsbServer != nil {
-		txHash := ctx.Value(baseapp.TxHashKey)
-		if txHashStr, ok := txHash.(string); ok {
-			event := CrossStakeEvent{
-				TxHash:           txHashStr,
-				ChainId:          chainId,
-				Type:             eventType,
-				Delegator:        delegator,
-				Receiver:         receiver,
-				ValidatorSrc:     valSrc,
-				ValidatorDst:     valDst,
-				OracleRelayerFee: oracleRelayerFee,
-				BSCRelayerFee:    bSCRelayerFee,
-			}
-			keeper.PbsbServer.Publish(event)
-		} else {
-			ctx.Logger().Error("failed to get tx hash, will not publish cross stake event ")
+		event := CrossStakeEvent{
+			ChainId:      chainId,
+			Type:         eventType,
+			Delegator:    delegator,
+			ValidatorSrc: valSrc,
+			ValidatorDst: valDst,
+			RelayFee:     relayFee,
 		}
+		keeper.PbsbServer.Publish(event)
 	}
 }
