@@ -8,18 +8,19 @@ import (
 )
 
 func TestDeserializeDelegatePackage(t *testing.T) {
-	input := "f83901945b38da6a701c568545dcfcb03fcb875f56beddc4940000000000000000000000000000000000001000880de0b6b3a76400008462c67bae"
-	exp := types.CrossStakeTypeDelegate
+	input := "f701b5f401945b38da6a701c568545dcfcb03fcb875f56beddc4940000000000000000000000000000000000001000880de0b6b3a7640000"
+	expType := types.CrossStakeTypeDelegate
 
 	packageBytes, err := hex.DecodeString(input)
 	if err != nil {
 		t.Fatal(err)
 	}
-	eventType, err := DeserializeCrossStakeSynPackage(packageBytes)
+	_, pack, err := DeserializeCrossStakeSynPackage(packageBytes)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if eventType != exp {
+	out := pack.(types.CrossStakeDelegateSynPackage)
+	if out.PackageType != expType {
 		t.Error("wrong event type")
 	}
 }

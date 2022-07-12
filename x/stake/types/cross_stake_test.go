@@ -11,11 +11,8 @@ func TestGetStakeCAoB(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	stakeCAoB, err := GetStakeCAoB(exp.Bytes(), "Delegate")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if delAddr, _ := GetStakeCAoB(stakeCAoB.Bytes(), "Delegate"); delAddr.String() != exp.String() {
+	stakeCAoB := GetStakeCAoB(exp.Bytes(), "Delegate")
+	if delAddr := GetStakeCAoB(stakeCAoB.Bytes(), "Delegate"); delAddr.String() != exp.String() {
 		t.Fatal()
 	}
 }

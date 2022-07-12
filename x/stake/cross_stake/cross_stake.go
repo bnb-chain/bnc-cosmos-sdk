@@ -31,20 +31,20 @@ func (app *CrossStakeApp) ExecuteFailAckPackage(ctx sdk.Context, payload []byte)
 }
 
 func (app *CrossStakeApp) ExecuteSynPackage(ctx sdk.Context, payload []byte, relayFee int64) sdk.ExecuteResult {
-	eventType, err := DeserializeCrossStakeSynPackage(payload)
+	eventCode, pack, err := DeserializeCrossStakeSynPackage(payload)
 	if err != nil {
 		app.stakeKeeper.Logger(ctx).Error("unmarshal cross stake sync claim error", "err", err.Error(), "claim", string(payload))
 		panic("unmarshal cross stake claim error")
 	}
 
 	var result sdk.ExecuteResult
-	switch eventType {
+	switch eventCode {
 	case types.CrossStakeTypeDelegate:
-		result, err = app.handleDelegate(ctx, payload, relayFee)
+		result, err = app.handleDelegate(ctx, pack.(types.CrossStakeDelegateSynPackage), relayFee)
 	case types.CrossStakeTypeUndelegate:
-		result, err = app.handleUndelegate(ctx, payload, relayFee)
+		result, err = app.handleUndelegate(ctx, pack.(types.CrossStakeUndelegateSynPackage), relayFee)
 	case types.CrossStakeTypeRedelegate:
-		result, err = app.handleRedelegate(ctx, payload, relayFee)
+		result, err = app.handleRedelegate(ctx, pack.(types.CrossStakeRedelegateSynPackage), relayFee)
 	}
 	if err != nil {
 		panic(err)
@@ -53,25 +53,15 @@ func (app *CrossStakeApp) ExecuteSynPackage(ctx sdk.Context, payload []byte, rel
 	return result
 }
 
-func (app *CrossStakeApp) handleDelegate(ctx sdk.Context, payload []byte, relayFee int64) (sdk.ExecuteResult, error) {
-	var pack types.CrossStakeDelegateSynPackage
-	if err := rlp.DecodeBytes(payload, &pack); err != nil {
-		app.stakeKeeper.Logger(ctx).Error("unmarshal cross stake delegate sync claim error", "err", err.Error(), "claim", string(payload))
-		return sdk.ExecuteResult{}, err
-	}
-
-	sideChainId := app.stakeKeeper.ScKeeper.BscSideChainId(ctx)
+func (app *CrossStakeApp) handleDelegate(ctx sdk.Context, pack types.CrossStakeDelegateSynPackage, relayFee int64) (sdk.ExecuteResult, error) {
+	sideChainId := ctx.SideChainId()
 	if scCtx, err := app.stakeKeeper.ScKeeper.PrepareCtxForSideChain(ctx, sideChainId); err != nil {
 		return sdk.ExecuteResult{}, err
 	} else {
 		ctx = scCtx
 	}
 
-	delAddr, err := types.GetStakeCAoB(pack.DelAddr[:], "Delegate")
-	if err != nil {
-		return sdk.ExecuteResult{}, err
-	}
-
+	delAddr := types.GetStakeCAoB(pack.DelAddr[:], "Delegate")
 	validator, found := app.stakeKeeper.GetValidator(ctx, pack.Validator)
 	if !found || validator.Jailed {
 		var sdkErr sdk.Error
@@ -106,7 +96,7 @@ func (app *CrossStakeApp) handleDelegate(ctx sdk.Context, payload []byte, relayF
 		return sdk.ExecuteResult{}, sdkErr
 	}
 
-	_, err = app.stakeKeeper.Delegate(ctx, delAddr, delegation, validator, true)
+	_, err := app.stakeKeeper.Delegate(ctx.WithCrossStake(true), delAddr, delegation, validator, true)
 	if err != nil {
 		return sdk.ExecuteResult{}, err
 	}
@@ -127,7 +117,7 @@ func (app *CrossStakeApp) handleDelegate(ctx sdk.Context, payload []byte, relayF
 			SideChainId: sideChainId,
 		}
 		app.stakeKeeper.PbsbServer.Publish(event)
-		PublishCrossChainEvent(ctx, app.stakeKeeper, delAddr, sdk.ValAddress{}, pack.Validator, CrossStakeDelegateType,
+		PublishCrossChainEvent(ctx, app.stakeKeeper, delAddr, sdk.ValAddress{}, pack.Validator, types.CrossStakeDelegateType,
 			relayFee)
 	}
 
@@ -141,27 +131,17 @@ func (app *CrossStakeApp) handleDelegate(ctx sdk.Context, payload []byte, relayF
 	}, nil
 }
 
-func (app *CrossStakeApp) handleUndelegate(ctx sdk.Context, payload []byte, relayFee int64) (sdk.ExecuteResult, error) {
-	var pack types.CrossStakeUndelegateSynPackage
-	if err := rlp.DecodeBytes(payload, &pack); err != nil {
-		app.stakeKeeper.Logger(ctx).Error("unmarshal cross stake undelegate sync claim error", "err", err.Error(), "claim", string(payload))
-		return sdk.ExecuteResult{}, err
-	}
-
-	sideChainId := app.stakeKeeper.ScKeeper.BscSideChainId(ctx)
+func (app *CrossStakeApp) handleUndelegate(ctx sdk.Context, pack types.CrossStakeUndelegateSynPackage, relayFee int64) (sdk.ExecuteResult, error) {
+	sideChainId := ctx.SideChainId()
 	if scCtx, err := app.stakeKeeper.ScKeeper.PrepareCtxForSideChain(ctx, sideChainId); err != nil {
 		return sdk.ExecuteResult{}, err
 	} else {
 		ctx = scCtx
 	}
 
-	delAddr, err := types.GetStakeCAoB(pack.DelAddr[:], "Delegate")
-	if err != nil {
-		return sdk.ExecuteResult{}, err
-	}
-
+	delAddr := types.GetStakeCAoB(pack.DelAddr[:], "Delegate")
 	shares, sdkErr := app.stakeKeeper.ValidateUnbondAmount(ctx, delAddr, pack.Validator, pack.Amount.Int64())
-	if shares.IsZero() && sdkErr != nil {
+	if sdkErr != nil {
 		ackPack := &types.CrossStakeUndelegateAckPackage{
 			CrossStakeUndelegateSynPackage: pack,
 			ErrorCode:                      CrossStakeErrBadDelegation,
@@ -177,7 +157,7 @@ func (app *CrossStakeApp) handleUndelegate(ctx sdk.Context, payload []byte, rela
 		}, nil
 	}
 
-	_, err = app.stakeKeeper.BeginUnbonding(ctx, delAddr, pack.Validator, shares)
+	_, err := app.stakeKeeper.BeginUnbonding(ctx.WithCrossStake(true), delAddr, pack.Validator, shares)
 	if err != nil {
 		return sdk.ExecuteResult{}, err
 	}
@@ -198,7 +178,7 @@ func (app *CrossStakeApp) handleUndelegate(ctx sdk.Context, payload []byte, rela
 			SideChainId: sideChainId,
 		}
 		app.stakeKeeper.PbsbServer.Publish(event)
-		PublishCrossChainEvent(ctx, app.stakeKeeper, delAddr, pack.Validator, sdk.ValAddress{}, CrossStakeUndelegateType,
+		PublishCrossChainEvent(ctx, app.stakeKeeper, delAddr, pack.Validator, sdk.ValAddress{}, types.CrossStakeUndelegateType,
 			relayFee)
 	}
 
@@ -210,14 +190,8 @@ func (app *CrossStakeApp) handleUndelegate(ctx sdk.Context, payload []byte, rela
 	}, nil
 }
 
-func (app *CrossStakeApp) handleRedelegate(ctx sdk.Context, payload []byte, relayFee int64) (sdk.ExecuteResult, error) {
-	var pack types.CrossStakeRedelegateSynPackage
-	if err := rlp.DecodeBytes(payload, &pack); err != nil {
-		app.stakeKeeper.Logger(ctx).Error("unmarshal cross stake redelegate sync claim error", "err", err.Error(), "claim", string(payload))
-		return sdk.ExecuteResult{}, err
-	}
-
-	sideChainId := app.stakeKeeper.ScKeeper.BscSideChainId(ctx)
+func (app *CrossStakeApp) handleRedelegate(ctx sdk.Context, pack types.CrossStakeRedelegateSynPackage, relayFee int64) (sdk.ExecuteResult, error) {
+	sideChainId := ctx.SideChainId()
 	if scCtx, err := app.stakeKeeper.ScKeeper.PrepareCtxForSideChain(ctx, sideChainId); err != nil {
 		return sdk.ExecuteResult{}, err
 	} else {
@@ -250,13 +224,9 @@ func (app *CrossStakeApp) handleRedelegate(ctx sdk.Context, payload []byte, rela
 		}, nil
 	}
 
-	delAddr, err := types.GetStakeCAoB(pack.DelAddr[:], "Delegate")
-	if err != nil {
-		return sdk.ExecuteResult{}, err
-	}
-
+	delAddr := types.GetStakeCAoB(pack.DelAddr[:], "Delegate")
 	shares, sdkErr := app.stakeKeeper.ValidateUnbondAmount(ctx, delAddr, pack.ValSrc, pack.Amount.Int64())
-	if shares.IsZero() && sdkErr != nil {
+	if sdkErr != nil {
 		ackPack := &types.CrossStakeRedelegateAckPackage{
 			CrossStakeRedelegateSynPackage: pack,
 			ErrorCode:                      CrossStakeErrBadDelegation,
@@ -272,7 +242,7 @@ func (app *CrossStakeApp) handleRedelegate(ctx sdk.Context, payload []byte, rela
 		}, nil
 	}
 
-	_, err = app.stakeKeeper.BeginRedelegation(ctx, delAddr, pack.ValSrc, pack.ValDst, shares)
+	_, err := app.stakeKeeper.BeginRedelegation(ctx.WithCrossStake(true), delAddr, pack.ValSrc, pack.ValDst, shares)
 	if err != nil {
 		return sdk.ExecuteResult{}, err
 	}
@@ -294,7 +264,7 @@ func (app *CrossStakeApp) handleRedelegate(ctx sdk.Context, payload []byte, rela
 			SideChainId: sideChainId,
 		}
 		app.stakeKeeper.PbsbServer.Publish(event)
-		PublishCrossChainEvent(ctx, app.stakeKeeper, delAddr, pack.ValSrc, pack.ValDst, CrossStakeRedelegateType,
+		PublishCrossChainEvent(ctx, app.stakeKeeper, delAddr, pack.ValSrc, pack.ValDst, types.CrossStakeRedelegateType,
 			relayFee)
 	}
 

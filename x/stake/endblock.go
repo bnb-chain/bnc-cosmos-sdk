@@ -17,7 +17,7 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.Valid
 		if len(sideChainIds) == len(storePrefixes) {
 			for i := range storePrefixes {
 				sideChainCtx := ctx.WithSideChainKeyPrefix(storePrefixes[i])
-				csEvents := k.DistributeInBlockWithEvents(sideChainCtx, sideChainIds[i])
+				csEvents := k.DistributeInBlock(sideChainCtx, sideChainIds[i])
 				events = events.AppendEvents(csEvents)
 			}
 		} else {
@@ -59,7 +59,7 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 			storeValidatorsWithHeight(sideChainCtx, newVals, k)
 
 			if sdk.IsUpgrade(sdk.BEP153) {
-				csEvents := k.DistributeInBreathBlockWithEvents(sideChainCtx, sideChainIds[i])
+				csEvents := k.DistributeInBreathBlock(sideChainCtx, sideChainIds[i])
 				events = events.AppendEvents(csEvents)
 			} else if sdk.IsUpgrade(sdk.BEP128) {
 				k.DistributeInBreathBlock(sideChainCtx, sideChainIds[i])
@@ -175,9 +175,9 @@ func handleMatureUnbondingDelegations(k keeper.Keeper, ctx sdk.Context) ([]types
 		var csEvents sdk.Events
 		var err error
 		if sdk.IsUpgrade(sdk.BEP153) {
-			ubd, csEvents, err = k.CompleteUnbondingWithEvents(ctx, dvPair.DelegatorAddr, dvPair.ValidatorAddr)
+			ubd, csEvents, err = k.CompleteUnbonding(ctx, dvPair.DelegatorAddr, dvPair.ValidatorAddr)
 		} else {
-			ubd, err = k.CompleteUnbonding(ctx, dvPair.DelegatorAddr, dvPair.ValidatorAddr)
+			ubd, _, err = k.CompleteUnbonding(ctx, dvPair.DelegatorAddr, dvPair.ValidatorAddr)
 		}
 		if err != nil {
 			logger.Error(fmt.Sprintf("Failed to complete unbonding delegation: %s", err.Error()), "delegator_address", dvPair.DelegatorAddr.String(), "validator_address", dvPair.ValidatorAddr.String())

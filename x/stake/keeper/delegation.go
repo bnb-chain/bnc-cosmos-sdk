@@ -10,7 +10,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/pubsub"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/fees"
-	cStake "github.com/cosmos/cosmos-sdk/x/stake/cross_stake"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
 
@@ -502,6 +501,7 @@ func (k Keeper) Delegate(ctx sdk.Context, delAddr sdk.AccAddress, bondAmt sdk.Co
 			DelegatorAddr: delAddr,
 			ValidatorAddr: validator.OperatorAddr,
 			Shares:        sdk.ZeroDec(),
+			CrossStake:    ctx.CrossStake(),
 		}
 	}
 
@@ -652,7 +652,6 @@ func (k Keeper) BeginUnbonding(ctx sdk.Context,
 
 	balance := sdk.NewCoin(k.BondDenom(ctx), returnAmount.RawInt())
 
-	delegation, _ := k.GetDelegation(ctx, delAddr, valAddr)
 	completionTime := ctx.BlockHeader().Time.Add(k.UnbondingTime(ctx))
 	ubd := types.UnbondingDelegation{
 		DelegatorAddr:  delAddr,
@@ -661,7 +660,7 @@ func (k Keeper) BeginUnbonding(ctx sdk.Context,
 		MinTime:        completionTime,
 		Balance:        balance,
 		InitialBalance: balance,
-		CrossStake:     delegation.CrossStake,
+		CrossStake:     ctx.CrossStake(),
 	}
 	k.SetUnbondingDelegation(ctx, ubd)
 	k.InsertUnbondingQueue(ctx, ubd)
@@ -671,27 +670,7 @@ func (k Keeper) BeginUnbonding(ctx sdk.Context,
 
 // complete unbonding an unbonding record
 // CONTRACT: Expects unbonding passed in has finished the unbonding period
-func (k Keeper) CompleteUnbonding(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) (types.UnbondingDelegation, sdk.Error) {
-	ubd, found := k.GetUnbondingDelegation(ctx, delAddr, valAddr)
-	if !found {
-		return ubd, types.ErrNoUnbondingDelegation(k.Codespace())
-	}
-
-	_, err := k.BankKeeper.SendCoins(ctx, DelegationAccAddr, ubd.DelegatorAddr, sdk.Coins{ubd.Balance})
-	if err != nil {
-		return ubd, err
-	}
-
-	if k.AddrPool != nil {
-		k.AddrPool.AddAddrs([]sdk.AccAddress{ubd.DelegatorAddr, DelegationAccAddr})
-	}
-	k.RemoveUnbondingDelegation(ctx, ubd)
-	return ubd, nil
-}
-
-// complete unbonding an unbonding record
-// CONTRACT: Expects unbonding passed in has finished the unbonding period
-func (k Keeper) CompleteUnbondingWithEvents(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) (types.UnbondingDelegation, sdk.Events, sdk.Error) {
+func (k Keeper) CompleteUnbonding(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) (types.UnbondingDelegation, sdk.Events, sdk.Error) {
 	ubd, found := k.GetUnbondingDelegation(ctx, delAddr, valAddr)
 	if !found {
 		return ubd, sdk.Events{}, types.ErrNoUnbondingDelegation(k.Codespace())
@@ -841,11 +820,8 @@ func (k Keeper) transferOutUndelegated(ctx sdk.Context, delAddr sdk.AccAddress, 
 	bscRelayFee := bsc.ConvertBCAmountToBSCAmount(relayFee.Tokens.AmountOf(k.BondDenom(ctx)))
 	bscTransferAmount := bsc.ConvertBCAmountToBSCAmount(amount.Amount)
 
-	delBscAddr, err := types.GetStakeCAoB(delAddr.Bytes(), "Delegate")
-	if err != nil {
-		return sdk.Events{}, sdk.ErrInternal(err.Error())
-	}
-	recipient, err := types.NewSmartChainAddress(delBscAddr.String())
+	delBscAddr := types.GetStakeCAoB(delAddr.Bytes(), "Delegate")
+	recipient, err := sdk.NewSmartChainAddress(delBscAddr.String())
 	if err != nil {
 		return sdk.Events{}, sdk.ErrInternal(err.Error())
 	}
@@ -873,9 +849,9 @@ func (k Keeper) transferOutUndelegated(ctx sdk.Context, delAddr sdk.AccAddress, 
 
 	// publish data if needed
 	if ctx.IsDeliverTx() && k.PbsbServer != nil {
-		event := cStake.TransferOutUndelegatedEvent{
+		event := types.TransferOutUndelegatedEvent{
 			ChainId:       sideChainId,
-			Type:          cStake.CrossStakeTransferOutUndelegatedType,
+			Type:          types.CrossStakeTransferOutUndelegatedType,
 			Delegator:     delAddr,
 			Receiver:      recipient,
 			Amount:        amount.Amount,
