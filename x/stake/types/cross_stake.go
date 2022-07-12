@@ -67,6 +67,7 @@ type TransferOutUndelegatedEvent struct {
 	ChainId       string
 	Type          string
 	Delegator     sdk.AccAddress
+	Validator     sdk.ValAddress
 	Receiver      sdk.SmartChainAddress
 	Amount        int64
 	BSCRelayerFee int64
@@ -125,6 +126,7 @@ type CrossStakeTransferOutUndelegatedSynPackage struct {
 	Amount     *big.Int
 	Recipient  sdk.SmartChainAddress
 	RefundAddr sdk.AccAddress
+	Validator  sdk.ValAddress
 }
 
 func GetStakeCAoB(sourceAddr []byte, salt string) sdk.AccAddress {

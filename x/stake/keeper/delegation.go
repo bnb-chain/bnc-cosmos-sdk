@@ -682,7 +682,7 @@ func (k Keeper) CompleteUnbonding(ctx sdk.Context, delAddr sdk.AccAddress, valAd
 		if err != nil {
 			return ubd, sdk.Events{}, err
 		}
-		events, err = k.transferOutUndelegated(ctx, delAddr, ubd.Balance, k.ScKeeper.BscSideChainId(ctx))
+		events, err = k.transferOutUndelegated(ctx, delAddr, valAddr, ubd.Balance, k.ScKeeper.BscSideChainId(ctx))
 		if err != nil {
 			return ubd, sdk.Events{}, err
 		}
@@ -814,7 +814,7 @@ func (k Keeper) ValidateUnbondAmount(
 	return shares, nil
 }
 
-func (k Keeper) transferOutUndelegated(ctx sdk.Context, delAddr sdk.AccAddress, amount sdk.Coin, sideChainId string) (sdk.Events, sdk.Error) {
+func (k Keeper) transferOutUndelegated(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, amount sdk.Coin, sideChainId string) (sdk.Events, sdk.Error) {
 	relayFeeCalc := fees.GetCalculator(types.CrossStakeTransferOutUndelegatedRelayFee)
 	relayFee := relayFeeCalc(nil)
 	bscRelayFee := bsc.ConvertBCAmountToBSCAmount(relayFee.Tokens.AmountOf(k.BondDenom(ctx)))
@@ -831,6 +831,7 @@ func (k Keeper) transferOutUndelegated(ctx sdk.Context, delAddr sdk.AccAddress, 
 		Amount:     bscTransferAmount,
 		Recipient:  recipient,
 		RefundAddr: delAddr,
+		Validator:  valAddr,
 	}
 	encodedPackage, err := rlp.EncodeToBytes(transferPackage)
 	if err != nil {
@@ -853,6 +854,7 @@ func (k Keeper) transferOutUndelegated(ctx sdk.Context, delAddr sdk.AccAddress, 
 			ChainId:       sideChainId,
 			Type:          types.CrossStakeTransferOutUndelegatedType,
 			Delegator:     delAddr,
+			Validator:     valAddr,
 			Receiver:      recipient,
 			Amount:        amount.Amount,
 			BSCRelayerFee: bscRelayFee.Int64(),
