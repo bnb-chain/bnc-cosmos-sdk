@@ -138,7 +138,8 @@ func (d Delegation) Equal(d2 Delegation) bool {
 	return bytes.Equal(d.DelegatorAddr, d2.DelegatorAddr) &&
 		bytes.Equal(d.ValidatorAddr, d2.ValidatorAddr) &&
 		d.Height == d2.Height &&
-		d.Shares.Equal(d2.Shares)
+		d.Shares.Equal(d2.Shares) &&
+		d.CrossStake == d2.CrossStake
 }
 
 // ensure fulfills the sdk validator types
@@ -157,7 +158,8 @@ func (d Delegation) HumanReadableString() (string, error) {
 	resp += fmt.Sprintf("Delegator: %s\n", d.DelegatorAddr)
 	resp += fmt.Sprintf("Validator: %s\n", d.ValidatorAddr)
 	resp += fmt.Sprintf("Shares: %s\n", d.Shares.String())
-	resp += fmt.Sprintf("Height: %d", d.Height)
+	resp += fmt.Sprintf("Height: %d\n", d.Height)
+	resp += fmt.Sprintf("Cross stake: %t", d.CrossStake)
 
 	return resp, nil
 }
@@ -245,7 +247,8 @@ func (d UnbondingDelegation) HumanReadableString() (string, error) {
 	resp += fmt.Sprintf("Validator: %s\n", d.ValidatorAddr)
 	resp += fmt.Sprintf("Creation height: %v\n", d.CreationHeight)
 	resp += fmt.Sprintf("Min time to unbond (unix): %v\n", d.MinTime)
-	resp += fmt.Sprintf("Expected balance: %s", d.Balance.String())
+	resp += fmt.Sprintf("Expected balance: %s\n", d.Balance.String())
+	resp += fmt.Sprintf("Cross stake: %t", d.CrossStake)
 
 	return resp, nil
 

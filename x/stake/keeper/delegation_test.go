@@ -516,7 +516,7 @@ func TestUnbondingAllDelegationFromValidator(t *testing.T) {
 	require.False(t, found)
 }
 
-// Make sure that that the retrieving the delegations doesn't affect the state
+// Make sure that the retrieving the delegations doesn't affect the state
 func TestGetRedelegationsFromValidator(t *testing.T) {
 	ctx, _, keeper := CreateTestInput(t, false, 0)
 

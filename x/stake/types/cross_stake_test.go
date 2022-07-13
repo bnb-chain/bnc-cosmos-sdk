@@ -7,7 +7,7 @@ import (
 )
 
 func TestGetStakeCAoB(t *testing.T) {
-	exp, err := sdk.AccAddressFromHex("0000000000000000000000000000000000001000")
+	exp, err := sdk.AccAddressFromHex("0000000000000000000000000000000000001001")
 	if err != nil {
 		t.Fatal(err)
 	}
