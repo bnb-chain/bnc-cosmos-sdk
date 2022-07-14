@@ -383,6 +383,9 @@ func removeValidatorsAndDelegationsAtHeight(height int64, k Keeper, ctx sdk.Cont
 
 func transferOutRewards(k Keeper, ctx sdk.Context, rewardsMap map[string]int64, sideChainId string) (sdk.Events, error) {
 	relayFeeCalc := fees.GetCalculator(types.CrossStakeTransferOutRewardRelayFee)
+	if relayFeeCalc == nil {
+		return sdk.Events{}, fmt.Errorf("no fee calculator of transferOutRewards")
+	}
 	relayFee := relayFeeCalc(nil)
 	bscRelayFee := bsc.ConvertBCAmountToBSCAmount(relayFee.Tokens.AmountOf(k.BondDenom(ctx)))
 

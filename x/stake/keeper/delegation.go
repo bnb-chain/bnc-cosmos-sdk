@@ -816,6 +816,9 @@ func (k Keeper) ValidateUnbondAmount(
 
 func (k Keeper) transferOutUndelegated(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, amount sdk.Coin, sideChainId string) (sdk.Events, sdk.Error) {
 	relayFeeCalc := fees.GetCalculator(types.CrossStakeTransferOutUndelegatedRelayFee)
+	if relayFeeCalc == nil {
+		return sdk.Events{}, sdk.ErrInternal("no fee calculator of transferOutUndelegated")
+	}
 	relayFee := relayFeeCalc(nil)
 	bscRelayFee := bsc.ConvertBCAmountToBSCAmount(relayFee.Tokens.AmountOf(k.BondDenom(ctx)))
 	bscTransferAmount := bsc.ConvertBCAmountToBSCAmount(amount.Amount)

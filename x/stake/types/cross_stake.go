@@ -77,6 +77,26 @@ func (event TransferOutUndelegatedEvent) GetTopic() pubsub.Topic {
 	return CrossStakeTopic
 }
 
+type RewardRefundEvent struct {
+	RefundAddrs []sdk.AccAddress
+	Amounts     []int64
+	Recipients  []sdk.SmartChainAddress
+}
+
+func (event RewardRefundEvent) GetTopic() pubsub.Topic {
+	return CrossStakeTopic
+}
+
+type UndelegatedRefundEvent struct {
+	RefundAddr sdk.AccAddress
+	Amount     int64
+	Recipient  sdk.SmartChainAddress
+}
+
+func (event UndelegatedRefundEvent) GetTopic() pubsub.Topic {
+	return CrossStakeTopic
+}
+
 type CrossStakeDelegateSynPackage struct {
 	PackageType CrossStakePackageType
 	DelAddr     sdk.SmartChainAddress

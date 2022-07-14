@@ -76,6 +76,13 @@ func RegisterUpgradeBeginBlocker(paramHub *ParamHub) {
 		}
 		paramHub.UpdateFeeParams(ctx, updateFeeParams)
 	})
+	sdk.UpgradeMgr.RegisterBeginBlocker(sdk.BEP153, func(ctx sdk.Context) {
+		crossStakeFeeParams := []param.FeeParam{
+			&param.FixedFeeParams{MsgType: "crossStakeTransferOutRewardRelayFee", Fee: TransferOutRewardFee, FeeFor: sdk.FeeForAll},
+			&param.FixedFeeParams{MsgType: "crossStakeTransferOutUndelegatedRelayFee", Fee: TransferOutUndelegatedFee, FeeFor: sdk.FeeForAll},
+		}
+		paramHub.UpdateFeeParams(ctx, crossStakeFeeParams)
+	})
 }
 
 func EndBreatheBlock(ctx sdk.Context, paramHub *ParamHub) {

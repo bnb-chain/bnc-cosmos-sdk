@@ -71,6 +71,10 @@ const (
 	MiniIssueFee   = 3e8
 	MiniSetUriFee  = 37500
 	MiniListingFee = 8e8
+
+	// Cross stake fee
+	TransferOutRewardFee      = 2e6 //TODO
+	TransferOutUndelegatedFee = 2e6 //TODO
 )
 
 var DefaultGenesisState = param.GenesisState{

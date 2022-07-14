@@ -2,6 +2,7 @@ package types_test
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/rand"
 	"testing"
 
@@ -193,4 +194,17 @@ func TestSmartChainAddress(t *testing.T) {
 	addrStr = "0x43121d597656E398473b992f0dF667fF0fc0791"
 	_, err = types.NewSmartChainAddress(addrStr)
 	require.NotNil(t, err, "err should not be nil")
+}
+
+func TestForBep153(t *testing.T) {
+	opAddr := "tbnb1pnww8kx30sz4xfcqvn8wjhrn796nf4dqshlvlg"
+	// 0x0cdce3d8d17c0553270064cee95c73f17534d5a0
+
+	bz, err := types.GetFromBech32(opAddr, "tbnb")
+	valAddr := types.ValAddress(bz)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bscAddr := hex.EncodeToString(valAddr.Bytes())
+	fmt.Println("0x" + bscAddr)
 }

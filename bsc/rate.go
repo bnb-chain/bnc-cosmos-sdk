@@ -16,3 +16,10 @@ func ConvertBCAmountToBSCAmount(bcAmount int64) *big.Int {
 	bscAmount := sdk.NewInt(bcAmount).Mul(decimals)
 	return bscAmount.BigInt()
 }
+
+func ConvertBSCAmountToBCAmount(bscAmount *big.Int) int64 {
+	decimals := sdk.NewIntWithDecimal(1, int(BNBDecimalOnBSC-BNBDecimalOnBC))
+	bscAmountInt := sdk.NewIntFromBigInt(bscAmount)
+	bcAmount := bscAmountInt.Div(decimals)
+	return bcAmount.Int64()
+}

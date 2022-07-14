@@ -21,8 +21,29 @@ func NewCrossStakeApp(stakeKeeper Keeper) *CrossStakeApp {
 }
 
 func (app *CrossStakeApp) ExecuteAckPackage(ctx sdk.Context, payload []byte) sdk.ExecuteResult {
-	app.stakeKeeper.Logger(ctx).Error("received cross stake ack package ")
-	return sdk.ExecuteResult{}
+	if len(payload) == 0 {
+		app.stakeKeeper.Logger(ctx).Info("receive cross stake ack package")
+		return sdk.ExecuteResult{}
+	}
+
+	eventCode, pack, err := DeserializeCrossStakeSynPackage(payload)
+	if err != nil {
+		app.stakeKeeper.Logger(ctx).Error("unmarshal cross stake ack package error", "err", err.Error(), "package", string(payload))
+		panic("unmarshal cross stake ack package error")
+	}
+
+	var result sdk.ExecuteResult
+	switch eventCode {
+	case types.CrossStakeTypeTransferOutReward:
+		result, err = app.handleTransferOutRewardRefund(ctx, pack.(types.CrossStakeTransferOutRewardSynPackage))
+	case types.CrossStakeTypeTransferOutUndelegated:
+		result, err = app.handleTransferOutUndelegatedRefund(ctx, pack.(types.CrossStakeTransferOutUndelegatedSynPackage))
+	}
+	if err != nil {
+		panic(err)
+	}
+
+	return result
 }
 
 func (app *CrossStakeApp) ExecuteFailAckPackage(ctx sdk.Context, payload []byte) sdk.ExecuteResult {
@@ -247,7 +268,7 @@ func (app *CrossStakeApp) handleRedelegate(ctx sdk.Context, pack types.CrossStak
 		return sdk.ExecuteResult{}, err
 	}
 
-	// publish delegate event
+	// publish redelegate event
 	if app.stakeKeeper.PbsbServer != nil && ctx.IsDeliverTx() {
 		event := types.SideRedelegateEvent{
 			RedelegateEvent: types.RedelegateEvent{
@@ -273,5 +294,63 @@ func (app *CrossStakeApp) handleRedelegate(ctx sdk.Context, pack types.CrossStak
 	)
 	return sdk.ExecuteResult{
 		Tags: resultTags,
+	}, nil
+}
+
+func (app *CrossStakeApp) handleTransferOutRewardRefund(ctx sdk.Context, pack types.CrossStakeTransferOutRewardSynPackage) (sdk.ExecuteResult, error) {
+	symbol := app.stakeKeeper.BondDenom(ctx)
+	refundAmounts := make([]int64, 0, len(pack.Amounts))
+	var resultTags sdk.Tags
+	for i := 0; i < len(pack.Amounts); i++ {
+		refundAmount := bsc.ConvertBSCAmountToBCAmount(pack.Amounts[i])
+		refundAmounts = append(refundAmounts, refundAmount)
+		coins := sdk.Coins{sdk.NewCoin(symbol, refundAmount)}
+		_, err := app.stakeKeeper.BankKeeper.SendCoins(ctx, sdk.PegAccount, pack.RefundAddrs[i], coins)
+		if err != nil {
+			return sdk.ExecuteResult{}, err
+		}
+		resultTags = append(resultTags, sdk.GetPegOutTag(symbol, refundAmount))
+	}
+
+	// publish  event
+	if app.stakeKeeper.PbsbServer != nil && ctx.IsDeliverTx() {
+		addrs := []sdk.AccAddress{sdk.PegAccount}
+		addrs = append(addrs, pack.RefundAddrs...)
+		app.stakeKeeper.AddrPool.AddAddrs(addrs)
+		event := types.RewardRefundEvent{
+			RefundAddrs: pack.RefundAddrs,
+			Amounts:     refundAmounts,
+			Recipients:  pack.Recipients,
+		}
+		app.stakeKeeper.PbsbServer.Publish(event)
+	}
+
+	return sdk.ExecuteResult{
+		Tags: resultTags,
+	}, nil
+}
+
+func (app *CrossStakeApp) handleTransferOutUndelegatedRefund(ctx sdk.Context, pack types.CrossStakeTransferOutUndelegatedSynPackage) (sdk.ExecuteResult, error) {
+	symbol := app.stakeKeeper.BondDenom(ctx)
+	refundAmount := bsc.ConvertBSCAmountToBCAmount(pack.Amount)
+	coins := sdk.Coins{sdk.NewCoin(symbol, refundAmount)}
+	_, err := app.stakeKeeper.BankKeeper.SendCoins(ctx, sdk.PegAccount, pack.RefundAddr, coins)
+	if err != nil {
+		return sdk.ExecuteResult{}, err
+	}
+
+	// publish  event
+	if app.stakeKeeper.PbsbServer != nil && ctx.IsDeliverTx() {
+		app.stakeKeeper.AddrPool.AddAddrs([]sdk.AccAddress{sdk.PegAccount, pack.RefundAddr})
+		event := types.UndelegatedRefundEvent{
+			RefundAddr: pack.RefundAddr,
+			Amount:     refundAmount,
+			Recipient:  pack.Recipient,
+		}
+		app.stakeKeeper.PbsbServer.Publish(event)
+	}
+
+	return sdk.ExecuteResult{
+		Tags: sdk.Tags{sdk.GetPegOutTag(symbol, refundAmount)},
 	}, nil
 }
