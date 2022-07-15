@@ -52,6 +52,7 @@ func (app *CrossStakeApp) ExecuteFailAckPackage(ctx sdk.Context, payload []byte)
 }
 
 func (app *CrossStakeApp) ExecuteSynPackage(ctx sdk.Context, payload []byte, relayFee int64) sdk.ExecuteResult {
+	app.stakeKeeper.Logger(ctx).Info("receive cross stake syn package")
 	eventCode, pack, err := DeserializeCrossStakeSynPackage(payload)
 	if err != nil {
 		app.stakeKeeper.Logger(ctx).Error("unmarshal cross stake sync claim error", "err", err.Error(), "claim", string(payload))

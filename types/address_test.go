@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/tendermint/tendermint/libs/bech32"
 
 	"github.com/tendermint/tendermint/crypto/ed25519"
 
@@ -197,14 +198,15 @@ func TestSmartChainAddress(t *testing.T) {
 }
 
 func TestForBep153(t *testing.T) {
-	opAddr := "tbnb1pnww8kx30sz4xfcqvn8wjhrn796nf4dqshlvlg"
-	// 0x0cdce3d8d17c0553270064cee95c73f17534d5a0
+	bcAddr := "tbnb1q8eh7ytly7letp6aadxmzasmrpwyalkjf3rpvn"
+	// 0x01f37f117f27bf95875deb4db1761b185c4efed2
 
-	bz, err := types.GetFromBech32(opAddr, "tbnb")
-	valAddr := types.ValAddress(bz)
+	bz, err := types.GetFromBech32(bcAddr, "tbnb")
+	opAddr, err := bech32.ConvertAndEncode("bva", bz)
 	if err != nil {
 		t.Fatal(err)
 	}
-	bscAddr := hex.EncodeToString(valAddr.Bytes())
+	bscAddr := hex.EncodeToString(bz)
 	fmt.Println("0x" + bscAddr)
+	fmt.Println(opAddr)
 }
