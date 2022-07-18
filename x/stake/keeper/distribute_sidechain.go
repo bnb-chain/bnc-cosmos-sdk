@@ -1,9 +1,7 @@
 package keeper
 
 import (
-	"encoding/hex"
 	"fmt"
-	"math/big"
 	"strconv"
 
 	"github.com/cosmos/cosmos-sdk/bsc"
@@ -272,7 +270,7 @@ func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) sdk.E
 	var changedAddrs []sdk.AccAddress //changed addresses
 
 	bondDenom := k.BondDenom(ctx)
-	crossStakeRewards := make(map[string]int64)
+	var events sdk.Events
 	for _, reward := range rewards {
 		distAddr := valDistAddrMap[reward.ValAddr.String()]
 		if value, ok := distAddrBalanceMap[distAddr.String()]; ok {
@@ -287,11 +285,15 @@ func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) sdk.E
 				panic(err)
 			}
 			balance := k.BankKeeper.GetCoins(ctx, rewardCAoB).AmountOf(bondDenom)
-			if balance >= 1e7 {
+			if balance >= 1e8 {
 				if _, err := k.BankKeeper.SendCoins(ctx, rewardCAoB, sdk.PegAccount, sdk.Coins{sdk.NewCoin(bondDenom, balance)}); err != nil {
 					panic(err)
 				}
-				crossStakeRewards[reward.AccAddr.String()] = balance
+				event, err := distributeCrossStakeReward(k, ctx, reward.AccAddr, balance, sideChainId)
+				if err != nil {
+					panic(err)
+				}
+				events = events.AppendEvents(event)
 			}
 		} else {
 			if _, _, err := k.BankKeeper.AddCoins(ctx, reward.AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, reward.Amount)}); err != nil {
@@ -301,15 +303,6 @@ func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) sdk.E
 
 		toPublishRewards = append(toPublishRewards, reward)
 		changedAddrs = append(changedAddrs, reward.AccAddr)
-	}
-
-	var events sdk.Events
-	var err error
-	if len(crossStakeRewards) > 0 {
-		events, err = transferOutRewards(k, ctx, crossStakeRewards, sideChainId)
-		if err != nil {
-			panic(err)
-		}
 	}
 
 	for addr, value := range distAddrBalanceMap {
@@ -381,41 +374,25 @@ func removeValidatorsAndDelegationsAtHeight(height int64, k Keeper, ctx sdk.Cont
 	k.RemoveValidatorsByHeight(ctx, height)
 }
 
-func transferOutRewards(k Keeper, ctx sdk.Context, rewardsMap map[string]int64, sideChainId string) (sdk.Events, error) {
-	relayFeeCalc := fees.GetCalculator(types.CrossStakeTransferOutRewardRelayFee)
+func distributeCrossStakeReward(k Keeper, ctx sdk.Context, delAddr sdk.AccAddress, amount int64, sideChainId string) (sdk.Events, error) {
+	relayFeeCalc := fees.GetCalculator(types.CrossStakeDistributeRewardRelayFee)
 	if relayFeeCalc == nil {
 		return sdk.Events{}, fmt.Errorf("no fee calculator of transferOutRewards")
 	}
 	relayFee := relayFeeCalc(nil)
 	bscRelayFee := bsc.ConvertBCAmountToBSCAmount(relayFee.Tokens.AmountOf(k.BondDenom(ctx)))
 
-	bscAmounts := make([]*big.Int, len(rewardsMap))
-	amounts := make([]int64, len(rewardsMap))
-	recipients := make([]sdk.SmartChainAddress, len(rewardsMap))
-	refundAddrs := make([]sdk.AccAddress, len(rewardsMap))
-	for delAddr, amount := range rewardsMap {
-		bscTransferAmount := bsc.ConvertBCAmountToBSCAmount(amount)
-		delAddrBytes, err := hex.DecodeString(delAddr)
-		if err != nil {
-			return sdk.Events{}, err
-		}
-		rewardCAoB := types.GetStakeCAoB(delAddrBytes, "Reward")
-		delBscAddr := types.GetStakeCAoB(delAddrBytes, "Delegate")
-		recipient, err := sdk.NewSmartChainAddress(delBscAddr.String())
-		if err != nil {
-			return sdk.Events{}, err
-		}
-		amounts = append(amounts, amount)
-		bscAmounts = append(bscAmounts, bscTransferAmount)
-		recipients = append(recipients, recipient)
-		refundAddrs = append(refundAddrs, rewardCAoB)
+	bscTransferAmount := bsc.ConvertBCAmountToBSCAmount(amount)
+	delBscAddr := types.GetStakeCAoB(delAddr.Bytes(), "Delegate")
+	recipient, err := sdk.NewSmartChainAddress(delBscAddr.String())
+	if err != nil {
+		return sdk.Events{}, err
 	}
 
-	transferPackage := types.CrossStakeTransferOutRewardSynPackage{
-		EventCode:   types.CrossStakeTypeTransferOutReward,
-		Amounts:     bscAmounts,
-		Recipients:  recipients,
-		RefundAddrs: refundAddrs,
+	transferPackage := types.CrossStakeDistributeRewardSynPackage{
+		EventCode: types.CrossStakeTypeDistributeReward,
+		Amount:    bscTransferAmount,
+		Recipient: recipient,
 	}
 	encodedPackage, err := rlp.EncodeToBytes(transferPackage)
 	if err != nil {
@@ -434,25 +411,23 @@ func transferOutRewards(k Keeper, ctx sdk.Context, rewardsMap map[string]int64, 
 
 	// publish data if needed
 	if ctx.IsDeliverTx() && k.PbsbServer != nil {
-		event := types.TransferOutRewardEvent{
+		event := types.DistributeRewardEvent{
 			ChainId:       sideChainId,
-			Type:          types.CrossStakeTransferOutRewardType,
-			Delegators:    refundAddrs,
-			Receivers:     recipients,
-			Amounts:       amounts,
+			Type:          types.CrossStakeDistributeRewardType,
+			Delegator:     delAddr,
+			Receiver:      recipient,
+			Amount:        amount,
 			BSCRelayerFee: bscRelayFee.Int64(),
 		}
 		k.PbsbServer.Publish(event)
 	}
 
 	resultTags := sdk.NewTags(
-		types.TagCrossStakePackageType, []byte{uint8(types.CrossStakeTypeTransferOutReward)},
+		types.TagCrossStakePackageType, []byte{uint8(types.CrossStakeTypeDistributeReward)},
 		types.TagCrossStakeChannel, []byte{uint8(types.CrossStakeChannelID)},
 		types.TagCrossStakeSendSequence, []byte(strconv.FormatUint(sendSeq, 10)),
+		sdk.GetPegInTag(k.BondDenom(ctx), amount),
 	)
-	for _, amount := range amounts {
-		resultTags = append(resultTags, sdk.GetPegInTag(k.BondDenom(ctx), amount))
-	}
 
 	events := sdk.Events{sdk.Event{
 		Type:       types.EventTypeCrossStake,

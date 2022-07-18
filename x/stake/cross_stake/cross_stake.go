@@ -34,10 +34,10 @@ func (app *CrossStakeApp) ExecuteAckPackage(ctx sdk.Context, payload []byte) sdk
 
 	var result sdk.ExecuteResult
 	switch eventCode {
-	case types.CrossStakeTypeTransferOutReward:
-		result, err = app.handleTransferOutRewardRefund(ctx, pack.(types.CrossStakeTransferOutRewardSynPackage))
-	case types.CrossStakeTypeTransferOutUndelegated:
-		result, err = app.handleTransferOutUndelegatedRefund(ctx, pack.(types.CrossStakeTransferOutUndelegatedSynPackage))
+	case types.CrossStakeTypeDistributeReward:
+		result, err = app.handleDistributeRewardRefund(ctx, pack.(types.CrossStakeDistributeRewardSynPackage))
+	case types.CrossStakeTypeDistributeUndelegated:
+		result, err = app.handleDistributeUndelegatedRefund(ctx, pack.(types.CrossStakeDistributeUndelegatedSynPackage))
 	}
 	if err != nil {
 		panic(err)
@@ -298,53 +298,48 @@ func (app *CrossStakeApp) handleRedelegate(ctx sdk.Context, pack types.CrossStak
 	}, nil
 }
 
-func (app *CrossStakeApp) handleTransferOutRewardRefund(ctx sdk.Context, pack types.CrossStakeTransferOutRewardSynPackage) (sdk.ExecuteResult, error) {
-	symbol := app.stakeKeeper.BondDenom(ctx)
-	refundAmounts := make([]int64, 0, len(pack.Amounts))
-	var resultTags sdk.Tags
-	for i := 0; i < len(pack.Amounts); i++ {
-		refundAmount := bsc.ConvertBSCAmountToBCAmount(pack.Amounts[i])
-		refundAmounts = append(refundAmounts, refundAmount)
-		coins := sdk.Coins{sdk.NewCoin(symbol, refundAmount)}
-		_, err := app.stakeKeeper.BankKeeper.SendCoins(ctx, sdk.PegAccount, pack.RefundAddrs[i], coins)
-		if err != nil {
-			return sdk.ExecuteResult{}, err
-		}
-		resultTags = append(resultTags, sdk.GetPegOutTag(symbol, refundAmount))
-	}
-
-	// publish  event
-	if app.stakeKeeper.PbsbServer != nil && ctx.IsDeliverTx() {
-		addrs := []sdk.AccAddress{sdk.PegAccount}
-		addrs = append(addrs, pack.RefundAddrs...)
-		app.stakeKeeper.AddrPool.AddAddrs(addrs)
-		event := types.RewardRefundEvent{
-			RefundAddrs: pack.RefundAddrs,
-			Amounts:     refundAmounts,
-			Recipients:  pack.Recipients,
-		}
-		app.stakeKeeper.PbsbServer.Publish(event)
-	}
-
-	return sdk.ExecuteResult{
-		Tags: resultTags,
-	}, nil
-}
-
-func (app *CrossStakeApp) handleTransferOutUndelegatedRefund(ctx sdk.Context, pack types.CrossStakeTransferOutUndelegatedSynPackage) (sdk.ExecuteResult, error) {
+func (app *CrossStakeApp) handleDistributeRewardRefund(ctx sdk.Context, pack types.CrossStakeDistributeRewardSynPackage) (sdk.ExecuteResult, error) {
 	symbol := app.stakeKeeper.BondDenom(ctx)
 	refundAmount := bsc.ConvertBSCAmountToBCAmount(pack.Amount)
 	coins := sdk.Coins{sdk.NewCoin(symbol, refundAmount)}
-	_, err := app.stakeKeeper.BankKeeper.SendCoins(ctx, sdk.PegAccount, pack.RefundAddr, coins)
+	delAddr := types.GetStakeCAoB(pack.Recipient[:], "Delegate")
+	refundAddr := types.GetStakeCAoB(delAddr.Bytes(), "Reward")
+	_, err := app.stakeKeeper.BankKeeper.SendCoins(ctx, sdk.PegAccount, refundAddr, coins)
 	if err != nil {
 		return sdk.ExecuteResult{}, err
 	}
 
 	// publish  event
 	if app.stakeKeeper.PbsbServer != nil && ctx.IsDeliverTx() {
-		app.stakeKeeper.AddrPool.AddAddrs([]sdk.AccAddress{sdk.PegAccount, pack.RefundAddr})
+		app.stakeKeeper.AddrPool.AddAddrs([]sdk.AccAddress{sdk.PegAccount, refundAddr})
+		event := types.RewardRefundEvent{
+			RefundAddr: refundAddr,
+			Amount:     refundAmount,
+			Recipient:  pack.Recipient,
+		}
+		app.stakeKeeper.PbsbServer.Publish(event)
+	}
+
+	return sdk.ExecuteResult{
+		Tags: sdk.Tags{sdk.GetPegOutTag(symbol, refundAmount)},
+	}, nil
+}
+
+func (app *CrossStakeApp) handleDistributeUndelegatedRefund(ctx sdk.Context, pack types.CrossStakeDistributeUndelegatedSynPackage) (sdk.ExecuteResult, error) {
+	symbol := app.stakeKeeper.BondDenom(ctx)
+	refundAmount := bsc.ConvertBSCAmountToBCAmount(pack.Amount)
+	coins := sdk.Coins{sdk.NewCoin(symbol, refundAmount)}
+	refundAddr := types.GetStakeCAoB(pack.Recipient[:], "Delegate")
+	_, err := app.stakeKeeper.BankKeeper.SendCoins(ctx, sdk.PegAccount, refundAddr, coins)
+	if err != nil {
+		return sdk.ExecuteResult{}, err
+	}
+
+	// publish  event
+	if app.stakeKeeper.PbsbServer != nil && ctx.IsDeliverTx() {
+		app.stakeKeeper.AddrPool.AddAddrs([]sdk.AccAddress{sdk.PegAccount, refundAddr})
 		event := types.UndelegatedRefundEvent{
-			RefundAddr: pack.RefundAddr,
+			RefundAddr: refundAddr,
 			Amount:     refundAmount,
 			Recipient:  pack.Recipient,
 		}

@@ -19,22 +19,22 @@ const (
 	TagCrossStakePackageType  = "CrossStakePackageType"
 	TagCrossStakeSendSequence = "CrossStakeSendSequence"
 
-	CrossStakeTransferOutRewardRelayFee      = "crossStakeTransferOutRewardRelayFee"
-	CrossStakeTransferOutUndelegatedRelayFee = "crossStakeTransferOutUndelegatedRelayFee"
+	CrossStakeDistributeRewardRelayFee      = "crossStakeDistributeRewardRelayFee"
+	CrossStakeDistributeUndelegatedRelayFee = "crossStakeDistributeUndelegatedRelayFee"
 
-	CrossStakeTypeDelegate               CrossStakePackageType = 1
-	CrossStakeTypeUndelegate             CrossStakePackageType = 2
-	CrossStakeTypeRedelegate             CrossStakePackageType = 3
-	CrossStakeTypeTransferOutReward      CrossStakePackageType = 4
-	CrossStakeTypeTransferOutUndelegated CrossStakePackageType = 5
+	CrossStakeTypeDelegate              CrossStakePackageType = 1
+	CrossStakeTypeUndelegate            CrossStakePackageType = 2
+	CrossStakeTypeRedelegate            CrossStakePackageType = 3
+	CrossStakeTypeDistributeReward      CrossStakePackageType = 4
+	CrossStakeTypeDistributeUndelegated CrossStakePackageType = 5
 
 	CrossStakeTopic = pubsub.Topic("cross-stake")
 
-	CrossStakeDelegateType               string = "CSD"
-	CrossStakeUndelegateType             string = "CSU"
-	CrossStakeTransferOutRewardType      string = "CSTR"
-	CrossStakeTransferOutUndelegatedType string = "CSTU"
-	CrossStakeRedelegateType             string = "CSRD"
+	CrossStakeDelegateType              string = "CSD"
+	CrossStakeUndelegateType            string = "CSU"
+	CrossStakeDistributeRewardType      string = "CSDR"
+	CrossStakeDistributeUndelegatedType string = "CSDU"
+	CrossStakeRedelegateType            string = "CSRD"
 )
 
 type CrossStakeEvent struct {
@@ -50,20 +50,20 @@ func (event CrossStakeEvent) GetTopic() pubsub.Topic {
 	return CrossStakeTopic
 }
 
-type TransferOutRewardEvent struct {
+type DistributeRewardEvent struct {
 	ChainId       string
 	Type          string
-	Delegators    []sdk.AccAddress
-	Receivers     []sdk.SmartChainAddress
-	Amounts       []int64
+	Delegator     sdk.AccAddress
+	Receiver      sdk.SmartChainAddress
+	Amount        int64
 	BSCRelayerFee int64
 }
 
-func (event TransferOutRewardEvent) GetTopic() pubsub.Topic {
+func (event DistributeRewardEvent) GetTopic() pubsub.Topic {
 	return CrossStakeTopic
 }
 
-type TransferOutUndelegatedEvent struct {
+type DistributeUndelegatedEvent struct {
 	ChainId       string
 	Type          string
 	Delegator     sdk.AccAddress
@@ -73,14 +73,14 @@ type TransferOutUndelegatedEvent struct {
 	BSCRelayerFee int64
 }
 
-func (event TransferOutUndelegatedEvent) GetTopic() pubsub.Topic {
+func (event DistributeUndelegatedEvent) GetTopic() pubsub.Topic {
 	return CrossStakeTopic
 }
 
 type RewardRefundEvent struct {
-	RefundAddrs []sdk.AccAddress
-	Amounts     []int64
-	Recipients  []sdk.SmartChainAddress
+	RefundAddr sdk.AccAddress
+	Amount     int64
+	Recipient  sdk.SmartChainAddress
 }
 
 func (event RewardRefundEvent) GetTopic() pubsub.Topic {
@@ -134,19 +134,17 @@ type CrossStakeRedelegateAckPackage struct {
 	ErrorCode uint8
 }
 
-type CrossStakeTransferOutRewardSynPackage struct {
-	EventCode   CrossStakePackageType
-	Amounts     []*big.Int
-	Recipients  []sdk.SmartChainAddress
-	RefundAddrs []sdk.AccAddress
+type CrossStakeDistributeRewardSynPackage struct {
+	EventCode CrossStakePackageType
+	Amount    *big.Int
+	Recipient sdk.SmartChainAddress
 }
 
-type CrossStakeTransferOutUndelegatedSynPackage struct {
-	EventCode  CrossStakePackageType
-	Amount     *big.Int
-	Recipient  sdk.SmartChainAddress
-	RefundAddr sdk.AccAddress
-	Validator  sdk.ValAddress
+type CrossStakeDistributeUndelegatedSynPackage struct {
+	EventCode CrossStakePackageType
+	Amount    *big.Int
+	Recipient sdk.SmartChainAddress
+	Validator sdk.ValAddress
 }
 
 func GetStakeCAoB(sourceAddr []byte, salt string) sdk.AccAddress {

@@ -682,7 +682,7 @@ func (k Keeper) CompleteUnbonding(ctx sdk.Context, delAddr sdk.AccAddress, valAd
 		if err != nil {
 			return ubd, sdk.Events{}, err
 		}
-		events, err = k.transferOutUndelegated(ctx, delAddr, valAddr, ubd.Balance, k.ScKeeper.BscSideChainId(ctx))
+		events, err = k.distributeCrossStakeUndelegated(ctx, delAddr, valAddr, ubd.Balance, k.ScKeeper.BscSideChainId(ctx))
 		if err != nil {
 			return ubd, sdk.Events{}, err
 		}
@@ -814,8 +814,8 @@ func (k Keeper) ValidateUnbondAmount(
 	return shares, nil
 }
 
-func (k Keeper) transferOutUndelegated(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, amount sdk.Coin, sideChainId string) (sdk.Events, sdk.Error) {
-	relayFeeCalc := fees.GetCalculator(types.CrossStakeTransferOutUndelegatedRelayFee)
+func (k Keeper) distributeCrossStakeUndelegated(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, amount sdk.Coin, sideChainId string) (sdk.Events, sdk.Error) {
+	relayFeeCalc := fees.GetCalculator(types.CrossStakeDistributeUndelegatedRelayFee)
 	if relayFeeCalc == nil {
 		return sdk.Events{}, sdk.ErrInternal("no fee calculator of transferOutUndelegated")
 	}
@@ -829,12 +829,11 @@ func (k Keeper) transferOutUndelegated(ctx sdk.Context, delAddr sdk.AccAddress, 
 		return sdk.Events{}, sdk.ErrInternal(err.Error())
 	}
 
-	transferPackage := types.CrossStakeTransferOutUndelegatedSynPackage{
-		EventCode:  types.CrossStakeTypeTransferOutUndelegated,
-		Amount:     bscTransferAmount,
-		Recipient:  recipient,
-		RefundAddr: delAddr,
-		Validator:  valAddr,
+	transferPackage := types.CrossStakeDistributeUndelegatedSynPackage{
+		EventCode: types.CrossStakeTypeDistributeUndelegated,
+		Amount:    bscTransferAmount,
+		Recipient: recipient,
+		Validator: valAddr,
 	}
 	encodedPackage, err := rlp.EncodeToBytes(transferPackage)
 	if err != nil {
@@ -853,9 +852,9 @@ func (k Keeper) transferOutUndelegated(ctx sdk.Context, delAddr sdk.AccAddress, 
 
 	// publish data if needed
 	if ctx.IsDeliverTx() && k.PbsbServer != nil {
-		event := types.TransferOutUndelegatedEvent{
+		event := types.DistributeUndelegatedEvent{
 			ChainId:       sideChainId,
-			Type:          types.CrossStakeTransferOutUndelegatedType,
+			Type:          types.CrossStakeDistributeUndelegatedType,
 			Delegator:     delAddr,
 			Validator:     valAddr,
 			Receiver:      recipient,
@@ -866,7 +865,7 @@ func (k Keeper) transferOutUndelegated(ctx sdk.Context, delAddr sdk.AccAddress, 
 	}
 
 	resultTags := sdk.NewTags(
-		types.TagCrossStakePackageType, []byte(strconv.FormatInt(int64(types.CrossStakeTypeTransferOutUndelegated), 10)),
+		types.TagCrossStakePackageType, []byte(strconv.FormatInt(int64(types.CrossStakeTypeDistributeUndelegated), 10)),
 		types.TagCrossStakeChannel, []byte{uint8(types.CrossStakeChannelID)},
 		types.TagCrossStakeSendSequence, []byte(strconv.FormatUint(sendSeq, 10)),
 		sdk.GetPegInTag(k.BondDenom(ctx), amount.Amount),
