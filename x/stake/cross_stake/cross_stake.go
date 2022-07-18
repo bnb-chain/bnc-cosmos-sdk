@@ -145,8 +145,8 @@ func (app *CrossStakeApp) handleDelegate(ctx sdk.Context, pack types.CrossStakeD
 
 	resultTags := sdk.NewTags(
 		types.TagCrossStakePackageType, []byte(strconv.FormatInt(int64(types.CrossStakeTypeDelegate), 10)),
-		sdk.GetPegOutTag(delegation.Denom, delegation.Amount),
 	)
+	resultTags = append(resultTags, sdk.GetPegOutTag(delegation.Denom, delegation.Amount))
 
 	return sdk.ExecuteResult{
 		Tags: resultTags,

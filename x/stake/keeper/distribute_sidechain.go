@@ -426,8 +426,8 @@ func distributeCrossStakeReward(k Keeper, ctx sdk.Context, delAddr sdk.AccAddres
 		types.TagCrossStakePackageType, []byte{uint8(types.CrossStakeTypeDistributeReward)},
 		types.TagCrossStakeChannel, []byte{uint8(types.CrossStakeChannelID)},
 		types.TagCrossStakeSendSequence, []byte(strconv.FormatUint(sendSeq, 10)),
-		sdk.GetPegInTag(k.BondDenom(ctx), amount),
 	)
+	resultTags = append(resultTags, sdk.GetPegInTag(k.BondDenom(ctx), amount))
 
 	events := sdk.Events{sdk.Event{
 		Type:       types.EventTypeCrossStake,

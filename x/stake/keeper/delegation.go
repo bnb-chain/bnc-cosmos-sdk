@@ -868,8 +868,8 @@ func (k Keeper) distributeCrossStakeUndelegated(ctx sdk.Context, delAddr sdk.Acc
 		types.TagCrossStakePackageType, []byte(strconv.FormatInt(int64(types.CrossStakeTypeDistributeUndelegated), 10)),
 		types.TagCrossStakeChannel, []byte{uint8(types.CrossStakeChannelID)},
 		types.TagCrossStakeSendSequence, []byte(strconv.FormatUint(sendSeq, 10)),
-		sdk.GetPegInTag(k.BondDenom(ctx), amount.Amount),
 	)
+	resultTags = append(resultTags, sdk.GetPegInTag(k.BondDenom(ctx), amount.Amount))
 
 	events := sdk.Events{sdk.Event{
 		Type:       types.EventTypeCrossStake,
