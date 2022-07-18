@@ -76,7 +76,7 @@ func (app *CrossStakeApp) ExecuteSynPackage(ctx sdk.Context, payload []byte, rel
 }
 
 func (app *CrossStakeApp) handleDelegate(ctx sdk.Context, pack types.CrossStakeDelegateSynPackage, relayFee int64) (sdk.ExecuteResult, error) {
-	sideChainId := ctx.SideChainId()
+	sideChainId := app.stakeKeeper.DestChainName
 	if scCtx, err := app.stakeKeeper.ScKeeper.PrepareCtxForSideChain(ctx, sideChainId); err != nil {
 		return sdk.ExecuteResult{}, err
 	} else {
@@ -154,7 +154,7 @@ func (app *CrossStakeApp) handleDelegate(ctx sdk.Context, pack types.CrossStakeD
 }
 
 func (app *CrossStakeApp) handleUndelegate(ctx sdk.Context, pack types.CrossStakeUndelegateSynPackage, relayFee int64) (sdk.ExecuteResult, error) {
-	sideChainId := ctx.SideChainId()
+	sideChainId := app.stakeKeeper.DestChainName
 	if scCtx, err := app.stakeKeeper.ScKeeper.PrepareCtxForSideChain(ctx, sideChainId); err != nil {
 		return sdk.ExecuteResult{}, err
 	} else {
@@ -213,7 +213,7 @@ func (app *CrossStakeApp) handleUndelegate(ctx sdk.Context, pack types.CrossStak
 }
 
 func (app *CrossStakeApp) handleRedelegate(ctx sdk.Context, pack types.CrossStakeRedelegateSynPackage, relayFee int64) (sdk.ExecuteResult, error) {
-	sideChainId := ctx.SideChainId()
+	sideChainId := app.stakeKeeper.DestChainName
 	if scCtx, err := app.stakeKeeper.ScKeeper.PrepareCtxForSideChain(ctx, sideChainId); err != nil {
 		return sdk.ExecuteResult{}, err
 	} else {

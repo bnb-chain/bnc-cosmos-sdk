@@ -36,11 +36,14 @@ type Keeper struct {
 	ibcKeeper *ibc.Keeper
 	ScKeeper  *sidechain.Keeper
 
+	DestChainId   sdk.ChainID
+	DestChainName string
+
 	PbsbServer *pubsub.Server
 }
 
 func NewKeeper(cdc *codec.Codec, key, rewardKey, tkey sdk.StoreKey, ck bank.Keeper, addrPool *sdk.Pool,
-	paramstore params.Subspace, codespace sdk.CodespaceType) Keeper {
+	paramstore params.Subspace, codespace sdk.CodespaceType, destChainId sdk.ChainID, destChainName string) Keeper {
 	keeper := Keeper{
 		storeKey:       key,
 		rewardStoreKey: rewardKey,
@@ -51,6 +54,8 @@ func NewKeeper(cdc *codec.Codec, key, rewardKey, tkey sdk.StoreKey, ck bank.Keep
 		paramstore:     paramstore.WithTypeTable(ParamTypeTable()),
 		hooks:          nil,
 		codespace:      codespace,
+		DestChainId:    destChainId,
+		DestChainName:  destChainName,
 	}
 
 	return keeper

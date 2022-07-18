@@ -40,7 +40,7 @@ func TestStakeWithRandomMessages(t *testing.T) {
 	paramstore := params.NewKeeper(mapp.Cdc, paramsKey, paramsTKey)
 	scKeeper := sidechain.NewKeeper(keySideChain, paramstore.Subspace(sidechain.DefaultParamspace), mapp.Cdc)
 	ibcKeeper := ibc.NewKeeper(ibcKey, paramstore.Subspace(ibc.DefaultParamspace), ibc.DefaultCodespace, scKeeper)
-	stakeKeeper := stake.NewKeeper(mapp.Cdc, stakeKey, stakeRewardKey, stakeTKey, bankKeeper, nil, paramstore.Subspace(stake.DefaultParamspace), stake.DefaultCodespace)
+	stakeKeeper := stake.NewKeeper(mapp.Cdc, stakeKey, stakeRewardKey, stakeTKey, bankKeeper, nil, paramstore.Subspace(stake.DefaultParamspace), stake.DefaultCodespace, sdk.ChainID(0), "")
 	stakeKeeper.SetupForSideChain(&scKeeper, &ibcKeeper)
 	distrKeeper := distribution.NewKeeper(mapp.Cdc, distrKey, paramstore.Subspace(distribution.DefaultParamspace), bankKeeper, stakeKeeper, feeCollectionKeeper, distribution.DefaultCodespace)
 	mapp.Router().AddRoute("stake", stake.NewStakeHandler(stakeKeeper))
