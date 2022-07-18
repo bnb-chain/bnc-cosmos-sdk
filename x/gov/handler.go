@@ -148,7 +148,7 @@ func EndBlocker(baseCtx sdk.Context, keeper Keeper) (refundProposals, notRefundP
 
 func settleProposals(ctx sdk.Context, keeper Keeper, chainId string) (resEvents sdk.Events, refundProposals, notRefundProposals []SimpleProposal) {
 
-	logger := ctx.Logger().With("module", "x/gov")
+	logger := ctx.Logger().With("module", "gov")
 
 	resEvents = sdk.EmptyEvents()
 	refundProposals = make([]SimpleProposal, 0)

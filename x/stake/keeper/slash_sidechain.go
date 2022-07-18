@@ -11,7 +11,7 @@ import (
 )
 
 func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr []byte, slashAmount sdk.Dec) (sdk.Validator, sdk.Dec, error) {
-	logger := ctx.Logger().With("module", "x/stake")
+	logger := ctx.Logger().With("module", "stake")
 
 	sideCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, sideChainId)
 	if err != nil {

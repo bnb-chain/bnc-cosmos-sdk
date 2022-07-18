@@ -83,7 +83,7 @@ func (k *Keeper) SetPbsbServer(server *pubsub.Server) {
 
 // Logger returns a module-specific logger.
 func (k Keeper) Logger(ctx sdk.Context) log.Logger {
-	return ctx.Logger().With("module", "x/stake")
+	return ctx.Logger().With("module", "stake")
 }
 
 // Set the validator hooks
