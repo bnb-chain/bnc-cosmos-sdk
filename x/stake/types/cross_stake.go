@@ -19,8 +19,8 @@ const (
 	TagCrossStakePackageType  = "CrossStakePackageType"
 	TagCrossStakeSendSequence = "CrossStakeSendSequence"
 
-	CrossStakeDistributeRewardRelayFee      = "crossStakeDistributeRewardRelayFee"
-	CrossStakeDistributeUndelegatedRelayFee = "crossStakeDistributeUndelegatedRelayFee"
+	CrossDistributeRewardRelayFee      = "crossDistributeRewardRelayFee"
+	CrossDistributeUndelegatedRelayFee = "crossDistributeUndelegatedRelayFee"
 
 	CrossStakeTypeDelegate              CrossStakePackageType = 1
 	CrossStakeTypeUndelegate            CrossStakePackageType = 2
@@ -105,8 +105,15 @@ type CrossStakeDelegateSynPackage struct {
 }
 
 type CrossStakeDelegationAckPackage struct {
-	CrossStakeDelegateSynPackage
-	ErrorCode uint8
+	PackageType CrossStakePackageType
+	DelAddr     sdk.SmartChainAddress
+	Validator   sdk.ValAddress
+	Amount      *big.Int
+	ErrorCode   uint8
+}
+
+func NewCrossStakeDelegationAckPackage(synPack *CrossStakeDelegateSynPackage, errCode uint8) *CrossStakeDelegationAckPackage {
+	return &CrossStakeDelegationAckPackage{synPack.PackageType, synPack.DelAddr, synPack.Validator, synPack.Amount, errCode}
 }
 
 type CrossStakeUndelegateSynPackage struct {
@@ -117,8 +124,15 @@ type CrossStakeUndelegateSynPackage struct {
 }
 
 type CrossStakeUndelegateAckPackage struct {
-	CrossStakeUndelegateSynPackage
-	ErrorCode uint8
+	PackageType CrossStakePackageType
+	DelAddr     sdk.SmartChainAddress
+	Validator   sdk.ValAddress
+	Amount      *big.Int
+	ErrorCode   uint8
+}
+
+func NewCrossStakeUndelegateAckPackage(synPack *CrossStakeUndelegateSynPackage, errCode uint8) *CrossStakeUndelegateAckPackage {
+	return &CrossStakeUndelegateAckPackage{synPack.PackageType, synPack.DelAddr, synPack.Validator, synPack.Amount, errCode}
 }
 
 type CrossStakeRedelegateSynPackage struct {
@@ -130,8 +144,16 @@ type CrossStakeRedelegateSynPackage struct {
 }
 
 type CrossStakeRedelegateAckPackage struct {
-	CrossStakeRedelegateSynPackage
-	ErrorCode uint8
+	PackageType CrossStakePackageType
+	DelAddr     sdk.SmartChainAddress
+	ValSrc      sdk.ValAddress
+	ValDst      sdk.ValAddress
+	Amount      *big.Int
+	ErrorCode   uint8
+}
+
+func NewCrossStakeRedelegationAckPackage(synPack *CrossStakeRedelegateSynPackage, errCode uint8) *CrossStakeRedelegateAckPackage {
+	return &CrossStakeRedelegateAckPackage{synPack.PackageType, synPack.DelAddr, synPack.ValSrc, synPack.ValDst, synPack.Amount, errCode}
 }
 
 type CrossStakeDistributeRewardSynPackage struct {

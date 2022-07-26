@@ -95,10 +95,7 @@ func (app *CrossStakeApp) handleDelegate(ctx sdk.Context, pack types.CrossStakeD
 			sdkErr = types.ErrValidatorJailed(types.DefaultCodespace)
 			errCode = CrossStakeErrValidatorJailed
 		}
-		ackPack := &types.CrossStakeDelegationAckPackage{
-			CrossStakeDelegateSynPackage: pack,
-			ErrorCode:                    errCode,
-		}
+		ackPack := types.NewCrossStakeDelegationAckPackage(&pack, errCode)
 		ackPack.Amount = bsc.ConvertBCAmountToBSCAmount(ackPack.Amount.Int64())
 		ackBytes, err := rlp.EncodeToBytes(ackPack)
 		if err != nil {
@@ -164,10 +161,7 @@ func (app *CrossStakeApp) handleUndelegate(ctx sdk.Context, pack types.CrossStak
 	delAddr := types.GetStakeCAoB(pack.DelAddr[:], "Delegate")
 	shares, sdkErr := app.stakeKeeper.ValidateUnbondAmount(ctx, delAddr, pack.Validator, pack.Amount.Int64())
 	if sdkErr != nil {
-		ackPack := &types.CrossStakeUndelegateAckPackage{
-			CrossStakeUndelegateSynPackage: pack,
-			ErrorCode:                      CrossStakeErrBadDelegation,
-		}
+		ackPack := types.NewCrossStakeUndelegateAckPackage(&pack, CrossStakeErrBadDelegation)
 		ackPack.Amount = bsc.ConvertBCAmountToBSCAmount(ackPack.Amount.Int64())
 		ackBytes, err := rlp.EncodeToBytes(ackPack)
 		if err != nil {
@@ -231,10 +225,7 @@ func (app *CrossStakeApp) handleRedelegate(ctx sdk.Context, pack types.CrossStak
 			sdkErr = types.ErrValidatorJailed(types.DefaultCodespace)
 			errCode = CrossStakeErrValidatorJailed
 		}
-		ackPack := &types.CrossStakeRedelegateAckPackage{
-			CrossStakeRedelegateSynPackage: pack,
-			ErrorCode:                      errCode,
-		}
+		ackPack := types.NewCrossStakeRedelegationAckPackage(&pack, errCode)
 		ackPack.Amount = bsc.ConvertBCAmountToBSCAmount(ackPack.Amount.Int64())
 		ackBytes, err := rlp.EncodeToBytes(ackPack)
 		if err != nil {
@@ -249,10 +240,7 @@ func (app *CrossStakeApp) handleRedelegate(ctx sdk.Context, pack types.CrossStak
 	delAddr := types.GetStakeCAoB(pack.DelAddr[:], "Delegate")
 	shares, sdkErr := app.stakeKeeper.ValidateUnbondAmount(ctx, delAddr, pack.ValSrc, pack.Amount.Int64())
 	if sdkErr != nil {
-		ackPack := &types.CrossStakeRedelegateAckPackage{
-			CrossStakeRedelegateSynPackage: pack,
-			ErrorCode:                      CrossStakeErrBadDelegation,
-		}
+		ackPack := types.NewCrossStakeRedelegationAckPackage(&pack, CrossStakeErrBadDelegation)
 		ackPack.Amount = bsc.ConvertBCAmountToBSCAmount(ackPack.Amount.Int64())
 		ackBytes, err := rlp.EncodeToBytes(ackPack)
 		if err != nil {

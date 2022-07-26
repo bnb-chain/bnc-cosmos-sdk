@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"encoding/hex"
 	"fmt"
 	"strconv"
 
@@ -289,7 +290,7 @@ func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) sdk.E
 				if _, err := k.BankKeeper.SendCoins(ctx, rewardCAoB, sdk.PegAccount, sdk.Coins{sdk.NewCoin(bondDenom, balance)}); err != nil {
 					panic(err)
 				}
-				event, err := distributeCrossStakeReward(k, ctx, reward.AccAddr, balance, sideChainId)
+				event, err := crossDistributeReward(k, ctx, reward.AccAddr, balance)
 				if err != nil {
 					panic(err)
 				}
@@ -374,8 +375,8 @@ func removeValidatorsAndDelegationsAtHeight(height int64, k Keeper, ctx sdk.Cont
 	k.RemoveValidatorsByHeight(ctx, height)
 }
 
-func distributeCrossStakeReward(k Keeper, ctx sdk.Context, delAddr sdk.AccAddress, amount int64, sideChainId string) (sdk.Events, error) {
-	relayFeeCalc := fees.GetCalculator(types.CrossStakeDistributeRewardRelayFee)
+func crossDistributeReward(k Keeper, ctx sdk.Context, delAddr sdk.AccAddress, amount int64) (sdk.Events, error) {
+	relayFeeCalc := fees.GetCalculator(types.CrossDistributeRewardRelayFee)
 	if relayFeeCalc == nil {
 		return sdk.Events{}, fmt.Errorf("no fee calculator of transferOutRewards")
 	}
@@ -383,8 +384,9 @@ func distributeCrossStakeReward(k Keeper, ctx sdk.Context, delAddr sdk.AccAddres
 	bscRelayFee := bsc.ConvertBCAmountToBSCAmount(relayFee.Tokens.AmountOf(k.BondDenom(ctx)))
 
 	bscTransferAmount := bsc.ConvertBCAmountToBSCAmount(amount)
-	delBscAddr := types.GetStakeCAoB(delAddr.Bytes(), "Delegate")
-	recipient, err := sdk.NewSmartChainAddress(delBscAddr.String())
+	delBscAddrAcc := types.GetStakeCAoB(delAddr.Bytes(), "Delegate")
+	delBscAddr := hex.EncodeToString(delBscAddrAcc.Bytes())
+	recipient, err := sdk.NewSmartChainAddress(delBscAddr)
 	if err != nil {
 		return sdk.Events{}, err
 	}
@@ -399,11 +401,7 @@ func distributeCrossStakeReward(k Keeper, ctx sdk.Context, delAddr sdk.AccAddres
 		return sdk.Events{}, err
 	}
 
-	chainId, err := sdk.ParseChainID(sideChainId)
-	if err != nil {
-		return sdk.Events{}, err
-	}
-	sendSeq, sdkErr := k.ibcKeeper.CreateRawIBCPackageByIdWithFee(ctx, chainId, types.CrossStakeChannelID, sdk.SynCrossChainPackageType,
+	sendSeq, sdkErr := k.ibcKeeper.CreateRawIBCPackageByIdWithFee(ctx.DepriveSideChainKeyPrefix(), k.DestChainId, types.CrossStakeChannelID, sdk.SynCrossChainPackageType,
 		encodedPackage, *bscRelayFee)
 	if sdkErr != nil {
 		return sdk.Events{}, sdkErr
@@ -412,7 +410,7 @@ func distributeCrossStakeReward(k Keeper, ctx sdk.Context, delAddr sdk.AccAddres
 	// publish data if needed
 	if ctx.IsDeliverTx() && k.PbsbServer != nil {
 		event := types.DistributeRewardEvent{
-			ChainId:       sideChainId,
+			ChainId:       k.DestChainName,
 			Type:          types.CrossStakeDistributeRewardType,
 			Delegator:     delAddr,
 			Receiver:      recipient,

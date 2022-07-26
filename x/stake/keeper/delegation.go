@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"encoding/hex"
 	"fmt"
 	"strconv"
 	"time"
@@ -682,7 +683,7 @@ func (k Keeper) CompleteUnbonding(ctx sdk.Context, delAddr sdk.AccAddress, valAd
 		if err != nil {
 			return ubd, sdk.Events{}, err
 		}
-		events, err = k.distributeCrossStakeUndelegated(ctx, delAddr, valAddr, ubd.Balance, k.ScKeeper.BscSideChainId(ctx))
+		events, err = k.crossDistributeUndelegated(ctx, delAddr, valAddr, ubd.Balance)
 		if err != nil {
 			return ubd, sdk.Events{}, err
 		}
@@ -814,17 +815,18 @@ func (k Keeper) ValidateUnbondAmount(
 	return shares, nil
 }
 
-func (k Keeper) distributeCrossStakeUndelegated(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, amount sdk.Coin, sideChainId string) (sdk.Events, sdk.Error) {
-	relayFeeCalc := fees.GetCalculator(types.CrossStakeDistributeUndelegatedRelayFee)
+func (k Keeper) crossDistributeUndelegated(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, amount sdk.Coin) (sdk.Events, sdk.Error) {
+	relayFeeCalc := fees.GetCalculator(types.CrossDistributeUndelegatedRelayFee)
 	if relayFeeCalc == nil {
-		return sdk.Events{}, sdk.ErrInternal("no fee calculator of transferOutUndelegated")
+		return sdk.Events{}, sdk.ErrInternal("no fee calculator of distributeUndelegated")
 	}
 	relayFee := relayFeeCalc(nil)
 	bscRelayFee := bsc.ConvertBCAmountToBSCAmount(relayFee.Tokens.AmountOf(k.BondDenom(ctx)))
 	bscTransferAmount := bsc.ConvertBCAmountToBSCAmount(amount.Amount)
 
-	delBscAddr := types.GetStakeCAoB(delAddr.Bytes(), "Delegate")
-	recipient, err := sdk.NewSmartChainAddress(delBscAddr.String())
+	delBscAddrAcc := types.GetStakeCAoB(delAddr.Bytes(), "Delegate")
+	delBscAddr := hex.EncodeToString(delBscAddrAcc.Bytes())
+	recipient, err := sdk.NewSmartChainAddress(delBscAddr)
 	if err != nil {
 		return sdk.Events{}, sdk.ErrInternal(err.Error())
 	}
@@ -840,12 +842,8 @@ func (k Keeper) distributeCrossStakeUndelegated(ctx sdk.Context, delAddr sdk.Acc
 		return sdk.Events{}, sdk.ErrInternal(err.Error())
 	}
 
-	chainId, err := sdk.ParseChainID(sideChainId)
-	if err != nil {
-		return sdk.Events{}, sdk.ErrInternal(err.Error())
-	}
-	sendSeq, sdkErr := k.ibcKeeper.CreateRawIBCPackageByIdWithFee(ctx, chainId, types.CrossStakeChannelID, sdk.SynCrossChainPackageType,
-		encodedPackage, *bscRelayFee)
+	sendSeq, sdkErr := k.ibcKeeper.CreateRawIBCPackageByIdWithFee(ctx.DepriveSideChainKeyPrefix(), k.DestChainId, types.CrossStakeChannelID,
+		sdk.SynCrossChainPackageType, encodedPackage, *bscRelayFee)
 	if sdkErr != nil {
 		return sdk.Events{}, sdkErr
 	}
@@ -853,7 +851,7 @@ func (k Keeper) distributeCrossStakeUndelegated(ctx sdk.Context, delAddr sdk.Acc
 	// publish data if needed
 	if ctx.IsDeliverTx() && k.PbsbServer != nil {
 		event := types.DistributeUndelegatedEvent{
-			ChainId:       sideChainId,
+			ChainId:       k.DestChainName,
 			Type:          types.CrossStakeDistributeUndelegatedType,
 			Delegator:     delAddr,
 			Validator:     valAddr,

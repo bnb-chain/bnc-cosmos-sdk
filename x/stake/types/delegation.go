@@ -129,6 +129,7 @@ func UnmarshalDelegationValAsKey(cdc *codec.Codec, key, value []byte) (realDeleg
 	realDelegation.ValidatorAddr = delegation.DelegatorAddr.Bytes()
 	realDelegation.Shares = delegation.Shares
 	realDelegation.Height = delegation.Height
+	realDelegation.CrossStake = delegation.CrossStake
 
 	return realDelegation, nil
 }

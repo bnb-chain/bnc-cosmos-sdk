@@ -7,7 +7,7 @@ import (
 
 func PublishCrossChainEvent(ctx sdk.Context, keeper Keeper, delegator sdk.AccAddress, valSrc sdk.ValAddress,
 	valDst sdk.ValAddress, eventType string, relayFee int64) {
-	chainId := keeper.ScKeeper.BscSideChainId(ctx)
+	chainId := keeper.DestChainName
 	if keeper.PbsbServer != nil {
 		event := types.CrossStakeEvent{
 			ChainId:      chainId,
