@@ -36,10 +36,7 @@ func TestRLP(t *testing.T) {
 		Amount:      big.NewInt(1000),
 	}
 
-	ackPack := &CrossStakeDelegationAckPackage{
-		CrossStakeDelegateSynPackage: synPack,
-		ErrorCode:                    1,
-	}
+	ackPack := NewCrossStakeDelegationAckPackage(&synPack, 1)
 	ackBytes, _ := rlp.EncodeToBytes(ackPack)
 
 	type AckPackage struct {
