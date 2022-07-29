@@ -15,9 +15,9 @@ func TestGetStakeCAoB(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	stakeCAoB := GetStakeCAoB(exp.Bytes(), "Delegate")
+	stakeCAoB := GetStakeCAoB(exp.Bytes(), DelegateCAoBSalt)
 	fmt.Println(stakeCAoB.String())
-	if delAddr := GetStakeCAoB(stakeCAoB.Bytes(), "Delegate"); delAddr.String() != exp.String() {
+	if delAddr := GetStakeCAoB(stakeCAoB.Bytes(), DelegateCAoBSalt); delAddr.String() != exp.String() {
 		t.Fatal()
 	}
 }
@@ -30,13 +30,12 @@ func TestRLP(t *testing.T) {
 	bz, _ := sdk.GetFromBech32(bcAddr, "bnb")
 	valAddr := sdk.ValAddress(bz)
 	synPack := CrossStakeDelegateSynPackage{
-		PackageType: 0,
-		DelAddr:     delAddr,
-		Validator:   valAddr,
-		Amount:      big.NewInt(1000),
+		DelAddr:   delAddr,
+		Validator: valAddr,
+		Amount:    big.NewInt(1000),
 	}
 
-	ackPack := NewCrossStakeDelegationAckPackage(&synPack, 1)
+	ackPack := NewCrossStakeDelegationAckPackage(&synPack, CrossStakeTypeDelegate, 1)
 	ackBytes, _ := rlp.EncodeToBytes(ackPack)
 
 	type AckPackage struct {
@@ -51,5 +50,4 @@ func TestRLP(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(pack.Amount)
 }

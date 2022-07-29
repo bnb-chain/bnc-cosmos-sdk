@@ -824,7 +824,7 @@ func (k Keeper) crossDistributeUndelegated(ctx sdk.Context, delAddr sdk.AccAddre
 	bscRelayFee := bsc.ConvertBCAmountToBSCAmount(relayFee.Tokens.AmountOf(k.BondDenom(ctx)))
 	bscTransferAmount := bsc.ConvertBCAmountToBSCAmount(amount.Amount)
 
-	delBscAddrAcc := types.GetStakeCAoB(delAddr.Bytes(), "Delegate")
+	delBscAddrAcc := types.GetStakeCAoB(delAddr.Bytes(), types.DelegateCAoBSalt)
 	delBscAddr := hex.EncodeToString(delBscAddrAcc.Bytes())
 	recipient, err := sdk.NewSmartChainAddress(delBscAddr)
 	if err != nil {

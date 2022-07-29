@@ -281,12 +281,12 @@ func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) sdk.E
 		}
 
 		if reward.CrossStake && sdk.IsUpgrade(sdk.BEP153) {
-			rewardCAoB := types.GetStakeCAoB(reward.AccAddr.Bytes(), "Reward")
+			rewardCAoB := types.GetStakeCAoB(reward.AccAddr.Bytes(), types.RewardCAoBSalt)
 			if _, _, err := k.BankKeeper.AddCoins(ctx, rewardCAoB, sdk.Coins{sdk.NewCoin(bondDenom, reward.Amount)}); err != nil {
 				panic(err)
 			}
 			balance := k.BankKeeper.GetCoins(ctx, rewardCAoB).AmountOf(bondDenom)
-			if balance >= 1e8 {
+			if balance >= types.MinRewardThreshold {
 				if _, err := k.BankKeeper.SendCoins(ctx, rewardCAoB, sdk.PegAccount, sdk.Coins{sdk.NewCoin(bondDenom, balance)}); err != nil {
 					panic(err)
 				}
@@ -384,7 +384,7 @@ func crossDistributeReward(k Keeper, ctx sdk.Context, delAddr sdk.AccAddress, am
 	bscRelayFee := bsc.ConvertBCAmountToBSCAmount(relayFee.Tokens.AmountOf(k.BondDenom(ctx)))
 
 	bscTransferAmount := bsc.ConvertBCAmountToBSCAmount(amount)
-	delBscAddrAcc := types.GetStakeCAoB(delAddr.Bytes(), "Delegate")
+	delBscAddrAcc := types.GetStakeCAoB(delAddr.Bytes(), types.DelegateCAoBSalt)
 	delBscAddr := hex.EncodeToString(delBscAddrAcc.Bytes())
 	recipient, err := sdk.NewSmartChainAddress(delBscAddr)
 	if err != nil {

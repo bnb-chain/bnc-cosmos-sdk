@@ -5,8 +5,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
 
-func PublishCrossChainEvent(ctx sdk.Context, keeper Keeper, delegator sdk.AccAddress, valSrc sdk.ValAddress,
-	valDst sdk.ValAddress, eventType string, relayFee int64) {
+func PublishCrossStakeEvent(keeper Keeper, delegator sdk.AccAddress, valSrc sdk.ValAddress, valDst sdk.ValAddress,
+	eventType string, relayFee int64) {
 	chainId := keeper.DestChainName
 	if keeper.PbsbServer != nil {
 		event := types.CrossStakeEvent{

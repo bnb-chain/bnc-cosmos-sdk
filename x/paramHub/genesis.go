@@ -73,8 +73,8 @@ const (
 	MiniListingFee = 8e8
 
 	// Cross stake fee
-	CrossDistributeRewardRelayFee      = 2e6 //TODO
-	CrossDistributeUndelegatedRelayFee = 2e6 //TODO
+	CrossDistributeRewardRelayFee      = 2e6 // 0.02 BNB
+	CrossDistributeUndelegatedRelayFee = 2e6 // 0.02 BNB
 )
 
 var DefaultGenesisState = param.GenesisState{

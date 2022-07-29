@@ -2,13 +2,10 @@ package types_test
 
 import (
 	"encoding/hex"
-	"fmt"
 	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/tendermint/tendermint/libs/bech32"
-
 	"github.com/tendermint/tendermint/crypto/ed25519"
 
 	"github.com/cosmos/cosmos-sdk/types"
@@ -195,18 +192,4 @@ func TestSmartChainAddress(t *testing.T) {
 	addrStr = "0x43121d597656E398473b992f0dF667fF0fc0791"
 	_, err = types.NewSmartChainAddress(addrStr)
 	require.NotNil(t, err, "err should not be nil")
-}
-
-func TestForBep153(t *testing.T) {
-	bcAddr := "tbnb1q8eh7ytly7letp6aadxmzasmrpwyalkjf3rpvn"
-	// 0x01f37f117f27bf95875deb4db1761b185c4efed2
-
-	bz, err := types.GetFromBech32(bcAddr, "tbnb")
-	opAddr, err := bech32.ConvertAndEncode("bva", bz)
-	if err != nil {
-		t.Fatal(err)
-	}
-	bscAddr := hex.EncodeToString(bz)
-	fmt.Println("0x" + bscAddr)
-	fmt.Println(opAddr)
 }
