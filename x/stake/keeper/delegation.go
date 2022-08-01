@@ -3,6 +3,7 @@ package keeper
 import (
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"strconv"
 	"time"
 
@@ -826,7 +827,7 @@ func (k Keeper) crossDistributeUndelegated(ctx sdk.Context, delAddr sdk.AccAddre
 	}
 	relayFee := relayFeeCalc(nil)
 	bscRelayFee := bsc.ConvertBCAmountToBSCAmount(relayFee.Tokens.AmountOf(k.BondDenom(ctx)))
-	bscTransferAmount := bsc.ConvertBCAmountToBSCAmount(amount.Amount)
+	bscTransferAmount := new(big.Int).Sub(bsc.ConvertBCAmountToBSCAmount(amount.Amount), bscRelayFee)
 
 	delBscAddrAcc := types.GetStakeCAoB(delAddr.Bytes(), types.DelegateCAoBSalt)
 	delBscAddr := hex.EncodeToString(delBscAddrAcc.Bytes())

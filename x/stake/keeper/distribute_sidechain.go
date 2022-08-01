@@ -3,6 +3,7 @@ package keeper
 import (
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"strconv"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
@@ -385,7 +386,7 @@ func crossDistributeReward(k Keeper, ctx sdk.Context, rewardCAoB sdk.AccAddress,
 	relayFee := relayFeeCalc(nil)
 	bscRelayFee := bsc.ConvertBCAmountToBSCAmount(relayFee.Tokens.AmountOf(k.BondDenom(ctx)))
 
-	bscTransferAmount := bsc.ConvertBCAmountToBSCAmount(amount)
+	bscTransferAmount := new(big.Int).Sub(bsc.ConvertBCAmountToBSCAmount(amount), bscRelayFee)
 	delBscAddrAcc := types.GetStakeCAoB(delAddr.Bytes(), types.DelegateCAoBSalt)
 	delBscAddr := hex.EncodeToString(delBscAddrAcc.Bytes())
 	recipient, err := sdk.NewSmartChainAddress(delBscAddr)

@@ -93,7 +93,7 @@ func (app *CrossStakeApp) ExecuteSynPackage(ctx sdk.Context, payload []byte, rel
 	case types.CrossStakeRedelegateSynPackage:
 		result, err = app.handleRedelegate(ctx, p, relayFee)
 	default:
-		panic("Unknown cross stake fail ack package type")
+		panic("Unknown cross stake syn package type")
 	}
 	if err != nil {
 		panic(err)
