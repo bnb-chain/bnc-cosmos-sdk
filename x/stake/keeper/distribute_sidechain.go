@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/bsc"
 	"github.com/cosmos/cosmos-sdk/bsc/rlp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -290,11 +291,12 @@ func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) sdk.E
 				if _, err := k.BankKeeper.SendCoins(ctx, rewardCAoB, sdk.PegAccount, sdk.Coins{sdk.NewCoin(bondDenom, balance)}); err != nil {
 					panic(err)
 				}
-				event, err := crossDistributeReward(k, ctx, reward.AccAddr, balance)
+				event, err := crossDistributeReward(k, ctx, rewardCAoB, reward.AccAddr, balance)
 				if err != nil {
 					panic(err)
 				}
 				events = events.AppendEvents(event)
+				changedAddrs = append(changedAddrs, sdk.PegAccount)
 			}
 		} else {
 			if _, _, err := k.BankKeeper.AddCoins(ctx, reward.AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, reward.Amount)}); err != nil {
@@ -375,7 +377,7 @@ func removeValidatorsAndDelegationsAtHeight(height int64, k Keeper, ctx sdk.Cont
 	k.RemoveValidatorsByHeight(ctx, height)
 }
 
-func crossDistributeReward(k Keeper, ctx sdk.Context, delAddr sdk.AccAddress, amount int64) (sdk.Events, error) {
+func crossDistributeReward(k Keeper, ctx sdk.Context, rewardCAoB sdk.AccAddress, delAddr sdk.AccAddress, amount int64) (sdk.Events, error) {
 	relayFeeCalc := fees.GetCalculator(types.CrossDistributeRewardRelayFee)
 	if relayFeeCalc == nil {
 		return sdk.Events{}, fmt.Errorf("no fee calculator of transferOutRewards")
@@ -409,15 +411,21 @@ func crossDistributeReward(k Keeper, ctx sdk.Context, delAddr sdk.AccAddress, am
 
 	// publish data if needed
 	if ctx.IsDeliverTx() && k.PbsbServer != nil {
-		event := types.DistributeRewardEvent{
-			ChainId:       k.DestChainName,
-			Type:          types.CrossStakeDistributeRewardType,
-			Delegator:     delAddr,
-			Receiver:      recipient,
-			Amount:        amount,
-			BSCRelayerFee: bscRelayFee.Int64(),
+		txHash := ctx.Value(baseapp.TxHashKey)
+		if txHashStr, ok := txHash.(string); ok {
+			event := types.CrossTransferEvent{
+				TxHash:     txHashStr,
+				ChainId:    k.DestChainName,
+				RelayerFee: relayFee.Tokens.AmountOf(k.BondDenom(ctx)),
+				Type:       types.CrossStakeDistributeRewardType,
+				From:       rewardCAoB.String(),
+				Denom:      k.BondDenom(ctx),
+				To:         []types.CrossReceiver{{sdk.PegAccount.String(), amount}},
+			}
+			k.PbsbServer.Publish(event)
+		} else {
+			ctx.Logger().With("module", "stake").Error("failed to get txhash, will not publish cross transfer event ")
 		}
-		k.PbsbServer.Publish(event)
 	}
 
 	resultTags := sdk.NewTags(

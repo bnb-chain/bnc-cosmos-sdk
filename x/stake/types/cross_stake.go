@@ -3,7 +3,6 @@ package types
 import (
 	"math/big"
 
-	"github.com/cosmos/cosmos-sdk/pubsub"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 )
@@ -28,79 +27,17 @@ const (
 	CrossStakeTypeDistributeReward      CrossStakePackageType = 4
 	CrossStakeTypeDistributeUndelegated CrossStakePackageType = 5
 
-	CrossStakeTopic = pubsub.Topic("cross-stake")
-
-	CrossStakeDelegateType              string = "CSD"
-	CrossStakeUndelegateType            string = "CSU"
-	CrossStakeDistributeRewardType      string = "CSDR"
-	CrossStakeDistributeUndelegatedType string = "CSDU"
-	CrossStakeRedelegateType            string = "CSRD"
+	CrossStakeDelegateType                           string = "CSD"
+	CrossStakeDistributeRewardType                   string = "CSDR"
+	CrossStakeDistributeUndelegatedType              string = "CSDU"
+	CrossStakeDistributeRewardFailAckRefundType      string = "CSDRFAR"
+	CrossStakeDistributeUndelegatedFailAckRefundType string = "CSDUFAR"
 
 	DelegateCAoBSalt string = "Delegate"
 	RewardCAoBSalt   string = "Reward"
 
 	MinRewardThreshold int64 = 1e8
 )
-
-type CrossStakeEvent struct {
-	ChainId      string
-	Type         string
-	Delegator    sdk.AccAddress
-	ValidatorSrc sdk.ValAddress
-	ValidatorDst sdk.ValAddress
-	RelayFee     int64
-}
-
-func (event CrossStakeEvent) GetTopic() pubsub.Topic {
-	return CrossStakeTopic
-}
-
-type DistributeRewardEvent struct {
-	ChainId       string
-	Type          string
-	Delegator     sdk.AccAddress
-	Receiver      sdk.SmartChainAddress
-	Amount        int64
-	BSCRelayerFee int64
-}
-
-func (event DistributeRewardEvent) GetTopic() pubsub.Topic {
-	return CrossStakeTopic
-}
-
-type DistributeUndelegatedEvent struct {
-	ChainId       string
-	Type          string
-	Delegator     sdk.AccAddress
-	Validator     sdk.ValAddress
-	Receiver      sdk.SmartChainAddress
-	Amount        int64
-	BSCRelayerFee int64
-}
-
-func (event DistributeUndelegatedEvent) GetTopic() pubsub.Topic {
-	return CrossStakeTopic
-}
-
-type RewardRefundEvent struct {
-	RefundAddr sdk.AccAddress
-	Amount     int64
-	Recipient  sdk.SmartChainAddress
-}
-
-func (event RewardRefundEvent) GetTopic() pubsub.Topic {
-	return CrossStakeTopic
-}
-
-type UndelegatedRefundEvent struct {
-	RefundAddr sdk.AccAddress
-	Amount     int64
-	Recipient  sdk.SmartChainAddress
-}
-
-func (event UndelegatedRefundEvent) GetTopic() pubsub.Topic {
-	return CrossStakeTopic
-}
 
 type CrossStakeDelegateSynPackage struct {
 	DelAddr   sdk.SmartChainAddress

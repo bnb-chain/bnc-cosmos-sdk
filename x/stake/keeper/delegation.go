@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/bsc"
 	"github.com/cosmos/cosmos-sdk/bsc/rlp"
 	"github.com/cosmos/cosmos-sdk/pubsub"
@@ -687,14 +688,17 @@ func (k Keeper) CompleteUnbonding(ctx sdk.Context, delAddr sdk.AccAddress, valAd
 		if err != nil {
 			return ubd, sdk.Events{}, err
 		}
+		if k.AddrPool != nil {
+			k.AddrPool.AddAddrs([]sdk.AccAddress{sdk.PegAccount, DelegationAccAddr})
+		}
 	} else {
 		_, err := k.BankKeeper.SendCoins(ctx, DelegationAccAddr, ubd.DelegatorAddr, sdk.Coins{ubd.Balance})
 		if err != nil {
 			return ubd, sdk.Events{}, err
 		}
-	}
-	if k.AddrPool != nil {
-		k.AddrPool.AddAddrs([]sdk.AccAddress{ubd.DelegatorAddr, DelegationAccAddr})
+		if k.AddrPool != nil {
+			k.AddrPool.AddAddrs([]sdk.AccAddress{ubd.DelegatorAddr, DelegationAccAddr})
+		}
 	}
 	k.RemoveUnbondingDelegation(ctx, ubd)
 	return ubd, events, nil
@@ -850,16 +854,21 @@ func (k Keeper) crossDistributeUndelegated(ctx sdk.Context, delAddr sdk.AccAddre
 
 	// publish data if needed
 	if ctx.IsDeliverTx() && k.PbsbServer != nil {
-		event := types.DistributeUndelegatedEvent{
-			ChainId:       k.DestChainName,
-			Type:          types.CrossStakeDistributeUndelegatedType,
-			Delegator:     delAddr,
-			Validator:     valAddr,
-			Receiver:      recipient,
-			Amount:        amount.Amount,
-			BSCRelayerFee: bscRelayFee.Int64(),
+		txHash := ctx.Value(baseapp.TxHashKey)
+		if txHashStr, ok := txHash.(string); ok {
+			event := types.CrossTransferEvent{
+				TxHash:     txHashStr,
+				ChainId:    k.DestChainName,
+				RelayerFee: relayFee.Tokens.AmountOf(k.BondDenom(ctx)),
+				Type:       types.CrossStakeDistributeUndelegatedType,
+				From:       DelegationAccAddr.String(),
+				Denom:      k.BondDenom(ctx),
+				To:         []types.CrossReceiver{{sdk.PegAccount.String(), amount.Amount}},
+			}
+			k.PbsbServer.Publish(event)
+		} else {
+			ctx.Logger().With("module", "stake").Error("failed to get txhash, will not publish cross transfer event ")
 		}
-		k.PbsbServer.Publish(event)
 	}
 
 	resultTags := sdk.NewTags(
