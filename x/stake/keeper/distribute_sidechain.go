@@ -299,6 +299,7 @@ func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) sdk.E
 				events = events.AppendEvents(event)
 				changedAddrs = append(changedAddrs, sdk.PegAccount)
 			}
+			reward.AccAddr = rewardCAoB
 		} else {
 			if _, _, err := k.BankKeeper.AddCoins(ctx, reward.AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, reward.Amount)}); err != nil {
 				panic(err)
@@ -395,7 +396,7 @@ func crossDistributeReward(k Keeper, ctx sdk.Context, rewardCAoB sdk.AccAddress,
 	}
 
 	transferPackage := types.CrossStakeDistributeRewardSynPackage{
-		EventCode: types.CrossStakeTypeDistributeReward,
+		EventType: types.CrossStakeTypeDistributeReward,
 		Amount:    bscTransferAmount,
 		Recipient: recipient,
 	}

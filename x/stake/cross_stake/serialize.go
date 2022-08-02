@@ -13,96 +13,86 @@ const (
 	CrossStakeErrBadDelegation     uint8 = 3
 )
 
-type CrossStakePackageFromBSC struct {
-	EventCode   types.CrossStakePackageType
+type CrossStakeSynPackageFromBSC struct {
+	PackageType types.CrossStakeEventType
 	ParamsBytes []byte
 }
 
 func DeserializeCrossStakeSynPackage(serializedPackage []byte) (interface{}, error) {
-	var pack1 CrossStakePackageFromBSC
+	var pack1 CrossStakeSynPackageFromBSC
 	err := rlp.DecodeBytes(serializedPackage, &pack1)
 	if err != nil {
 		return nil, err
 	}
-	switch pack1.EventCode {
+	switch pack1.PackageType {
 	case types.CrossStakeTypeDelegate:
 		var pack2 types.CrossStakeDelegateSynPackage
 		err := rlp.DecodeBytes(pack1.ParamsBytes, &pack2)
 		if err != nil {
 			return nil, err
 		}
-		return pack2, nil
+		return &pack2, nil
 	case types.CrossStakeTypeUndelegate:
 		var pack2 types.CrossStakeUndelegateSynPackage
 		err := rlp.DecodeBytes(pack1.ParamsBytes, &pack2)
 		if err != nil {
 			return nil, err
 		}
-		return pack2, nil
+		return &pack2, nil
 	case types.CrossStakeTypeRedelegate:
 		var pack2 types.CrossStakeRedelegateSynPackage
 		err := rlp.DecodeBytes(pack1.ParamsBytes, &pack2)
 		if err != nil {
 			return nil, err
 		}
-		return pack2, nil
+		return &pack2, nil
 	default:
-		return nil, fmt.Errorf("unrecognized package type")
+		return nil, fmt.Errorf("unrecognized cross stake event type: %d", pack1.PackageType)
 	}
 }
 
-func DeserializeCrossStakeAckPackage(serializedPackage []byte) (interface{}, error) {
-	var pack1 CrossStakePackageFromBSC
-	err := rlp.DecodeBytes(serializedPackage, &pack1)
+func DeserializeCrossStakeRefundPackage(serializedPackage []byte) (*types.CrossStakeRefundPackage, error) {
+	var pack types.CrossStakeRefundPackage
+	err := rlp.DecodeBytes(serializedPackage, &pack)
 	if err != nil {
 		return nil, err
 	}
-	switch pack1.EventCode {
-	case types.CrossStakeTypeDistributeReward:
-		var pack2 types.CrossStakeDistributeRewardSynPackage
-		err := rlp.DecodeBytes(pack1.ParamsBytes, &pack2)
-		if err != nil {
-			return nil, err
-		}
-		return pack2, nil
-	case types.CrossStakeTypeDistributeUndelegated:
-		var pack2 types.CrossStakeDistributeUndelegatedSynPackage
-		err := rlp.DecodeBytes(pack1.ParamsBytes, &pack2)
-		if err != nil {
-			return nil, err
-		}
-		return pack2, nil
-	default:
-		return nil, fmt.Errorf("unrecognized package type")
-	}
+	return &pack, nil
 }
 
 func DeserializeCrossStakeFailAckPackage(serializedPackage []byte) (interface{}, error) {
-	deserializeIntoUndelegatedPackage := func(serializedPackage []byte) (interface{}, error) {
-		var pack types.CrossStakeDistributeUndelegatedSynPackage
-		err := rlp.DecodeBytes(serializedPackage, &pack)
-		if err != nil {
-			return nil, err
-		}
-		return pack, nil
-	}
-
-	deserializeIntoRewardPackage := func(serializedPackage []byte) (interface{}, error) {
-		var pack types.CrossStakeDistributeRewardSynPackage
-		err := rlp.DecodeBytes(serializedPackage, &pack)
-		if err != nil {
-			return nil, err
-		}
-		return pack, nil
+	deserializeFuncSet := []func(serializedPackage []byte) (interface{}, error){
+		func(serializedPackage []byte) (interface{}, error) {
+			var pack types.CrossStakeDistributeRewardSynPackage
+			err := rlp.DecodeBytes(serializedPackage, &pack)
+			if err != nil {
+				return nil, err
+			}
+			if pack.EventType != types.CrossStakeTypeDistributeReward {
+				return nil, fmt.Errorf("wrong cross stake event type")
+			}
+			return &pack, nil
+		},
+		func(serializedPackage []byte) (interface{}, error) {
+			var pack types.CrossStakeDistributeUndelegatedSynPackage
+			err := rlp.DecodeBytes(serializedPackage, &pack)
+			if err != nil {
+				return nil, err
+			}
+			if pack.EventType != types.CrossStakeTypeDistributeUndelegated {
+				return nil, fmt.Errorf("wrong cross stake event type")
+			}
+			return &pack, nil
+		},
 	}
 
 	var pack interface{}
-	pack, err := deserializeIntoUndelegatedPackage(serializedPackage)
-	if err != nil {
-		pack, err = deserializeIntoRewardPackage(serializedPackage)
-		if err != nil {
-			return nil, err
+	var err error
+	for _, deserializeFunc := range deserializeFuncSet {
+		pack, err = deserializeFunc(serializedPackage)
+		if err == nil {
+			return pack, nil
 		}
 	}
-	return pack, nil
+	return nil, err
 }

@@ -3,11 +3,12 @@ package types
 import (
 	"math/big"
 
+	"github.com/cosmos/cosmos-sdk/bsc"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 )
 
-type CrossStakePackageType uint8
+type CrossStakeEventType uint8
 
 const (
 	CrossStakeChannel = "crossStake"
@@ -21,11 +22,11 @@ const (
 	CrossDistributeRewardRelayFee      = "crossDistributeRewardRelayFee"
 	CrossDistributeUndelegatedRelayFee = "crossDistributeUndelegatedRelayFee"
 
-	CrossStakeTypeDelegate              CrossStakePackageType = 1
-	CrossStakeTypeUndelegate            CrossStakePackageType = 2
-	CrossStakeTypeRedelegate            CrossStakePackageType = 3
-	CrossStakeTypeDistributeReward      CrossStakePackageType = 4
-	CrossStakeTypeDistributeUndelegated CrossStakePackageType = 5
+	CrossStakeTypeDelegate              CrossStakeEventType = 1
+	CrossStakeTypeUndelegate            CrossStakeEventType = 2
+	CrossStakeTypeRedelegate            CrossStakeEventType = 3
+	CrossStakeTypeDistributeReward      CrossStakeEventType = 4
+	CrossStakeTypeDistributeUndelegated CrossStakeEventType = 5
 
 	CrossStakeDelegateType                           string = "CSD"
 	CrossStakeDistributeRewardType                   string = "CSDR"
@@ -45,16 +46,16 @@ type CrossStakeDelegateSynPackage struct {
 	Amount    *big.Int
 }
 
-type CrossStakeDelegationAckPackage struct {
-	PackageType CrossStakePackageType
-	DelAddr     sdk.SmartChainAddress
-	Validator   sdk.ValAddress
-	Amount      *big.Int
-	ErrorCode   uint8
+type CrossStakeDelegateAckPackage struct {
+	EventType CrossStakeEventType
+	DelAddr   sdk.SmartChainAddress
+	Validator sdk.ValAddress
+	Amount    *big.Int
+	ErrorCode uint8
 }
 
-func NewCrossStakeDelegationAckPackage(synPack *CrossStakeDelegateSynPackage, packageType CrossStakePackageType, errCode uint8) *CrossStakeDelegationAckPackage {
-	return &CrossStakeDelegationAckPackage{packageType, synPack.DelAddr, synPack.Validator, synPack.Amount, errCode}
+func NewCrossStakeDelegationAckPackage(synPack *CrossStakeDelegateSynPackage, eventType CrossStakeEventType, errCode uint8) *CrossStakeDelegateAckPackage {
+	return &CrossStakeDelegateAckPackage{eventType, synPack.DelAddr, synPack.Validator, bsc.ConvertBCAmountToBSCAmount(synPack.Amount.Int64()), errCode}
 }
 
 type CrossStakeUndelegateSynPackage struct {
@@ -64,15 +65,15 @@ type CrossStakeUndelegateSynPackage struct {
 }
 
 type CrossStakeUndelegateAckPackage struct {
-	PackageType CrossStakePackageType
-	DelAddr     sdk.SmartChainAddress
-	Validator   sdk.ValAddress
-	Amount      *big.Int
-	ErrorCode   uint8
+	EventType CrossStakeEventType
+	DelAddr   sdk.SmartChainAddress
+	Validator sdk.ValAddress
+	Amount    *big.Int
+	ErrorCode uint8
 }
 
-func NewCrossStakeUndelegateAckPackage(synPack *CrossStakeUndelegateSynPackage, packageType CrossStakePackageType, errCode uint8) *CrossStakeUndelegateAckPackage {
-	return &CrossStakeUndelegateAckPackage{packageType, synPack.DelAddr, synPack.Validator, synPack.Amount, errCode}
+func NewCrossStakeUndelegateAckPackage(synPack *CrossStakeUndelegateSynPackage, eventType CrossStakeEventType, errCode uint8) *CrossStakeUndelegateAckPackage {
+	return &CrossStakeUndelegateAckPackage{eventType, synPack.DelAddr, synPack.Validator, bsc.ConvertBCAmountToBSCAmount(synPack.Amount.Int64()), errCode}
 }
 
 type CrossStakeRedelegateSynPackage struct {
@@ -83,29 +84,43 @@ type CrossStakeRedelegateSynPackage struct {
 }
 
 type CrossStakeRedelegateAckPackage struct {
-	PackageType CrossStakePackageType
-	DelAddr     sdk.SmartChainAddress
-	ValSrc      sdk.ValAddress
-	ValDst      sdk.ValAddress
-	Amount      *big.Int
-	ErrorCode   uint8
+	EventType CrossStakeEventType
+	DelAddr   sdk.SmartChainAddress
+	ValSrc    sdk.ValAddress
+	ValDst    sdk.ValAddress
+	Amount    *big.Int
+	ErrorCode uint8
 }
 
-func NewCrossStakeRedelegationAckPackage(synPack *CrossStakeRedelegateSynPackage, packageType CrossStakePackageType, errCode uint8) *CrossStakeRedelegateAckPackage {
-	return &CrossStakeRedelegateAckPackage{packageType, synPack.DelAddr, synPack.ValSrc, synPack.ValDst, synPack.Amount, errCode}
+func NewCrossStakeRedelegationAckPackage(synPack *CrossStakeRedelegateSynPackage, eventType CrossStakeEventType, errCode uint8) *CrossStakeRedelegateAckPackage {
+	return &CrossStakeRedelegateAckPackage{eventType, synPack.DelAddr, synPack.ValSrc, synPack.ValDst, bsc.ConvertBCAmountToBSCAmount(synPack.Amount.Int64()), errCode}
 }
 
 type CrossStakeDistributeRewardSynPackage struct {
-	EventCode CrossStakePackageType
+	EventType CrossStakeEventType
 	Amount    *big.Int
 	Recipient sdk.SmartChainAddress
 }
 
 type CrossStakeDistributeUndelegatedSynPackage struct {
-	EventCode CrossStakePackageType
+	EventType CrossStakeEventType
 	Amount    *big.Int
 	Recipient sdk.SmartChainAddress
 	Validator sdk.ValAddress
+}
+
+type RefundError uint32
+
+const (
+	DecodeFailed      RefundError = 100
+	WithdrawBNBFailed RefundError = 101
+)
+
+type CrossStakeRefundPackage struct {
+	EventType CrossStakeEventType
+	Amount    *big.Int
+	Recipient sdk.SmartChainAddress
+	ErrorCode RefundError
 }
 
 func GetStakeCAoB(sourceAddr []byte, salt string) sdk.AccAddress {

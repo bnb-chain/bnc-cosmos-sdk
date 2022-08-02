@@ -22,7 +22,7 @@ func TestGetStakeCAoB(t *testing.T) {
 	}
 }
 
-func TestRLP(t *testing.T) {
+func TestAckRLP(t *testing.T) {
 	delAddr, _ := sdk.NewSmartChainAddress("91D7deA99716Cbb247E81F1cfB692009164a967E")
 
 	bcAddr := "bnb1dmrarep5fawa89shw0048syv3ek4tcm28tmqp6"
@@ -39,11 +39,11 @@ func TestRLP(t *testing.T) {
 	ackBytes, _ := rlp.EncodeToBytes(ackPack)
 
 	type AckPackage struct {
-		PackageType CrossStakePackageType
-		DelAddr     sdk.SmartChainAddress
-		Validator   sdk.ValAddress
-		Amount      *big.Int
-		ErrorCode   uint8
+		EventType CrossStakeEventType
+		DelAddr   sdk.SmartChainAddress
+		Validator sdk.ValAddress
+		Amount    *big.Int
+		ErrorCode uint8
 	}
 	var pack AckPackage
 	err := rlp.DecodeBytes(ackBytes, &pack)

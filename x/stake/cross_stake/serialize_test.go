@@ -7,8 +7,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
 
-func TestDeserializeDelegatePackage(t *testing.T) {
-	input := "f701b5f401945b38da6a701c568545dcfcb03fcb875f56beddc4940000000000000000000000000000000000001000880de0b6b3a7640000"
+func TestDeserializeSynPackage(t *testing.T) {
+	input := "f84a03b847f845947de3642c66220e1136a42bf9897a6f8527ef9a0394beb218281ac3ebc4de700e7fcf23eea39010b8a3947de3642c66220e1136a42bf9897a6f8527ef9a038504c4b40000"
 
 	packageBytes, err := hex.DecodeString(input)
 	if err != nil {
@@ -20,8 +20,7 @@ func TestDeserializeDelegatePackage(t *testing.T) {
 		t.Fatal(err)
 	}
 	switch pack.(type) {
-	case types.CrossStakeDelegateSynPackage:
-		break
+	case *types.CrossStakeRedelegateSynPackage:
 	default:
 		t.Error("wrong event type")
 	}

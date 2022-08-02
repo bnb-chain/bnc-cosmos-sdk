@@ -20,29 +20,57 @@ func NewCrossStakeApp(stakeKeeper Keeper) *CrossStakeApp {
 	}
 }
 
+func (app *CrossStakeApp) ExecuteSynPackage(ctx sdk.Context, payload []byte, relayFee int64) sdk.ExecuteResult {
+	app.stakeKeeper.Logger(ctx).Info("receive cross stake syn package")
+	pack, err := DeserializeCrossStakeSynPackage(payload)
+	if err != nil {
+		app.stakeKeeper.Logger(ctx).Error("unmarshal cross stake sync claim error", "err", err.Error(), "claim", string(payload))
+		panic("unmarshal cross stake claim error")
+	}
+
+	var result sdk.ExecuteResult
+	switch p := pack.(type) {
+	case *types.CrossStakeDelegateSynPackage:
+		result, err = app.handleDelegate(ctx, p, relayFee)
+	case *types.CrossStakeUndelegateSynPackage:
+		result, err = app.handleUndelegate(ctx, p, relayFee)
+	case *types.CrossStakeRedelegateSynPackage:
+		result, err = app.handleRedelegate(ctx, p, relayFee)
+	default:
+		panic("Unknown cross stake syn package type")
+	}
+	if err != nil {
+		panic(err)
+	}
+
+	return result
+}
+
 func (app *CrossStakeApp) ExecuteAckPackage(ctx sdk.Context, payload []byte) sdk.ExecuteResult {
 	if len(payload) == 0 {
 		app.stakeKeeper.Logger(ctx).Info("receive cross stake ack package")
 		return sdk.ExecuteResult{}
 	}
 
-	pack, err := DeserializeCrossStakeAckPackage(payload)
+	pack, err := DeserializeCrossStakeRefundPackage(payload)
 	if err != nil {
-		app.stakeKeeper.Logger(ctx).Error("unmarshal cross stake ack package error", "err", err.Error(), "package", string(payload))
-		panic("unmarshal cross stake ack package error")
+		app.stakeKeeper.Logger(ctx).Error("unmarshal cross stake refund package error", "err", err.Error(), "package", string(payload))
+		return sdk.ExecuteResult{}
 	}
 
 	var result sdk.ExecuteResult
-	switch p := pack.(type) {
-	case types.CrossStakeDistributeRewardSynPackage:
-		result, err = app.handleDistributeRewardRefund(ctx, p)
-	case types.CrossStakeDistributeUndelegatedSynPackage:
-		result, err = app.handleDistributeUndelegatedRefund(ctx, p)
+	switch pack.EventType {
+	case types.CrossStakeTypeDistributeReward:
+		result, err = app.handleDistributeRewardRefund(ctx, pack)
+	case types.CrossStakeTypeDistributeUndelegated:
+		result, err = app.handleDistributeUndelegatedRefund(ctx, pack)
 	default:
-		panic("Unknown cross stake ack package type")
+		app.stakeKeeper.Logger(ctx).Error("unknown cross stake ack event type", "package", string(payload))
+		return sdk.ExecuteResult{}
 	}
 	if err != nil {
-		panic(err)
+		app.stakeKeeper.Logger(ctx).Error("handle cross stake refund package error", "err", err.Error(), "package", string(payload))
+		return sdk.ExecuteResult{}
 	}
 
 	return result
@@ -57,52 +85,38 @@ func (app *CrossStakeApp) ExecuteFailAckPackage(ctx sdk.Context, payload []byte)
 	pack, err := DeserializeCrossStakeFailAckPackage(payload)
 	if err != nil {
 		app.stakeKeeper.Logger(ctx).Error("unmarshal cross stake fail ack package error", "err", err.Error(), "package", string(payload))
-		panic("unmarshal cross stake fail ack package error")
+		return sdk.ExecuteResult{}
 	}
 
 	var result sdk.ExecuteResult
 	switch p := pack.(type) {
-	case types.CrossStakeDistributeRewardSynPackage:
-		result, err = app.handleDistributeRewardRefund(ctx, p)
-	case types.CrossStakeDistributeUndelegatedSynPackage:
-		result, err = app.handleDistributeUndelegatedRefund(ctx, p)
+	case *types.CrossStakeDistributeRewardSynPackage:
+		refundPackage := &types.CrossStakeRefundPackage{
+			EventType: types.CrossStakeTypeDistributeReward,
+			Amount:    p.Amount,
+			Recipient: p.Recipient,
+		}
+		result, err = app.handleDistributeRewardRefund(ctx, refundPackage)
+	case *types.CrossStakeDistributeUndelegatedSynPackage:
+		refundPackage := &types.CrossStakeRefundPackage{
+			EventType: types.CrossStakeTypeDistributeUndelegated,
+			Amount:    p.Amount,
+			Recipient: p.Recipient,
+		}
+		result, err = app.handleDistributeUndelegatedRefund(ctx, refundPackage)
 	default:
-		panic("Unknown cross stake fail ack package type")
+		app.stakeKeeper.Logger(ctx).Error("unknown cross stake fail ack event type", "err", err.Error(), "package", string(payload))
+		return sdk.ExecuteResult{}
 	}
 	if err != nil {
-		panic(err)
+		app.stakeKeeper.Logger(ctx).Error("handle cross stake fail ack package error", "err", err.Error(), "package", string(payload))
+		return sdk.ExecuteResult{}
 	}
 
 	return result
 }
 
-func (app *CrossStakeApp) ExecuteSynPackage(ctx sdk.Context, payload []byte, relayFee int64) sdk.ExecuteResult {
-	app.stakeKeeper.Logger(ctx).Info("receive cross stake syn package")
-	pack, err := DeserializeCrossStakeSynPackage(payload)
-	if err != nil {
-		app.stakeKeeper.Logger(ctx).Error("unmarshal cross stake sync claim error", "err", err.Error(), "claim", string(payload))
-		panic("unmarshal cross stake claim error")
-	}
-
-	var result sdk.ExecuteResult
-	switch p := pack.(type) {
-	case types.CrossStakeDelegateSynPackage:
-		result, err = app.handleDelegate(ctx, p, relayFee)
-	case types.CrossStakeUndelegateSynPackage:
-		result, err = app.handleUndelegate(ctx, p, relayFee)
-	case types.CrossStakeRedelegateSynPackage:
-		result, err = app.handleRedelegate(ctx, p, relayFee)
-	default:
-		panic("Unknown cross stake syn package type")
-	}
-	if err != nil {
-		panic(err)
-	}
-
-	return result
-}
-
-func (app *CrossStakeApp) handleDelegate(ctx sdk.Context, pack types.CrossStakeDelegateSynPackage, relayFee int64) (sdk.ExecuteResult, error) {
+func (app *CrossStakeApp) handleDelegate(ctx sdk.Context, pack *types.CrossStakeDelegateSynPackage, relayFee int64) (sdk.ExecuteResult, error) {
 	sideChainId := app.stakeKeeper.DestChainName
 	if scCtx, err := app.stakeKeeper.ScKeeper.PrepareCtxForSideChain(ctx, sideChainId); err != nil {
 		return sdk.ExecuteResult{}, err
@@ -122,8 +136,7 @@ func (app *CrossStakeApp) handleDelegate(ctx sdk.Context, pack types.CrossStakeD
 			sdkErr = types.ErrValidatorJailed(types.DefaultCodespace)
 			errCode = CrossStakeErrValidatorJailed
 		}
-		ackPack := types.NewCrossStakeDelegationAckPackage(&pack, types.CrossStakeTypeDelegate, errCode)
-		ackPack.Amount = bsc.ConvertBCAmountToBSCAmount(ackPack.Amount.Int64())
+		ackPack := types.NewCrossStakeDelegationAckPackage(pack, types.CrossStakeTypeDelegate, errCode)
 		ackBytes, err := rlp.EncodeToBytes(ackPack)
 		if err != nil {
 			return sdk.ExecuteResult{}, err
@@ -178,7 +191,7 @@ func (app *CrossStakeApp) handleDelegate(ctx sdk.Context, pack types.CrossStakeD
 	}, nil
 }
 
-func (app *CrossStakeApp) handleUndelegate(ctx sdk.Context, pack types.CrossStakeUndelegateSynPackage, relayFee int64) (sdk.ExecuteResult, error) {
+func (app *CrossStakeApp) handleUndelegate(ctx sdk.Context, pack *types.CrossStakeUndelegateSynPackage, relayFee int64) (sdk.ExecuteResult, error) {
 	sideChainId := app.stakeKeeper.DestChainName
 	if scCtx, err := app.stakeKeeper.ScKeeper.PrepareCtxForSideChain(ctx, sideChainId); err != nil {
 		return sdk.ExecuteResult{}, err
@@ -189,8 +202,7 @@ func (app *CrossStakeApp) handleUndelegate(ctx sdk.Context, pack types.CrossStak
 	delAddr := types.GetStakeCAoB(pack.DelAddr[:], types.DelegateCAoBSalt)
 	shares, sdkErr := app.stakeKeeper.ValidateUnbondAmount(ctx, delAddr, pack.Validator, pack.Amount.Int64())
 	if sdkErr != nil {
-		ackPack := types.NewCrossStakeUndelegateAckPackage(&pack, types.CrossStakeTypeUndelegate, CrossStakeErrBadDelegation)
-		ackPack.Amount = bsc.ConvertBCAmountToBSCAmount(ackPack.Amount.Int64())
+		ackPack := types.NewCrossStakeUndelegateAckPackage(pack, types.CrossStakeTypeUndelegate, CrossStakeErrBadDelegation)
 		ackBytes, err := rlp.EncodeToBytes(ackPack)
 		if err != nil {
 			return sdk.ExecuteResult{}, err
@@ -232,7 +244,7 @@ func (app *CrossStakeApp) handleUndelegate(ctx sdk.Context, pack types.CrossStak
 	}, nil
 }
 
-func (app *CrossStakeApp) handleRedelegate(ctx sdk.Context, pack types.CrossStakeRedelegateSynPackage, relayFee int64) (sdk.ExecuteResult, error) {
+func (app *CrossStakeApp) handleRedelegate(ctx sdk.Context, pack *types.CrossStakeRedelegateSynPackage, relayFee int64) (sdk.ExecuteResult, error) {
 	sideChainId := app.stakeKeeper.DestChainName
 	if scCtx, err := app.stakeKeeper.ScKeeper.PrepareCtxForSideChain(ctx, sideChainId); err != nil {
 		return sdk.ExecuteResult{}, err
@@ -251,8 +263,7 @@ func (app *CrossStakeApp) handleRedelegate(ctx sdk.Context, pack types.CrossStak
 			sdkErr = types.ErrValidatorJailed(types.DefaultCodespace)
 			errCode = CrossStakeErrValidatorJailed
 		}
-		ackPack := types.NewCrossStakeRedelegationAckPackage(&pack, types.CrossStakeTypeRedelegate, errCode)
-		ackPack.Amount = bsc.ConvertBCAmountToBSCAmount(ackPack.Amount.Int64())
+		ackPack := types.NewCrossStakeRedelegationAckPackage(pack, types.CrossStakeTypeRedelegate, errCode)
 		ackBytes, err := rlp.EncodeToBytes(ackPack)
 		if err != nil {
 			return sdk.ExecuteResult{}, err
@@ -266,8 +277,7 @@ func (app *CrossStakeApp) handleRedelegate(ctx sdk.Context, pack types.CrossStak
 	delAddr := types.GetStakeCAoB(pack.DelAddr[:], types.DelegateCAoBSalt)
 	shares, sdkErr := app.stakeKeeper.ValidateUnbondAmount(ctx, delAddr, pack.ValSrc, pack.Amount.Int64())
 	if sdkErr != nil {
-		ackPack := types.NewCrossStakeRedelegationAckPackage(&pack, types.CrossStakeTypeRedelegate, CrossStakeErrBadDelegation)
-		ackPack.Amount = bsc.ConvertBCAmountToBSCAmount(ackPack.Amount.Int64())
+		ackPack := types.NewCrossStakeRedelegationAckPackage(pack, types.CrossStakeTypeRedelegate, CrossStakeErrBadDelegation)
 		ackBytes, err := rlp.EncodeToBytes(ackPack)
 		if err != nil {
 			return sdk.ExecuteResult{}, err
@@ -310,7 +320,7 @@ func (app *CrossStakeApp) handleRedelegate(ctx sdk.Context, pack types.CrossStak
 	}, nil
 }
 
-func (app *CrossStakeApp) handleDistributeRewardRefund(ctx sdk.Context, pack types.CrossStakeDistributeRewardSynPackage) (sdk.ExecuteResult, error) {
+func (app *CrossStakeApp) handleDistributeRewardRefund(ctx sdk.Context, pack *types.CrossStakeRefundPackage) (sdk.ExecuteResult, error) {
 	symbol := app.stakeKeeper.BondDenom(ctx)
 	refundAmount := bsc.ConvertBSCAmountToBCAmount(pack.Amount)
 	coins := sdk.Coins{sdk.NewCoin(symbol, refundAmount)}
@@ -333,7 +343,7 @@ func (app *CrossStakeApp) handleDistributeRewardRefund(ctx sdk.Context, pack typ
 	}, nil
 }
 
-func (app *CrossStakeApp) handleDistributeUndelegatedRefund(ctx sdk.Context, pack types.CrossStakeDistributeUndelegatedSynPackage) (sdk.ExecuteResult, error) {
+func (app *CrossStakeApp) handleDistributeUndelegatedRefund(ctx sdk.Context, pack *types.CrossStakeRefundPackage) (sdk.ExecuteResult, error) {
 	symbol := app.stakeKeeper.BondDenom(ctx)
 	refundAmount := bsc.ConvertBSCAmountToBCAmount(pack.Amount)
 	coins := sdk.Coins{sdk.NewCoin(symbol, refundAmount)}
