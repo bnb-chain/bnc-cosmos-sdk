@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/stake/keeper"
@@ -17,18 +16,26 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 		// NOTE msg already has validate basic run
 		switch msg := msg.(type) {
 		case types.MsgCreateValidatorProposal:
+			if sdk.IsUpgrade(sdk.BEPHHH) {
+				return sdk.ErrMsgNotSupported("MsgCreateValidatorProposal disabled in BEP-HHH").Result()
+			}
 			return handleMsgCreateValidatorAfterProposal(ctx, msg, k, govKeeper)
 		case types.MsgRemoveValidator:
+			if sdk.IsUpgrade(sdk.BEPHHH) {
+				return sdk.ErrMsgNotSupported("MsgRemoveValidator disabled in BEP-HHH").Result()
+			}
 			return handleMsgRemoveValidatorAfterProposal(ctx, msg, k, govKeeper)
-		// disabled other msg handling
-		//case types.MsgEditValidator:
-		//	return handleMsgEditValidator(ctx, msg, k)
-		//case types.MsgDelegate:
-		//	return handleMsgDelegate(ctx, msg, k)
-		//case types.MsgBeginRedelegate:
-		//	return handleMsgBeginRedelegate(ctx, msg, k)
-		//case types.MsgBeginUnbonding:
-		//	return handleMsgBeginUnbonding(ctx, msg, k)
+		// Beacon Chain New Staking in BEP-HHH
+		case types.MsgCreateValidator:
+			return handleMsgCreateValidator(ctx, msg, k)
+		case types.MsgEditValidator:
+			return handleMsgEditValidator(ctx, msg, k)
+		case types.MsgDelegate:
+			return handleMsgDelegate(ctx, msg, k)
+		case types.MsgRedelegate:
+			return handleMsgRedelegate(ctx, msg, k)
+		case types.MsgUndelegate:
+			return handleMsgUndelegate(ctx, msg, k)
 		//case MsgSideChain
 		case types.MsgCreateSideChainValidator:
 			return handleMsgCreateSideChainValidator(ctx, msg, k)
@@ -56,8 +63,8 @@ func NewStakeHandler(k Keeper) sdk.Handler {
 			return handleMsgEditValidator(ctx, msg, k)
 		case types.MsgDelegate:
 			return handleMsgDelegate(ctx, msg, k)
-		case types.MsgBeginRedelegate:
-			return handleMsgBeginRedelegate(ctx, msg, k)
+		case types.MsgRedelegate:
+			return handleMsgRedelegate(ctx, msg, k)
 		case types.MsgBeginUnbonding:
 			return handleMsgBeginUnbonding(ctx, msg, k)
 		default:
@@ -129,6 +136,13 @@ func handleMsgCreateValidator(ctx sdk.Context, msg MsgCreateValidator, k keeper.
 		return ErrBadDenom(k.Codespace()).Result()
 	}
 
+	if sdk.IsUpgrade(sdk.BEPHHH) {
+		minSelfDelegation := k.MinSelfDelegation(ctx)
+		if msg.Delegation.Amount < minSelfDelegation {
+			return ErrBadDelegationAmount(DefaultCodespace,
+				fmt.Sprintf("self delegation must not be less than %d", minSelfDelegation)).Result()
+		}
+	}
 	// self-delegate address will be used to collect fees.
 	feeAddr := msg.DelegatorAddr
 	validator := NewValidatorWithFeeAddr(feeAddr, msg.ValidatorAddr, msg.PubKey, msg.Description)
@@ -291,6 +305,12 @@ func handleMsgDelegate(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper) 
 		return ErrBadDenom(k.Codespace()).Result()
 	}
 
+	// we need this lower limit to prevent too many delegation records.
+	minDelegationChange := k.MinDelegationChange(ctx)
+	if msg.Delegation.Amount < minDelegationChange {
+		return ErrBadDelegationAmount(DefaultCodespace, fmt.Sprintf("delegation must not be less than %d", minDelegationChange)).Result()
+	}
+
 	if bytes.Equal(msg.DelegatorAddr.Bytes(), validator.OperatorAddr.Bytes()) {
 		// if validator uses a different self-delegator address, the operator address is not allowed to delegate to itself.
 		if !bytes.Equal(validator.OperatorAddr.Bytes(), validator.FeeAddr.Bytes()) {
@@ -317,6 +337,22 @@ func handleMsgDelegate(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper) 
 	}
 }
 
+func handleMsgUndelegate(ctx sdk.Context, msg types.MsgUndelegate, k keeper.Keeper) sdk.Result {
+	if msg.Amount.Denom != k.BondDenom(ctx) {
+		return ErrBadDenom(k.Codespace()).Result()
+	}
+	shares, err := k.ValidateUnbondAmount(ctx, msg.DelegatorAddr, msg.ValidatorAddr, msg.Amount.Amount)
+	if err != nil {
+		return err.Result()
+	}
+	msgBeginUnbonding := types.MsgBeginUnbonding{
+		DelegatorAddr: msg.DelegatorAddr,
+		ValidatorAddr: msg.ValidatorAddr,
+		SharesAmount:  shares,
+	}
+	return handleMsgBeginUnbonding(ctx, msgBeginUnbonding, k)
+}
+
 func handleMsgBeginUnbonding(ctx sdk.Context, msg types.MsgBeginUnbonding, k keeper.Keeper) sdk.Result {
 	ubd, err := k.BeginUnbonding(ctx, msg.DelegatorAddr, msg.ValidatorAddr, msg.SharesAmount)
 	if err != nil {
@@ -333,9 +369,26 @@ func handleMsgBeginUnbonding(ctx sdk.Context, msg types.MsgBeginUnbonding, k kee
 	return sdk.Result{Data: finishTime, Tags: tags}
 }
 
-func handleMsgBeginRedelegate(ctx sdk.Context, msg types.MsgBeginRedelegate, k keeper.Keeper) sdk.Result {
+func handleMsgRedelegate(ctx sdk.Context, msg types.MsgRedelegate, k keeper.Keeper) sdk.Result {
+	if msg.Amount.Denom != k.BondDenom(ctx) {
+		return ErrBadDenom(k.Codespace()).Result()
+	}
+
+	dstValidator, found := k.GetValidator(ctx, msg.ValidatorDstAddr)
+	if !found {
+		return types.ErrBadRedelegationDst(k.Codespace()).Result()
+	}
+
+	if err := checkOperatorAsDelegator(k, msg.DelegatorAddr, dstValidator); err != nil {
+		return err.Result()
+	}
+
+	shares, err := k.ValidateUnbondAmount(ctx, msg.DelegatorAddr, msg.ValidatorSrcAddr, msg.Amount.Amount)
+	if err != nil {
+		return err.Result()
+	}
 	red, err := k.BeginRedelegation(ctx, msg.DelegatorAddr, msg.ValidatorSrcAddr,
-		msg.ValidatorDstAddr, msg.SharesAmount)
+		msg.ValidatorDstAddr, shares)
 	if err != nil {
 		return err.Result()
 	}

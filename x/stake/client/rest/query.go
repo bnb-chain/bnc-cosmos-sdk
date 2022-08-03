@@ -159,11 +159,11 @@ func delegatorTxsHandlerFn(cliCtx context.CLIContext, cdc *codec.Codec) http.Han
 		case isUnbondTx:
 			actions = append(actions, types.MsgBeginUnbonding{}.Type())
 		case isRedTx:
-			actions = append(actions, types.MsgBeginRedelegate{}.Type())
+			actions = append(actions, types.MsgRedelegate{}.Type())
 		case noQuery:
 			actions = append(actions, types.MsgDelegate{}.Type())
 			actions = append(actions, types.MsgBeginUnbonding{}.Type())
-			actions = append(actions, types.MsgBeginRedelegate{}.Type())
+			actions = append(actions, types.MsgRedelegate{}.Type())
 
 		default:
 			w.WriteHeader(http.StatusNoContent)

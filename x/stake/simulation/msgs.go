@@ -209,7 +209,7 @@ func SimulateMsgBeginRedelegate(m auth.AccountKeeper, k stake.Keeper) simulation
 		if amount == 0 {
 			return "no-operation", nil, nil
 		}
-		msg := stake.MsgBeginRedelegate{
+		msg := stake.MsgRedelegate{
 			DelegatorAddr:    delegatorAddress,
 			ValidatorSrcAddr: sourceValidatorAddress,
 			ValidatorDstAddr: destValidatorAddress,
@@ -223,7 +223,7 @@ func SimulateMsgBeginRedelegate(m auth.AccountKeeper, k stake.Keeper) simulation
 		if result.IsOK() {
 			write()
 		}
-		event(fmt.Sprintf("stake/MsgBeginRedelegate/%v", result.IsOK()))
+		event(fmt.Sprintf("stake/MsgRedelegate/%v", result.IsOK()))
 		action = fmt.Sprintf("TestMsgBeginRedelegate: %s", msg.GetSignBytes())
 		return action, nil, nil
 	}

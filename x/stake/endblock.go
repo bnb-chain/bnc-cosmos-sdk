@@ -10,9 +10,12 @@ import (
 )
 
 func EndBlocker(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.ValidatorUpdate, completedUbds []types.UnbondingDelegation) {
-	var events sdk.Events
-	_, validatorUpdates, completedUbds, _, events = handleValidatorAndDelegations(ctx, k)
-	ctx.EventManager().EmitEvents(events)
+	// only change validator set in breath block after BEPHHH
+	if !sdk.IsUpgrade(sdk.BEPHHH) {
+		var events sdk.Events
+		_, validatorUpdates, completedUbds, _, events = handleValidatorAndDelegations(ctx, k)
+		ctx.EventManager().EmitEvents(events)
+	}
 	if sdk.IsUpgrade(sdk.BEP128) {
 		sideChainIds, storePrefixes := k.ScKeeper.GetAllSideChainPrefixes(ctx)
 		if len(sideChainIds) == len(storePrefixes) {
