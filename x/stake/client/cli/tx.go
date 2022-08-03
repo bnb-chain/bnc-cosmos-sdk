@@ -337,18 +337,12 @@ func GetCmdRedelegate(storeName string, cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			// get the shares amount
-			sharesAmountStr := viper.GetString(FlagSharesAmount)
-			sharesPercentStr := viper.GetString(FlagSharesPercent)
-			sharesAmount, err := getShares(
-				storeName, cdc, sharesAmountStr, sharesPercentStr,
-				delAddr, valSrcAddr,
-			)
+			amount, err := getAmount()
 			if err != nil {
 				return err
 			}
 
-			msg := stake.NewMsgRedelegate(delAddr, valSrcAddr, valDstAddr, sharesAmount)
+			msg := stake.NewMsgRedelegate(delAddr, valSrcAddr, valDstAddr, amount)
 			return utils.GenerateOrBroadcastMsgs(txBldr, cliCtx, []sdk.Msg{msg})
 		},
 	}
