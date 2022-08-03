@@ -116,8 +116,8 @@ var (
 	NewMsgCreateValidatorOnBehalfOf = types.NewMsgCreateValidatorOnBehalfOf
 	NewMsgEditValidator             = types.NewMsgEditValidator
 	NewMsgDelegate                  = types.NewMsgDelegate
-	NewMsgBeginUnbonding            = types.NewMsgUndelegate
-	NewMsgBeginRedelegate           = types.NewMsgBeginRedelegate
+	NewMsgUndelegate                = types.NewMsgUndelegate
+	NewMsgRedelegate                = types.NewMsgRedelegate
 
 	NewMsgCreateSideChainValidator           = types.NewMsgCreateSideChainValidator
 	NewMsgCreateSideChainValidatorOnBehalfOf = types.NewMsgCreateSideChainValidatorOnBehalfOf

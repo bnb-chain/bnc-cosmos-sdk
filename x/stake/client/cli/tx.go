@@ -348,7 +348,7 @@ func GetCmdRedelegate(storeName string, cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			msg := stake.NewMsgBeginRedelegate(delAddr, valSrcAddr, valDstAddr, sharesAmount)
+			msg := stake.NewMsgRedelegate(delAddr, valSrcAddr, valDstAddr, sharesAmount)
 			return utils.GenerateOrBroadcastMsgs(txBldr, cliCtx, []sdk.Msg{msg})
 		},
 	}
@@ -390,7 +390,7 @@ func GetCmdUnbond(storeName string, cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			msg := stake.NewMsgBeginUnbonding(delAddr, valAddr, sharesAmount)
+			msg := stake.NewMsgUndelegate(delAddr, valAddr, sharesAmount)
 			return utils.GenerateOrBroadcastMsgs(txBldr, cliCtx, []sdk.Msg{msg})
 		},
 	}

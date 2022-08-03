@@ -286,7 +286,7 @@ type MsgRedelegate struct {
 	Amount           sdk.Coin       `json:"amount"`
 }
 
-func NewMsgBeginRedelegate(delAddr sdk.AccAddress, valSrcAddr,
+func NewMsgRedelegate(delAddr sdk.AccAddress, valSrcAddr,
 	valDstAddr sdk.ValAddress, amount sdk.Coin) MsgRedelegate {
 
 	return MsgRedelegate{
