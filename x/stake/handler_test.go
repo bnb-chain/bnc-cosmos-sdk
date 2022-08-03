@@ -994,7 +994,7 @@ func TestBondUnbondRedelegateSlashTwice(t *testing.T) {
 	require.True(t, got.IsOK(), "expected no error on runMsgBeginUnbonding")
 
 	// begin redelegate 6 stake
-	msgBeginRedelegate := NewMsgRedelegate(del, valA, valB, sdk.NewCoin("steak", 6))
+	msgBeginRedelegate := NewMsgRedelegate(del, valA, valB, sdk.NewCoin("steak", sdk.NewDecWithoutFra(6).RawInt()))
 	got = handleMsgRedelegate(ctx, msgBeginRedelegate, keeper)
 	require.True(t, got.IsOK(), "expected no error on runMsgBeginRedelegate")
 

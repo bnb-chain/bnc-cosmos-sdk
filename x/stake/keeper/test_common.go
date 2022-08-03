@@ -136,7 +136,10 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initCoins int64) (sdk.Context
 	sdk.UpgradeMgr.AddUpgradeHeight(sdk.LaunchBscUpgrade, 1)
 	sdk.UpgradeMgr.AddUpgradeHeight(sdk.BEP128, 100)
 	sdk.UpgradeMgr.Height = 100
-	keeper.SetParams(ctx, types.DefaultParams())
+	params := types.DefaultParams()
+	params.MinSelfDelegation = 10
+	params.MinDelegationChange = 2
+	keeper.SetParams(ctx, params)
 	keeper.SetupForSideChain(&scKeeper, &ibcKeeper)
 
 	// fill all the addresses with some coins, set the loose pool tokens simultaneously
