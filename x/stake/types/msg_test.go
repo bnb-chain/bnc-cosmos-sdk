@@ -197,7 +197,7 @@ func TestMsgBeginUnbonding(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		msg := NewMsgUndelegate(tc.delegatorAddr, tc.validatorAddr, tc.sharesAmount)
+		msg := NewMsgBeginUnbonding(tc.delegatorAddr, tc.validatorAddr, tc.sharesAmount)
 		if tc.expectPass {
 			require.Nil(t, msg.ValidateBasic(), "test: %v", tc.name)
 		} else {

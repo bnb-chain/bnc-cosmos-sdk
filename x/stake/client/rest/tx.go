@@ -147,7 +147,7 @@ func delegationsRequestHandlerFn(cdc *codec.Codec, kb keys.Keybase, cliCtx conte
 				return
 			}
 
-			messages[i] = stake.MsgBeginRedelegate{
+			messages[i] = stake.MsgRedelegate{
 				DelegatorAddr:    delAddr,
 				ValidatorSrcAddr: valSrcAddr,
 				ValidatorDstAddr: valDstAddr,

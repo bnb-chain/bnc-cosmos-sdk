@@ -343,15 +343,15 @@ func (msg MsgRedelegate) ValidateBasic() sdk.Error {
 
 //______________________________________________________________________
 
-// MsgUndelegate - struct for unbonding transactions
-type MsgUndelegate struct {
+// MsgBeginUnbonding - struct for unbonding transactions
+type MsgBeginUnbonding struct {
 	DelegatorAddr sdk.AccAddress `json:"delegator_addr"`
 	ValidatorAddr sdk.ValAddress `json:"validator_addr"`
 	SharesAmount  sdk.Dec        `json:"shares_amount"`
 }
 
-func NewMsgUndelegate(delAddr sdk.AccAddress, valAddr sdk.ValAddress, sharesAmount sdk.Dec) MsgUndelegate {
-	return MsgUndelegate{
+func NewMsgBeginUnbonding(delAddr sdk.AccAddress, valAddr sdk.ValAddress, sharesAmount sdk.Dec) MsgBeginUnbonding {
+	return MsgBeginUnbonding{
 		DelegatorAddr: delAddr,
 		ValidatorAddr: valAddr,
 		SharesAmount:  sharesAmount,
@@ -359,14 +359,14 @@ func NewMsgUndelegate(delAddr sdk.AccAddress, valAddr sdk.ValAddress, sharesAmou
 }
 
 //nolint
-func (msg MsgUndelegate) Route() string { return MsgRoute }
-func (msg MsgUndelegate) Type() string  { return "begin_unbonding" }
-func (msg MsgUndelegate) GetSigners() []sdk.AccAddress {
+func (msg MsgBeginUnbonding) Route() string { return MsgRoute }
+func (msg MsgBeginUnbonding) Type() string  { return "begin_unbonding" }
+func (msg MsgBeginUnbonding) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.DelegatorAddr}
 }
 
 // get the bytes for the message signer to sign on
-func (msg MsgUndelegate) GetSignBytes() []byte {
+func (msg MsgBeginUnbonding) GetSignBytes() []byte {
 	b, err := MsgCdc.MarshalJSON(struct {
 		DelegatorAddr sdk.AccAddress `json:"delegator_addr"`
 		ValidatorAddr sdk.ValAddress `json:"validator_addr"`
@@ -383,7 +383,7 @@ func (msg MsgUndelegate) GetSignBytes() []byte {
 }
 
 // quick validity check
-func (msg MsgUndelegate) ValidateBasic() sdk.Error {
+func (msg MsgBeginUnbonding) ValidateBasic() sdk.Error {
 	if len(msg.DelegatorAddr) != sdk.AddrLen {
 		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected delegator address length is %d, actual length is %d", sdk.AddrLen, len(msg.DelegatorAddr)))
 	}
@@ -396,7 +396,7 @@ func (msg MsgUndelegate) ValidateBasic() sdk.Error {
 	return nil
 }
 
-func (msg MsgUndelegate) GetInvolvedAddresses() []sdk.AccAddress {
+func (msg MsgBeginUnbonding) GetInvolvedAddresses() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.DelegatorAddr, sdk.AccAddress(msg.ValidatorAddr)}
 }
 

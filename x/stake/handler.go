@@ -34,7 +34,7 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 			return handleMsgDelegate(ctx, msg, k)
 		case types.MsgRedelegate:
 			return handleMsgRedelegate(ctx, msg, k)
-		case types.MsgUndelegate:
+		case types.MsgBeginUnbonding:
 			return handleMsgUndelegate(ctx, msg, k)
 		//case MsgSideChain
 		case types.MsgCreateSideChainValidator:
@@ -65,7 +65,7 @@ func NewStakeHandler(k Keeper) sdk.Handler {
 			return handleMsgDelegate(ctx, msg, k)
 		case types.MsgRedelegate:
 			return handleMsgRedelegate(ctx, msg, k)
-		case types.MsgUndelegate:
+		case types.MsgBeginUnbonding:
 			return handleMsgUndelegate(ctx, msg, k)
 		default:
 			return sdk.ErrTxDecode("invalid message parse in staking module").Result()
@@ -112,7 +112,7 @@ func handleMsgRemoveValidatorAfterProposal(ctx sdk.Context, msg MsgRemoveValidat
 		return false
 	})
 
-	// If there is a failure in handling MsgUndelegate, return an error
+	// If there is a failure in handling MsgBeginUnbonding, return an error
 	if !result.IsOK() {
 		return result
 	}
@@ -337,7 +337,7 @@ func handleMsgDelegate(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper) 
 	}
 }
 
-func handleMsgUndelegate(ctx sdk.Context, msg types.MsgUndelegate, k keeper.Keeper) sdk.Result {
+func handleMsgUndelegate(ctx sdk.Context, msg types.MsgBeginUnbonding, k keeper.Keeper) sdk.Result {
 	ubd, err := k.BeginUnbonding(ctx, msg.DelegatorAddr, msg.ValidatorAddr, msg.SharesAmount)
 	if err != nil {
 		return err.Result()

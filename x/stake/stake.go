@@ -22,8 +22,8 @@ type (
 	MsgCreateValidatorProposal = types.MsgCreateValidatorProposal
 	MsgEditValidator           = types.MsgEditValidator
 	MsgDelegate                = types.MsgDelegate
-	MsgBeginUnbonding          = types.MsgUndelegate
-	MsgBeginRedelegate         = types.MsgRedelegate
+	MsgBeginUnbonding          = types.MsgBeginUnbonding
+	MsgRedelegate              = types.MsgRedelegate
 	GenesisState               = types.GenesisState
 	QueryDelegatorParams       = querier.QueryDelegatorParams
 	QueryValidatorParams       = querier.QueryValidatorParams
@@ -116,7 +116,7 @@ var (
 	NewMsgCreateValidatorOnBehalfOf = types.NewMsgCreateValidatorOnBehalfOf
 	NewMsgEditValidator             = types.NewMsgEditValidator
 	NewMsgDelegate                  = types.NewMsgDelegate
-	NewMsgUndelegate                = types.NewMsgUndelegate
+	NewMsgUndelegate                = types.NewMsgBeginUnbonding
 	NewMsgRedelegate                = types.NewMsgRedelegate
 
 	NewMsgCreateSideChainValidator           = types.NewMsgCreateSideChainValidator
