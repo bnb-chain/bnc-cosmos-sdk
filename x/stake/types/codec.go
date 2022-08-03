@@ -11,8 +11,8 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(MsgCreateValidatorProposal{}, "cosmos-sdk/MsgCreateValidatorProposal", nil)
 	cdc.RegisterConcrete(MsgEditValidator{}, "cosmos-sdk/MsgEditValidator", nil)
 	cdc.RegisterConcrete(MsgDelegate{}, "cosmos-sdk/MsgDelegate", nil)
-	cdc.RegisterConcrete(MsgBeginUnbonding{}, "cosmos-sdk/BeginUnbonding", nil)
-	cdc.RegisterConcrete(MsgBeginRedelegate{}, "cosmos-sdk/BeginRedelegate", nil)
+	cdc.RegisterConcrete(MsgUndelegate{}, "cosmos-sdk/BeginUnbonding", nil)
+	cdc.RegisterConcrete(MsgRedelegate{}, "cosmos-sdk/BeginRedelegate", nil)
 
 	cdc.RegisterConcrete(MsgCreateSideChainValidator{}, "cosmos-sdk/MsgCreateSideChainValidator", nil)
 	cdc.RegisterConcrete(MsgEditSideChainValidator{}, "cosmos-sdk/MsgEditSideChainValidator", nil)

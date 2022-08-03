@@ -181,7 +181,7 @@ func SimulateMsgBeginUnbonding(m auth.AccountKeeper, k stake.Keeper) simulation.
 		if result.IsOK() {
 			write()
 		}
-		event(fmt.Sprintf("stake/MsgBeginUnbonding/%v", result.IsOK()))
+		event(fmt.Sprintf("stake/MsgUndelegate/%v", result.IsOK()))
 		action = fmt.Sprintf("TestMsgBeginUnbonding: ok %v, msg %s", result.IsOK(), msg.GetSignBytes())
 		return action, nil, nil
 	}
@@ -223,7 +223,7 @@ func SimulateMsgBeginRedelegate(m auth.AccountKeeper, k stake.Keeper) simulation
 		if result.IsOK() {
 			write()
 		}
-		event(fmt.Sprintf("stake/MsgBeginRedelegate/%v", result.IsOK()))
+		event(fmt.Sprintf("stake/MsgRedelegate/%v", result.IsOK()))
 		action = fmt.Sprintf("TestMsgBeginRedelegate: %s", msg.GetSignBytes())
 		return action, nil, nil
 	}
