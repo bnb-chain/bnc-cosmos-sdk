@@ -34,7 +34,7 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 			return handleMsgDelegate(ctx, msg, k)
 		case types.MsgRedelegate:
 			return handleMsgRedelegate(ctx, msg, k)
-		case types.MsgBeginUnbonding:
+		case types.MsgUndelegate:
 			return handleMsgUndelegate(ctx, msg, k)
 		//case MsgSideChain
 		case types.MsgCreateSideChainValidator:
@@ -66,7 +66,7 @@ func NewStakeHandler(k Keeper) sdk.Handler {
 		case types.MsgRedelegate:
 			return handleMsgRedelegate(ctx, msg, k)
 		case types.MsgBeginUnbonding:
-			return handleMsgUndelegate(ctx, msg, k)
+			return handleMsgBeginUnbonding(ctx, msg, k)
 		default:
 			return sdk.ErrTxDecode("invalid message parse in staking module").Result()
 		}
@@ -103,8 +103,8 @@ func handleMsgRemoveValidatorAfterProposal(ctx sdk.Context, msg MsgRemoveValidat
 			DelegatorAddr: del.GetDelegatorAddr(),
 			SharesAmount:  del.GetShares(),
 		}
-		result = handleMsgUndelegate(ctx, msgBeginUnbonding, k)
-		// handleMsgUndelegate return error, abort execution
+		result = handleMsgBeginUnbonding(ctx, msgBeginUnbonding, k)
+		// handleMsgBeginUnbonding return error, abort execution
 		if !result.IsOK() {
 			return true
 		}
@@ -337,7 +337,23 @@ func handleMsgDelegate(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper) 
 	}
 }
 
-func handleMsgUndelegate(ctx sdk.Context, msg types.MsgBeginUnbonding, k keeper.Keeper) sdk.Result {
+func handleMsgUndelegate(ctx sdk.Context, msg types.MsgUndelegate, k keeper.Keeper) sdk.Result {
+	if msg.Amount.Denom != k.BondDenom(ctx) {
+		return ErrBadDenom(k.Codespace()).Result()
+	}
+	shares, err := k.ValidateUnbondAmount(ctx, msg.DelegatorAddr, msg.ValidatorAddr, msg.Amount.Amount)
+	if err != nil {
+		return err.Result()
+	}
+	msgBeginUnbonding := types.MsgBeginUnbonding{
+		DelegatorAddr: msg.DelegatorAddr,
+		ValidatorAddr: msg.ValidatorAddr,
+		SharesAmount:  shares,
+	}
+	return handleMsgBeginUnbonding(ctx, msgBeginUnbonding, k)
+}
+
+func handleMsgBeginUnbonding(ctx sdk.Context, msg types.MsgBeginUnbonding, k keeper.Keeper) sdk.Result {
 	ubd, err := k.BeginUnbonding(ctx, msg.DelegatorAddr, msg.ValidatorAddr, msg.SharesAmount)
 	if err != nil {
 		return err.Result()

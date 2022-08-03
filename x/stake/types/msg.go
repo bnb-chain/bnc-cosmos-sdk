@@ -341,7 +341,61 @@ func (msg MsgRedelegate) ValidateBasic() sdk.Error {
 	return nil
 }
 
-//______________________________________________________________________
+type MsgUndelegate struct {
+	DelegatorAddr sdk.AccAddress `json:"delegator_addr"`
+	ValidatorAddr sdk.ValAddress `json:"validator_addr"`
+	Amount        sdk.Coin       `json:"amount"`
+}
+
+func NewMsgUndelegate(delAddr sdk.AccAddress, valAddr sdk.ValAddress, amount sdk.Coin) MsgUndelegate {
+	return MsgUndelegate{
+		DelegatorAddr: delAddr,
+		ValidatorAddr: valAddr,
+		Amount:        amount,
+	}
+}
+
+//nolint
+func (msg MsgUndelegate) Route() string { return MsgRoute }
+func (msg MsgUndelegate) Type() string  { return "undelegate" }
+func (msg MsgUndelegate) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.DelegatorAddr}
+}
+
+// get the bytes for the message signer to sign on
+func (msg MsgUndelegate) GetSignBytes() []byte {
+	b, err := MsgCdc.MarshalJSON(struct {
+		DelegatorAddr sdk.AccAddress `json:"delegator_addr"`
+		ValidatorAddr sdk.ValAddress `json:"validator_addr"`
+		Amount        string         `json:"amount"`
+	}{
+		DelegatorAddr: msg.DelegatorAddr,
+		ValidatorAddr: msg.ValidatorAddr,
+		Amount:        msg.Amount.String(),
+	})
+	if err != nil {
+		panic(err)
+	}
+	return sdk.MustSortJSON(b)
+}
+
+// quick validity check
+func (msg MsgUndelegate) ValidateBasic() sdk.Error {
+	if len(msg.DelegatorAddr) != sdk.AddrLen {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected delegator address length is %d, actual length is %d", sdk.AddrLen, len(msg.DelegatorAddr)))
+	}
+	if len(msg.ValidatorAddr) != sdk.AddrLen {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected validator address length is %d, actual length is %d", sdk.AddrLen, len(msg.ValidatorAddr)))
+	}
+	if msg.Amount.Amount >= 0 {
+		return ErrBadSharesAmount(DefaultCodespace)
+	}
+	return nil
+}
+
+func (msg MsgUndelegate) GetInvolvedAddresses() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.DelegatorAddr, sdk.AccAddress(msg.ValidatorAddr)}
+}
 
 // MsgBeginUnbonding - struct for unbonding transactions
 type MsgBeginUnbonding struct {
