@@ -879,7 +879,7 @@ func (k Keeper) crossDistributeUndelegated(ctx sdk.Context, delAddr sdk.AccAddre
 	}
 
 	resultTags := sdk.NewTags(
-		types.TagCrossStakePackageType, []byte(strconv.FormatInt(int64(types.CrossStakeTypeDistributeUndelegated), 10)),
+		types.TagCrossStakePackageType, []byte{uint8(types.CrossStakeTypeDistributeUndelegated)},
 		types.TagCrossStakeChannel, []byte{uint8(types.CrossStakeChannelID)},
 		types.TagCrossStakeSendSequence, []byte(strconv.FormatUint(sendSeq, 10)),
 	)
