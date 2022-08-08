@@ -16,7 +16,10 @@ const (
 
 var (
 	DelegationAccAddr = sdk.AccAddress(crypto.AddressHash([]byte("BinanceChainStakeDelegation")))
+	FeeForAllAccAddr  = sdk.AccAddress(crypto.AddressHash([]byte("BinanceChainStakeFeeForAll")))
 )
+
+const MockSideChainIDForBeaconChain = "beacon_chain"
 
 // ParamTable for stake module
 func ParamTypeTable() params.TypeTable {

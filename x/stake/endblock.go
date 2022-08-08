@@ -15,6 +15,8 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.Valid
 		var events sdk.Events
 		_, validatorUpdates, completedUbds, _, events = handleValidatorAndDelegations(ctx, k)
 		ctx.EventManager().EmitEvents(events)
+	} else {
+		k.DistributeInBlock(ctx, keeper.MockSideChainIDForBeaconChain)
 	}
 	if sdk.IsUpgrade(sdk.BEP128) {
 		sideChainIds, storePrefixes := k.ScKeeper.GetAllSideChainPrefixes(ctx)
@@ -36,6 +38,7 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 
 	if sdk.IsUpgrade(sdk.LaunchBscUpgrade) && k.ScKeeper != nil {
 		sideChainIds, storePrefixes := k.ScKeeper.GetAllSideChainPrefixes(ctx)
+		accumulatedFee := sdk.ZeroDec()
 		for i := range storePrefixes {
 			sideChainCtx := ctx.WithSideChainKeyPrefix(storePrefixes[i])
 			newVals, _, completedUbds, completedREDs, scEvents := handleValidatorAndDelegations(sideChainCtx, k)
@@ -53,11 +56,15 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 			if !sdk.IsUpgrade(sdk.BEP128) {
 				k.Distribute(sideChainCtx, sideChainIds[i])
 			} else {
-				k.DistributeInBreathBlock(sideChainCtx, sideChainIds[i])
+				fee := k.DistributeSideChainInBreathBlock(sideChainCtx, sideChainIds[i])
+				accumulatedFee = accumulatedFee.Add(fee)
 			}
 
 			publishCompletedUBD(k, completedUbds, sideChainIds[i], ctx.BlockHeight())
 			publishCompletedRED(k, completedREDs, sideChainIds[i])
+		}
+		if sdk.IsUpgrade(sdk.BEPHHH) {
+			k.DistributeBeaconChainInBreathBlock(ctx, accumulatedFee.RawInt())
 		}
 	}
 	ctx.EventManager().EmitEvents(events)

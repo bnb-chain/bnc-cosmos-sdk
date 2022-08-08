@@ -130,6 +130,7 @@ var (
 	NewBaseParams = querier.NewBaseParams
 
 	DelegationAccAddr = keeper.DelegationAccAddr
+	FeeForAllAccAddr  = keeper.FeeForAllAccAddr
 )
 
 const (

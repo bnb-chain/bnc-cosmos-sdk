@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"fmt"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
@@ -12,6 +11,10 @@ const (
 	daysBackwardForValidatorSnapshot = 3
 	// the count of blocks to distribute a day's rewards should be smaller than this value
 	boundOfRewardDistributionBlockCount = int64(10000)
+)
+
+var (
+	feeToBCRatio sdk.Dec = sdk.NewDec(10000000) // 10%
 )
 
 func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
@@ -107,13 +110,13 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 	removeValidatorsAndDelegationsAtHeight(height, k, ctx, validators)
 }
 
-// DistributeInBreathBlock will 1) calculate rewards as Distribute does, 2) transfer commissions to all validators, and
+// DistributeSideChainInBreathBlock will 1) calculate rewards as Distribute does, 2) transfer commissions to all validators, and
 // 3) save delegator's rewards to reward store for later distribution.
-func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) {
+func (k Keeper) DistributeSideChainInBreathBlock(ctx sdk.Context, sideChainId string) (acumulatedFeeToBC sdk.Dec) {
 	// if there are left reward distribution batches in the previous day, will distribute all of them here
 	// this is only a safe guard to make sure that all the previous day's rewards are distributed
 	// because this case should happen in very very special case (e.g., bc maintenance for a long time), so there is no much optimization here
-	for ; k.hasNextBatchRewards(ctx); {
+	for k.hasNextBatchRewards(ctx) {
 		k.distributeSingleBatch(ctx, sideChainId)
 	}
 
@@ -130,7 +133,13 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) {
 	for _, validator := range validators {
 		distAccCoins := k.bankKeeper.GetCoins(ctx, validator.DistributionAddr)
 		totalReward := distAccCoins.AmountOf(bondDenom)
-		totalRewardDec := sdk.ZeroDec()
+		totalRewardDec := sdk.NewDec(totalReward)
+		if sdk.IsUpgrade(sdk.BEPHHH) && sideChainId != MockSideChainIDForBeaconChain {
+			feeToBC := totalRewardDec.Mul(feeToBCRatio)
+			acumulatedFeeToBC = acumulatedFeeToBC.Add(feeToBC)
+			totalRewardDec = totalRewardDec.Sub(feeToBC)
+			totalReward = totalRewardDec.RawInt()
+		}
 		commission := sdk.ZeroDec()
 		rewards := make([]types.PreReward, 0)
 		if totalReward > 0 {
@@ -224,6 +233,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) {
 	}
 
 	removeValidatorsAndDelegationsAtHeight(height, k, ctx, validators)
+	return acumulatedFeeToBC
 }
 
 // DistributeInBlock will 1) actually distribute rewards to delegators, using reward store, 2) clear reward store if needed

@@ -114,14 +114,14 @@ func TestDistributeInBreathBlock(t *testing.T) {
 	ctx, am, k, height, validators, _, rewards, totalDelNum := prepare(t)
 	bondDenom := k.BondDenom(ctx)
 
-	k.DistributeInBreathBlock(ctx, "")
+	k.DistributeSideChainInBreathBlock(ctx, "")
 
 	var savedRewards []types.Reward
 
 	// verify stored batches
 	batchSize := k.GetParams(ctx).RewardDistributionBatchSize
 	batchCount := int64(0)
-	for ; k.hasNextBatchRewards(ctx); {
+	for k.hasNextBatchRewards(ctx) {
 		rewards, key := k.getNextBatchRewards(ctx)
 		savedRewards = append(savedRewards, rewards...)
 		k.removeBatchRewards(ctx, key)
@@ -195,7 +195,7 @@ func TestDistributeInBlock(t *testing.T) {
 	ctx, am, k, _, validators, _, _, _ := prepare(t)
 	bondDenom := k.BondDenom(ctx)
 
-	k.DistributeInBreathBlock(ctx, "")
+	k.DistributeSideChainInBreathBlock(ctx, "")
 
 	batchCount := k.countBatchRewards(ctx)
 
