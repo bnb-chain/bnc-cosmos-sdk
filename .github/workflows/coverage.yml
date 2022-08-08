@@ -19,7 +19,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
       - name: Run coverage
-        run: go test ./x/stake -race -coverprofile=coverage.out -covermode=atomic
+        run: go test ./x/stake -race -coverprofile=coverage.txt -covermode=atomic
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
