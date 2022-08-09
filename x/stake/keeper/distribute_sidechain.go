@@ -14,7 +14,7 @@ const (
 )
 
 var (
-	feeToBCRatio sdk.Dec = sdk.NewDec(10000000) // 10%
+	feeFromBscToBcRatio sdk.Dec = sdk.NewDec(10000000) // 10%
 )
 
 func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
@@ -135,7 +135,7 @@ func (k Keeper) DistributeSideChainInBreathBlock(ctx sdk.Context, sideChainId st
 		totalReward := distAccCoins.AmountOf(bondDenom)
 		totalRewardDec := sdk.NewDec(totalReward)
 		if sdk.IsUpgrade(sdk.BEPHHH) && sideChainId != MockSideChainIDForBeaconChain {
-			feeToBC := totalRewardDec.Mul(feeToBCRatio)
+			feeToBC := totalRewardDec.Mul(feeFromBscToBcRatio)
 			acumulatedFeeToBC = acumulatedFeeToBC.Add(feeToBC)
 			totalRewardDec = totalRewardDec.Sub(feeToBC)
 			totalReward = totalRewardDec.RawInt()

@@ -38,7 +38,10 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 
 	if sdk.IsUpgrade(sdk.LaunchBscUpgrade) && k.ScKeeper != nil {
 		sideChainIds, storePrefixes := k.ScKeeper.GetAllSideChainPrefixes(ctx)
-		accumulatedFee := sdk.ZeroDec()
+		// split a portion of BSC block fees to BC
+		// accumulate the fees over all sidechains
+		// currently there is only one sidechain, which is BSC
+		accumulatedFeeFromBscToBc := sdk.ZeroDec()
 		for i := range storePrefixes {
 			sideChainCtx := ctx.WithSideChainKeyPrefix(storePrefixes[i])
 			newVals, _, completedUbds, completedREDs, scEvents := handleValidatorAndDelegations(sideChainCtx, k)
@@ -57,14 +60,14 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 				k.Distribute(sideChainCtx, sideChainIds[i])
 			} else {
 				fee := k.DistributeSideChainInBreathBlock(sideChainCtx, sideChainIds[i])
-				accumulatedFee = accumulatedFee.Add(fee)
+				accumulatedFeeFromBscToBc = accumulatedFeeFromBscToBc.Add(fee)
 			}
 
 			publishCompletedUBD(k, completedUbds, sideChainIds[i], ctx.BlockHeight())
 			publishCompletedRED(k, completedREDs, sideChainIds[i])
 		}
 		if sdk.IsUpgrade(sdk.BEPHHH) {
-			k.DistributeBeaconChainInBreathBlock(ctx, accumulatedFee.RawInt())
+			k.DistributeBeaconChainInBreathBlock(ctx, accumulatedFeeFromBscToBc.RawInt())
 		}
 	}
 	ctx.EventManager().EmitEvents(events)

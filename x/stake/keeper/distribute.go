@@ -6,17 +6,17 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
 
-func (k Keeper) DistributeBeaconChainInBreathBlock(ctx sdk.Context, bscFee int64) {
+func (k Keeper) DistributeBeaconChainInBreathBlock(ctx sdk.Context, accumulatedFeeFromBscToBc int64) {
 	for k.hasNextBatchRewards(ctx) {
 		k.distributeSingleBatch(ctx, MockSideChainIDForBeaconChain)
 	}
 
 	validators, height, found := k.GetHeightValidatorsByIndex(ctx, daysBackwardForValidatorSnapshot)
-	avgFee := bscFee / int64(len(validators))
-	changeFee := bscFee - avgFee*int64(len(validators))
 	if !found {
 		return
 	}
+	avgFee := accumulatedFeeFromBscToBc / int64(len(validators))
+	changeFee := accumulatedFeeFromBscToBc - avgFee*int64(len(validators))
 
 	var toPublish []types.DistributionData           // data to be published in breathe blocks
 	var toSaveRewards []types.Reward                 // rewards to be saved
