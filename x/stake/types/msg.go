@@ -387,8 +387,8 @@ func (msg MsgUndelegate) ValidateBasic() sdk.Error {
 	if len(msg.ValidatorAddr) != sdk.AddrLen {
 		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected validator address length is %d, actual length is %d", sdk.AddrLen, len(msg.ValidatorAddr)))
 	}
-	if msg.Amount.Amount >= 0 {
-		return ErrBadSharesAmount(DefaultCodespace)
+	if msg.Amount.Amount <= 0 {
+		return ErrBadDelegationAmount(DefaultCodespace, "undelegation amount must be positive")
 	}
 	return nil
 }
