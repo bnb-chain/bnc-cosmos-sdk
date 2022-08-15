@@ -2,7 +2,6 @@ package cross_stake
 
 import (
 	"github.com/cosmos/cosmos-sdk/baseapp"
-	"github.com/cosmos/cosmos-sdk/bsc"
 	"github.com/cosmos/cosmos-sdk/bsc/rlp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
@@ -320,8 +319,7 @@ func (app *CrossStakeApp) handleRedelegate(ctx sdk.Context, pack *types.CrossSta
 
 func (app *CrossStakeApp) handleDistributeRewardRefund(ctx sdk.Context, pack *types.CrossStakeRefundPackage) (sdk.ExecuteResult, error) {
 	symbol := app.stakeKeeper.BondDenom(ctx)
-	refundAmount := bsc.ConvertBSCAmountToBCAmount(pack.Amount)
-	coins := sdk.Coins{sdk.NewCoin(symbol, refundAmount)}
+	coins := sdk.Coins{sdk.NewCoin(symbol, pack.Amount.Int64())}
 	delAddr := types.GetStakeCAoB(pack.Recipient[:], types.DelegateCAoBSalt)
 	refundAddr := types.GetStakeCAoB(delAddr.Bytes(), types.RewardCAoBSalt)
 	_, err := app.stakeKeeper.BankKeeper.SendCoins(ctx, sdk.PegAccount, refundAddr, coins)
@@ -337,14 +335,13 @@ func (app *CrossStakeApp) handleDistributeRewardRefund(ctx sdk.Context, pack *ty
 	}
 
 	return sdk.ExecuteResult{
-		Tags: sdk.Tags{sdk.GetPegOutTag(symbol, refundAmount)},
+		Tags: sdk.Tags{sdk.GetPegOutTag(symbol, pack.Amount.Int64())},
 	}, nil
 }
 
 func (app *CrossStakeApp) handleDistributeUndelegatedRefund(ctx sdk.Context, pack *types.CrossStakeRefundPackage) (sdk.ExecuteResult, error) {
 	symbol := app.stakeKeeper.BondDenom(ctx)
-	refundAmount := bsc.ConvertBSCAmountToBCAmount(pack.Amount)
-	coins := sdk.Coins{sdk.NewCoin(symbol, refundAmount)}
+	coins := sdk.Coins{sdk.NewCoin(symbol, pack.Amount.Int64())}
 	refundAddr := types.GetStakeCAoB(pack.Recipient[:], types.DelegateCAoBSalt)
 	_, err := app.stakeKeeper.BankKeeper.SendCoins(ctx, sdk.PegAccount, refundAddr, coins)
 	if err != nil {
@@ -359,6 +356,6 @@ func (app *CrossStakeApp) handleDistributeUndelegatedRefund(ctx sdk.Context, pac
 	}
 
 	return sdk.ExecuteResult{
-		Tags: sdk.Tags{sdk.GetPegOutTag(symbol, refundAmount)},
+		Tags: sdk.Tags{sdk.GetPegOutTag(symbol, pack.Amount.Int64())},
 	}, nil
 }

@@ -267,6 +267,7 @@ func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) sdk.E
 	}
 
 	distAddrBalanceMap := make(map[string]int64) // track distribute address balance changes
+	crossStakeAddrSet := make(map[string]bool)   // record cross stake address
 	var toPublish []types.DistributionData       // data to be published in blocks
 	var toPublishRewards []types.Reward          // rewards to be published in blocks
 
@@ -284,26 +285,12 @@ func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) sdk.E
 
 		if reward.CrossStake && sdk.IsUpgrade(sdk.BEP153) {
 			rewardCAoB := types.GetStakeCAoB(reward.AccAddr.Bytes(), types.RewardCAoBSalt)
-			if _, _, err := k.BankKeeper.AddCoins(ctx, rewardCAoB, sdk.Coins{sdk.NewCoin(bondDenom, reward.Amount)}); err != nil {
-				panic(err)
-			}
-			balance := k.BankKeeper.GetCoins(ctx, rewardCAoB).AmountOf(bondDenom)
-			if balance >= types.MinRewardThreshold {
-				if _, err := k.BankKeeper.SendCoins(ctx, rewardCAoB, sdk.PegAccount, sdk.Coins{sdk.NewCoin(bondDenom, balance)}); err != nil {
-					panic(err)
-				}
-				event, err := crossDistributeReward(k, ctx, rewardCAoB, reward.AccAddr, balance)
-				if err != nil {
-					panic(err)
-				}
-				events = events.AppendEvents(event)
-				changedAddrs = append(changedAddrs, sdk.PegAccount)
-			}
+			crossStakeAddrSet[rewardCAoB.String()] = true
 			reward.AccAddr = rewardCAoB
-		} else {
-			if _, _, err := k.BankKeeper.AddCoins(ctx, reward.AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, reward.Amount)}); err != nil {
-				panic(err)
-			}
+		}
+
+		if _, _, err := k.BankKeeper.AddCoins(ctx, reward.AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, reward.Amount)}); err != nil {
+			panic(err)
 		}
 
 		toPublishRewards = append(toPublishRewards, reward)
@@ -319,6 +306,23 @@ func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) sdk.E
 			panic(err)
 		}
 		changedAddrs = append(changedAddrs, accAddr)
+	}
+
+	// cross distribute reward
+	for addr := range crossStakeAddrSet {
+		rewardCAoB, err := sdk.AccAddressFromBech32(addr)
+		if err != nil {
+			panic(err)
+		}
+		balance := k.BankKeeper.GetCoins(ctx, rewardCAoB).AmountOf(bondDenom)
+		if balance >= types.MinRewardThreshold {
+			event, err := crossDistributeReward(k, ctx, rewardCAoB, balance)
+			if err != nil {
+				panic(err)
+			}
+			events = events.AppendEvents(event)
+			changedAddrs = append(changedAddrs, sdk.PegAccount)
+		}
 	}
 
 	// delete the batch in store
@@ -379,15 +383,17 @@ func removeValidatorsAndDelegationsAtHeight(height int64, k Keeper, ctx sdk.Cont
 	k.RemoveValidatorsByHeight(ctx, height)
 }
 
-func crossDistributeReward(k Keeper, ctx sdk.Context, rewardCAoB sdk.AccAddress, delAddr sdk.AccAddress, amount int64) (sdk.Events, error) {
+func crossDistributeReward(k Keeper, ctx sdk.Context, rewardCAoB sdk.AccAddress, amount int64) (sdk.Events, error) {
+	denom := k.BondDenom(ctx)
 	relayFeeCalc := fees.GetCalculator(types.CrossDistributeRewardRelayFee)
 	if relayFeeCalc == nil {
 		return sdk.Events{}, fmt.Errorf("no fee calculator of transferOutRewards")
 	}
 	relayFee := relayFeeCalc(nil)
-	bscRelayFee := bsc.ConvertBCAmountToBSCAmount(relayFee.Tokens.AmountOf(k.BondDenom(ctx)))
+	bscRelayFee := bsc.ConvertBCAmountToBSCAmount(relayFee.Tokens.AmountOf(denom))
 
 	bscTransferAmount := new(big.Int).Sub(bsc.ConvertBCAmountToBSCAmount(amount), bscRelayFee)
+	delAddr := types.GetStakeCAoB(rewardCAoB.Bytes(), types.RewardCAoBSalt)
 	delBscAddrAcc := types.GetStakeCAoB(delAddr.Bytes(), types.DelegateCAoBSalt)
 	delBscAddr := hex.EncodeToString(delBscAddrAcc.Bytes())
 	recipient, err := sdk.NewSmartChainAddress(delBscAddr)
@@ -411,6 +417,10 @@ func crossDistributeReward(k Keeper, ctx sdk.Context, rewardCAoB sdk.AccAddress,
 		return sdk.Events{}, sdkErr
 	}
 
+	if _, sdkErr := k.BankKeeper.SendCoins(ctx, rewardCAoB, sdk.PegAccount, sdk.Coins{sdk.NewCoin(denom, amount)}); sdkErr != nil {
+		return sdk.Events{}, sdkErr
+	}
+
 	// publish data if needed
 	if ctx.IsDeliverTx() && k.PbsbServer != nil {
 		txHash := ctx.Value(baseapp.TxHashKey)
@@ -418,10 +428,10 @@ func crossDistributeReward(k Keeper, ctx sdk.Context, rewardCAoB sdk.AccAddress,
 			event := types.CrossTransferEvent{
 				TxHash:     txHashStr,
 				ChainId:    k.DestChainName,
-				RelayerFee: relayFee.Tokens.AmountOf(k.BondDenom(ctx)),
+				RelayerFee: relayFee.Tokens.AmountOf(denom),
 				Type:       types.CrossStakeDistributeRewardType,
 				From:       rewardCAoB.String(),
-				Denom:      k.BondDenom(ctx),
+				Denom:      denom,
 				To:         []types.CrossReceiver{{sdk.PegAccount.String(), amount}},
 			}
 			k.PbsbServer.Publish(event)
@@ -435,7 +445,7 @@ func crossDistributeReward(k Keeper, ctx sdk.Context, rewardCAoB sdk.AccAddress,
 		types.TagCrossStakeChannel, []byte{uint8(types.CrossStakeChannelID)},
 		types.TagCrossStakeSendSequence, []byte(strconv.FormatUint(sendSeq, 10)),
 	)
-	resultTags = append(resultTags, sdk.GetPegInTag(k.BondDenom(ctx), amount))
+	resultTags = append(resultTags, sdk.GetPegInTag(denom, amount))
 
 	events := sdk.Events{sdk.Event{
 		Type:       types.EventTypeCrossStake,
