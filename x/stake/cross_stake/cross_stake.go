@@ -1,8 +1,6 @@
 package cross_stake
 
 import (
-	"strconv"
-
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/bsc"
 	"github.com/cosmos/cosmos-sdk/bsc/rlp"
@@ -65,7 +63,7 @@ func (app *CrossStakeApp) ExecuteAckPackage(ctx sdk.Context, payload []byte) sdk
 	case types.CrossStakeTypeDistributeUndelegated:
 		result, err = app.handleDistributeUndelegatedRefund(ctx, pack)
 	default:
-		app.stakeKeeper.Logger(ctx).Error("unknown cross stake ack event type", "package", string(payload))
+		app.stakeKeeper.Logger(ctx).Error("unknown cross stake refund event type", "package", string(payload))
 		return sdk.ExecuteResult{}
 	}
 	if err != nil {
@@ -182,7 +180,7 @@ func (app *CrossStakeApp) handleDelegate(ctx sdk.Context, pack *types.CrossStake
 	}
 
 	resultTags := sdk.NewTags(
-		types.TagCrossStakePackageType, []byte(strconv.FormatInt(int64(types.CrossStakeTypeDelegate), 10)),
+		types.TagCrossStakePackageType, []byte(uint8(types.CrossStakeTypeDelegate)),
 	)
 	resultTags = append(resultTags, sdk.GetPegOutTag(delegation.Denom, delegation.Amount))
 
@@ -237,7 +235,7 @@ func (app *CrossStakeApp) handleUndelegate(ctx sdk.Context, pack *types.CrossSta
 	}
 
 	resultTags := sdk.NewTags(
-		types.TagCrossStakePackageType, []byte(strconv.FormatInt(int64(types.CrossStakeTypeUndelegate), 10)),
+		types.TagCrossStakePackageType, []byte(uint8(types.CrossStakeTypeUndelegate)),
 	)
 	return sdk.ExecuteResult{
 		Tags: resultTags,
@@ -313,7 +311,7 @@ func (app *CrossStakeApp) handleRedelegate(ctx sdk.Context, pack *types.CrossSta
 	}
 
 	resultTags := sdk.NewTags(
-		types.TagCrossStakePackageType, []byte(strconv.FormatInt(int64(types.CrossStakeTypeRedelegate), 10)),
+		types.TagCrossStakePackageType, []byte(uint8(types.CrossStakeTypeRedelegate)),
 	)
 	return sdk.ExecuteResult{
 		Tags: resultTags,

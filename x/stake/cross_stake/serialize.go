@@ -14,7 +14,7 @@ const (
 )
 
 type CrossStakeSynPackageFromBSC struct {
-	PackageType types.CrossStakeEventType
+	EventType   types.CrossStakeEventType
 	ParamsBytes []byte
 }
 
@@ -24,7 +24,7 @@ func DeserializeCrossStakeSynPackage(serializedPackage []byte) (interface{}, err
 	if err != nil {
 		return nil, err
 	}
-	switch pack1.PackageType {
+	switch pack1.EventType {
 	case types.CrossStakeTypeDelegate:
 		var pack2 types.CrossStakeDelegateSynPackage
 		err := rlp.DecodeBytes(pack1.ParamsBytes, &pack2)
@@ -47,7 +47,7 @@ func DeserializeCrossStakeSynPackage(serializedPackage []byte) (interface{}, err
 		}
 		return &pack2, nil
 	default:
-		return nil, fmt.Errorf("unrecognized cross stake event type: %d", pack1.PackageType)
+		return nil, fmt.Errorf("unrecognized cross stake event type: %d", pack1.EventType)
 	}
 }
 
