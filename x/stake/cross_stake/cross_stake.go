@@ -184,7 +184,7 @@ func (app *CrossStakeApp) handleDelegate(ctx sdk.Context, pack *types.CrossStake
 	}
 
 	resultTags := sdk.NewTags(
-		types.TagCrossStakePackageType, []byte(uint8(types.CrossStakeTypeDelegate)),
+		types.TagCrossStakePackageType, []byte{uint8(types.CrossStakeTypeDelegate)},
 	)
 	resultTags = append(resultTags, sdk.GetPegOutTag(delegation.Denom, delegation.Amount))
 
@@ -239,7 +239,7 @@ func (app *CrossStakeApp) handleUndelegate(ctx sdk.Context, pack *types.CrossSta
 	}
 
 	resultTags := sdk.NewTags(
-		types.TagCrossStakePackageType, []byte(uint8(types.CrossStakeTypeUndelegate)),
+		types.TagCrossStakePackageType, []byte{uint8(types.CrossStakeTypeUndelegate)},
 	)
 	return sdk.ExecuteResult{
 		Tags: resultTags,
@@ -315,7 +315,7 @@ func (app *CrossStakeApp) handleRedelegate(ctx sdk.Context, pack *types.CrossSta
 	}
 
 	resultTags := sdk.NewTags(
-		types.TagCrossStakePackageType, []byte(uint8(types.CrossStakeTypeRedelegate)),
+		types.TagCrossStakePackageType, []byte{uint8(types.CrossStakeTypeRedelegate)},
 	)
 	return sdk.ExecuteResult{
 		Tags: resultTags,
