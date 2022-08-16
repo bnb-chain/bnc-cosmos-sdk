@@ -5,7 +5,11 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-const Topic = pubsub.Topic("stake")
+const (
+	Topic = pubsub.Topic("stake")
+
+	CrossTransferTopic = pubsub.Topic("cross-transfer")
+)
 
 type StakeEvent struct {
 	IsFromTx bool
@@ -164,4 +168,25 @@ type SideElectedValidatorsEvent struct {
 	StakeEvent
 	Validators  []Validator
 	SideChainId string
+}
+
+type CrossTransferEvent struct {
+	TxHash     string
+	ChainId    string
+	Type       string
+	RelayerFee int64
+	From       string
+	Denom      string
+	Contract   string
+	Decimals   int
+	To         []CrossReceiver
+}
+
+type CrossReceiver struct {
+	Addr   string
+	Amount int64
+}
+
+func (event CrossTransferEvent) GetTopic() pubsub.Topic {
+	return CrossTransferTopic
 }

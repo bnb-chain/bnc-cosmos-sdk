@@ -1,9 +1,16 @@
 package keeper
 
 import (
+	"encoding/hex"
 	"fmt"
+	"math/big"
+	"strconv"
 
+	"github.com/cosmos/cosmos-sdk/baseapp"
+	"github.com/cosmos/cosmos-sdk/bsc"
+	"github.com/cosmos/cosmos-sdk/bsc/rlp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/fees"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
 
@@ -27,7 +34,7 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 	bondDenom := k.BondDenom(ctx)
 	var toPublish []types.DistributionData
 	for _, validator := range validators {
-		distAccCoins := k.bankKeeper.GetCoins(ctx, validator.DistributionAddr)
+		distAccCoins := k.BankKeeper.GetCoins(ctx, validator.DistributionAddr)
 		totalReward := distAccCoins.AmountOf(bondDenom)
 		totalRewardDec := sdk.ZeroDec()
 		commission := sdk.ZeroDec()
@@ -42,27 +49,27 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 			remainReward := totalRewardDec.Sub(commission)
 			// remove all balance of bondDenom from Distribution account
 			distAccCoins = distAccCoins.Minus(sdk.Coins{sdk.NewCoin(bondDenom, totalReward)})
-			if err := k.bankKeeper.SetCoins(ctx, validator.DistributionAddr, distAccCoins); err != nil {
+			if err := k.BankKeeper.SetCoins(ctx, validator.DistributionAddr, distAccCoins); err != nil {
 				panic(err)
 			}
 			rewards = allocate(simDelsToSharers(delegations), remainReward)
 			if commission.RawInt() > 0 { // assign rewards to self-delegator
-				if _, _, err := k.bankKeeper.AddCoins(ctx, validator.GetFeeAddr(), sdk.Coins{sdk.NewCoin(bondDenom, commission.RawInt())}); err != nil {
+				if _, _, err := k.BankKeeper.AddCoins(ctx, validator.GetFeeAddr(), sdk.Coins{sdk.NewCoin(bondDenom, commission.RawInt())}); err != nil {
 					panic(err)
 				}
 			}
 			// assign rewards to delegator
 			changedAddrs := make([]sdk.AccAddress, len(rewards)+1)
 			for i := range rewards {
-				if _, _, err := k.bankKeeper.AddCoins(ctx, rewards[i].AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, rewards[i].Amount)}); err != nil {
+				if _, _, err := k.BankKeeper.AddCoins(ctx, rewards[i].AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, rewards[i].Amount)}); err != nil {
 					panic(err)
 				}
 				changedAddrs[i] = rewards[i].AccAddr
 			}
 
 			changedAddrs[len(rewards)] = validator.DistributionAddr
-			if k.addrPool != nil {
-				k.addrPool.AddAddrs(changedAddrs)
+			if k.AddrPool != nil {
+				k.AddrPool.AddAddrs(changedAddrs)
 			}
 		}
 
@@ -109,17 +116,19 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 
 // DistributeInBreathBlock will 1) calculate rewards as Distribute does, 2) transfer commissions to all validators, and
 // 3) save delegator's rewards to reward store for later distribution.
-func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) {
+func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk.Events {
 	// if there are left reward distribution batches in the previous day, will distribute all of them here
 	// this is only a safe guard to make sure that all the previous day's rewards are distributed
 	// because this case should happen in very very special case (e.g., bc maintenance for a long time), so there is no much optimization here
-	for ; k.hasNextBatchRewards(ctx); {
-		k.distributeSingleBatch(ctx, sideChainId)
+	var events sdk.Events
+	for k.hasNextBatchRewards(ctx) {
+		singleBatchEvents := k.distributeSingleBatch(ctx, sideChainId)
+		events = events.AppendEvents(singleBatchEvents)
 	}
 
 	validators, height, found := k.GetHeightValidatorsByIndex(ctx, daysBackwardForValidatorSnapshot)
 	if !found {
-		return
+		return events
 	}
 
 	var toPublish []types.DistributionData           // data to be published in breathe blocks
@@ -128,25 +137,31 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) {
 
 	bondDenom := k.BondDenom(ctx)
 	for _, validator := range validators {
-		distAccCoins := k.bankKeeper.GetCoins(ctx, validator.DistributionAddr)
+		distAccCoins := k.BankKeeper.GetCoins(ctx, validator.DistributionAddr)
 		totalReward := distAccCoins.AmountOf(bondDenom)
 		totalRewardDec := sdk.ZeroDec()
 		commission := sdk.ZeroDec()
 		rewards := make([]types.PreReward, 0)
+		crossStakeSetMap := make(map[string]bool)
 		if totalReward > 0 {
 			delegations, found := k.GetSimplifiedDelegations(ctx, height, validator.OperatorAddr)
 			if !found {
 				panic(fmt.Sprintf("no delegations found with height=%d, validator=%s", height, validator.OperatorAddr))
+			}
+			for _, del := range delegations {
+				if del.CrossStake {
+					crossStakeSetMap[del.DelegatorAddr.String()] = true
+				}
 			}
 			totalRewardDec = sdk.NewDec(totalReward)
 
 			//distribute commission
 			commission = totalRewardDec.Mul(validator.Commission.Rate)
 			if commission.RawInt() > 0 {
-				if _, _, err := k.bankKeeper.AddCoins(ctx, validator.GetFeeAddr(), sdk.Coins{sdk.NewCoin(bondDenom, commission.RawInt())}); err != nil {
+				if _, _, err := k.BankKeeper.AddCoins(ctx, validator.GetFeeAddr(), sdk.Coins{sdk.NewCoin(bondDenom, commission.RawInt())}); err != nil {
 					panic(err)
 				}
-				if _, _, err := k.bankKeeper.SubtractCoins(ctx, validator.DistributionAddr, sdk.Coins{sdk.NewCoin(bondDenom, commission.RawInt())}); err != nil {
+				if _, _, err := k.BankKeeper.SubtractCoins(ctx, validator.DistributionAddr, sdk.Coins{sdk.NewCoin(bondDenom, commission.RawInt())}); err != nil {
 					panic(err)
 				}
 			}
@@ -161,10 +176,11 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) {
 					panic(err)
 				}
 				toSaveReward := types.Reward{
-					ValAddr: validator.GetOperator(),
-					AccAddr: rewards[i].AccAddr,
-					Tokens:  tokens,
-					Amount:  rewards[i].Amount,
+					ValAddr:    validator.GetOperator(),
+					AccAddr:    rewards[i].AccAddr,
+					Tokens:     tokens,
+					Amount:     rewards[i].Amount,
+					CrossStake: crossStakeSetMap[rewards[i].AccAddr.String()],
 				}
 				toSaveRewards = append(toSaveRewards, toSaveReward)
 			}
@@ -176,8 +192,8 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) {
 
 			//update address pool
 			changedAddrs := [2]sdk.AccAddress{validator.FeeAddr, validator.DistributionAddr}
-			if k.addrPool != nil {
-				k.addrPool.AddAddrs(changedAddrs[:])
+			if k.AddrPool != nil {
+				k.AddrPool.AddAddrs(changedAddrs[:])
 			}
 		}
 
@@ -224,19 +240,20 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) {
 	}
 
 	removeValidatorsAndDelegationsAtHeight(height, k, ctx, validators)
+	return events
 }
 
 // DistributeInBlock will 1) actually distribute rewards to delegators, using reward store, 2) clear reward store if needed
-func (k Keeper) DistributeInBlock(ctx sdk.Context, sideChainId string) {
+func (k Keeper) DistributeInBlock(ctx sdk.Context, sideChainId string) sdk.Events {
 	if hasNext := k.hasNextBatchRewards(ctx); !hasNext { // already done the distribution of rewards
-		return
+		return sdk.Events{}
 	}
 
-	k.distributeSingleBatch(ctx, sideChainId)
+	return k.distributeSingleBatch(ctx, sideChainId)
 }
 
 // distributeSingleBatch will distribute an single batch of rewards if there is any
-func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) {
+func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) sdk.Events {
 	// get batch rewards and validator <-> distribution address mapping
 	rewards, key := k.getNextBatchRewards(ctx)
 	valDistAddrs, found := k.getRewardValDistAddrs(ctx)
@@ -250,12 +267,14 @@ func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) {
 	}
 
 	distAddrBalanceMap := make(map[string]int64) // track distribute address balance changes
+	crossStakeAddrSet := make(map[string]bool)   // record cross stake address
 	var toPublish []types.DistributionData       // data to be published in blocks
 	var toPublishRewards []types.Reward          // rewards to be published in blocks
 
 	var changedAddrs []sdk.AccAddress //changed addresses
 
 	bondDenom := k.BondDenom(ctx)
+	var events sdk.Events
 	for _, reward := range rewards {
 		distAddr := valDistAddrMap[reward.ValAddr.String()]
 		if value, ok := distAddrBalanceMap[distAddr.String()]; ok {
@@ -264,7 +283,13 @@ func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) {
 			distAddrBalanceMap[distAddr.String()] = reward.Amount
 		}
 
-		if _, _, err := k.bankKeeper.AddCoins(ctx, reward.AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, reward.Amount)}); err != nil {
+		if reward.CrossStake && sdk.IsUpgrade(sdk.BEP153) {
+			rewardCAoB := types.GetStakeCAoB(reward.AccAddr.Bytes(), types.RewardCAoBSalt)
+			crossStakeAddrSet[rewardCAoB.String()] = true
+			reward.AccAddr = rewardCAoB
+		}
+
+		if _, _, err := k.BankKeeper.AddCoins(ctx, reward.AccAddr, sdk.Coins{sdk.NewCoin(bondDenom, reward.Amount)}); err != nil {
 			panic(err)
 		}
 
@@ -277,10 +302,27 @@ func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) {
 		if err != nil {
 			panic(err)
 		}
-		if _, _, err := k.bankKeeper.SubtractCoins(ctx, accAddr, sdk.Coins{sdk.NewCoin(bondDenom, value)}); err != nil {
+		if _, _, err := k.BankKeeper.SubtractCoins(ctx, accAddr, sdk.Coins{sdk.NewCoin(bondDenom, value)}); err != nil {
 			panic(err)
 		}
 		changedAddrs = append(changedAddrs, accAddr)
+	}
+
+	// cross distribute reward
+	for addr := range crossStakeAddrSet {
+		rewardCAoB, err := sdk.AccAddressFromBech32(addr)
+		if err != nil {
+			panic(err)
+		}
+		balance := k.BankKeeper.GetCoins(ctx, rewardCAoB).AmountOf(bondDenom)
+		if balance >= types.MinRewardThreshold {
+			event, err := crossDistributeReward(k, ctx, rewardCAoB, balance)
+			if err != nil {
+				panic(err)
+			}
+			events = events.AppendEvents(event)
+			changedAddrs = append(changedAddrs, sdk.PegAccount)
+		}
 	}
 
 	// delete the batch in store
@@ -292,8 +334,8 @@ func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) {
 	}
 
 	//update address pool
-	if k.addrPool != nil {
-		k.addrPool.AddAddrs(changedAddrs[:])
+	if k.AddrPool != nil {
+		k.AddrPool.AddAddrs(changedAddrs[:])
 	}
 
 	// publish data if needed
@@ -314,6 +356,7 @@ func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) {
 		}
 		k.PbsbServer.Publish(event)
 	}
+	return events
 }
 
 // getDistributionBatchSize will adjust batch size to make sure all rewards will be distribute in a day (pre-defined block number)
@@ -338,4 +381,75 @@ func removeValidatorsAndDelegationsAtHeight(height int64, k Keeper, ctx sdk.Cont
 		k.RemoveSimplifiedDelegations(ctx, height, validator.OperatorAddr)
 	}
 	k.RemoveValidatorsByHeight(ctx, height)
+}
+
+func crossDistributeReward(k Keeper, ctx sdk.Context, rewardCAoB sdk.AccAddress, amount int64) (sdk.Events, error) {
+	denom := k.BondDenom(ctx)
+	relayFeeCalc := fees.GetCalculator(types.CrossDistributeRewardRelayFee)
+	if relayFeeCalc == nil {
+		return sdk.Events{}, fmt.Errorf("no fee calculator of transferOutRewards")
+	}
+	relayFee := relayFeeCalc(nil)
+	bscRelayFee := bsc.ConvertBCAmountToBSCAmount(relayFee.Tokens.AmountOf(denom))
+
+	bscTransferAmount := new(big.Int).Sub(bsc.ConvertBCAmountToBSCAmount(amount), bscRelayFee)
+	delAddr := types.GetStakeCAoB(rewardCAoB.Bytes(), types.RewardCAoBSalt)
+	delBscAddrAcc := types.GetStakeCAoB(delAddr.Bytes(), types.DelegateCAoBSalt)
+	delBscAddr := hex.EncodeToString(delBscAddrAcc.Bytes())
+	recipient, err := sdk.NewSmartChainAddress(delBscAddr)
+	if err != nil {
+		return sdk.Events{}, err
+	}
+
+	transferPackage := types.CrossStakeDistributeRewardSynPackage{
+		EventType: types.CrossStakeTypeDistributeReward,
+		Amount:    bscTransferAmount,
+		Recipient: recipient,
+	}
+	encodedPackage, err := rlp.EncodeToBytes(transferPackage)
+	if err != nil {
+		return sdk.Events{}, err
+	}
+
+	sendSeq, sdkErr := k.ibcKeeper.CreateRawIBCPackageByIdWithFee(ctx.DepriveSideChainKeyPrefix(), k.DestChainId, types.CrossStakeChannelID, sdk.SynCrossChainPackageType,
+		encodedPackage, *bscRelayFee)
+	if sdkErr != nil {
+		return sdk.Events{}, sdkErr
+	}
+
+	if _, sdkErr := k.BankKeeper.SendCoins(ctx, rewardCAoB, sdk.PegAccount, sdk.Coins{sdk.NewCoin(denom, amount)}); sdkErr != nil {
+		return sdk.Events{}, sdkErr
+	}
+
+	// publish data if needed
+	if ctx.IsDeliverTx() && k.PbsbServer != nil {
+		txHash := ctx.Value(baseapp.TxHashKey)
+		if txHashStr, ok := txHash.(string); ok {
+			event := types.CrossTransferEvent{
+				TxHash:     txHashStr,
+				ChainId:    k.DestChainName,
+				RelayerFee: relayFee.Tokens.AmountOf(denom),
+				Type:       types.CrossStakeDistributeRewardType,
+				From:       rewardCAoB.String(),
+				Denom:      denom,
+				To:         []types.CrossReceiver{{sdk.PegAccount.String(), amount}},
+			}
+			k.PbsbServer.Publish(event)
+		} else {
+			ctx.Logger().With("module", "stake").Error("failed to get txhash, will not publish cross transfer event ")
+		}
+	}
+
+	resultTags := sdk.NewTags(
+		types.TagCrossStakePackageType, []byte{uint8(types.CrossStakeTypeDistributeReward)},
+		types.TagCrossStakeChannel, []byte{uint8(types.CrossStakeChannelID)},
+		types.TagCrossStakeSendSequence, []byte(strconv.FormatUint(sendSeq, 10)),
+	)
+	resultTags = append(resultTags, sdk.GetPegInTag(denom, amount))
+
+	events := sdk.Events{sdk.Event{
+		Type:       types.EventTypeCrossStake,
+		Attributes: resultTags,
+	}}
+	return events, nil
 }

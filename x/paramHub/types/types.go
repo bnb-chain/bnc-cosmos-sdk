@@ -68,6 +68,9 @@ var (
 		"miniIssueMsg":         {},
 		"miniTokensSetURI":     {},
 		"dexListMini":          {},
+
+		"crossDistributeRewardRelayFee":      {},
+		"crossDistributeUndelegatedRelayFee": {},
 	}
 
 	ValidTransferFeeMsgTypes = map[string]struct{}{

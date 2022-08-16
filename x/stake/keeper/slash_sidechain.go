@@ -11,7 +11,7 @@ import (
 )
 
 func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr []byte, slashAmount sdk.Dec) (sdk.Validator, sdk.Dec, error) {
-	logger := ctx.Logger().With("module", "x/stake")
+	logger := ctx.Logger().With("module", "stake")
 
 	sideCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, sideChainId)
 	if err != nil {
@@ -66,13 +66,13 @@ func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr
 	slashedAmt := slashAmount.Sub(remainingSlashAmount)
 
 	bondDenom := k.BondDenom(ctx)
-	delegationAccBalance := k.bankKeeper.GetCoins(ctx, DelegationAccAddr)
+	delegationAccBalance := k.BankKeeper.GetCoins(ctx, DelegationAccAddr)
 	slashedCoin := sdk.NewCoin(bondDenom, slashedAmt.RawInt())
-	if err := k.bankKeeper.SetCoins(ctx, DelegationAccAddr, delegationAccBalance.Minus(sdk.Coins{slashedCoin})); err != nil {
+	if err := k.BankKeeper.SetCoins(ctx, DelegationAccAddr, delegationAccBalance.Minus(sdk.Coins{slashedCoin})); err != nil {
 		return nil, slashedAmt, err
 	}
-	if ctx.IsDeliverTx() && k.addrPool != nil {
-		k.addrPool.AddAddrs([]sdk.AccAddress{DelegationAccAddr})
+	if ctx.IsDeliverTx() && k.AddrPool != nil {
+		k.AddrPool.AddAddrs([]sdk.AccAddress{DelegationAccAddr})
 	}
 	if validator.IsBonded() {
 		ibcPackage := types.IbcValidatorSetPackage{
@@ -153,17 +153,17 @@ func (k Keeper) AllocateSlashAmtToValidators(ctx sdk.Context, slashedConsAddr []
 	validatorsCompensation := make(map[string]int64)
 	changedAddrs := make([]sdk.AccAddress, len(rewards))
 	for i := range rewards {
-		accBalance := k.bankKeeper.GetCoins(ctx, rewards[i].AccAddr)
+		accBalance := k.BankKeeper.GetCoins(ctx, rewards[i].AccAddr)
 		rewardCoin := sdk.Coins{sdk.NewCoin(bondDenom, rewards[i].Amount)}
 		accBalance.Plus(rewardCoin)
-		if err := k.bankKeeper.SetCoins(ctx, rewards[i].AccAddr, accBalance.Plus(rewardCoin)); err != nil {
+		if err := k.BankKeeper.SetCoins(ctx, rewards[i].AccAddr, accBalance.Plus(rewardCoin)); err != nil {
 			return found, validatorsCompensation, err
 		}
 		changedAddrs[i] = rewards[i].AccAddr
 		validatorsCompensation[string(rewards[i].AccAddr.Bytes())] = rewards[i].Amount
 	}
-	if ctx.IsDeliverTx() && k.addrPool != nil {
-		k.addrPool.AddAddrs(changedAddrs)
+	if ctx.IsDeliverTx() && k.AddrPool != nil {
+		k.AddrPool.AddAddrs(changedAddrs)
 	}
 	return found, validatorsCompensation, nil
 }

@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -23,6 +24,11 @@ func TestDelegationEqual(t *testing.T) {
 	ok := d1.Equal(d2)
 	require.True(t, ok)
 
+	d1.CrossStake = true
+	ok = d1.Equal(d2)
+	require.False(t, ok)
+
+	d1.CrossStake = false
 	d2.ValidatorAddr = addr3
 	d2.Shares = sdk.NewDec(200)
 
@@ -35,11 +41,13 @@ func TestDelegationHumanReadableString(t *testing.T) {
 		DelegatorAddr: sdk.AccAddress(addr1),
 		ValidatorAddr: addr2,
 		Shares:        sdk.NewDec(100),
+		CrossStake:    true,
 	}
 
 	// NOTE: Being that the validator's keypair is random, we cannot test the
 	// actual contents of the string.
 	valStr, err := d.HumanReadableString()
+	fmt.Println(valStr)
 	require.Nil(t, err)
 	require.NotEmpty(t, valStr)
 }
@@ -57,8 +65,12 @@ func TestUnbondingDelegationEqual(t *testing.T) {
 	ok := ud1.Equal(ud2)
 	require.True(t, ok)
 
-	ud2.ValidatorAddr = addr3
+	ud1.CrossStake = true
+	ok = ud1.Equal(ud2)
+	require.False(t, ok)
 
+	ud1.CrossStake = false
+	ud2.ValidatorAddr = addr3
 	ud2.MinTime = time.Unix(20*20*2, 0)
 	ok = ud1.Equal(ud2)
 	require.False(t, ok)
@@ -68,11 +80,13 @@ func TestUnbondingDelegationHumanReadableString(t *testing.T) {
 	ud := UnbondingDelegation{
 		DelegatorAddr: sdk.AccAddress(addr1),
 		ValidatorAddr: addr2,
+		CrossStake:    true,
 	}
 
 	// NOTE: Being that the validator's keypair is random, we cannot test the
 	// actual contents of the string.
 	valStr, err := ud.HumanReadableString()
+	fmt.Println(valStr)
 	require.Nil(t, err)
 	require.NotEmpty(t, valStr)
 }
@@ -112,6 +126,7 @@ func TestRedelegationHumanReadableString(t *testing.T) {
 	// NOTE: Being that the validator's keypair is random, we cannot test the
 	// actual contents of the string.
 	valStr, err := r.HumanReadableString()
+	fmt.Println(valStr)
 	require.Nil(t, err)
 	require.NotEmpty(t, valStr)
 }

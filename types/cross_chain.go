@@ -45,6 +45,13 @@ const (
 	ChannelForbidden ChannelPermission = 0
 )
 
+type RewardConfig uint8
+
+const (
+	RewardFromSystem    RewardConfig = 0
+	RewardNotFromSystem RewardConfig = 1
+)
+
 func IsValidCrossChainPackageType(packageType CrossChainPackageType) bool {
 	return packageType == SynCrossChainPackageType || packageType == AckCrossChainPackageType || packageType == FailAckCrossChainPackageType
 }

@@ -34,7 +34,7 @@ func getMockApp(t *testing.T) (*mock.App, Keeper) {
 	pk := params.NewKeeper(mApp.Cdc, keyParams, tkeyParams)
 	scKeeper := sidechain.NewKeeper(keySideChain, pk.Subspace(sidechain.DefaultParamspace), mApp.Cdc)
 	ibcKeeper := ibc.NewKeeper(keyIbc, pk.Subspace(ibc.DefaultParamspace), ibc.DefaultCodespace, scKeeper)
-	keeper := NewKeeper(mApp.Cdc, keyStake, keyStakeReward, tkeyStake, bankKeeper, nil, pk.Subspace(DefaultParamspace), mApp.RegisterCodespace(DefaultCodespace))
+	keeper := NewKeeper(mApp.Cdc, keyStake, keyStakeReward, tkeyStake, bankKeeper, nil, pk.Subspace(DefaultParamspace), mApp.RegisterCodespace(DefaultCodespace), sdk.ChainID(0), "")
 	keeper.SetupForSideChain(&scKeeper, &ibcKeeper)
 
 	mApp.Router().AddRoute("stake", NewStakeHandler(keeper))
