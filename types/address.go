@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
+	"strings"
 
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/encoding/amino"
@@ -16,6 +18,8 @@ import (
 const (
 	// AddrLen defines a valid address length
 	AddrLen = 20
+	// SmartChainAddressLength defines a valid smart chain address length
+	SmartChainAddressLength = 20
 
 	// Bech32PrefixAccAddr defines the Bech32 prefix of an account's address
 	Bech32PrefixAccAddr = "cosmos"
@@ -384,6 +388,62 @@ func (ca ConsAddress) Format(s fmt.State, verb rune) {
 	default:
 		s.Write([]byte(fmt.Sprintf("%X", []byte(ca))))
 	}
+}
+
+// SmartChainAddress defines a standard smart chain address
+type SmartChainAddress [SmartChainAddressLength]byte
+
+// NewSmartChainAddress is a constructor function for SmartChainAddress
+func NewSmartChainAddress(addr string) (SmartChainAddress, error) {
+	addr = strings.ToLower(addr)
+	if len(addr) >= 2 && addr[:2] == "0x" {
+		addr = addr[2:]
+	}
+	if length := len(addr); length != 2*SmartChainAddressLength {
+		return SmartChainAddress{}, fmt.Errorf("invalid address hex length: %v != %v", length, 2*SmartChainAddressLength)
+	}
+
+	bin, err := hex.DecodeString(addr)
+	if err != nil {
+		return SmartChainAddress{}, err
+	}
+	var address SmartChainAddress
+	address.SetBytes(bin)
+	return address, nil
+}
+
+func (addr *SmartChainAddress) SetBytes(b []byte) {
+	if len(b) > len(addr) {
+		b = b[len(b)-20:]
+	}
+	copy(addr[20-len(b):], b)
+}
+
+func (addr SmartChainAddress) IsEmpty() bool {
+	addrValue := big.NewInt(0)
+	addrValue.SetBytes(addr[:])
+
+	return addrValue.Cmp(big.NewInt(0)) == 0
+}
+
+// Route should return the name of the module
+func (addr SmartChainAddress) String() string {
+	return HexAddress(addr[:])
+}
+
+// MarshalJSON marshals the smart chain address to JSON
+func (addr SmartChainAddress) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf("\"%v\"", addr.String())), nil
+}
+
+// UnmarshalJSON unmarshals an smart chain address
+func (addr *SmartChainAddress) UnmarshalJSON(input []byte) error {
+	hexBytes, err := HexDecode(string(input[1 : len(input)-1]))
+	if err != nil {
+		return err
+	}
+	addr.SetBytes(hexBytes)
+	return nil
 }
 
 // ----------------------------------------------------------------------------

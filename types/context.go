@@ -25,6 +25,7 @@ type Context struct {
 	eventManager       *EventManager
 	sideChainKeyPrefix []byte
 	sideChainId        string
+	crossStake         bool
 }
 
 // create a new context
@@ -108,6 +109,10 @@ func (c Context) EventManager() *EventManager {
 
 func (c Context) SideChainId() string {
 	return c.sideChainId
+}
+
+func (c Context) CrossStake() bool {
+	return c.crossStake
 }
 
 //----------------------------------------
@@ -213,6 +218,11 @@ func (c Context) WithSideChainKeyPrefix(prefix []byte) Context {
 
 func (c Context) WithSideChainId(sideChainId string) Context {
 	c.sideChainId = sideChainId
+	return c
+}
+
+func (c Context) WithCrossStake(crossStake bool) Context {
+	c.crossStake = crossStake
 	return c
 }
 

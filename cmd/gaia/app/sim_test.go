@@ -76,7 +76,7 @@ func appStateFn(r *rand.Rand, accs []simulation.Account) json.RawMessage {
 		validator := stake.NewValidator(valAddr, accs[i].PubKey, stake.Description{})
 		validator.Tokens = sdk.NewDecWithoutFra(amt)
 		validator.DelegatorShares = sdk.NewDecWithoutFra(amt)
-		delegation := stake.Delegation{accs[i].Address, valAddr, sdk.NewDecWithoutFra(amt), 0}
+		delegation := stake.Delegation{DelegatorAddr: accs[i].Address, ValidatorAddr: valAddr, Shares: sdk.NewDecWithoutFra(amt)}
 		validators = append(validators, validator)
 		delegations = append(delegations, delegation)
 	}

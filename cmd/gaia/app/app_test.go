@@ -81,6 +81,7 @@ func NewMockGaiaApp(logger log.Logger, db dbm.DB, traceStore io.Writer, baseAppO
 		app.keyStake, app.keyStakeReward, app.tkeyStake,
 		app.bankKeeper, nil, app.paramsKeeper.Subspace(stake.DefaultParamspace),
 		app.RegisterCodespace(stake.DefaultCodespace),
+		sdk.ChainID(0), "",
 	)
 	app.mintKeeper = mint.NewKeeper(app.cdc, app.keyMint,
 		app.paramsKeeper.Subspace(mint.DefaultParamspace),

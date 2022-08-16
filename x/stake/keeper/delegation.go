@@ -1,11 +1,18 @@
 package keeper
 
 import (
+	"encoding/hex"
 	"fmt"
+	"math/big"
+	"strconv"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/baseapp"
+	"github.com/cosmos/cosmos-sdk/bsc"
+	"github.com/cosmos/cosmos-sdk/bsc/rlp"
 	"github.com/cosmos/cosmos-sdk/pubsub"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/fees"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
 
@@ -66,7 +73,7 @@ func (k Keeper) GetSimplifiedDelegationsByValidator(ctx sdk.Context, validator s
 
 	for ; iterator.Valid(); iterator.Next() {
 		delegation := types.MustUnmarshalDelegationValAsKey(k.cdc, iterator.Key(), iterator.Value())
-		simDel := types.SimplifiedDelegation{DelegatorAddr: delegation.DelegatorAddr, Shares: delegation.Shares}
+		simDel := types.SimplifiedDelegation{DelegatorAddr: delegation.DelegatorAddr, Shares: delegation.Shares, CrossStake: delegation.CrossStake}
 		simDelegations = append(simDelegations, simDel)
 	}
 	return simDelegations
@@ -497,6 +504,7 @@ func (k Keeper) Delegate(ctx sdk.Context, delAddr sdk.AccAddress, bondAmt sdk.Co
 			DelegatorAddr: delAddr,
 			ValidatorAddr: validator.OperatorAddr,
 			Shares:        sdk.ZeroDec(),
+			CrossStake:    ctx.CrossStake(),
 		}
 	}
 
@@ -512,8 +520,8 @@ func (k Keeper) Delegate(ctx sdk.Context, delAddr sdk.AccAddress, bondAmt sdk.Co
 		if err != nil {
 			return
 		}
-		if ctx.IsDeliverTx() && ctx.BlockHeight() > 0 && k.addrPool != nil {
-			k.addrPool.AddAddrs([]sdk.AccAddress{DelegationAccAddr})
+		if ctx.IsDeliverTx() && ctx.BlockHeight() > 0 && k.AddrPool != nil {
+			k.AddrPool.AddAddrs([]sdk.AccAddress{DelegationAccAddr})
 		}
 	}
 
@@ -528,15 +536,15 @@ func (k Keeper) Delegate(ctx sdk.Context, delAddr sdk.AccAddress, bondAmt sdk.Co
 
 func (k Keeper) transferBondTokens(ctx sdk.Context, from, to sdk.AccAddress, bondAmt sdk.Coin) sdk.Error {
 	// we do not use k.bankKeeper.SendCoins to have a better error message
-	balanceCoins := k.bankKeeper.GetCoins(ctx, from)
+	balanceCoins := k.BankKeeper.GetCoins(ctx, from)
 	if balance := balanceCoins.AmountOf(bondAmt.Denom); balance < bondAmt.Amount {
 		return sdk.ErrInsufficientCoins(fmt.Sprintf("No enough balance to delegate, token: %s, balance: %d, amount: %d", bondAmt.Denom, balance, bondAmt.Amount))
 	}
-	delegationAccBalance := k.bankKeeper.GetCoins(ctx, to)
-	if err := k.bankKeeper.SetCoins(ctx, from, balanceCoins.Minus(sdk.Coins{bondAmt})); err != nil {
+	delegationAccBalance := k.BankKeeper.GetCoins(ctx, to)
+	if err := k.BankKeeper.SetCoins(ctx, from, balanceCoins.Minus(sdk.Coins{bondAmt})); err != nil {
 		return err
 	}
-	if err := k.bankKeeper.SetCoins(ctx, to, delegationAccBalance.Plus(sdk.Coins{bondAmt})); err != nil {
+	if err := k.BankKeeper.SetCoins(ctx, to, delegationAccBalance.Plus(sdk.Coins{bondAmt})); err != nil {
 		return err
 	}
 
@@ -655,6 +663,7 @@ func (k Keeper) BeginUnbonding(ctx sdk.Context,
 		MinTime:        completionTime,
 		Balance:        balance,
 		InitialBalance: balance,
+		CrossStake:     ctx.CrossStake(),
 	}
 	k.SetUnbondingDelegation(ctx, ubd)
 	k.InsertUnbondingQueue(ctx, ubd)
@@ -664,21 +673,33 @@ func (k Keeper) BeginUnbonding(ctx sdk.Context,
 
 // complete unbonding an unbonding record
 // CONTRACT: Expects unbonding passed in has finished the unbonding period
-func (k Keeper) CompleteUnbonding(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) (types.UnbondingDelegation, sdk.Error) {
+func (k Keeper) CompleteUnbonding(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) (types.UnbondingDelegation, sdk.Events, sdk.Error) {
 	ubd, found := k.GetUnbondingDelegation(ctx, delAddr, valAddr)
 	if !found {
-		return ubd, types.ErrNoUnbondingDelegation(k.Codespace())
+		return ubd, sdk.Events{}, types.ErrNoUnbondingDelegation(k.Codespace())
 	}
 
-	_, err := k.bankKeeper.SendCoins(ctx, DelegationAccAddr, ubd.DelegatorAddr, sdk.Coins{ubd.Balance})
+	_, err := k.BankKeeper.SendCoins(ctx, DelegationAccAddr, ubd.DelegatorAddr, sdk.Coins{ubd.Balance})
 	if err != nil {
-		return ubd, err
+		return ubd, sdk.Events{}, err
 	}
-	if k.addrPool != nil {
-		k.addrPool.AddAddrs([]sdk.AccAddress{ubd.DelegatorAddr, DelegationAccAddr})
+
+	var events sdk.Events
+	if ubd.CrossStake {
+		events, err = k.crossDistributeUndelegated(ctx, delAddr, valAddr)
+		if err != nil {
+			return ubd, sdk.Events{}, err
+		}
+		if k.AddrPool != nil {
+			k.AddrPool.AddAddrs([]sdk.AccAddress{sdk.PegAccount})
+		}
+	}
+
+	if k.AddrPool != nil {
+		k.AddrPool.AddAddrs([]sdk.AccAddress{ubd.DelegatorAddr, DelegationAccAddr})
 	}
 	k.RemoveUnbondingDelegation(ctx, ubd)
-	return ubd, nil
+	return ubd, events, nil
 }
 
 // complete unbonding an unbonding record
@@ -794,4 +815,79 @@ func (k Keeper) ValidateUnbondAmount(
 	shares = validator.SharesFromTokens(amountDec)
 
 	return shares, nil
+}
+
+func (k Keeper) crossDistributeUndelegated(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) (sdk.Events, sdk.Error) {
+	denom := k.BondDenom(ctx)
+	amount := k.BankKeeper.GetCoins(ctx, delAddr).AmountOf(denom)
+	relayFeeCalc := fees.GetCalculator(types.CrossDistributeUndelegatedRelayFee)
+	if relayFeeCalc == nil {
+		return sdk.Events{}, sdk.ErrInternal("no fee calculator of distributeUndelegated")
+	}
+	relayFee := relayFeeCalc(nil)
+	if relayFee.Tokens.AmountOf(denom) > amount {
+		return sdk.Events{}, sdk.ErrInternal("not enough funds to cover relay fee")
+	}
+	bscRelayFee := bsc.ConvertBCAmountToBSCAmount(relayFee.Tokens.AmountOf(denom))
+	bscTransferAmount := new(big.Int).Sub(bsc.ConvertBCAmountToBSCAmount(amount), bscRelayFee)
+
+	delBscAddrAcc := types.GetStakeCAoB(delAddr.Bytes(), types.DelegateCAoBSalt)
+	delBscAddr := hex.EncodeToString(delBscAddrAcc.Bytes())
+	recipient, err := sdk.NewSmartChainAddress(delBscAddr)
+	if err != nil {
+		return sdk.Events{}, sdk.ErrInternal(err.Error())
+	}
+
+	transferPackage := types.CrossStakeDistributeUndelegatedSynPackage{
+		EventType: types.CrossStakeTypeDistributeUndelegated,
+		Amount:    bscTransferAmount,
+		Recipient: recipient,
+		Validator: valAddr,
+	}
+	encodedPackage, err := rlp.EncodeToBytes(transferPackage)
+	if err != nil {
+		return sdk.Events{}, sdk.ErrInternal(err.Error())
+	}
+
+	sendSeq, sdkErr := k.ibcKeeper.CreateRawIBCPackageByIdWithFee(ctx.DepriveSideChainKeyPrefix(), k.DestChainId, types.CrossStakeChannelID,
+		sdk.SynCrossChainPackageType, encodedPackage, *bscRelayFee)
+	if sdkErr != nil {
+		return sdk.Events{}, sdkErr
+	}
+
+	if _, sdkErr := k.BankKeeper.SendCoins(ctx, delAddr, sdk.PegAccount, sdk.Coins{sdk.NewCoin(denom, amount)}); sdkErr != nil {
+		return sdk.Events{}, sdkErr
+	}
+
+	// publish data if needed
+	if ctx.IsDeliverTx() && k.PbsbServer != nil {
+		txHash := ctx.Value(baseapp.TxHashKey)
+		if txHashStr, ok := txHash.(string); ok {
+			event := types.CrossTransferEvent{
+				TxHash:     txHashStr,
+				ChainId:    k.DestChainName,
+				RelayerFee: relayFee.Tokens.AmountOf(denom),
+				Type:       types.CrossStakeDistributeUndelegatedType,
+				From:       DelegationAccAddr.String(),
+				Denom:      denom,
+				To:         []types.CrossReceiver{{sdk.PegAccount.String(), amount}},
+			}
+			k.PbsbServer.Publish(event)
+		} else {
+			ctx.Logger().With("module", "stake").Error("failed to get txhash, will not publish cross transfer event ")
+		}
+	}
+
+	resultTags := sdk.NewTags(
+		types.TagCrossStakePackageType, []byte{uint8(types.CrossStakeTypeDistributeUndelegated)},
+		types.TagCrossStakeChannel, []byte{uint8(types.CrossStakeChannelID)},
+		types.TagCrossStakeSendSequence, []byte(strconv.FormatUint(sendSeq, 10)),
+	)
+	resultTags = append(resultTags, sdk.GetPegInTag(denom, amount))
+
+	events := sdk.Events{sdk.Event{
+		Type:       types.EventTypeCrossStake,
+		Attributes: resultTags,
+	}}
+	return events, nil
 }
