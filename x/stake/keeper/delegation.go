@@ -686,8 +686,7 @@ func (k Keeper) CompleteUnbonding(ctx sdk.Context, delAddr sdk.AccAddress, valAd
 
 	var events sdk.Events
 	if ubd.CrossStake {
-		balance := k.BankKeeper.GetCoins(ctx, ubd.DelegatorAddr).AmountOf(k.BondDenom(ctx))
-		events, err = k.crossDistributeUndelegated(ctx, delAddr, valAddr, balance)
+		events, err = k.crossDistributeUndelegated(ctx, delAddr, valAddr)
 		if err != nil {
 			return ubd, sdk.Events{}, err
 		}
@@ -818,8 +817,9 @@ func (k Keeper) ValidateUnbondAmount(
 	return shares, nil
 }
 
-func (k Keeper) crossDistributeUndelegated(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, amount int64) (sdk.Events, sdk.Error) {
+func (k Keeper) crossDistributeUndelegated(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) (sdk.Events, sdk.Error) {
 	denom := k.BondDenom(ctx)
+	amount := k.BankKeeper.GetCoins(ctx, delAddr).AmountOf(denom)
 	relayFeeCalc := fees.GetCalculator(types.CrossDistributeUndelegatedRelayFee)
 	if relayFeeCalc == nil {
 		return sdk.Events{}, sdk.ErrInternal("no fee calculator of distributeUndelegated")
