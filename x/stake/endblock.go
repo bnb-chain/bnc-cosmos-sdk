@@ -12,18 +12,22 @@ import (
 func EndBlocker(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.ValidatorUpdate, completedUbds []types.UnbondingDelegation) {
 	var events sdk.Events
 	_, validatorUpdates, completedUbds, _, events = handleValidatorAndDelegations(ctx, k)
-	ctx.EventManager().EmitEvents(events)
+	var csEvents sdk.Events
 	if sdk.IsUpgrade(sdk.BEP128) {
 		sideChainIds, storePrefixes := k.ScKeeper.GetAllSideChainPrefixes(ctx)
 		if len(sideChainIds) == len(storePrefixes) {
 			for i := range storePrefixes {
 				sideChainCtx := ctx.WithSideChainKeyPrefix(storePrefixes[i])
-				k.DistributeInBlock(sideChainCtx, sideChainIds[i])
+				csEvents = k.DistributeInBlock(sideChainCtx, sideChainIds[i])
 			}
 		} else {
 			panic("sideChainIds does not equal to sideChainStores")
 		}
 	}
+	if sdk.IsUpgrade(sdk.BEP153) {
+		events = events.AppendEvents(csEvents)
+	}
+	ctx.EventManager().EmitEvents(events)
 	return
 }
 
@@ -47,10 +51,14 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 
 			storeValidatorsWithHeight(sideChainCtx, newVals, k)
 
-			if !sdk.IsUpgrade(sdk.BEP128) {
-				k.Distribute(sideChainCtx, sideChainIds[i])
+			var csEvents sdk.Events
+			if sdk.IsUpgrade(sdk.BEP128) {
+				csEvents = k.DistributeInBreathBlock(sideChainCtx, sideChainIds[i])
 			} else {
-				k.DistributeInBreathBlock(sideChainCtx, sideChainIds[i])
+				k.Distribute(sideChainCtx, sideChainIds[i])
+			}
+			if sdk.IsUpgrade(sdk.BEP153) {
+				events = events.AppendEvents(csEvents)
 			}
 
 			publishCompletedUBD(k, completedUbds, sideChainIds[i], ctx.BlockHeight())
@@ -157,12 +165,15 @@ func handleMatureUnbondingDelegations(k keeper.Keeper, ctx sdk.Context) ([]types
 	completed := make([]types.UnbondingDelegation, len(matureUnbonds))
 	events := make(sdk.Events, 0, len(matureUnbonds))
 	for i, dvPair := range matureUnbonds {
-		ubd, err := k.CompleteUnbonding(ctx, dvPair.DelegatorAddr, dvPair.ValidatorAddr)
+		ubd, csEvents, err := k.CompleteUnbonding(ctx, dvPair.DelegatorAddr, dvPair.ValidatorAddr)
 		if err != nil {
 			logger.Error(fmt.Sprintf("Failed to complete unbonding delegation: %s", err.Error()), "delegator_address", dvPair.DelegatorAddr.String(), "validator_address", dvPair.ValidatorAddr.String())
 			continue
 		}
 		completed[i] = ubd
+		if sdk.IsUpgrade(sdk.BEP153) {
+			events = events.AppendEvents(csEvents)
+		}
 		events = events.AppendEvent(sdk.NewEvent(
 			types.EventTypeCompleteUnbonding,
 			sdk.NewAttribute(types.AttributeKeyValidator, dvPair.ValidatorAddr.String()),

@@ -1,5 +1,8 @@
 # Changelog
 
+##v0.25.1
+* [sdk] [\#290](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/290) BEP153: Native Staking Implementation
+
 ##v0.25.0-binance.28
 * [sdk] [\#284](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/284) Disable TSS support
 
