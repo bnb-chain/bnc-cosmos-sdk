@@ -23,8 +23,8 @@ type Keeper struct {
 	rewardStoreKey sdk.StoreKey
 	storeTKey      sdk.StoreKey
 	cdc            *codec.Codec
-	bankKeeper     bank.Keeper
-	addrPool       *sdk.Pool
+	BankKeeper     bank.Keeper
+	AddrPool       *sdk.Pool
 	hooks          sdk.StakingHooks
 	paramstore     params.Subspace
 
@@ -36,21 +36,26 @@ type Keeper struct {
 	ibcKeeper *ibc.Keeper
 	ScKeeper  *sidechain.Keeper
 
+	DestChainId   sdk.ChainID
+	DestChainName string
+
 	PbsbServer *pubsub.Server
 }
 
 func NewKeeper(cdc *codec.Codec, key, rewardKey, tkey sdk.StoreKey, ck bank.Keeper, addrPool *sdk.Pool,
-	paramstore params.Subspace, codespace sdk.CodespaceType) Keeper {
+	paramstore params.Subspace, codespace sdk.CodespaceType, destChainId sdk.ChainID, destChainName string) Keeper {
 	keeper := Keeper{
 		storeKey:       key,
 		rewardStoreKey: rewardKey,
 		storeTKey:      tkey,
 		cdc:            cdc,
-		bankKeeper:     ck,
-		addrPool:       addrPool,
+		BankKeeper:     ck,
+		AddrPool:       addrPool,
 		paramstore:     paramstore.WithTypeTable(ParamTypeTable()),
 		hooks:          nil,
 		codespace:      codespace,
+		DestChainId:    destChainId,
+		DestChainName:  destChainName,
 	}
 
 	return keeper
@@ -78,7 +83,7 @@ func (k *Keeper) SetPbsbServer(server *pubsub.Server) {
 
 // Logger returns a module-specific logger.
 func (k Keeper) Logger(ctx sdk.Context) log.Logger {
-	return ctx.Logger().With("module", "x/stake")
+	return ctx.Logger().With("module", "stake")
 }
 
 // Set the validator hooks

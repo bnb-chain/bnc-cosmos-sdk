@@ -82,7 +82,7 @@ func getNewStakeMockApp(t *testing.T) (*mock.App, Keeper) {
 	paramsKeeper := params.NewKeeper(mApp.Cdc, keyParams, tkeyParams)
 	scKeeper := sidechain.NewKeeper(keySideChain, paramsKeeper.Subspace(sidechain.DefaultParamspace), mApp.Cdc)
 	ibcKeeper := ibc.NewKeeper(keyIbc, paramsKeeper.Subspace(ibc.DefaultParamspace), ibc.DefaultCodespace, scKeeper)
-	keeper := NewKeeper(mApp.Cdc, keyStake, keyStakeReward, tkeyStake, bankKeeper, nil, paramsKeeper.Subspace(DefaultParamspace), mApp.RegisterCodespace(DefaultCodespace))
+	keeper := NewKeeper(mApp.Cdc, keyStake, keyStakeReward, tkeyStake, bankKeeper, nil, paramsKeeper.Subspace(DefaultParamspace), mApp.RegisterCodespace(DefaultCodespace), sdk.ChainID(0), "")
 	govKeeper := gov.NewKeeper(mApp.Cdc, keyGov, paramsKeeper, paramsKeeper.Subspace(gov.DefaultParamSpace), bankKeeper, keeper, mApp.RegisterCodespace(DefaultCodespace), nil)
 	keeper.SetupForSideChain(&scKeeper, &ibcKeeper)
 

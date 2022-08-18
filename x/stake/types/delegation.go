@@ -34,11 +34,13 @@ type Delegation struct {
 	ValidatorAddr sdk.ValAddress `json:"validator_addr"`
 	Shares        sdk.Dec        `json:"shares"`
 	Height        int64          `json:"-"` // Last height bond updated
+	CrossStake    bool           `json:"cross_stake"`
 }
 
 type delegationValue struct {
-	Shares sdk.Dec
-	Height int64
+	Shares     sdk.Dec
+	Height     int64
+	CrossStake bool
 }
 
 //________________________________________________________________
@@ -46,6 +48,7 @@ type delegationValue struct {
 type SimplifiedDelegation struct {
 	DelegatorAddr sdk.AccAddress `json:"delegator_addr"`
 	Shares        sdk.Dec        `json:"shares"`
+	CrossStake    bool           `json:"cross_stake"`
 }
 
 func MustMarshalSimplifiedDelegations(cdc *codec.Codec, simDels []SimplifiedDelegation) []byte {
@@ -65,6 +68,7 @@ func MustMarshalDelegation(cdc *codec.Codec, delegation Delegation) []byte {
 	val := delegationValue{
 		delegation.Shares,
 		delegation.Height,
+		delegation.CrossStake,
 	}
 	return cdc.MustMarshalBinaryLengthPrefixed(val)
 }
@@ -101,6 +105,7 @@ func UnmarshalDelegation(cdc *codec.Codec, key, value []byte) (delegation Delega
 		ValidatorAddr: valAddr,
 		Shares:        storeValue.Shares,
 		Height:        storeValue.Height,
+		CrossStake:    storeValue.CrossStake,
 	}, nil
 }
 
@@ -124,6 +129,7 @@ func UnmarshalDelegationValAsKey(cdc *codec.Codec, key, value []byte) (realDeleg
 	realDelegation.ValidatorAddr = delegation.DelegatorAddr.Bytes()
 	realDelegation.Shares = delegation.Shares
 	realDelegation.Height = delegation.Height
+	realDelegation.CrossStake = delegation.CrossStake
 
 	return realDelegation, nil
 }
@@ -133,7 +139,8 @@ func (d Delegation) Equal(d2 Delegation) bool {
 	return bytes.Equal(d.DelegatorAddr, d2.DelegatorAddr) &&
 		bytes.Equal(d.ValidatorAddr, d2.ValidatorAddr) &&
 		d.Height == d2.Height &&
-		d.Shares.Equal(d2.Shares)
+		d.Shares.Equal(d2.Shares) &&
+		d.CrossStake == d2.CrossStake
 }
 
 // ensure fulfills the sdk validator types
@@ -152,7 +159,8 @@ func (d Delegation) HumanReadableString() (string, error) {
 	resp += fmt.Sprintf("Delegator: %s\n", d.DelegatorAddr)
 	resp += fmt.Sprintf("Validator: %s\n", d.ValidatorAddr)
 	resp += fmt.Sprintf("Shares: %s\n", d.Shares.String())
-	resp += fmt.Sprintf("Height: %d", d.Height)
+	resp += fmt.Sprintf("Height: %d\n", d.Height)
+	resp += fmt.Sprintf("Cross stake: %t", d.CrossStake)
 
 	return resp, nil
 }
@@ -165,6 +173,7 @@ type UnbondingDelegation struct {
 	MinTime        time.Time      `json:"min_time"`        // unix time for unbonding completion
 	InitialBalance sdk.Coin       `json:"initial_balance"` // atoms initially scheduled to receive at completion
 	Balance        sdk.Coin       `json:"balance"`         // atoms to receive at completion
+	CrossStake     bool           `json:"cross_stake"`     // native staking or cross-chain staking
 }
 
 type ubdValue struct {
@@ -172,6 +181,7 @@ type ubdValue struct {
 	MinTime        time.Time
 	InitialBalance sdk.Coin
 	Balance        sdk.Coin
+	CrossStake     bool
 }
 
 // return the unbonding delegation without fields contained within the key for the store
@@ -181,6 +191,7 @@ func MustMarshalUBD(cdc *codec.Codec, ubd UnbondingDelegation) []byte {
 		ubd.MinTime,
 		ubd.InitialBalance,
 		ubd.Balance,
+		ubd.CrossStake,
 	}
 	return cdc.MustMarshalBinaryLengthPrefixed(val)
 }
@@ -217,6 +228,7 @@ func UnmarshalUBD(cdc *codec.Codec, key, value []byte) (ubd UnbondingDelegation,
 		MinTime:        storeValue.MinTime,
 		InitialBalance: storeValue.InitialBalance,
 		Balance:        storeValue.Balance,
+		CrossStake:     storeValue.CrossStake,
 	}, nil
 }
 
@@ -236,7 +248,8 @@ func (d UnbondingDelegation) HumanReadableString() (string, error) {
 	resp += fmt.Sprintf("Validator: %s\n", d.ValidatorAddr)
 	resp += fmt.Sprintf("Creation height: %v\n", d.CreationHeight)
 	resp += fmt.Sprintf("Min time to unbond (unix): %v\n", d.MinTime)
-	resp += fmt.Sprintf("Expected balance: %s", d.Balance.String())
+	resp += fmt.Sprintf("Expected balance: %s\n", d.Balance.String())
+	resp += fmt.Sprintf("Cross stake: %t", d.CrossStake)
 
 	return resp, nil
 

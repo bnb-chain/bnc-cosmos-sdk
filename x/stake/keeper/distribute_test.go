@@ -13,7 +13,7 @@ import (
 
 func prepare(t *testing.T) (sdk.Context, auth.AccountKeeper, Keeper, int64, []types.Validator, [][]sdk.AccAddress, []int64, int) {
 	ctx, am, k := CreateTestInput(t, false, 0)
-	k.addrPool = new(sdk.Pool)
+	k.AddrPool = new(sdk.Pool)
 	bondDenom := k.BondDenom(ctx)
 
 	height := int64(1000)
@@ -107,7 +107,7 @@ func TestDistribute(t *testing.T) {
 	_, found := k.GetValidatorsByHeight(ctx, height)
 	require.False(t, found)
 
-	require.EqualValues(t, len(k.addrPool.TxRelatedAddrs()), totalDelNum+21) // add 21 distribution addresses
+	require.EqualValues(t, len(k.AddrPool.TxRelatedAddrs()), totalDelNum+21) // add 21 distribution addresses
 }
 
 func TestDistributeInBreathBlock(t *testing.T) {
@@ -188,7 +188,7 @@ func TestDistributeInBreathBlock(t *testing.T) {
 	_, found := k.GetValidatorsByHeight(ctx, height)
 	require.False(t, found)
 
-	require.EqualValues(t, len(k.addrPool.TxRelatedAddrs()), 21+21) // validator fee address + distribution address
+	require.EqualValues(t, len(k.AddrPool.TxRelatedAddrs()), 21+21) // validator fee address + distribution address
 }
 
 func TestDistributeInBlock(t *testing.T) {

@@ -9,6 +9,8 @@ const (
 	EventTypeUnbond               = "unbond"
 	EventTypeRedelegate           = "redelegate"
 
+	EventTypeCrossStake = "crossStake"
+
 	AttributeKeyValidator         = "validator"
 	AttributeKeyCommissionRate    = "commission_rate"
 	AttributeKeyMinSelfDelegation = "min_self_delegation"
