@@ -24,6 +24,7 @@ type (
 	MsgDelegate                = types.MsgDelegate
 	MsgBeginUnbonding          = types.MsgBeginUnbonding
 	MsgRedelegate              = types.MsgRedelegate
+	MsgUndelegate              = types.MsgUndelegate
 	GenesisState               = types.GenesisState
 	QueryDelegatorParams       = querier.QueryDelegatorParams
 	QueryValidatorParams       = querier.QueryValidatorParams
@@ -130,7 +131,7 @@ var (
 	NewBaseParams = querier.NewBaseParams
 
 	DelegationAccAddr = keeper.DelegationAccAddr
-	FeeForAllAccAddr  = keeper.FeeForAllAccAddr
+	FeeForAllAccAddr  = keeper.FeeForAllBcValsAccAddr
 )
 
 const (

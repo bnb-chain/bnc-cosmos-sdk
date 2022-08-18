@@ -40,6 +40,8 @@ var (
 	KeyMinSelfDelegation           = []byte("MinSelfDelegation")
 	KeyMinDelegationChange         = []byte("MinDelegationChanged")
 	KeyRewardDistributionBatchSize = []byte("RewardDistributionBatchSize")
+	KeyMaxBeaconChainValidators    = []byte("MaxBeaconChainValidators")
+	KeyMaxStakeSnapshots           = []byte("MaxStakeSnapshots")
 )
 
 var _ params.ParamSet = (*Params)(nil)
@@ -53,6 +55,8 @@ type Params struct {
 	MinSelfDelegation           int64  `json:"min_self_delegation"`            // the minimal self-delegation amount
 	MinDelegationChange         int64  `json:"min_delegation_change"`          // the minimal delegation amount changed
 	RewardDistributionBatchSize int64  `json:"reward_distribution_batch_size"` // the batch size for distributing rewards in blocks
+	// added in BEPHHH
+	MaxStakeSnapshots uint16 `json:"max_stake_snapshots"` // maximum number of stake snapshots, also used as the accumulated stake duration
 }
 
 func (p *Params) GetParamAttribute() (string, bool) {
@@ -96,6 +100,7 @@ func (p *Params) KeyValuePairs() params.KeyValuePairs {
 		{KeyMinSelfDelegation, &p.MinSelfDelegation},
 		{KeyMinDelegationChange, &p.MinDelegationChange},
 		{KeyRewardDistributionBatchSize, &p.RewardDistributionBatchSize},
+		{KeyMaxStakeSnapshots, &p.MaxStakeSnapshots},
 	}
 }
 
@@ -115,6 +120,7 @@ func DefaultParams() Params {
 		MinSelfDelegation:           defaultMinSelfDelegation,
 		MinDelegationChange:         defaultMinDelegationChange,
 		RewardDistributionBatchSize: defaultRewardDistributionBatchSize,
+		MaxStakeSnapshots:           30,
 	}
 }
 
@@ -129,6 +135,7 @@ func (p Params) HumanReadableString() string {
 	resp += fmt.Sprintf("Minimal self-delegation amount: %d\n", p.MinSelfDelegation)
 	resp += fmt.Sprintf("The minimum value allowed to change the delegation amount: %d\n", p.MinDelegationChange)
 	resp += fmt.Sprintf("The batch size to distribute staking rewards: %d\n", p.RewardDistributionBatchSize)
+	resp += fmt.Sprintf("Max stake snapshots: %d\n", p.MaxStakeSnapshots)
 	return resp
 }
 

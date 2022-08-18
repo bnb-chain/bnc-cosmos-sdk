@@ -34,14 +34,13 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.Valid
 
 func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.ValidatorUpdate, completedUbds []types.UnbondingDelegation) {
 	var events sdk.Events
-	_, validatorUpdates, completedUbds, _, events = handleValidatorAndDelegations(ctx, k)
+	var newVals []types.Validator
+	newVals, validatorUpdates, completedUbds, _, events = handleValidatorAndDelegations(ctx, k)
+	storeValidatorsWithHeight(ctx, newVals, k)
 
 	if sdk.IsUpgrade(sdk.LaunchBscUpgrade) && k.ScKeeper != nil {
+		// distribute sidechain rewards
 		sideChainIds, storePrefixes := k.ScKeeper.GetAllSideChainPrefixes(ctx)
-		// split a portion of BSC block fees to BC
-		// accumulate the fees over all sidechains
-		// currently there is only one sidechain, which is BSC
-		accumulatedFeeFromBscToBc := sdk.ZeroDec()
 		for i := range storePrefixes {
 			sideChainCtx := ctx.WithSideChainKeyPrefix(storePrefixes[i])
 			newVals, _, completedUbds, completedREDs, scEvents := handleValidatorAndDelegations(sideChainCtx, k)
@@ -59,15 +58,15 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 			if !sdk.IsUpgrade(sdk.BEP128) {
 				k.Distribute(sideChainCtx, sideChainIds[i])
 			} else {
-				fee := k.DistributeSideChainInBreathBlock(sideChainCtx, sideChainIds[i])
-				accumulatedFeeFromBscToBc = accumulatedFeeFromBscToBc.Add(fee)
+				k.DistributeInBreathBlock(sideChainCtx, sideChainIds[i])
 			}
 
 			publishCompletedUBD(k, completedUbds, sideChainIds[i], ctx.BlockHeight())
 			publishCompletedRED(k, completedREDs, sideChainIds[i])
 		}
 		if sdk.IsUpgrade(sdk.BEPHHH) {
-			k.DistributeBeaconChainInBreathBlock(ctx, accumulatedFeeFromBscToBc.RawInt())
+			// distribute beacon chain rewards
+			k.DistributeInBreathBlock(ctx, keeper.MockSideChainIDForBeaconChain)
 		}
 	}
 	ctx.EventManager().EmitEvents(events)
@@ -132,7 +131,13 @@ func storeValidatorsWithHeight(ctx sdk.Context, validators []types.Validator, k 
 
 func handleValidatorAndDelegations(ctx sdk.Context, k keeper.Keeper) ([]types.Validator, []abci.ValidatorUpdate, []types.UnbondingDelegation, []types.DVVTriplet, sdk.Events) {
 	// calculate validator set changes
-	newVals, validatorUpdates := k.ApplyAndReturnValidatorSetUpdates(ctx)
+	var newVals []types.Validator
+	var validatorUpdates []abci.ValidatorUpdate
+	if sdk.IsUpgrade(sdk.BEPHHH) && ctx.SideChainKeyPrefix() == nil {
+		newVals, validatorUpdates = k.UpdateAndElectValidators(ctx)
+	} else {
+		newVals, validatorUpdates = k.ApplyAndReturnValidatorSetUpdates(ctx)
+	}
 
 	k.UnbondAllMatureValidatorQueue(ctx)
 	completedUbd, events := handleMatureUnbondingDelegations(k, ctx)

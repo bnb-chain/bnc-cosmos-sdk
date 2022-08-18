@@ -106,6 +106,10 @@ func (c Context) EventManager() *EventManager {
 	return c.eventManager
 }
 
+func (c Context) SideChainKeyPrefix() []byte {
+	return c.sideChainKeyPrefix
+}
+
 func (c Context) SideChainId() string {
 	return c.sideChainId
 }

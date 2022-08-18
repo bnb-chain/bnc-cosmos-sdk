@@ -130,6 +130,90 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (newVals []ty
 	return newVals, updates
 }
 
+// update staked tokens snapshots of all validators
+// elect topN validators according to the accumulated staked tokens over snapshotNum
+func (k Keeper) UpdateAndElectValidators(ctx sdk.Context) (newVals []types.Validator, updates []abci.ValidatorUpdate) {
+	snapshotNum := int(k.MaxStakeSnapshots(ctx))
+	var validators []types.Validator
+	store := ctx.KVStore(k.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, ValidatorsKey)
+	defer iterator.Close()
+	for ; iterator.Valid(); iterator.Next() {
+		validator := types.MustUnmarshalValidator(k.cdc, iterator.Value())
+		if validator.Tokens.IsZero() {
+			k.RemoveValidator(ctx, validator.OperatorAddr)
+			continue
+		}
+		validator.StakeSnapshots = append(validator.StakeSnapshots, validator.Tokens)
+		snapshotsLen := len(validator.StakeSnapshots)
+		if snapshotsLen > snapshotNum {
+			validator.StakeSnapshots = validator.StakeSnapshots[snapshotsLen-snapshotNum:]
+		}
+		accmulatedStake := sdk.ZeroDec()
+		for _, s := range validator.StakeSnapshots {
+			accmulatedStake = accmulatedStake.Add(s)
+		}
+		validator.AccumulatedStake = accmulatedStake
+		// set snapshot change
+		k.SetValidator(ctx, validator)
+		// validator which is jailed or has no token will not be election candidate
+		if validator.Jailed || validator.Tokens.IsZero() {
+			continue
+		}
+		validators = append(validators, validator)
+	}
+	sort.SliceStable(validators, func(i, j int) bool {
+		return validators[i].AccumulatedStake.GT(validators[j].AccumulatedStake)
+	})
+
+	var valsNotElected []types.Validator
+	maxValidators := int(k.MaxValidators(ctx))
+	if len(validators) > maxValidators {
+		newVals = validators[:maxValidators]
+		valsNotElected = validators[maxValidators:]
+	} else {
+		newVals = validators
+	}
+
+	var totalPower int64
+	var operatorBytes [sdk.AddrLen]byte
+	last := k.getLastValidatorsByAddr(ctx)
+	for _, validator := range newVals {
+		switch validator.Status {
+		case sdk.Unbonded:
+			validator = k.unbondedToBonded(ctx, validator)
+		case sdk.Unbonding:
+			validator = k.unbondingToBonded(ctx, validator)
+		case sdk.Bonded:
+			// no state change
+		default:
+			panic("unexpected validator status")
+		}
+		copy(operatorBytes[:], validator.OperatorAddr[:])
+		oldPowerBytes, found := last[operatorBytes]
+		newPower := validator.BondedTokens().RawInt()
+		newPowerBytes := k.cdc.MustMarshalBinaryLengthPrefixed(newPower)
+		if !found || !bytes.Equal(oldPowerBytes, newPowerBytes) {
+			updates = append(updates, validator.ABCIValidatorUpdate())
+			k.SetLastValidatorPower(ctx, validator.OperatorAddr, newPower)
+		}
+		delete(last, operatorBytes)
+		totalPower = totalPower + newPower
+	}
+	for _, validator := range valsNotElected {
+		if validator.Status == sdk.Bonded {
+			k.bondedToUnbonding(ctx, validator)
+			k.DeleteLastValidatorPower(ctx, validator.OperatorAddr)
+			updates = append(updates, validator.ABCIValidatorUpdateZero())
+		}
+	}
+	if len(updates) > 0 {
+		k.SetLastTotalPower(ctx, totalPower)
+	}
+
+	return newVals, updates
+}
+
 // Validator state transitions
 
 func (k Keeper) bondedToUnbonding(ctx sdk.Context, validator types.Validator) types.Validator {

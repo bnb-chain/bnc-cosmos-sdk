@@ -11,15 +11,14 @@ import (
 
 // Default parameter namespace
 const (
-	DefaultParamspace = "stake"
+	DefaultParamspace             = "stake"
+	MockSideChainIDForBeaconChain = "beacon_chain"
 )
 
 var (
-	DelegationAccAddr = sdk.AccAddress(crypto.AddressHash([]byte("BinanceChainStakeDelegation")))
-	FeeForAllAccAddr  = sdk.AccAddress(crypto.AddressHash([]byte("BinanceChainStakeFeeForAll")))
+	DelegationAccAddr      = sdk.AccAddress(crypto.AddressHash([]byte("BinanceChainStakeDelegation")))
+	FeeForAllBcValsAccAddr = sdk.AccAddress(crypto.AddressHash([]byte("BinanceChainStakeFeeForAllBcVals")))
 )
-
-const MockSideChainIDForBeaconChain = "beacon_chain"
 
 // ParamTable for stake module
 func ParamTypeTable() params.TypeTable {
@@ -46,6 +45,11 @@ func (k Keeper) BondDenom(ctx sdk.Context) (res string) {
 
 func (k Keeper) MinSelfDelegation(ctx sdk.Context) (res int64) {
 	k.paramstore.GetIfExists(ctx, types.KeyMinSelfDelegation, &res)
+	return
+}
+
+func (k Keeper) MaxStakeSnapshots(ctx sdk.Context) (res uint16) {
+	k.paramstore.GetIfExists(ctx, types.KeyMaxStakeSnapshots, &res)
 	return
 }
 
@@ -108,27 +112,43 @@ func (p *paramBeforeBEP128Upgrade) KeyValuePairs() params.KeyValuePairs {
 	}
 }
 
+// in order to be compatible with before
+type paramBeforeBEPHHHUpgrade struct {
+	UnbondingTime time.Duration `json:"unbonding_time"`
+
+	MaxValidators       uint16 `json:"max_validators"`        // maximum number of validators
+	BondDenom           string `json:"bond_denom"`            // bondable coin denomination
+	MinSelfDelegation   int64  `json:"min_self_delegation"`   // the minimal self-delegation amount
+	MinDelegationChange int64  `json:"min_delegation_change"` // the minimal delegation amount changed
+
+	RewardDistributionBatchSize int64 `json:"reward_distribution_batch_size"` // the batch size for distributing rewards in blocks
+}
+
+// Implements params.ParamSet
+func (p *paramBeforeBEPHHHUpgrade) KeyValuePairs() params.KeyValuePairs {
+	return params.KeyValuePairs{
+		{types.KeyUnbondingTime, &p.UnbondingTime},
+		{types.KeyMaxValidators, &p.MaxValidators},
+		{types.KeyBondDenom, &p.BondDenom},
+		{types.KeyMinSelfDelegation, &p.MinSelfDelegation},
+		{types.KeyMinDelegationChange, &p.MinDelegationChange},
+		{types.KeyRewardDistributionBatchSize, &p.RewardDistributionBatchSize},
+	}
+}
+
 // set the params
 func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
-	sdk.Upgrade(sdk.LaunchBscUpgrade, func() {
-		var pb paramBeforeBscUpgrade
-		pb.UnbondingTime = params.UnbondingTime
-		pb.MaxValidators = params.MaxValidators
-		pb.BondDenom = params.BondDenom
-
-		k.paramstore.SetParamSet(ctx, &pb)
-	}, nil, func() {
-		sdk.Upgrade(sdk.BEP128, func() {
-			var pb paramBeforeBEP128Upgrade
-			pb.UnbondingTime = params.UnbondingTime
-			pb.MaxValidators = params.MaxValidators
-			pb.BondDenom = params.BondDenom
-			pb.MinSelfDelegation = params.MinSelfDelegation
-			pb.MinDelegationChange = params.MinDelegationChange
-
-			k.paramstore.SetParamSet(ctx, &pb)
-		}, nil, func() {
-			k.paramstore.SetParamSet(ctx, &params)
-		})
-	})
+	k.paramstore.Set(ctx, types.KeyUnbondingTime, params.UnbondingTime)
+	k.paramstore.Set(ctx, types.KeyMaxValidators, params.MaxValidators)
+	k.paramstore.Set(ctx, types.KeyBondDenom, params.BondDenom)
+	if sdk.IsUpgrade(sdk.LaunchBscUpgrade) {
+		k.paramstore.Set(ctx, types.KeyMinSelfDelegation, params.MinSelfDelegation)
+		k.paramstore.Set(ctx, types.KeyMinDelegationChange, params.MinDelegationChange)
+	}
+	if sdk.IsUpgrade(sdk.BEP128) {
+		k.paramstore.Set(ctx, types.KeyRewardDistributionBatchSize, params.RewardDistributionBatchSize)
+	}
+	if sdk.IsUpgrade(sdk.BEPHHH) {
+		k.paramstore.Set(ctx, types.KeyMaxStakeSnapshots, params.MaxStakeSnapshots)
+	}
 }
