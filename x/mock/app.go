@@ -105,7 +105,7 @@ func (app *App) InitChainer(ctx sdk.Context, _ abci.RequestInitChain) abci.Respo
 	for _, genacc := range app.GenesisAccounts {
 		acc := app.AccountKeeper.NewAccountWithAddress(ctx, genacc.GetAddress())
 		acc.SetCoins(genacc.GetCoins())
-		app.Logger.Debug("InitChainer", "acc", acc)
+		//app.Logger.Debug("InitChainer", "acc", acc)
 		app.AccountKeeper.SetAccount(ctx, acc)
 	}
 

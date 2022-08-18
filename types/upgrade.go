@@ -40,6 +40,10 @@ func NewUpgradeManager(config UpgradeConfig) *UpgradeManager {
 	}
 }
 
+func (mgr *UpgradeManager) Reset() {
+	*mgr = *NewUpgradeManager(UpgradeConfig{})
+}
+
 func (mgr *UpgradeManager) AddConfig(config UpgradeConfig) {
 	for name, height := range config.HeightMap {
 		mgr.AddUpgradeHeight(name, height)
