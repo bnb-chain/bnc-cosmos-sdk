@@ -71,6 +71,11 @@ var (
 
 		"crossDistributeRewardRelayFee":      {},
 		"crossDistributeUndelegatedRelayFee": {},
+
+		"edit_validator": {},
+		"delegate":       {},
+		"redelegate":     {},
+		"undelegate":     {},
 	}
 
 	ValidTransferFeeMsgTypes = map[string]struct{}{

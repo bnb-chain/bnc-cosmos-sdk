@@ -83,6 +83,15 @@ func RegisterUpgradeBeginBlocker(paramHub *ParamHub) {
 		}
 		paramHub.UpdateFeeParams(ctx, crossStakeFeeParams)
 	})
+	sdk.UpgradeMgr.RegisterBeginBlocker(sdk.BEPHHH, func(ctx sdk.Context) {
+		updateFeeParams := []param.FeeParam{
+			&param.FixedFeeParams{MsgType: "edit_validator", Fee: EditSideChainValidatorFee, FeeFor: sdk.FeeForProposer},
+			&param.FixedFeeParams{MsgType: "delegate", Fee: SideChainDelegateFee, FeeFor: sdk.FeeForProposer},
+			&param.FixedFeeParams{MsgType: "redelegate", Fee: SideChainRedelegateFee, FeeFor: sdk.FeeForProposer},
+			&param.FixedFeeParams{MsgType: "undelegate", Fee: SideChainUndelegateFee, FeeFor: sdk.FeeForProposer},
+		}
+		paramHub.UpdateFeeParams(ctx, updateFeeParams)
+	})
 }
 
 func EndBreatheBlock(ctx sdk.Context, paramHub *ParamHub) {
@@ -144,5 +153,9 @@ func init() {
 		"miniIssueMsg":                       fees.FixedFeeCalculatorGen,
 		"crossDistributeRewardRelayFee":      fees.FixedFeeCalculatorGen,
 		"crossDistributeUndelegatedRelayFee": fees.FixedFeeCalculatorGen,
+		"edit_validator":                     fees.FixedFeeCalculatorGen,
+		"delegate":                           fees.FixedFeeCalculatorGen,
+		"redelegate":                         fees.FixedFeeCalculatorGen,
+		"undelegate":                         fees.FixedFeeCalculatorGen,
 	}
 }

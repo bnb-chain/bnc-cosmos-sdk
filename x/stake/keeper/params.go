@@ -11,8 +11,7 @@ import (
 
 // Default parameter namespace
 const (
-	DefaultParamspace             = "stake"
-	MockSideChainIDForBeaconChain = "beacon_chain"
+	DefaultParamspace = "stake"
 )
 
 var (

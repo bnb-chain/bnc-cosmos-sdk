@@ -14,6 +14,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+const MockSideChainIDForBeaconChain = "beacon_chain"
+
 // Validator defines the total amount of bond shares and their exchange rate to
 // coins. Accumulation of interest is modelled as an in increase in the
 // exchange rate, and slashing as a decrease.  When coins are delegated to this
@@ -56,7 +58,7 @@ func NewValidator(operator sdk.ValAddress, pubKey crypto.PubKey, description Des
 
 // Note a few fields are initialized with default value. They will be updated later
 func NewValidatorWithFeeAddr(feeAddr sdk.AccAddress, operator sdk.ValAddress, pubKey crypto.PubKey, description Description) Validator {
-	return Validator{
+	val := Validator{
 		FeeAddr:            feeAddr,
 		OperatorAddr:       operator,
 		ConsPubKey:         pubKey,
@@ -71,6 +73,10 @@ func NewValidatorWithFeeAddr(feeAddr sdk.AccAddress, operator sdk.ValAddress, pu
 		UnbondingMinTime:   time.Unix(0, 0).UTC(),
 		Commission:         NewCommission(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec()),
 	}
+	if sdk.IsUpgrade(sdk.BEPHHH) {
+		val.DistributionAddr = GenerateDistributionAddr(operator, MockSideChainIDForBeaconChain)
+	}
+	return val
 }
 
 func NewSideChainValidator(feeAddr sdk.AccAddress, operator sdk.ValAddress, description Description, sideChainId string, sideConsAddr, sideFeeAddr []byte) Validator {
@@ -88,14 +94,14 @@ func NewSideChainValidator(feeAddr sdk.AccAddress, operator sdk.ValAddress, desc
 		UnbondingMinTime:   time.Unix(0, 0).UTC(),
 		UnbondingHeight:    int64(0),
 		Commission:         NewCommission(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec()),
-		DistributionAddr:   generateDistributionAddr(operator, sideChainId),
+		DistributionAddr:   GenerateDistributionAddr(operator, sideChainId),
 		SideChainId:        sideChainId,
 		SideConsAddr:       sideConsAddr,
 		SideFeeAddr:        sideFeeAddr,
 	}
 }
 
-func generateDistributionAddr(operator sdk.ValAddress, sideChainId string) sdk.AccAddress {
+func GenerateDistributionAddr(operator sdk.ValAddress, sideChainId string) sdk.AccAddress {
 	// DistributionAddr = hash(sideChainId) ^ operator
 	// so we can easily recover operator address from DistributionAddr,
 	// operator = DistributionAddr ^ hash(sideChainId)

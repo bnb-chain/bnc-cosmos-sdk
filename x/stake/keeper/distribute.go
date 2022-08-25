@@ -133,7 +133,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 	}
 
 	var daysBackward int
-	if sideChainId != MockSideChainIDForBeaconChain {
+	if sideChainId != types.MockSideChainIDForBeaconChain {
 		daysBackward = daysBackwardForValidatorSnapshot
 	} else {
 		daysBackward = daysBackwardForValidatorSnapshotBeaconChain
@@ -149,18 +149,20 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 
 	bondDenom := k.BondDenom(ctx)
 	avgFeeForBcVals := sdk.ZeroDec()
-	if sdk.IsUpgrade(sdk.BEPHHH) && sideChainId == MockSideChainIDForBeaconChain {
+	if sdk.IsUpgrade(sdk.BEPHHH) && sideChainId == types.MockSideChainIDForBeaconChain {
 		feeForAllBcValsCoins := k.BankKeeper.GetCoins(ctx, FeeForAllBcValsAccAddr)
 		feeForAllBcVals := feeForAllBcValsCoins.AmountOf(bondDenom)
 		avgFeeForBcVals = sdk.NewDec(feeForAllBcVals / int64(len(validators)))
 	}
+	ctx.Logger().Debug("DistributeInBreathBlock", "height", ctx.BlockHeight(), "sideChainId", sideChainId, "avgFeeForBcVals", avgFeeForBcVals)
 
 	for _, validator := range validators {
 		distAccCoins := k.BankKeeper.GetCoins(ctx, validator.DistributionAddr)
+		//ctx.Logger().Debug("DistributeInBreathBlock", "distAccCoins", distAccCoins)
 		totalReward := distAccCoins.AmountOf(bondDenom)
 		totalRewardDec := sdk.NewDec(totalReward)
 		if sdk.IsUpgrade(sdk.BEPHHH) {
-			if sideChainId != MockSideChainIDForBeaconChain {
+			if sideChainId != types.MockSideChainIDForBeaconChain {
 				// split a portion of fees to BC validators
 				feeToBC := totalRewardDec.Mul(feeFromBscToBcRatio)
 				if feeToBC.RawInt() > 0 {
@@ -258,6 +260,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 		}
 	}
 
+	ctx.Logger().Debug("DistributeInBreathBlock", "toSaveRewards", toSaveRewards)
 	if len(toSaveRewards) > 0 { //to save rewards
 		//1) get batch size from parameters, 2) hard limit to make sure rewards can be distributed in a day
 		batchSize := getDistributionBatchSize(k.GetParams(ctx).RewardDistributionBatchSize, int64(len(toSaveRewards)))

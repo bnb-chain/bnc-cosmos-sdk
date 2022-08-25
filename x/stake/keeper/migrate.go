@@ -27,3 +27,21 @@ func MigratePowerRankKey(ctx sdk.Context, keeper Keeper) {
 		keeper.SetNewValidatorByPowerIndex(ctx, val)
 	}
 }
+
+func MigrateValidators(ctx sdk.Context, k Keeper) {
+	store := ctx.KVStore(k.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, ValidatorsKey)
+	defer iterator.Close()
+
+	bondDenom := k.BondDenom(ctx)
+	var err error
+	for ; iterator.Valid(); iterator.Next() {
+		validator := types.MustUnmarshalValidator(k.cdc, iterator.Value())
+		validator.DistributionAddr = types.GenerateDistributionAddr(validator.OperatorAddr, types.MockSideChainIDForBeaconChain)
+		k.SetValidator(ctx, validator)
+		_, err = k.Delegate(ctx, validator.FeeAddr, sdk.NewCoin(bondDenom, 0), validator, false)
+		if err != nil {
+			panic(err)
+		}
+	}
+}

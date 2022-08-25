@@ -138,8 +138,9 @@ func (k Keeper) UpdateAndElectValidators(ctx sdk.Context) (newVals []types.Valid
 	store := ctx.KVStore(k.storeKey)
 	iterator := sdk.KVStorePrefixIterator(store, ValidatorsKey)
 	defer iterator.Close()
+	var validator types.Validator
 	for ; iterator.Valid(); iterator.Next() {
-		validator := types.MustUnmarshalValidator(k.cdc, iterator.Value())
+		validator = types.MustUnmarshalValidator(k.cdc, iterator.Value())
 		if validator.Tokens.IsZero() {
 			k.RemoveValidator(ctx, validator.OperatorAddr)
 			continue
@@ -178,7 +179,7 @@ func (k Keeper) UpdateAndElectValidators(ctx sdk.Context) (newVals []types.Valid
 	var totalPower int64
 	var operatorBytes [sdk.AddrLen]byte
 	last := k.getLastValidatorsByAddr(ctx)
-	for _, validator := range newVals {
+	for i, validator := range newVals {
 		switch validator.Status {
 		case sdk.Unbonded:
 			validator = k.unbondedToBonded(ctx, validator)
@@ -189,6 +190,7 @@ func (k Keeper) UpdateAndElectValidators(ctx sdk.Context) (newVals []types.Valid
 		default:
 			panic("unexpected validator status")
 		}
+		newVals[i] = validator
 		copy(operatorBytes[:], validator.OperatorAddr[:])
 		oldPowerBytes, found := last[operatorBytes]
 		newPower := validator.BondedTokens().RawInt()

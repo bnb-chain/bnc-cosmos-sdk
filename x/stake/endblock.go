@@ -17,7 +17,7 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.Valid
 		_, validatorUpdates, completedUbds, _, events = handleValidatorAndDelegations(ctx, k)
 		ctx.EventManager().EmitEvents(events)
 	} else {
-		k.DistributeInBlock(ctx, keeper.MockSideChainIDForBeaconChain)
+		k.DistributeInBlock(ctx, types.MockSideChainIDForBeaconChain)
 	}
 	if sdk.IsUpgrade(sdk.BEP128) {
 		sideChainIds, storePrefixes := k.ScKeeper.GetAllSideChainPrefixes(ctx)
@@ -41,7 +41,10 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 	var events sdk.Events
 	var newVals []types.Validator
 	newVals, validatorUpdates, completedUbds, _, events = handleValidatorAndDelegations(ctx, k)
-	storeValidatorsWithHeight(ctx, newVals, k)
+	ctx.Logger().Debug("EndBreatheBlock", "newValsLen", len(newVals))
+	if sdk.IsUpgrade(sdk.BEPHHH) {
+		storeValidatorsWithHeight(ctx, newVals, k)
+	}
 
 	if sdk.IsUpgrade(sdk.LaunchBscUpgrade) && k.ScKeeper != nil {
 		// distribute sidechain rewards
@@ -75,7 +78,7 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 		}
 		if sdk.IsUpgrade(sdk.BEPHHH) {
 			// distribute beacon chain rewards
-			k.DistributeInBreathBlock(ctx, keeper.MockSideChainIDForBeaconChain)
+			k.DistributeInBreathBlock(ctx, types.MockSideChainIDForBeaconChain)
 		}
 	}
 	ctx.EventManager().EmitEvents(events)
@@ -142,11 +145,13 @@ func handleValidatorAndDelegations(ctx sdk.Context, k keeper.Keeper) ([]types.Va
 	// calculate validator set changes
 	var newVals []types.Validator
 	var validatorUpdates []abci.ValidatorUpdate
+	ctx.Logger().Debug("handleValidatorAndDelegations", "height", ctx.BlockHeader().Height, "addSnapshot", sdk.IsUpgrade(sdk.BEPHHH) && ctx.SideChainKeyPrefix() == nil)
 	if sdk.IsUpgrade(sdk.BEPHHH) && ctx.SideChainKeyPrefix() == nil {
 		newVals, validatorUpdates = k.UpdateAndElectValidators(ctx)
 	} else {
 		newVals, validatorUpdates = k.ApplyAndReturnValidatorSetUpdates(ctx)
 	}
+	ctx.Logger().Debug("handleValidatorAndDelegations", "validatorUpdates", validatorUpdates)
 
 	k.UnbondAllMatureValidatorQueue(ctx)
 	completedUbd, events := handleMatureUnbondingDelegations(k, ctx)
