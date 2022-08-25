@@ -23,10 +23,6 @@ const (
 	boundOfRewardDistributionBlockCount = int64(10000)
 )
 
-var (
-	feeFromBscToBcRatio sdk.Dec = sdk.NewDec(10000000) // 10%
-)
-
 func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 
 	// The rewards collected yesterday is decided by the validators the day before yesterday.
@@ -148,6 +144,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 	var toSaveValDistAddrs []types.StoredValDistAddr // mapping between validator and distribution address, to be saved
 
 	bondDenom := k.BondDenom(ctx)
+	feeFromBscToBcRatio := k.FeeFromBscToBcRatio(ctx)
 	avgFeeForBcVals := sdk.ZeroDec()
 	if sdk.IsUpgrade(sdk.BEPHHH) && sideChainId == types.MockSideChainIDForBeaconChain {
 		feeForAllBcValsCoins := k.BankKeeper.GetCoins(ctx, FeeForAllBcValsAccAddr)

@@ -62,6 +62,21 @@ func (k Keeper) RewardDistributionBatchSize(ctx sdk.Context) (res int64) {
 	return
 }
 
+func (k Keeper) BaseProposerRewardRatio(ctx sdk.Context) (res sdk.Dec) {
+	k.paramstore.GetIfExists(ctx, types.KeyBaseProposerRewardRatio, &res)
+	return
+}
+
+func (k Keeper) BonusProposerRewardRatio(ctx sdk.Context) (res sdk.Dec) {
+	k.paramstore.GetIfExists(ctx, types.KeyBonusProposerRewardRatio, &res)
+	return
+}
+
+func (k Keeper) FeeFromBscToBcRatio(ctx sdk.Context) (res sdk.Dec) {
+	k.paramstore.GetIfExists(ctx, types.KeyFeeFromBscToBcRatio, &res)
+	return
+}
+
 // Get all parameters as types.Params
 func (k Keeper) GetParams(ctx sdk.Context) (res types.Params) {
 	res.UnbondingTime = k.UnbondingTime(ctx)
@@ -149,5 +164,8 @@ func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
 	}
 	if sdk.IsUpgrade(sdk.BEPHHH) {
 		k.paramstore.Set(ctx, types.KeyMaxStakeSnapshots, params.MaxStakeSnapshots)
+		k.paramstore.Set(ctx, types.KeyBaseProposerRewardRatio, params.BaseProposerRewardRatio)
+		k.paramstore.Set(ctx, types.KeyBonusProposerRewardRatio, params.BonusProposerRewardRatio)
+		k.paramstore.Set(ctx, types.KeyFeeFromBscToBcRatio, params.FeeFromBscToBcRatio)
 	}
 }

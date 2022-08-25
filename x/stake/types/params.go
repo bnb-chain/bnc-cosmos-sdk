@@ -42,6 +42,9 @@ var (
 	KeyRewardDistributionBatchSize = []byte("RewardDistributionBatchSize")
 	KeyMaxBeaconChainValidators    = []byte("MaxBeaconChainValidators")
 	KeyMaxStakeSnapshots           = []byte("MaxStakeSnapshots")
+	KeyBaseProposerRewardRatio     = []byte("BaseProposerRewardRatio")
+	KeyBonusProposerRewardRatio    = []byte("BonusProposerRewardRatio")
+	KeyFeeFromBscToBcRatio         = []byte("FeeFromBscToBcRatio")
 )
 
 var _ params.ParamSet = (*Params)(nil)
@@ -56,7 +59,10 @@ type Params struct {
 	MinDelegationChange         int64  `json:"min_delegation_change"`          // the minimal delegation amount changed
 	RewardDistributionBatchSize int64  `json:"reward_distribution_batch_size"` // the batch size for distributing rewards in blocks
 	// added in BEPHHH
-	MaxStakeSnapshots uint16 `json:"max_stake_snapshots"` // maximum number of stake snapshots, also used as the accumulated stake duration
+	MaxStakeSnapshots        uint16    `json:"max_stake_snapshots"`         // maximum number of stake snapshots, also used as the accumulated stake duration
+	BaseProposerRewardRatio  types.Dec `json:"base_proposer_reward_ratio"`  // the base proposer reward ratio
+	BonusProposerRewardRatio types.Dec `json:"bonus_proposer_reward_ratio"` // the bonus proposer reward ratio
+	FeeFromBscToBcRatio      types.Dec `json:"fee_from_bsc_to_bc_ratio"`    // the fee from bsc to bc ratio
 }
 
 func (p *Params) GetParamAttribute() (string, bool) {
@@ -87,6 +93,18 @@ func (p *Params) UpdateCheck() error {
 	if p.RewardDistributionBatchSize < 1000 || p.RewardDistributionBatchSize > 5000 {
 		return fmt.Errorf("the reward_distribution_batch_size should be in range 1000 to 5000")
 	}
+	if p.BaseProposerRewardRatio.LT(types.ZeroDec()) {
+		return fmt.Errorf("the base_proposer_reward_ratio should be no less than 0")
+	}
+	if p.BonusProposerRewardRatio.LT(types.ZeroDec()) {
+		return fmt.Errorf("the bonus_proposer_reward_ratio should be no less than 0")
+	}
+	if p.BonusProposerRewardRatio.Add(p.BaseProposerRewardRatio).GT(types.OneDec()) {
+		return fmt.Errorf("the base_proposer_reward_ratio + bonus_proposer_reward_ratio should be no greater than 1")
+	}
+	if p.FeeFromBscToBcRatio.LT(types.ZeroDec()) {
+		return fmt.Errorf("the fee_from_bsc_to_bc_ratio should be no less than 0")
+	}
 
 	return nil
 }
@@ -101,6 +119,9 @@ func (p *Params) KeyValuePairs() params.KeyValuePairs {
 		{KeyMinDelegationChange, &p.MinDelegationChange},
 		{KeyRewardDistributionBatchSize, &p.RewardDistributionBatchSize},
 		{KeyMaxStakeSnapshots, &p.MaxStakeSnapshots},
+		{KeyBaseProposerRewardRatio, &p.BaseProposerRewardRatio},
+		{KeyBonusProposerRewardRatio, &p.BonusProposerRewardRatio},
+		{KeyFeeFromBscToBcRatio, &p.FeeFromBscToBcRatio},
 	}
 }
 
@@ -121,6 +142,9 @@ func DefaultParams() Params {
 		MinDelegationChange:         defaultMinDelegationChange,
 		RewardDistributionBatchSize: defaultRewardDistributionBatchSize,
 		MaxStakeSnapshots:           30,
+		BaseProposerRewardRatio:     types.NewDec(1e6),
+		BonusProposerRewardRatio:    types.NewDec(4e6),
+		FeeFromBscToBcRatio:         types.NewDec(1e7),
 	}
 }
 
