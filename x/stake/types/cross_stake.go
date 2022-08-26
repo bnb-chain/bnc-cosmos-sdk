@@ -90,8 +90,8 @@ const (
 
 type CrossStakeRefundPackage struct {
 	EventType CrossStakeEventType
-	Amount    *big.Int
 	Recipient sdk.SmartChainAddress
+	Amount    *big.Int
 	ErrorCode RefundError
 }
 
