@@ -15,7 +15,6 @@ import (
 	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/stake"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

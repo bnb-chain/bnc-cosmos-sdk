@@ -3,10 +3,9 @@ package keeper
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParams(t *testing.T) {

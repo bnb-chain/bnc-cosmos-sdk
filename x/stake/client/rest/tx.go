@@ -12,9 +12,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 	"github.com/cosmos/cosmos-sdk/x/stake"
-
 	"github.com/gorilla/mux"
-
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 

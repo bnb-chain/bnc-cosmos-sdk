@@ -157,8 +157,8 @@ test_lint:
 	!(grep -n branch Gopkg.toml)
 
 format:
-	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./client/lcd/statik/statik.go" | xargs gofmt -w -s
-	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./client/lcd/statik/statik.go" | xargs misspell -w
+
+	sh scripts/importssort.sh
 
 benchmark:
 	@go test -bench=. $(PACKAGES_NOSIMULATION)
