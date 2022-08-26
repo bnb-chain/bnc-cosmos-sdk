@@ -209,11 +209,12 @@ func SimulateMsgBeginRedelegate(m auth.AccountKeeper, k stake.Keeper) simulation
 		if amount == 0 {
 			return "no-operation", nil, nil
 		}
+		coin := sdk.NewCoin(denom, amount)
 		msg := stake.MsgRedelegate{
 			DelegatorAddr:    delegatorAddress,
 			ValidatorSrcAddr: sourceValidatorAddress,
 			ValidatorDstAddr: destValidatorAddress,
-			SharesAmount:     sdk.NewDecFromInt(amount),
+			Amount:           coin,
 		}
 		if msg.ValidateBasic() != nil {
 			return "", nil, fmt.Errorf("expected msg to pass ValidateBasic: %s", msg.GetSignBytes())

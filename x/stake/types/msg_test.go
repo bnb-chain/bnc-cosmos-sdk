@@ -68,7 +68,7 @@ func TestMsgEditValidator(t *testing.T) {
 		description := NewDescription(tc.moniker, tc.identity, tc.website, tc.details)
 		newRate := sdk.ZeroDec()
 
-		msg := NewMsgEditValidator(tc.validatorAddr, description, &newRate)
+		msg := NewMsgEditValidator(tc.validatorAddr, description, &newRate, nil)
 		if tc.expectPass {
 			require.Nil(t, msg.ValidateBasic(), "test: %v", tc.name)
 		} else {
@@ -159,7 +159,7 @@ func TestMsgBeginRedelegate(t *testing.T) {
 		delegatorAddr    sdk.AccAddress
 		validatorSrcAddr sdk.ValAddress
 		validatorDstAddr sdk.ValAddress
-		sharesAmount     sdk.Dec
+		amount           sdk.Dec
 		expectPass       bool
 	}{
 		{"regular", sdk.AccAddress(addr1), addr2, addr3, sdk.NewDecWithPrec(1, 1), true},
@@ -171,7 +171,7 @@ func TestMsgBeginRedelegate(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		msg := NewMsgRedelegate(tc.delegatorAddr, tc.validatorSrcAddr, tc.validatorDstAddr, tc.sharesAmount)
+		msg := NewMsgRedelegate(tc.delegatorAddr, tc.validatorSrcAddr, tc.validatorDstAddr, sdk.NewCoin("steak", tc.amount.RawInt()))
 		if tc.expectPass {
 			require.Nil(t, msg.ValidateBasic(), "test: %v", tc.name)
 		} else {

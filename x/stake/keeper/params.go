@@ -85,6 +85,9 @@ func (k Keeper) GetParams(ctx sdk.Context) (res types.Params) {
 	res.MinSelfDelegation = k.MinSelfDelegation(ctx)
 	res.MinDelegationChange = k.MinDelegationChange(ctx)
 	res.RewardDistributionBatchSize = k.RewardDistributionBatchSize(ctx)
+	res.BaseProposerRewardRatio = k.BaseProposerRewardRatio(ctx)
+	res.BonusProposerRewardRatio = k.BonusProposerRewardRatio(ctx)
+	res.MaxStakeSnapshots = k.MaxStakeSnapshots(ctx)
 	return
 }
 

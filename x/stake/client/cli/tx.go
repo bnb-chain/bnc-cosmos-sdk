@@ -262,7 +262,7 @@ func GetCmdEditValidator(cdc *codec.Codec) *cobra.Command {
 				newRate = &rate
 			}
 
-			msg := stake.NewMsgEditValidator(sdk.ValAddress(valAddr), description, newRate)
+			msg := stake.NewMsgEditValidator(sdk.ValAddress(valAddr), description, newRate, nil)
 			return utils.GenerateOrBroadcastMsgs(txBldr, cliCtx, []sdk.Msg{msg})
 		},
 	}

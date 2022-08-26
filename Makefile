@@ -113,6 +113,9 @@ test_examples:
 test_unit:
 	@VERSION=$(VERSION) go test $(PACKAGES_NOSIMULATION)
 
+test_coverage:
+	@VERSION=$(VERSION) go test $(PACKAGES_NOSIMULATION) -coverprofile=coverage.txt -covermode=atomic
+
 test_race:
 	@VERSION=$(VERSION) go test -race $(PACKAGES_NOSIMULATION)
 

@@ -33,10 +33,10 @@ type (
 	}
 
 	msgBeginRedelegateInput struct {
-		DelegatorAddr    string `json:"delegator_addr"`     // in bech32
-		ValidatorSrcAddr string `json:"validator_src_addr"` // in bech32
-		ValidatorDstAddr string `json:"validator_dst_addr"` // in bech32
-		SharesAmount     string `json:"shares"`
+		DelegatorAddr    string   `json:"delegator_addr"`     // in bech32
+		ValidatorSrcAddr string   `json:"validator_src_addr"` // in bech32
+		ValidatorDstAddr string   `json:"validator_dst_addr"` // in bech32
+		Amount           sdk.Coin `json:"amount"`
 	}
 
 	msgBeginUnbondingInput struct {
@@ -141,17 +141,11 @@ func delegationsRequestHandlerFn(cdc *codec.Codec, kb keys.Keybase, cliCtx conte
 				return
 			}
 
-			shares, err := sdk.NewDecFromStr(msg.SharesAmount)
-			if err != nil {
-				utils.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
-				return
-			}
-
 			messages[i] = stake.MsgRedelegate{
 				DelegatorAddr:    delAddr,
 				ValidatorSrcAddr: valSrcAddr,
 				ValidatorDstAddr: valDstAddr,
-				SharesAmount:     shares,
+				Amount:           msg.Amount,
 			}
 
 			i++

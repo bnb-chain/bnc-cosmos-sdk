@@ -334,6 +334,9 @@ func (msg MsgRedelegate) ValidateBasic() sdk.Error {
 	if len(msg.ValidatorDstAddr) != sdk.AddrLen {
 		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected validator address length is %d, actual length is %d", sdk.AddrLen, len(msg.ValidatorDstAddr)))
 	}
+	if msg.Amount.Amount <= 0 {
+		return sdk.ErrInvalidCoins(fmt.Sprintf("Expected positive amount, actual amount is %v", msg.Amount.Amount))
+	}
 	return nil
 }
 
