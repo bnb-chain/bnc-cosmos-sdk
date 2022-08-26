@@ -1,9 +1,11 @@
 package keeper
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"github.com/tendermint/tendermint/crypto"
+	"sort"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -365,6 +367,26 @@ func (k Keeper) GetBondedValidatorsByPower(ctx sdk.Context) []types.Validator {
 		}
 	}
 	return validators[:i] // trim
+}
+
+func (k Keeper) GetSortedBondedValidators(ctx sdk.Context) []types.Validator {
+	validators := k.GetBondedValidatorsByPower(ctx)
+	sort.Slice(validators, func(i, j int) bool {
+		if validators[i].AccumulatedStake.GT(validators[j].AccumulatedStake) {
+			return true
+		}
+		if validators[i].AccumulatedStake.LT(validators[j].AccumulatedStake) {
+			return false
+		}
+		if validators[i].Tokens.GT(validators[j].Tokens) {
+			return true
+		}
+		if validators[i].Tokens.LT(validators[j].Tokens) {
+			return false
+		}
+		return bytes.Compare(validators[i].OperatorAddr, validators[j].OperatorAddr) > 0
+	})
+	return validators
 }
 
 // gets a specific validator queue timeslice. A timeslice is a slice of ValAddresses corresponding to unbonding validators

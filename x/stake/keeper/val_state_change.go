@@ -164,7 +164,14 @@ func (k Keeper) UpdateAndElectValidators(ctx sdk.Context) (newVals []types.Valid
 		validators = append(validators, validator)
 	}
 	sort.SliceStable(validators, func(i, j int) bool {
-		return validators[i].AccumulatedStake.GT(validators[j].AccumulatedStake)
+		if validators[i].AccumulatedStake.GT(validators[j].AccumulatedStake) {
+			return true
+		}
+		if validators[i].AccumulatedStake.LT(validators[j].AccumulatedStake) {
+			return false
+		}
+		// for the same accumulated stake, sort by operator address
+		return bytes.Compare(validators[i].OperatorAddr, validators[j].OperatorAddr) > 0
 	})
 
 	var valsNotElected []types.Validator
@@ -199,7 +206,6 @@ func (k Keeper) UpdateAndElectValidators(ctx sdk.Context) (newVals []types.Valid
 			updates = append(updates, validator.ABCIValidatorUpdate())
 			k.SetLastValidatorPower(ctx, validator.OperatorAddr, newPower)
 		}
-		delete(last, operatorBytes)
 		totalPower = totalPower + newPower
 	}
 	for _, validator := range valsNotElected {
