@@ -157,8 +157,8 @@ func (k Keeper) UpdateAndElectValidators(ctx sdk.Context) (newVals []types.Valid
 		validator.AccumulatedStake = accumulatedStake
 		// set snapshot change
 		k.SetValidator(ctx, validator)
-		// validator which is jailed or has no token will not be election candidate
-		if validator.Jailed || validator.Tokens.IsZero() {
+		// validator which is jailed will not be election candidate
+		if validator.Jailed {
 			continue
 		}
 		validators = append(validators, validator)
