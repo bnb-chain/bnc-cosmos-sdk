@@ -3,6 +3,7 @@ package keeper
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/tendermint/tendermint/crypto"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -143,6 +144,14 @@ func (k Keeper) SetValidatorByConsAddr(ctx sdk.Context, validator types.Validato
 		consAddr := sdk.ConsAddress(validator.ConsPubKey.Address())
 		store.Set(GetValidatorByConsAddrKey(consAddr), validator.OperatorAddr)
 	}
+}
+
+func (k Keeper) UpdateValidatorPubKey(ctx sdk.Context, validator types.Validator, pubkey crypto.PubKey) {
+	store := ctx.KVStore(k.storeKey)
+	oldConsAddr := sdk.ConsAddress(validator.ConsPubKey.Address())
+	store.Delete(GetValidatorByConsAddrKey(oldConsAddr))
+	newConsAddr := sdk.ConsAddress(pubkey.Address())
+	store.Set(GetValidatorByConsAddrKey(newConsAddr), validator.OperatorAddr)
 }
 
 // validator index

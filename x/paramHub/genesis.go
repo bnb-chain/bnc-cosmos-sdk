@@ -38,6 +38,12 @@ const (
 	SideChainRedelegateFee      = 3e5
 	SideChainUndelegateFee      = 2e5
 
+	// beacon chain stake fee
+	EditChainValidatorFee = 1e8
+	ChainDelegateFee      = 1e5
+	ChainRedelegateFee    = 3e5
+	ChainUndelegateFee    = 2e5
+
 	// slashing fee
 	BscSubmitEvidenceFee = 10e8
 	SideChainUnjail      = 1e8

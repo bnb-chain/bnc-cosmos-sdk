@@ -85,10 +85,10 @@ func RegisterUpgradeBeginBlocker(paramHub *ParamHub) {
 	})
 	sdk.UpgradeMgr.RegisterBeginBlocker(sdk.BEPHHH, func(ctx sdk.Context) {
 		updateFeeParams := []param.FeeParam{
-			&param.FixedFeeParams{MsgType: "edit_validator", Fee: EditSideChainValidatorFee, FeeFor: sdk.FeeForProposer},
-			&param.FixedFeeParams{MsgType: "delegate", Fee: SideChainDelegateFee, FeeFor: sdk.FeeForProposer},
-			&param.FixedFeeParams{MsgType: "redelegate", Fee: SideChainRedelegateFee, FeeFor: sdk.FeeForProposer},
-			&param.FixedFeeParams{MsgType: "undelegate", Fee: SideChainUndelegateFee, FeeFor: sdk.FeeForProposer},
+			&param.FixedFeeParams{MsgType: "edit_validator", Fee: EditChainValidatorFee, FeeFor: sdk.FeeForProposer},
+			&param.FixedFeeParams{MsgType: "delegate", Fee: ChainDelegateFee, FeeFor: sdk.FeeForProposer},
+			&param.FixedFeeParams{MsgType: "redelegate", Fee: ChainRedelegateFee, FeeFor: sdk.FeeForProposer},
+			&param.FixedFeeParams{MsgType: "undelegate", Fee: ChainUndelegateFee, FeeFor: sdk.FeeForProposer},
 		}
 		paramHub.UpdateFeeParams(ctx, updateFeeParams)
 	})

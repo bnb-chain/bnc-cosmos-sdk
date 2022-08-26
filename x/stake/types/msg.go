@@ -175,14 +175,16 @@ type MsgEditValidator struct {
 	// distinguish if an update was intended.
 	//
 	// REF: #2373
-	CommissionRate *sdk.Dec `json:"commission_rate"`
+	CommissionRate *sdk.Dec       `json:"commission_rate"`
+	PubKey         *crypto.PubKey `json:"pubkey"`
 }
 
-func NewMsgEditValidator(valAddr sdk.ValAddress, description Description, newRate *sdk.Dec) MsgEditValidator {
+func NewMsgEditValidator(valAddr sdk.ValAddress, description Description, newRate *sdk.Dec, pubkey *crypto.PubKey) MsgEditValidator {
 	return MsgEditValidator{
 		Description:    description,
 		CommissionRate: newRate,
 		ValidatorAddr:  valAddr,
+		PubKey:         pubkey,
 	}
 }
 
@@ -195,13 +197,7 @@ func (msg MsgEditValidator) GetSigners() []sdk.AccAddress {
 
 // get the bytes for the message signer to sign on
 func (msg MsgEditValidator) GetSignBytes() []byte {
-	b, err := MsgCdc.MarshalJSON(struct {
-		Description
-		ValidatorAddr sdk.ValAddress `json:"address"`
-	}{
-		Description:   msg.Description,
-		ValidatorAddr: msg.ValidatorAddr,
-	})
+	b, err := MsgCdc.MarshalJSON(msg)
 	if err != nil {
 		panic(err)
 	}

@@ -21,9 +21,6 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 			}
 			return handleMsgCreateValidatorAfterProposal(ctx, msg, k, govKeeper)
 		case types.MsgRemoveValidator:
-			if sdk.IsUpgrade(sdk.BEPHHH) {
-				return sdk.ErrMsgNotSupported("MsgRemoveValidator disabled in BEP-HHH").Result()
-			}
 			return handleMsgRemoveValidatorAfterProposal(ctx, msg, k, govKeeper)
 		// Beacon Chain New Staking in BEP-HHH
 		case types.MsgCreateValidator:
@@ -265,6 +262,13 @@ func handleMsgEditValidator(ctx sdk.Context, msg types.MsgEditValidator, k keepe
 		return ErrNoValidatorFound(k.Codespace()).Result()
 	}
 
+	if msg.PubKey != nil {
+		_, found = k.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(*msg.PubKey))
+		if found {
+			return ErrValidatorPubKeyExists(k.Codespace()).Result()
+		}
+	}
+
 	// replace all editable fields (clients should autofill existing values)
 	description, err := validator.Description.UpdateDescription(msg.Description)
 	if err != nil {
@@ -273,12 +277,21 @@ func handleMsgEditValidator(ctx sdk.Context, msg types.MsgEditValidator, k keepe
 
 	validator.Description = description
 
+	onValidatorModified := false
 	if msg.CommissionRate != nil {
 		commission, err := k.UpdateValidatorCommission(ctx, validator, *msg.CommissionRate)
 		if err != nil {
 			return err.Result()
 		}
 		validator.Commission = commission
+		onValidatorModified = true
+	}
+	if msg.PubKey != nil {
+		k.UpdateValidatorPubKey(ctx, validator, *msg.PubKey)
+		validator.ConsPubKey = *msg.PubKey
+		onValidatorModified = true
+	}
+	if onValidatorModified {
 		k.OnValidatorModified(ctx, msg.ValidatorAddr)
 	}
 

@@ -15,7 +15,6 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.Valid
 	var csEvents sdk.Events
 	if !sdk.IsUpgrade(sdk.BEPHHH) {
 		_, validatorUpdates, completedUbds, _, events = handleValidatorAndDelegations(ctx, k)
-		ctx.EventManager().EmitEvents(events)
 	} else {
 		k.DistributeInBlock(ctx, types.MockSideChainIDForBeaconChain)
 	}
