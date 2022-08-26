@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
@@ -33,15 +34,15 @@ func MigrateValidators(ctx sdk.Context, k Keeper) {
 	iterator := sdk.KVStorePrefixIterator(store, ValidatorsKey)
 	defer iterator.Close()
 
-	bondDenom := k.BondDenom(ctx)
-	var err error
 	for ; iterator.Valid(); iterator.Next() {
 		validator := types.MustUnmarshalValidator(k.cdc, iterator.Value())
 		validator.DistributionAddr = types.GenerateDistributionAddr(validator.OperatorAddr, types.MockSideChainIDForBeaconChain)
 		k.SetValidator(ctx, validator)
-		_, err = k.Delegate(ctx, validator.FeeAddr, sdk.NewCoin(bondDenom, 0), validator, false)
-		if err != nil {
-			panic(err)
+		delegation, found := k.GetDelegation(ctx, validator.FeeAddr, validator.OperatorAddr)
+		if !found {
+			panic(fmt.Sprintf("self delegation for %s not found", validator.OperatorAddr))
 		}
+		delegation.Height = ctx.BlockHeight()
+		k.SetDelegation(ctx, delegation)
 	}
 }
