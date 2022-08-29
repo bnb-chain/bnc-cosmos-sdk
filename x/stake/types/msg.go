@@ -59,6 +59,29 @@ type MsgCreateValidatorProposal struct {
 	ProposalId int64 `json:"proposal_id"`
 }
 
+func (msg MsgCreateValidatorProposal) GetSignBytes() []byte {
+	var b []byte
+	if sdk.IsUpgrade(sdk.BEPHHH) {
+		b = MsgCdc.MustMarshalJSON(msg)
+	} else {
+		// There is a new implementation of MsgCreateValidator GetSignBytes after BEPHHH
+		// This is left for backwards compatibility
+		b = MsgCdc.MustMarshalJSON(struct {
+			Description
+			DelegatorAddr sdk.AccAddress `json:"delegator_address"`
+			ValidatorAddr sdk.ValAddress `json:"validator_address"`
+			PubKey        string         `json:"pubkey"`
+			Delegation    sdk.Coin       `json:"delegation"`
+		}{
+			Description:   msg.Description,
+			ValidatorAddr: msg.ValidatorAddr,
+			PubKey:        sdk.MustBech32ifyConsPub(msg.PubKey),
+			Delegation:    msg.Delegation,
+		})
+	}
+	return sdk.MustSortJSON(b)
+}
+
 // Default way to create validator. Delegator address and validator address are the same
 func NewMsgCreateValidator(valAddr sdk.ValAddress, pubkey crypto.PubKey,
 	selfDelegation sdk.Coin, description Description, commission CommissionMsg) MsgCreateValidator {
@@ -104,18 +127,7 @@ func (msg MsgCreateValidator) GetSigners() []sdk.AccAddress {
 
 // get the bytes for the message signer to sign on
 func (msg MsgCreateValidator) GetSignBytes() []byte {
-	b, err := MsgCdc.MarshalJSON(struct {
-		Description
-		DelegatorAddr sdk.AccAddress `json:"delegator_address"`
-		ValidatorAddr sdk.ValAddress `json:"validator_address"`
-		PubKey        string         `json:"pubkey"`
-		Delegation    sdk.Coin       `json:"delegation"`
-	}{
-		Description:   msg.Description,
-		ValidatorAddr: msg.ValidatorAddr,
-		PubKey:        sdk.MustBech32ifyConsPub(msg.PubKey),
-		Delegation:    msg.Delegation,
-	})
+	b, err := MsgCdc.MarshalJSON(msg)
 	if err != nil {
 		panic(err)
 	}
