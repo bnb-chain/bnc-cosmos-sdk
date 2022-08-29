@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"fmt"
+	"github.com/tendermint/tendermint/crypto"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/sidechain/types"
@@ -129,6 +130,8 @@ type MsgEditSideChainValidator struct {
 	SideChainId string `json:"side_chain_id"`
 	// for SideFeeAddr, we do not update the values if they are not provided.
 	SideFeeAddr []byte `json:"side_fee_addr"`
+
+	PubKey *crypto.PubKey `json:"pubkey,omitempty"`
 }
 
 func NewMsgEditSideChainValidator(sideChainId string, validatorAddr sdk.ValAddress, description Description, commissionRate *sdk.Dec, sideFeeAddr []byte) MsgEditSideChainValidator {

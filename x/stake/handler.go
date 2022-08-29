@@ -266,11 +266,15 @@ func handleMsgEditValidator(ctx sdk.Context, msg types.MsgEditValidator, k keepe
 		return ErrNoValidatorFound(k.Codespace()).Result()
 	}
 
+	onValidatorModified := false
 	if msg.PubKey != nil {
 		_, found = k.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(*msg.PubKey))
 		if found {
 			return ErrValidatorPubKeyExists(k.Codespace()).Result()
 		}
+		k.UpdateValidatorPubKey(ctx, validator, *msg.PubKey)
+		validator.ConsPubKey = *msg.PubKey
+		onValidatorModified = true
 	}
 
 	// replace all editable fields (clients should autofill existing values)
@@ -281,18 +285,12 @@ func handleMsgEditValidator(ctx sdk.Context, msg types.MsgEditValidator, k keepe
 
 	validator.Description = description
 
-	onValidatorModified := false
 	if msg.CommissionRate != nil {
 		commission, err := k.UpdateValidatorCommission(ctx, validator, *msg.CommissionRate)
 		if err != nil {
 			return err.Result()
 		}
 		validator.Commission = commission
-		onValidatorModified = true
-	}
-	if msg.PubKey != nil {
-		k.UpdateValidatorPubKey(ctx, validator, *msg.PubKey)
-		validator.ConsPubKey = *msg.PubKey
 		onValidatorModified = true
 	}
 	if onValidatorModified {

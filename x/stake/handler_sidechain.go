@@ -85,6 +85,16 @@ func handleMsgEditSideChainValidator(ctx sdk.Context, msg MsgEditSideChainValida
 		return ErrNoValidatorFound(k.Codespace()).Result()
 	}
 
+	// enable edit the PubKey of the validator
+	if msg.PubKey != nil && sdk.IsUpgrade(sdk.BEPHHH) {
+		_, found = k.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(*msg.PubKey))
+		if found {
+			return ErrValidatorPubKeyExists(k.Codespace()).Result()
+		}
+		k.UpdateValidatorPubKey(ctx, validator, *msg.PubKey)
+		validator.ConsPubKey = *msg.PubKey
+	}
+
 	// replace all editable fields (clients should autofill existing values)
 	if description, err := validator.Description.UpdateDescription(msg.Description); err != nil {
 		return err.Result()
