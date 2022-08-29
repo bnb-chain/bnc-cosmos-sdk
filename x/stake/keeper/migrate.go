@@ -47,3 +47,18 @@ func MigrateValidators(ctx sdk.Context, k Keeper) {
 		k.SetDelegation(ctx, delegation)
 	}
 }
+
+func MigrateWhiteLabelOracleRelayer(ctx sdk.Context, k Keeper) {
+	validators, _, found := k.GetHeightValidatorsByIndex(ctx, 1)
+	if !found {
+		panic("validators snapshot not found, should never happen")
+	}
+	var oracleRelayers []types.OracleRelayer
+	for _, validator := range validators {
+		oracleRelayers = append(oracleRelayers, types.OracleRelayer{
+			Address: validator.OperatorAddr,
+			Power:   validator.GetPower().RawInt(),
+		})
+	}
+	k.SetWhiteLabelOracleRelayer(ctx, oracleRelayers)
+}

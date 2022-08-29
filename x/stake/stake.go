@@ -94,6 +94,7 @@ var (
 	TestingUpdateValidator           = keeper.TestingUpdateValidator
 	MigratePowerRankKey              = keeper.MigratePowerRankKey
 	MigrateValidatorDistributionAddr = keeper.MigrateValidators
+	MigrateWhiteLabelOracleRelayer   = keeper.MigrateWhiteLabelOracleRelayer
 
 	DefaultParamspace = keeper.DefaultParamspace
 	KeyUnbondingTime  = types.KeyUnbondingTime

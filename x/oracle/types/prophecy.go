@@ -104,24 +104,18 @@ func (dbProphecy DBProphecy) DeserializeFromDB() (Prophecy, error) {
 // FindHighestClaim looks through all the existing claims on a given prophecy. It adds up the total power across
 // all claims and returns the highest claim, power for that claim, and total power claimed on the prophecy overall.
 func (prophecy Prophecy) FindHighestClaim(ctx sdk.Context, stakeKeeper StakingKeeper) (string, int64, int64) {
-	validators := stakeKeeper.GetBondedValidatorsByPower(ctx)
-	//Index the validators by address for looking when scanning through claims
-	validatorsByAddress := make(map[string]sdk.Validator)
-	for _, validator := range validators {
-		validatorsByAddress[validator.OperatorAddr.String()] = validator
-	}
-
+	validatorsPowerMap := stakeKeeper.GetOracleRelayersPower(ctx)
 	totalClaimsPower := int64(0)
 	highestClaimPower := int64(-1)
 	highestClaim := ""
 	for claim, validatorAddrs := range prophecy.ClaimValidators {
 		claimPower := int64(0)
 		for _, validatorAddr := range validatorAddrs {
-			validator, found := validatorsByAddress[validatorAddr.String()]
+			power, found := validatorsPowerMap[validatorAddr.String()]
 			if found {
 				// Note: If claim validator is not found in the current validator set, we assume it is no longer
 				// an active validator and so can silently ignore it's claim and no longer count it towards total power.
-				claimPower += validator.GetPower().RawInt()
+				claimPower += power
 			}
 		}
 		totalClaimsPower += claimPower
