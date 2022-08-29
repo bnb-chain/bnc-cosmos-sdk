@@ -40,7 +40,6 @@ var (
 	KeyMinSelfDelegation           = []byte("MinSelfDelegation")
 	KeyMinDelegationChange         = []byte("MinDelegationChanged")
 	KeyRewardDistributionBatchSize = []byte("RewardDistributionBatchSize")
-	KeyMaxBeaconChainValidators    = []byte("MaxBeaconChainValidators")
 	KeyMaxStakeSnapshots           = []byte("MaxStakeSnapshots")
 	KeyBaseProposerRewardRatio     = []byte("BaseProposerRewardRatio")
 	KeyBonusProposerRewardRatio    = []byte("BonusProposerRewardRatio")
@@ -160,6 +159,9 @@ func (p Params) HumanReadableString() string {
 	resp += fmt.Sprintf("The minimum value allowed to change the delegation amount: %d\n", p.MinDelegationChange)
 	resp += fmt.Sprintf("The batch size to distribute staking rewards: %d\n", p.RewardDistributionBatchSize)
 	resp += fmt.Sprintf("Max stake snapshots: %d\n", p.MaxStakeSnapshots)
+	resp += fmt.Sprintf("Base proposer reward ratio: %s\n", p.BaseProposerRewardRatio)
+	resp += fmt.Sprintf("Bonus proposer reward ratio: %s\n", p.BonusProposerRewardRatio)
+	resp += fmt.Sprintf("Fee from BSC to BC ratio: %s\n", p.FeeFromBscToBcRatio)
 	return resp
 }
 

@@ -25,6 +25,9 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 			return handleMsgRemoveValidatorAfterProposal(ctx, msg, k, govKeeper)
 		// Beacon Chain New Staking in BEP-HHH
 		case types.MsgCreateValidator:
+			if !sdk.IsUpgrade(sdk.BEPHHHPhase2) {
+				return sdk.ErrMsgNotSupported("BEP-HHH Phase 2 not activated yet").Result()
+			}
 			return handleMsgCreateValidator(ctx, msg, k)
 		case types.MsgEditValidator:
 			return handleMsgEditValidator(ctx, msg, k)

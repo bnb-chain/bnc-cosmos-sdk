@@ -83,7 +83,11 @@ func NewMsgCreateValidatorOnBehalfOf(delAddr sdk.AccAddress, valAddr sdk.ValAddr
 
 //nolint
 func (msg MsgCreateValidator) Route() string { return MsgRoute }
-func (msg MsgCreateValidator) Type() string  { return "create_validator" }
+
+// MsgCreateValidator was introduced in BEPHHH, but the original Type `create_validator` has been occupied by `MsgCreateValidatorProposal`
+// we will keep it so for backwards compatibility, and use a new Type for `MsgCreateValidator`
+func (msg MsgCreateValidator) Type() string         { return "create_validator_open" }
+func (msg MsgCreateValidatorProposal) Type() string { return "create_validator" }
 
 // Return address(es) that must sign over msg.GetSignBytes()
 func (msg MsgCreateValidator) GetSigners() []sdk.AccAddress {

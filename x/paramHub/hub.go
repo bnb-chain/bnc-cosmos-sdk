@@ -85,6 +85,7 @@ func RegisterUpgradeBeginBlocker(paramHub *ParamHub) {
 	})
 	sdk.UpgradeMgr.RegisterBeginBlocker(sdk.BEPHHH, func(ctx sdk.Context) {
 		updateFeeParams := []param.FeeParam{
+			&param.FixedFeeParams{MsgType: "create_validator_open", Fee: CreateValidatorFee, FeeFor: sdk.FeeForProposer},
 			&param.FixedFeeParams{MsgType: "edit_validator", Fee: EditChainValidatorFee, FeeFor: sdk.FeeForProposer},
 			&param.FixedFeeParams{MsgType: "delegate", Fee: ChainDelegateFee, FeeFor: sdk.FeeForProposer},
 			&param.FixedFeeParams{MsgType: "redelegate", Fee: ChainRedelegateFee, FeeFor: sdk.FeeForProposer},
@@ -153,6 +154,7 @@ func init() {
 		"miniIssueMsg":                       fees.FixedFeeCalculatorGen,
 		"crossDistributeRewardRelayFee":      fees.FixedFeeCalculatorGen,
 		"crossDistributeUndelegatedRelayFee": fees.FixedFeeCalculatorGen,
+		"create_validator_open":              fees.FixedFeeCalculatorGen,
 		"edit_validator":                     fees.FixedFeeCalculatorGen,
 		"delegate":                           fees.FixedFeeCalculatorGen,
 		"redelegate":                         fees.FixedFeeCalculatorGen,

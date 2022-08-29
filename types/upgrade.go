@@ -15,9 +15,10 @@ const (
 	LaunchBscUpgrade     = "LaunchBscUpgrade"
 	BEP82                = "BEP82" // https://github.com/bnb-chain/BEPs/pull/82
 	FixFailAckPackage    = "FixFailAckPackage"
-	BEP128               = "BEP128" //https://github.com/bnb-chain/BEPs/pull/128
-	BEP153               = "BEP153" //https://github.com/bnb-chain/BEPs/pull/153
-	BEPHHH               = "BEPHHH" //https://github.com/bnb-chain/BEPs/pull/HHH
+	BEP128               = "BEP128"       // https://github.com/bnb-chain/BEPs/pull/128
+	BEP153               = "BEP153"       // https://github.com/bnb-chain/BEPs/pull/153
+	BEPHHH               = "BEPHHH"       // https://github.com/bnb-chain/BEPs/pull/HHH
+	BEPHHHPhase2         = "BEPHHHPhase2" // phase 2 activation height of BEPHHH, enable create validator and remove oracle relayer whitelist
 )
 
 var MainNetConfig = UpgradeConfig{
