@@ -163,10 +163,8 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 				// split a portion of fees to BC validators
 				feeToBC := totalRewardDec.Mul(feeFromBscToBcRatio)
 				if feeToBC.RawInt() > 0 {
-					if _, _, err := k.BankKeeper.SubtractCoins(ctx, validator.DistributionAddr, sdk.Coins{sdk.NewCoin(bondDenom, feeToBC.RawInt())}); err != nil {
-						panic(err)
-					}
-					if _, _, err := k.BankKeeper.AddCoins(ctx, FeeForAllBcValsAccAddr, sdk.Coins{sdk.NewCoin(bondDenom, feeToBC.RawInt())}); err != nil {
+					_, err := k.BankKeeper.SendCoins(ctx, validator.DistributionAddr, FeeForAllBcValsAccAddr, sdk.Coins{sdk.NewCoin(bondDenom, feeToBC.RawInt())})
+					if err != nil {
 						panic(err)
 					}
 					totalRewardDec = totalRewardDec.Sub(feeToBC)
@@ -175,10 +173,8 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 			} else {
 				// for beacon chain, split the fees accumulated in FeeForAllBcValsAccAddr
 				if avgFeeForBcVals.RawInt() > 0 {
-					if _, _, err := k.BankKeeper.SubtractCoins(ctx, FeeForAllBcValsAccAddr, sdk.Coins{sdk.NewCoin(bondDenom, avgFeeForBcVals.RawInt())}); err != nil {
-						panic(err)
-					}
-					if _, _, err := k.BankKeeper.AddCoins(ctx, validator.DistributionAddr, sdk.Coins{sdk.NewCoin(bondDenom, avgFeeForBcVals.RawInt())}); err != nil {
+					_, err := k.BankKeeper.SendCoins(ctx, FeeForAllBcValsAccAddr, validator.DistributionAddr, sdk.Coins{sdk.NewCoin(bondDenom, avgFeeForBcVals.RawInt())})
+					if err != nil {
 						panic(err)
 					}
 					totalRewardDec = totalRewardDec.Add(avgFeeForBcVals)
