@@ -62,7 +62,7 @@ func getNewEndBlocker(keeper Keeper, breatheBlockInterval int) sdk.EndBlocker {
 	}
 }
 
-func getNewStakeMockApp(t *testing.T) (*mock.App, Keeper) {
+func getNewStakeMockApp(t *testing.T) (*mock.App, Keeper, []Account) {
 	mApp := mock.NewApp()
 
 	RegisterCodec(mApp.Cdc)
@@ -87,6 +87,7 @@ func getNewStakeMockApp(t *testing.T) (*mock.App, Keeper) {
 	sdk.UpgradeMgr.AddUpgradeHeight(sdk.LaunchBscUpgrade, 6)
 	sdk.UpgradeMgr.AddUpgradeHeight(sdk.BEP128, 7)
 	sdk.UpgradeMgr.AddUpgradeHeight(sdk.BEPHHH, 8)
+	sdk.UpgradeMgr.AddUpgradeHeight(sdk.BEPHHHPhase2, 8)
 	BscChainId := "bsc"
 	sdk.UpgradeMgr.RegisterBeginBlocker(sdk.LaunchBscUpgrade, func(ctx sdk.Context) {
 		MigratePowerRankKey(ctx, keeper)
@@ -123,9 +124,34 @@ func getNewStakeMockApp(t *testing.T) (*mock.App, Keeper) {
 	mApp.SetBeginBlocker(getBeginBlocker(keeper))
 	mApp.SetEndBlocker(getNewEndBlocker(keeper, 5))
 	mApp.SetInitChainer(getNewInitChainer(mApp, keeper))
-
 	require.NoError(t, mApp.CompleteSetup(keyStake, keyStakeReward, tkeyStake, keyParams, tkeyParams, keyIbc, keySideChain, keyGov))
-	return mApp, keeper
+
+	// set init accounts
+	accs := []sdk.Account{}
+	accounts := GenAccounts(100)
+	for _, acc := range accounts {
+		accs = append(accs, acc.BaseAccount)
+	}
+	mock.SetGenesis(mApp, accs)
+	// create validator
+	description := NewDescription("foo_moniker", "", "", "")
+	bondCoin := sdk.NewCoin("BNB", sdk.NewDecWithoutFra(10).RawInt())
+	createValidatorMsg0 := NewMsgCreateValidator(
+		sdk.ValAddress(accounts[0].Address), accounts[0].Priv.PubKey(), bondCoin, description, commissionMsg,
+	)
+	createValidatorProposal0 := MsgCreateValidatorProposal{
+		MsgCreateValidator: createValidatorMsg0,
+		ProposalId:         0,
+	}
+	mApp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{
+		Height: 0,
+	}})
+	tx := mock.GenTx([]sdk.Msg{createValidatorProposal0}, []int64{0}, []int64{0}, accounts[0].Priv)
+	res := mApp.Deliver(tx)
+	require.Equal(t, sdk.ABCICodeOK, res.Code, res.Log)
+	mApp.Commit()
+
+	return mApp, keeper, accounts
 }
 
 type Account struct {
@@ -158,80 +184,29 @@ func setupTest() {
 
 func TestNewStake(t *testing.T) {
 	setupTest()
-	mApp, keeper := getNewStakeMockApp(t)
-
-	genCoin := sdk.NewCoin("BNB", sdk.NewDecWithoutFra(42).RawInt())
-	bondCoin := sdk.NewCoin("BNB", sdk.NewDecWithoutFra(10).RawInt())
-
-	acc1 := &auth.BaseAccount{
-		Address: addr1,
-		Coins:   sdk.Coins{genCoin},
-	}
-	acc2 := &auth.BaseAccount{
-		Address: addr2,
-		Coins:   sdk.Coins{genCoin},
-	}
-	accs := []sdk.Account{acc1, acc2}
-	accounts := GenAccounts(100)
-	for _, acc := range accounts {
-		accs = append(accs, acc.BaseAccount)
-		//mApp.Logger.Debug("add genesis account", "account", acc)
-	}
-	//mApp.Logger.Debug("add genesis accounts", "accounts", accs)
-
-	mock.SetGenesis(mApp, accs)
-	mock.CheckBalance(t, mApp, addr1, sdk.Coins{genCoin})
-	mock.CheckBalance(t, mApp, addr2, sdk.Coins{genCoin})
-
-	// create validator
-	description := NewDescription("foo_moniker", "", "", "")
-	createValidatorMsg := NewMsgCreateValidator(
-		sdk.ValAddress(addr1), priv1.PubKey(), bondCoin, description, commissionMsg,
-	)
+	mApp, keeper, accounts := getNewStakeMockApp(t)
 
 	var height int64 = 1
-	txs := mock.GenSimTxs(t, mApp, []sdk.Msg{createValidatorMsg}, true, priv1)
-	height = mock.ApplyBlock(t, mApp.BaseApp, height, txs)
-	mock.CheckBalance(t, mApp, addr1, sdk.Coins{genCoin.Minus(bondCoin)})
-
-	validator := checkValidator(t, mApp, keeper, sdk.ValAddress(addr1), true)
-	require.Equal(t, sdk.ValAddress(addr1), validator.OperatorAddr)
-	require.Equal(t, sdk.Bonded, validator.Status)
-	require.True(sdk.DecEq(t, sdk.NewDecWithoutFra(10), validator.BondedTokens()))
-
-	ctx := mApp.BaseApp.NewContext(sdk.RunTxModeCheck, abci.Header{Height: height})
-	validators := keeper.GetLastValidators(ctx)
-	fmt.Printf("%+v\n", validators)
-
-	// create validator2
-	description2 := NewDescription("foo_moniker", "", "", "")
-	createValidatorMsg2 := NewMsgCreateValidator(
-		sdk.ValAddress(addr2), priv2.PubKey(), bondCoin, description2, commissionMsg,
-	)
-	txs = mock.GenSimTxs(t, mApp, []sdk.Msg{createValidatorMsg2}, true, priv2)
-	height = mock.ApplyBlock(t, mApp.BaseApp, height, txs)
-	ctx = mApp.BaseApp.NewContext(sdk.RunTxModeCheck, abci.Header{Height: height})
-	validators = keeper.GetLastValidators(ctx)
-	fmt.Printf("%+v\n", validators)
 
 	// hardfork
 	height = mock.ApplyEmptyBlocks(t, mApp.BaseApp, height, 200)
-	ctx = mApp.BaseApp.NewContext(sdk.RunTxModeCheck, abci.Header{Height: height})
-	validators = keeper.GetLastValidators(ctx)
+	ctx := mApp.BaseApp.NewContext(sdk.RunTxModeCheck, abci.Header{Height: height})
+	validators := keeper.GetLastValidators(ctx)
 	fmt.Printf("%+v\n", validators)
 
 	// fail to create validator after hardfork, self delegation not enough
 	acc := accounts[0]
 	description3 := NewDescription("validator3", "", "", "")
+	bondCoin := sdk.NewCoin("BNB", sdk.NewDecWithoutFra(10).RawInt())
 	createValidatorMsg3 := NewMsgCreateValidator(
 		sdk.ValAddress(acc.Address), acc.Priv.PubKey(), bondCoin, description3, commissionMsg,
 	)
-	txs = mock.GenSimTxs(t, mApp, []sdk.Msg{createValidatorMsg3}, false, acc.Priv)
+	txs := mock.GenSimTxs(t, mApp, []sdk.Msg{createValidatorMsg3}, false, acc.Priv)
 
 	// create validators
 	var msgs []sdk.Msg
 	var privs []crypto.PrivKey
-	for i := 0; i < 10; i++ {
+	for i := 2; i < 12; i++ {
 		newBondCoin := sdk.NewCoin("BNB", sdk.NewDecWithoutFra(20000+int64(i)).RawInt())
 		description := NewDescription(fmt.Sprintf("account%d", i), "", "", "")
 		createValidatorMsg := NewMsgCreateValidator(
@@ -244,7 +219,7 @@ func TestNewStake(t *testing.T) {
 	height = mock.ApplyBlock(t, mApp.BaseApp, height, txs)
 	ctx = mApp.BaseApp.NewContext(sdk.RunTxModeCheck, abci.Header{Height: height})
 	validators = keeper.GetLastValidators(ctx)
-	require.Len(t, validators, 2)
+	require.Len(t, validators, 1)
 
 	// new validators elected
 	height = mock.ApplyEmptyBlocks(t, mApp.BaseApp, height, 5)
