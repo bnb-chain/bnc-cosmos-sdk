@@ -17,7 +17,7 @@ var (
 	// ParamKey                         = []byte{0x00} // key for parameters relating to staking
 	PoolKey                    = []byte{0x01} // key for the staking pools
 	IntraTxCounterKey          = []byte{0x02} // key for intra-block tx index
-	WhiteLabelOracleRelayerKey = []byte{0x3}  // key for white label oracle relayer
+	WhiteLabelOracleRelayerKey = []byte{0x03} // key for white label oracle relayer
 
 	// Last* values are const during a block.
 	LastValidatorPowerKey = []byte{0x11} // prefix for each key to a validator index, for bonded validators

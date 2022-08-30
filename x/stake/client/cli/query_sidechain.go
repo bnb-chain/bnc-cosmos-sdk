@@ -738,6 +738,56 @@ func GetCmdQuerySideAllValidatorsCount(cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
+func GetCmdQuerySideParams(storeName string, cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "side-parameters",
+		Short: "Query the current staking parameters information",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			sideChainId, _, err := getSideChainConfig(cliCtx)
+			if err != nil {
+				return err
+			}
+			baseParams := stake.NewBaseParams(sideChainId)
+			bz, err := json.Marshal(baseParams)
+			if err != nil {
+				return err
+			}
+			bz, err = cliCtx.QueryWithData("custom/stake/"+stake.QueryParameters, bz)
+			if err != nil {
+				return err
+			}
+
+			var params stake.Params
+			err = cdc.UnmarshalJSON(bz, &params)
+			if err != nil {
+				return err
+			}
+
+			switch viper.Get(cli.OutputFlag) {
+			case "text":
+				human := params.HumanReadableString()
+
+				fmt.Println(human)
+
+			case "json":
+				// parse out the params
+				output, err := codec.MarshalJSONIndent(cdc, params)
+				if err != nil {
+					return err
+				}
+
+				fmt.Println(string(output))
+			}
+			return nil
+		},
+	}
+
+	cmd.Flags().AddFlagSet(fsSideChainId)
+	return cmd
+}
+
 func getSideChainConfig(cliCtx context.CLIContext) (sideChainId string, prefix []byte, error error) {
 	sideChainId, error = getSideChainId()
 	if error != nil {
