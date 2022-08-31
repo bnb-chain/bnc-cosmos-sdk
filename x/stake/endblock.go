@@ -40,7 +40,7 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 	var events sdk.Events
 	var newVals []types.Validator
 	newVals, validatorUpdates, completedUbds, _, events = handleValidatorAndDelegations(ctx, k)
-	ctx.Logger().Debug("EndBreatheBlock", "newValsLen", len(newVals))
+	ctx.Logger().Debug("EndBreatheBlock", "newValsLen", len(newVals), "newVals", newVals)
 	if sdk.IsUpgrade(sdk.BEPHHH) {
 		storeValidatorsWithHeight(ctx, newVals, k)
 	}

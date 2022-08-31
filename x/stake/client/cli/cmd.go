@@ -19,6 +19,10 @@ func AddCommands(root *cobra.Command, cdc *codec.Codec) {
 		client.PostCommands(
 			GetCmdCreateValidator(cdc),
 			GetCmdRemoveValidator(cdc),
+			GetCmdEditValidator(cdc),
+			GetCmdDelegate(cdc),
+			GetCmdRedelegate(storeKey, cdc),
+			GetCmdUnbond(storeKey, cdc),
 		)...,
 	)
 	stakingCmd.AddCommand(client.LineBreak)

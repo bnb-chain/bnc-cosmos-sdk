@@ -174,6 +174,8 @@ func (v Validator) HumanReadableString() (string, error) {
 		resp += fmt.Sprintf("Consensus Addr on Side Chain: %s\n", sdk.HexAddress(v.SideConsAddr))
 		resp += fmt.Sprintf("Fee Addr on Side Chain: %s\n", sdk.HexAddress(v.SideFeeAddr))
 	}
+	resp += fmt.Sprintf("StakeSnapshots: %s\n", v.StakeSnapshots)
+	resp += fmt.Sprintf("AccumulatedStake: %s\n", v.AccumulatedStake)
 
 	return resp, nil
 }
@@ -204,6 +206,9 @@ type bechValidator struct {
 	SideChainId      string         `json:"side_chain_id,omitempty"`     // side chain id to distinguish different side chains
 	SideConsAddr     string         `json:"side_cons_addr,omitempty"`    // consensus address of the side chain validator, this replaces the `ConsPubKey`
 	SideFeeAddr      string         `json:"side_fee_addr,omitempty"`     // fee address on the side chain
+
+	StakeSnapshots   []sdk.Dec `json:"stake_snapshots,omitempty"`   // staked tokens snapshot over a period of time, e.g. 30 days
+	AccumulatedStake sdk.Dec   `json:"accumulated_stake,omitempty"` // accumulated stake, sum of StakeSnapshots
 }
 
 // MarshalJSON marshals the validator to JSON using Bech32
@@ -235,6 +240,8 @@ func (v Validator) MarshalJSON() ([]byte, error) {
 		SideChainId:        v.SideChainId,
 		SideConsAddr:       sdk.HexAddress(v.SideConsAddr),
 		SideFeeAddr:        sdk.HexAddress(v.SideFeeAddr),
+		StakeSnapshots:     v.StakeSnapshots,
+		AccumulatedStake:   v.AccumulatedStake,
 	})
 }
 
@@ -267,6 +274,8 @@ func (v *Validator) UnmarshalJSON(data []byte) error {
 		UnbondingHeight:    bv.UnbondingHeight,
 		UnbondingMinTime:   bv.UnbondingMinTime,
 		Commission:         bv.Commission,
+		StakeSnapshots:     bv.StakeSnapshots,
+		AccumulatedStake:   bv.AccumulatedStake,
 	}
 	if len(bv.SideChainId) != 0 {
 		v.DistributionAddr = bv.DistributionAddr
