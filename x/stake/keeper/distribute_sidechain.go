@@ -142,7 +142,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 		totalRewardDec := sdk.ZeroDec()
 		commission := sdk.ZeroDec()
 		rewards := make([]types.PreReward, 0)
-		crossStakeSetMap := make(map[string]bool)
+		crossStake := make(map[string]bool)
 		if totalReward > 0 {
 			delegations, found := k.GetSimplifiedDelegations(ctx, height, validator.OperatorAddr)
 			if !found {
@@ -150,7 +150,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 			}
 			for _, del := range delegations {
 				if del.CrossStake {
-					crossStakeSetMap[del.DelegatorAddr.String()] = true
+					crossStake[del.DelegatorAddr.String()] = true
 				}
 			}
 			totalRewardDec = sdk.NewDec(totalReward)
@@ -180,7 +180,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 					AccAddr:    rewards[i].AccAddr,
 					Tokens:     tokens,
 					Amount:     rewards[i].Amount,
-					CrossStake: crossStakeSetMap[rewards[i].AccAddr.String()],
+					CrossStake: crossStake[rewards[i].AccAddr.String()],
 				}
 				toSaveRewards = append(toSaveRewards, toSaveReward)
 			}
@@ -266,10 +266,10 @@ func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) sdk.E
 		valDistAddrMap[valDist.Validator.String()] = valDist.DistributeAddr
 	}
 
-	distAddrBalanceMap := make(map[string]int64) // track distribute address balance changes
-	crossStakeAddrSet := make(map[string]bool)   // record cross stake address
-	var toPublish []types.DistributionData       // data to be published in blocks
-	var toPublishRewards []types.Reward          // rewards to be published in blocks
+	distAddrBalanceMap := make(map[string]int64)   // track distribute address balance changes
+	crossStakeAddrSet := make([]sdk.AccAddress, 0) // record cross stake address
+	var toPublish []types.DistributionData         // data to be published in blocks
+	var toPublishRewards []types.Reward            // rewards to be published in blocks
 
 	var changedAddrs []sdk.AccAddress //changed addresses
 
@@ -285,7 +285,7 @@ func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) sdk.E
 
 		if reward.CrossStake && sdk.IsUpgrade(sdk.BEP153) {
 			rewardCAoB := types.GetStakeCAoB(reward.AccAddr.Bytes(), types.RewardCAoBSalt)
-			crossStakeAddrSet[rewardCAoB.String()] = true
+			crossStakeAddrSet = append(crossStakeAddrSet, rewardCAoB)
 			reward.AccAddr = rewardCAoB
 		}
 
@@ -309,14 +309,10 @@ func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) sdk.E
 	}
 
 	// cross distribute reward
-	for addr := range crossStakeAddrSet {
-		rewardCAoB, err := sdk.AccAddressFromBech32(addr)
-		if err != nil {
-			panic(err)
-		}
-		balance := k.BankKeeper.GetCoins(ctx, rewardCAoB).AmountOf(bondDenom)
+	for _, addr := range crossStakeAddrSet {
+		balance := k.BankKeeper.GetCoins(ctx, addr).AmountOf(bondDenom)
 		if balance >= types.MinRewardThreshold {
-			event, err := crossDistributeReward(k, ctx, rewardCAoB, balance)
+			event, err := crossDistributeReward(k, ctx, addr, balance)
 			if err != nil {
 				panic(err)
 			}
