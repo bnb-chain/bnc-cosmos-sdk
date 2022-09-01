@@ -268,12 +268,12 @@ func handleMsgEditValidator(ctx sdk.Context, msg types.MsgEditValidator, k keepe
 
 	onValidatorModified := false
 	if msg.PubKey != nil {
-		_, found = k.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(*msg.PubKey))
+		_, found = k.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(msg.PubKey))
 		if found {
 			return ErrValidatorPubKeyExists(k.Codespace()).Result()
 		}
-		k.UpdateValidatorPubKey(ctx, validator, *msg.PubKey)
-		validator.ConsPubKey = *msg.PubKey
+		k.UpdateValidatorPubKey(ctx, validator, msg.PubKey)
+		validator.ConsPubKey = msg.PubKey
 		onValidatorModified = true
 	}
 

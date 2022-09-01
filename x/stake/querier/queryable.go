@@ -22,6 +22,7 @@ const (
 	QueryValidatorRedelegations        = "validatorRedelegations"
 	QueryDelegator                     = "delegator"
 	QueryDelegation                    = "delegation"
+	QueryRedelegation                  = "redelegation"
 	QueryUnbondingDelegation           = "unbondingDelegation"
 	QueryDelegatorValidators           = "delegatorValidators"
 	QueryDelegatorValidator            = "delegatorValidator"
@@ -71,6 +72,13 @@ func NewQuerier(k keep.Keeper, cdc *codec.Codec) sdk.Querier {
 				return res, err
 			}
 			return queryDelegation(ctx, cdc, p, k)
+		case QueryRedelegation:
+			p := new(QueryRedelegationParams)
+			ctx, err = RequestPrepare(ctx, k, req, p)
+			if err != nil {
+				return res, err
+			}
+			return queryRedelegation(ctx, cdc, p, k)
 		case QueryUnbondingDelegation:
 			p := new(QueryBondsParams)
 			ctx, err = RequestPrepare(ctx, k, req, p)
@@ -223,6 +231,13 @@ type QueryTopValidatorsParams struct {
 	Top int
 }
 
+type QueryRedelegationParams struct {
+	BaseParams
+	DelegatorAddr sdk.AccAddress
+	ValSrcAddr    sdk.ValAddress
+	ValDstAddr    sdk.ValAddress
+}
+
 func queryValidators(ctx sdk.Context, cdc *codec.Codec, k keep.Keeper) (res []byte, err sdk.Error) {
 	stakeParams := k.GetParams(ctx)
 	validators := k.GetValidators(ctx, stakeParams.MaxValidators)
@@ -340,6 +355,19 @@ func queryDelegation(ctx sdk.Context, cdc *codec.Codec, params *QueryBondsParams
 	}
 
 	res, errRes := codec.MarshalJSONIndent(cdc, delResponse)
+	if errRes != nil {
+		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("could not marshal result to JSON", errRes.Error()))
+	}
+	return res, nil
+}
+
+func queryRedelegation(ctx sdk.Context, cdc *codec.Codec, params *QueryRedelegationParams, k keep.Keeper) (res []byte, err sdk.Error) {
+	redelegation, found := k.GetRedelegation(ctx, params.DelegatorAddr, params.ValSrcAddr, params.ValDstAddr)
+	if !found {
+		return nil, types.ErrNoRedelegation(types.DefaultCodespace)
+	}
+
+	res, errRes := codec.MarshalJSONIndent(cdc, redelegation)
 	if errRes != nil {
 		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("could not marshal result to JSON", errRes.Error()))
 	}

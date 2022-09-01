@@ -62,7 +62,22 @@ type MsgCreateValidatorProposal struct {
 func (msg MsgCreateValidatorProposal) GetSignBytes() []byte {
 	var b []byte
 	if sdk.IsUpgrade(sdk.BEPHHH) {
-		b = MsgCdc.MustMarshalJSON(msg)
+		b = MsgCdc.MustMarshalJSON(struct {
+			Description
+			Commission    CommissionMsg
+			DelegatorAddr sdk.AccAddress `json:"delegator_address"`
+			ValidatorAddr sdk.ValAddress `json:"validator_address"`
+			PubKey        string         `json:"pubkey"`
+			Delegation    sdk.Coin       `json:"delegation"`
+			ProposalId    int64          `json:"proposal_id"`
+		}{
+			Description:   msg.Description,
+			Commission:    msg.Commission,
+			ValidatorAddr: msg.ValidatorAddr,
+			PubKey:        sdk.MustBech32ifyConsPub(msg.PubKey),
+			Delegation:    msg.Delegation,
+			ProposalId:    msg.ProposalId,
+		})
 	} else {
 		// There is a new implementation of MsgCreateValidator GetSignBytes after BEPHHH
 		// This is left for backwards compatibility
@@ -127,10 +142,20 @@ func (msg MsgCreateValidator) GetSigners() []sdk.AccAddress {
 
 // get the bytes for the message signer to sign on
 func (msg MsgCreateValidator) GetSignBytes() []byte {
-	b, err := MsgCdc.MarshalJSON(msg)
-	if err != nil {
-		panic(err)
-	}
+	b := MsgCdc.MustMarshalJSON(struct {
+		Description
+		Commission    CommissionMsg
+		DelegatorAddr sdk.AccAddress `json:"delegator_address"`
+		ValidatorAddr sdk.ValAddress `json:"validator_address"`
+		PubKey        string         `json:"pubkey"`
+		Delegation    sdk.Coin       `json:"delegation"`
+	}{
+		Description:   msg.Description,
+		Commission:    msg.Commission,
+		ValidatorAddr: msg.ValidatorAddr,
+		PubKey:        sdk.MustBech32ifyConsPub(msg.PubKey),
+		Delegation:    msg.Delegation,
+	})
 	return sdk.MustSortJSON(b)
 }
 
@@ -191,11 +216,11 @@ type MsgEditValidator struct {
 	// distinguish if an update was intended.
 	//
 	// REF: #2373
-	CommissionRate *sdk.Dec       `json:"commission_rate"`
-	PubKey         *crypto.PubKey `json:"pubkey"`
+	CommissionRate *sdk.Dec      `json:"commission_rate"`
+	PubKey         crypto.PubKey `json:"pubkey"`
 }
 
-func NewMsgEditValidator(valAddr sdk.ValAddress, description Description, newRate *sdk.Dec, pubkey *crypto.PubKey) MsgEditValidator {
+func NewMsgEditValidator(valAddr sdk.ValAddress, description Description, newRate *sdk.Dec, pubkey crypto.PubKey) MsgEditValidator {
 	return MsgEditValidator{
 		Description:    description,
 		CommissionRate: newRate,
@@ -213,10 +238,21 @@ func (msg MsgEditValidator) GetSigners() []sdk.AccAddress {
 
 // get the bytes for the message signer to sign on
 func (msg MsgEditValidator) GetSignBytes() []byte {
-	b, err := MsgCdc.MarshalJSON(msg)
-	if err != nil {
-		panic(err)
+	var pubkey string
+	if msg.PubKey != nil {
+		pubkey = sdk.MustBech32ifyConsPub(msg.PubKey)
 	}
+	b := MsgCdc.MustMarshalJSON(struct {
+		Description
+		ValidatorAddr  sdk.ValAddress `json:"validator_address"`
+		PubKey         string         `json:"pubkey,omitempty"`
+		CommissionRate *sdk.Dec       `json:"commission_rate,omitempty"`
+	}{
+		Description:    msg.Description,
+		ValidatorAddr:  msg.ValidatorAddr,
+		PubKey:         pubkey,
+		CommissionRate: msg.CommissionRate,
+	})
 	return sdk.MustSortJSON(b)
 }
 
@@ -318,20 +354,7 @@ func (msg MsgRedelegate) GetSigners() []sdk.AccAddress {
 
 // get the bytes for the message signer to sign on
 func (msg MsgRedelegate) GetSignBytes() []byte {
-	b, err := MsgCdc.MarshalJSON(struct {
-		DelegatorAddr    sdk.AccAddress `json:"delegator_addr"`
-		ValidatorSrcAddr sdk.ValAddress `json:"validator_src_addr"`
-		ValidatorDstAddr sdk.ValAddress `json:"validator_dst_addr"`
-		Amount           string         `json:"amount"`
-	}{
-		DelegatorAddr:    msg.DelegatorAddr,
-		ValidatorSrcAddr: msg.ValidatorSrcAddr,
-		ValidatorDstAddr: msg.ValidatorDstAddr,
-		Amount:           msg.Amount.String(),
-	})
-	if err != nil {
-		panic(err)
-	}
+	b := MsgCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(b)
 }
 
@@ -379,18 +402,7 @@ func (msg MsgUndelegate) GetSigners() []sdk.AccAddress {
 
 // get the bytes for the message signer to sign on
 func (msg MsgUndelegate) GetSignBytes() []byte {
-	b, err := MsgCdc.MarshalJSON(struct {
-		DelegatorAddr sdk.AccAddress `json:"delegator_addr"`
-		ValidatorAddr sdk.ValAddress `json:"validator_addr"`
-		Amount        string         `json:"amount"`
-	}{
-		DelegatorAddr: msg.DelegatorAddr,
-		ValidatorAddr: msg.ValidatorAddr,
-		Amount:        msg.Amount.String(),
-	})
-	if err != nil {
-		panic(err)
-	}
+	b := MsgCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(b)
 }
 
