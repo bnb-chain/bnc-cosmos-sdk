@@ -84,6 +84,7 @@ func getAccountCache(cdc *codec.Codec, ms sdk.MultiStore, accountKey *sdk.KVStor
 
 // hodgepodge of all sorts of input required for testing
 func CreateTestInput(t *testing.T, isCheckTx bool, initCoins int64) (sdk.Context, auth.AccountKeeper, Keeper) {
+	sdk.UpgradeMgr.Reset()
 
 	keyStake := sdk.NewKVStoreKey("stake")
 	keyStakeReward := sdk.NewKVStoreKey("stake_reward")
