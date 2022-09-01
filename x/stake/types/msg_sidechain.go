@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/sidechain/types"
 )
