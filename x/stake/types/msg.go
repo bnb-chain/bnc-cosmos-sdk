@@ -61,7 +61,7 @@ type MsgCreateValidatorProposal struct {
 
 func (msg MsgCreateValidatorProposal) GetSignBytes() []byte {
 	var b []byte
-	if sdk.IsUpgrade(sdk.BEPHHH) {
+	if sdk.IsUpgrade(sdk.BEP159) {
 		b = MsgCdc.MustMarshalJSON(struct {
 			Description
 			Commission    CommissionMsg
@@ -79,7 +79,7 @@ func (msg MsgCreateValidatorProposal) GetSignBytes() []byte {
 			ProposalId:    msg.ProposalId,
 		})
 	} else {
-		// There is a new implementation of MsgCreateValidator GetSignBytes after BEPHHH
+		// There is a new implementation of MsgCreateValidator GetSignBytes after BEP159
 		// This is left for backwards compatibility
 		b = MsgCdc.MustMarshalJSON(struct {
 			Description
@@ -122,7 +122,7 @@ func NewMsgCreateValidatorOnBehalfOf(delAddr sdk.AccAddress, valAddr sdk.ValAddr
 //nolint
 func (msg MsgCreateValidator) Route() string { return MsgRoute }
 
-// MsgCreateValidator was introduced in BEPHHH, but the original Type `create_validator` has been occupied by `MsgCreateValidatorProposal`
+// MsgCreateValidator was introduced in BEP159, but the original Type `create_validator` has been occupied by `MsgCreateValidatorProposal`
 // we will keep it so for backwards compatibility, and use a new Type for `MsgCreateValidator`
 func (msg MsgCreateValidator) Type() string         { return "create_validator_open" }
 func (msg MsgCreateValidatorProposal) Type() string { return "create_validator" }

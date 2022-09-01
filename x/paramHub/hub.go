@@ -83,7 +83,7 @@ func RegisterUpgradeBeginBlocker(paramHub *ParamHub) {
 		}
 		paramHub.UpdateFeeParams(ctx, crossStakeFeeParams)
 	})
-	sdk.UpgradeMgr.RegisterBeginBlocker(sdk.BEPHHH, func(ctx sdk.Context) {
+	sdk.UpgradeMgr.RegisterBeginBlocker(sdk.BEP159, func(ctx sdk.Context) {
 		updateFeeParams := []param.FeeParam{
 			&param.FixedFeeParams{MsgType: "create_validator_open", Fee: CreateValidatorFee, FeeFor: sdk.FeeForProposer},
 			&param.FixedFeeParams{MsgType: "edit_validator", Fee: EditChainValidatorFee, FeeFor: sdk.FeeForProposer},

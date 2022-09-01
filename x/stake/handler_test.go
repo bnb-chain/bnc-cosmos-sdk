@@ -1181,8 +1181,8 @@ func TestRemoveValidatorAfterProposal(t *testing.T) {
 func TestNewStakingProcess(t *testing.T) {
 	ctx, _, keeper := keep.CreateTestInput(t, false, 100000)
 	//setInstantUnbondPeriod(keeper, ctx)
-	// set BEPHHH hardfork
-	sdk.UpgradeMgr.AddUpgradeHeight(sdk.BEPHHH, 200)
+	// set BEP159 hardfork
+	sdk.UpgradeMgr.AddUpgradeHeight(sdk.BEP159, 200)
 	sdk.UpgradeMgr.Height = 200
 
 	bondAmount := int64(10000)

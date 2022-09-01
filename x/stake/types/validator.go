@@ -72,7 +72,7 @@ func NewValidatorWithFeeAddr(feeAddr sdk.AccAddress, operator sdk.ValAddress, pu
 		UnbondingMinTime:   time.Unix(0, 0).UTC(),
 		Commission:         NewCommission(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec()),
 	}
-	if sdk.IsUpgrade(sdk.BEPHHH) {
+	if sdk.IsUpgrade(sdk.BEP159) {
 		val.DistributionAddr = GenerateDistributionAddr(operator, MockSideChainIDForBeaconChain)
 	}
 	return val

@@ -130,7 +130,7 @@ func (p *paramBeforeBEP128Upgrade) KeyValuePairs() params.KeyValuePairs {
 }
 
 // in order to be compatible with before
-type paramBeforeBEPHHHUpgrade struct {
+type paramBeforeBEP159Upgrade struct {
 	UnbondingTime time.Duration `json:"unbonding_time"`
 
 	MaxValidators       uint16 `json:"max_validators"`        // maximum number of validators
@@ -142,7 +142,7 @@ type paramBeforeBEPHHHUpgrade struct {
 }
 
 // Implements params.ParamSet
-func (p *paramBeforeBEPHHHUpgrade) KeyValuePairs() params.KeyValuePairs {
+func (p *paramBeforeBEP159Upgrade) KeyValuePairs() params.KeyValuePairs {
 	return params.KeyValuePairs{
 		{types.KeyUnbondingTime, &p.UnbondingTime},
 		{types.KeyMaxValidators, &p.MaxValidators},
@@ -165,7 +165,7 @@ func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
 	if sdk.IsUpgrade(sdk.BEP128) {
 		k.paramstore.Set(ctx, types.KeyRewardDistributionBatchSize, params.RewardDistributionBatchSize)
 	}
-	if sdk.IsUpgrade(sdk.BEPHHH) {
+	if sdk.IsUpgrade(sdk.BEP159) {
 		k.paramstore.Set(ctx, types.KeyMaxStakeSnapshots, params.MaxStakeSnapshots)
 		k.paramstore.Set(ctx, types.KeyBaseProposerRewardRatio, params.BaseProposerRewardRatio)
 		k.paramstore.Set(ctx, types.KeyBonusProposerRewardRatio, params.BonusProposerRewardRatio)

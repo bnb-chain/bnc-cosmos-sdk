@@ -1,4 +1,4 @@
-// test BEPHHH: new stake mechanism
+// test BEP159: open staking mechanism
 package stake
 
 import (
@@ -86,8 +86,8 @@ func getNewStakeMockApp(t *testing.T) (*mock.App, Keeper, []Account) {
 
 	sdk.UpgradeMgr.AddUpgradeHeight(sdk.LaunchBscUpgrade, 6)
 	sdk.UpgradeMgr.AddUpgradeHeight(sdk.BEP128, 7)
-	sdk.UpgradeMgr.AddUpgradeHeight(sdk.BEPHHH, 8)
-	sdk.UpgradeMgr.AddUpgradeHeight(sdk.BEPHHHPhase2, 8)
+	sdk.UpgradeMgr.AddUpgradeHeight(sdk.BEP159, 8)
+	sdk.UpgradeMgr.AddUpgradeHeight(sdk.BEP159Phase2, 8)
 	BscChainId := "bsc"
 	sdk.UpgradeMgr.RegisterBeginBlocker(sdk.LaunchBscUpgrade, func(ctx sdk.Context) {
 		MigratePowerRankKey(ctx, keeper)
@@ -112,7 +112,7 @@ func getNewStakeMockApp(t *testing.T) (*mock.App, Keeper, []Account) {
 		params.RewardDistributionBatchSize = 1000
 		keeper.SetParams(newCtx, params)
 	})
-	sdk.UpgradeMgr.RegisterBeginBlocker(sdk.BEPHHH, func(ctx sdk.Context) {
+	sdk.UpgradeMgr.RegisterBeginBlocker(sdk.BEP159, func(ctx sdk.Context) {
 		storePrefix := scKeeper.GetSideChainStorePrefix(ctx, BscChainId)
 		newCtx := ctx.WithSideChainKeyPrefix(storePrefix)
 		params := keeper.GetParams(newCtx)

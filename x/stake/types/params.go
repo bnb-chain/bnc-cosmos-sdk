@@ -57,7 +57,7 @@ type Params struct {
 	MinSelfDelegation           int64  `json:"min_self_delegation"`            // the minimal self-delegation amount
 	MinDelegationChange         int64  `json:"min_delegation_change"`          // the minimal delegation amount changed
 	RewardDistributionBatchSize int64  `json:"reward_distribution_batch_size"` // the batch size for distributing rewards in blocks
-	// added in BEPHHH
+	// added in BEP159
 	MaxStakeSnapshots        uint16    `json:"max_stake_snapshots"`         // maximum number of stake snapshots, also used as the accumulated stake duration
 	BaseProposerRewardRatio  types.Dec `json:"base_proposer_reward_ratio"`  // the base proposer reward ratio
 	BonusProposerRewardRatio types.Dec `json:"bonus_proposer_reward_ratio"` // the bonus proposer reward ratio

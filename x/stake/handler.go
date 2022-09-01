@@ -17,16 +17,16 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 		// NOTE msg already has validate basic run
 		switch msg := msg.(type) {
 		case types.MsgCreateValidatorProposal:
-			if sdk.IsUpgrade(sdk.BEPHHH) {
-				return sdk.ErrMsgNotSupported("MsgCreateValidatorProposal disabled in BEP-HHH").Result()
+			if sdk.IsUpgrade(sdk.BEP159) {
+				return sdk.ErrMsgNotSupported("MsgCreateValidatorProposal disabled in BEP-159").Result()
 			}
 			return handleMsgCreateValidatorAfterProposal(ctx, msg, k, govKeeper)
 		case types.MsgRemoveValidator:
 			return handleMsgRemoveValidatorAfterProposal(ctx, msg, k, govKeeper)
-		// Beacon Chain New Staking in BEP-HHH
+		// Beacon Chain New Staking in BEP-159
 		case types.MsgCreateValidator:
-			if !sdk.IsUpgrade(sdk.BEPHHHPhase2) {
-				return sdk.ErrMsgNotSupported("BEP-HHH Phase 2 not activated yet").Result()
+			if !sdk.IsUpgrade(sdk.BEP159Phase2) {
+				return sdk.ErrMsgNotSupported("BEP-159 Phase 2 not activated yet").Result()
 			}
 			return handleMsgCreateValidator(ctx, msg, k)
 		case types.MsgEditValidator:
@@ -137,7 +137,7 @@ func handleMsgCreateValidator(ctx sdk.Context, msg MsgCreateValidator, k keeper.
 		return ErrBadDenom(k.Codespace()).Result()
 	}
 
-	if sdk.IsUpgrade(sdk.BEPHHH) {
+	if sdk.IsUpgrade(sdk.BEP159) {
 		minSelfDelegation := k.MinSelfDelegation(ctx)
 		if msg.Delegation.Amount < minSelfDelegation {
 			return ErrBadDelegationAmount(DefaultCodespace,

@@ -86,7 +86,7 @@ func (k Keeper) SetDelegation(ctx sdk.Context, delegation types.Delegation) {
 	store.Set(GetDelegationKey(delegation.DelegatorAddr, delegation.ValidatorAddr), b)
 
 	// sync delegation to the store with DelegationKeyByVal based
-	if len(ctx.SideChainId()) > 0 || sdk.IsUpgrade(sdk.BEPHHH) {
+	if len(ctx.SideChainId()) > 0 || sdk.IsUpgrade(sdk.BEP159) {
 		k.SetDelegationByVal(ctx, delegation)
 	}
 

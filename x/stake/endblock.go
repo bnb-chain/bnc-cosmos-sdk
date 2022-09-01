@@ -10,10 +10,10 @@ import (
 )
 
 func EndBlocker(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.ValidatorUpdate, completedUbds []types.UnbondingDelegation) {
-	// only change validator set in breath block after BEPHHH
+	// only change validator set in breath block after BEP159
 	var events sdk.Events
 	var csEvents sdk.Events
-	if !sdk.IsUpgrade(sdk.BEPHHH) {
+	if !sdk.IsUpgrade(sdk.BEP159) {
 		_, validatorUpdates, completedUbds, _, events = handleValidatorAndDelegations(ctx, k)
 	} else {
 		k.DistributeInBlock(ctx, types.MockSideChainIDForBeaconChain)
@@ -41,7 +41,7 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 	var newVals []types.Validator
 	newVals, validatorUpdates, completedUbds, _, events = handleValidatorAndDelegations(ctx, k)
 	ctx.Logger().Debug("EndBreatheBlock", "newValsLen", len(newVals), "newVals", newVals)
-	if sdk.IsUpgrade(sdk.BEPHHH) {
+	if sdk.IsUpgrade(sdk.BEP159) {
 		storeValidatorsWithHeight(ctx, newVals, k)
 	}
 
@@ -75,7 +75,7 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 			publishCompletedUBD(k, completedUbds, sideChainIds[i], ctx.BlockHeight())
 			publishCompletedRED(k, completedREDs, sideChainIds[i])
 		}
-		if sdk.IsUpgrade(sdk.BEPHHH) {
+		if sdk.IsUpgrade(sdk.BEP159) {
 			// distribute beacon chain rewards
 			k.DistributeInBreathBlock(ctx, types.MockSideChainIDForBeaconChain)
 		}
@@ -144,8 +144,8 @@ func handleValidatorAndDelegations(ctx sdk.Context, k keeper.Keeper) ([]types.Va
 	// calculate validator set changes
 	var newVals []types.Validator
 	var validatorUpdates []abci.ValidatorUpdate
-	ctx.Logger().Debug("handleValidatorAndDelegations", "height", ctx.BlockHeader().Height, "addSnapshot", sdk.IsUpgrade(sdk.BEPHHH) && ctx.SideChainKeyPrefix() == nil)
-	if sdk.IsUpgrade(sdk.BEPHHH) && ctx.SideChainKeyPrefix() == nil {
+	ctx.Logger().Debug("handleValidatorAndDelegations", "height", ctx.BlockHeader().Height, "addSnapshot", sdk.IsUpgrade(sdk.BEP159) && ctx.SideChainKeyPrefix() == nil)
+	if sdk.IsUpgrade(sdk.BEP159) && ctx.SideChainKeyPrefix() == nil {
 		newVals, validatorUpdates = k.UpdateAndElectValidators(ctx)
 	} else {
 		newVals, validatorUpdates = k.ApplyAndReturnValidatorSetUpdates(ctx)

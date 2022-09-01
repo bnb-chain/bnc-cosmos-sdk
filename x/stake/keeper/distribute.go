@@ -146,7 +146,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 	bondDenom := k.BondDenom(ctx)
 	feeFromBscToBcRatio := k.FeeFromBscToBcRatio(ctx)
 	avgFeeForBcVals := sdk.ZeroDec()
-	if sdk.IsUpgrade(sdk.BEPHHH) && sideChainId == types.MockSideChainIDForBeaconChain {
+	if sdk.IsUpgrade(sdk.BEP159) && sideChainId == types.MockSideChainIDForBeaconChain {
 		feeForAllBcValsCoins := k.BankKeeper.GetCoins(ctx, FeeForAllBcValsAccAddr)
 		feeForAllBcVals := feeForAllBcValsCoins.AmountOf(bondDenom)
 		avgFeeForBcVals = sdk.NewDec(feeForAllBcVals / int64(len(validators)))
@@ -158,7 +158,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 		//ctx.Logger().Debug("DistributeInBreathBlock", "distAccCoins", distAccCoins)
 		totalReward := distAccCoins.AmountOf(bondDenom)
 		totalRewardDec := sdk.NewDec(totalReward)
-		if sdk.IsUpgrade(sdk.BEPHHH) {
+		if sdk.IsUpgrade(sdk.BEP159) {
 			if sideChainId != types.MockSideChainIDForBeaconChain {
 				// split a portion of fees to BC validators
 				feeToBC := totalRewardDec.Mul(feeFromBscToBcRatio)

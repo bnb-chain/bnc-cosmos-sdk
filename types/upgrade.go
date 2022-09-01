@@ -17,8 +17,8 @@ const (
 	FixFailAckPackage    = "FixFailAckPackage"
 	BEP128               = "BEP128"       // https://github.com/bnb-chain/BEPs/pull/128
 	BEP153               = "BEP153"       // https://github.com/bnb-chain/BEPs/pull/153
-	BEPHHH               = "BEPHHH"       // https://github.com/bnb-chain/BEPs/pull/HHH
-	BEPHHHPhase2         = "BEPHHHPhase2" // phase 2 activation height of BEPHHH, enable create validator and remove oracle relayer whitelist
+	BEP159               = "BEP159"       // https://github.com/bnb-chain/BEPs/pull/159
+	BEP159Phase2         = "BEP159Phase2" // phase 2 activation height of BEP159, enable create validator and remove oracle relayer whitelist
 )
 
 var MainNetConfig = UpgradeConfig{

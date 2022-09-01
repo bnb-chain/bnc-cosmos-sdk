@@ -22,7 +22,7 @@ func (k Keeper) SetWhiteLabelOracleRelayer(ctx sdk.Context, oracleRelayers []typ
 }
 
 func (k Keeper) GetOracleRelayersPower(ctx sdk.Context) map[string]int64 {
-	if sdk.IsUpgrade(sdk.BEPHHHPhase2) {
+	if sdk.IsUpgrade(sdk.BEP159Phase2) {
 		return k.GetOracleRelayersPowerV1(ctx)
 	} else {
 		return k.GetOracleRelayersPowerV0(ctx)
@@ -49,7 +49,7 @@ func (k Keeper) GetOracleRelayersPowerV1(ctx sdk.Context) map[string]int64 {
 }
 
 func (k Keeper) CheckIsValidOracleRelayer(ctx sdk.Context, validatorAddress sdk.ValAddress) bool {
-	if sdk.IsUpgrade(sdk.BEPHHHPhase2) {
+	if sdk.IsUpgrade(sdk.BEP159Phase2) {
 		return k.CheckIsValidOracleRelayerV1(ctx, validatorAddress)
 	} else {
 		return k.CheckIsValidOracleRelayerV0(ctx, validatorAddress)
