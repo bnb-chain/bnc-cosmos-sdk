@@ -88,6 +88,7 @@ func (k Keeper) GetParams(ctx sdk.Context) (res types.Params) {
 	res.BaseProposerRewardRatio = k.BaseProposerRewardRatio(ctx)
 	res.BonusProposerRewardRatio = k.BonusProposerRewardRatio(ctx)
 	res.MaxStakeSnapshots = k.MaxStakeSnapshots(ctx)
+	res.FeeFromBscToBcRatio = k.FeeFromBscToBcRatio(ctx)
 	return
 }
 
