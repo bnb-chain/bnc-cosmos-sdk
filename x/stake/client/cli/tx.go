@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/tendermint/tendermint/crypto"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/client"
@@ -18,6 +17,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/stake"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/tendermint/tendermint/crypto"
 )
 
 // GetCmdCreateValidator implements the create validator command handler.

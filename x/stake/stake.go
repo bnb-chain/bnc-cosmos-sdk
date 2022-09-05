@@ -116,6 +116,7 @@ var (
 
 	NewMsgCreateValidator           = types.NewMsgCreateValidator
 	NewMsgRemoveValidator           = types.NewMsgRemoveValidator
+	NewMsgBeginUnbonding            = types.NewMsgBeginUnbonding
 	NewMsgCreateValidatorOnBehalfOf = types.NewMsgCreateValidatorOnBehalfOf
 	NewMsgEditValidator             = types.NewMsgEditValidator
 	NewMsgDelegate                  = types.NewMsgDelegate
