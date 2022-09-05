@@ -126,11 +126,11 @@ func GetCmdEditSideChainValidator(cdc *codec.Codec) *cobra.Command {
 			newRate = &rate
 		}
 
-		sideChainId, _, sideFeeAddr, err := getSideChainInfo(false, false)
+		sideChainId, sideConsAddr, sideFeeAddr, err := getSideChainInfo(false, false)
 		if err != nil {
 			return err
 		}
-		msg := stake.NewMsgEditSideChainValidator(sideChainId, sdk.ValAddress(valAddr), description, newRate, sideFeeAddr)
+		msg := stake.NewMsgEditSideChainValidator(sideChainId, sdk.ValAddress(valAddr), description, newRate, sideFeeAddr, sideConsAddr)
 		return utils.GenerateOrBroadcastMsgs(txBldr, cliCtx, []sdk.Msg{msg})
 	}
 

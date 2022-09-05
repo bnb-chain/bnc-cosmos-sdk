@@ -133,13 +133,14 @@ type MsgEditSideChainValidator struct {
 	SideConsAddr []byte `json:"side_cons_addr,omitempty"`
 }
 
-func NewMsgEditSideChainValidator(sideChainId string, validatorAddr sdk.ValAddress, description Description, commissionRate *sdk.Dec, sideFeeAddr []byte) MsgEditSideChainValidator {
+func NewMsgEditSideChainValidator(sideChainId string, validatorAddr sdk.ValAddress, description Description, commissionRate *sdk.Dec, sideFeeAddr, sideConsAddr []byte) MsgEditSideChainValidator {
 	return MsgEditSideChainValidator{
 		Description:    description,
 		ValidatorAddr:  validatorAddr,
 		CommissionRate: commissionRate,
 		SideChainId:    sideChainId,
 		SideFeeAddr:    sideFeeAddr,
+		SideConsAddr:   sideConsAddr,
 	}
 }
 

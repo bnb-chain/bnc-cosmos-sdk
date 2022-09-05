@@ -205,13 +205,23 @@ func GetCmdQueryDelegations(storeName string, cdc *codec.Codec) *cobra.Command {
 				delegations = append(delegations, delegation)
 			}
 
-			output, err := codec.MarshalJSONIndent(cdc, delegations)
-			if err != nil {
-				return err
+			switch viper.Get(cli.OutputFlag) {
+			case "text":
+				for _, delegation := range delegations {
+					resp, err := delegation.HumanReadableString()
+					if err != nil {
+						return err
+					}
+					fmt.Println(resp)
+				}
+			case "json":
+				output, err := codec.MarshalJSONIndent(cdc, delegations)
+				if err != nil {
+					return err
+				}
+
+				fmt.Println(string(output))
 			}
-
-			fmt.Println(string(output))
-
 			// TODO: output with proofs / machine parseable etc.
 			return nil
 		},
