@@ -31,11 +31,8 @@ const (
 	CrossStakeTypeDistributeReward      CrossStakeEventType = 4
 	CrossStakeTypeDistributeUndelegated CrossStakeEventType = 5
 
-	CrossStakeDelegateType                           string = "CSD"
-	CrossStakeDistributeRewardType                   string = "CSDR"
-	CrossStakeDistributeUndelegatedType              string = "CSDU"
-	CrossStakeDistributeRewardFailAckRefundType      string = "CSDRFAR"
-	CrossStakeDistributeUndelegatedFailAckRefundType string = "CSDUFAR"
+	TransferInType  string = "TI"
+	TransferOutType string = "TO"
 
 	DelegateCAoBSalt string = "Delegate"
 	RewardCAoBSalt   string = "Reward"

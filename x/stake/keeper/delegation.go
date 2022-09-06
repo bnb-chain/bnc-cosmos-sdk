@@ -863,14 +863,14 @@ func (k Keeper) crossDistributeUndelegated(ctx sdk.Context, delAddr sdk.AccAddre
 	if ctx.IsDeliverTx() && k.PbsbServer != nil {
 		txHash := ctx.Value(baseapp.TxHashKey)
 		if txHashStr, ok := txHash.(string); ok {
-			event := types.CrossTransferEvent{
+			event := pubsub.CrossTransferEvent{
 				TxHash:     txHashStr,
 				ChainId:    k.DestChainName,
 				RelayerFee: relayFee.Tokens.AmountOf(denom),
-				Type:       types.CrossStakeDistributeUndelegatedType,
+				Type:       types.TransferOutType,
 				From:       DelegationAccAddr.String(),
 				Denom:      denom,
-				To:         []types.CrossReceiver{{sdk.PegAccount.String(), amount}},
+				To:         []pubsub.CrossReceiver{{sdk.PegAccount.String(), amount}},
 			}
 			k.PbsbServer.Publish(event)
 		} else {

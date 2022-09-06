@@ -9,6 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/bsc"
 	"github.com/cosmos/cosmos-sdk/bsc/rlp"
+	"github.com/cosmos/cosmos-sdk/pubsub"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/fees"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
@@ -421,14 +422,14 @@ func crossDistributeReward(k Keeper, ctx sdk.Context, rewardCAoB sdk.AccAddress,
 	if ctx.IsDeliverTx() && k.PbsbServer != nil {
 		txHash := ctx.Value(baseapp.TxHashKey)
 		if txHashStr, ok := txHash.(string); ok {
-			event := types.CrossTransferEvent{
+			event := pubsub.CrossTransferEvent{
 				TxHash:     txHashStr,
 				ChainId:    k.DestChainName,
 				RelayerFee: relayFee.Tokens.AmountOf(denom),
-				Type:       types.CrossStakeDistributeRewardType,
+				Type:       types.TransferOutType,
 				From:       rewardCAoB.String(),
 				Denom:      denom,
-				To:         []types.CrossReceiver{{sdk.PegAccount.String(), amount}},
+				To:         []pubsub.CrossReceiver{{sdk.PegAccount.String(), amount}},
 			}
 			k.PbsbServer.Publish(event)
 		} else {
