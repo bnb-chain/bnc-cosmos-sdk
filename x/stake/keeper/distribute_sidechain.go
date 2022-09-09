@@ -6,9 +6,9 @@ import (
 	"math/big"
 	"strconv"
 
-	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/bsc"
 	"github.com/cosmos/cosmos-sdk/bsc/rlp"
+	"github.com/cosmos/cosmos-sdk/pubsub"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/fees"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
@@ -419,21 +419,15 @@ func crossDistributeReward(k Keeper, ctx sdk.Context, rewardCAoB sdk.AccAddress,
 
 	// publish data if needed
 	if ctx.IsDeliverTx() && k.PbsbServer != nil {
-		txHash := ctx.Value(baseapp.TxHashKey)
-		if txHashStr, ok := txHash.(string); ok {
-			event := types.CrossTransferEvent{
-				TxHash:     txHashStr,
-				ChainId:    k.DestChainName,
-				RelayerFee: relayFee.Tokens.AmountOf(denom),
-				Type:       types.CrossStakeDistributeRewardType,
-				From:       rewardCAoB.String(),
-				Denom:      denom,
-				To:         []types.CrossReceiver{{sdk.PegAccount.String(), amount}},
-			}
-			k.PbsbServer.Publish(event)
-		} else {
-			ctx.Logger().With("module", "stake").Error("failed to get txhash, will not publish cross transfer event ")
+		event := pubsub.CrossTransferEvent{
+			ChainId:    k.DestChainName,
+			RelayerFee: relayFee.Tokens.AmountOf(denom),
+			Type:       types.TransferOutType,
+			From:       rewardCAoB.String(),
+			Denom:      denom,
+			To:         []pubsub.CrossReceiver{{sdk.PegAccount.String(), amount}},
 		}
+		k.PbsbServer.Publish(event)
 	}
 
 	resultTags := sdk.NewTags(

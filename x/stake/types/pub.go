@@ -7,8 +7,6 @@ import (
 
 const (
 	Topic = pubsub.Topic("stake")
-
-	CrossTransferTopic = pubsub.Topic("cross-transfer")
 )
 
 type StakeEvent struct {
@@ -121,11 +119,12 @@ type DistributionData struct {
 // delegate event
 type DelegateEvent struct {
 	StakeEvent
-	Delegator sdk.AccAddress
-	Validator sdk.ValAddress
-	Amount    int64
-	Denom     string
-	TxHash    string
+	Delegator  sdk.AccAddress
+	Validator  sdk.ValAddress
+	Amount     int64
+	Denom      string
+	TxHash     string
+	CrossStake bool
 }
 
 type SideDelegateEvent struct {
@@ -168,25 +167,4 @@ type SideElectedValidatorsEvent struct {
 	StakeEvent
 	Validators  []Validator
 	SideChainId string
-}
-
-type CrossTransferEvent struct {
-	TxHash     string
-	ChainId    string
-	Type       string
-	RelayerFee int64
-	From       string
-	Denom      string
-	Contract   string
-	Decimals   int
-	To         []CrossReceiver
-}
-
-type CrossReceiver struct {
-	Addr   string
-	Amount int64
-}
-
-func (event CrossTransferEvent) GetTopic() pubsub.Topic {
-	return CrossTransferTopic
 }
