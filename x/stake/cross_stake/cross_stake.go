@@ -22,6 +22,11 @@ func NewCrossStakeApp(stakeKeeper Keeper) *CrossStakeApp {
 }
 
 func (app *CrossStakeApp) ExecuteSynPackage(ctx sdk.Context, payload []byte, relayFee int64) sdk.ExecuteResult {
+	if len(payload) == 0 {
+		app.stakeKeeper.Logger(ctx).Error("receive empty cross stake syn package")
+		return sdk.ExecuteResult{}
+	}
+
 	app.stakeKeeper.Logger(ctx).Info("receive cross stake syn package")
 	pack, err := DeserializeCrossStakeSynPackage(payload)
 	if err != nil {
@@ -64,7 +69,7 @@ func (app *CrossStakeApp) ExecuteSynPackage(ctx sdk.Context, payload []byte, rel
 
 func (app *CrossStakeApp) ExecuteAckPackage(ctx sdk.Context, payload []byte) sdk.ExecuteResult {
 	if len(payload) == 0 {
-		app.stakeKeeper.Logger(ctx).Info("receive cross stake ack package")
+		app.stakeKeeper.Logger(ctx).Error("receive empty cross stake ack package")
 		return sdk.ExecuteResult{}
 	}
 
@@ -94,7 +99,7 @@ func (app *CrossStakeApp) ExecuteAckPackage(ctx sdk.Context, payload []byte) sdk
 
 func (app *CrossStakeApp) ExecuteFailAckPackage(ctx sdk.Context, payload []byte) sdk.ExecuteResult {
 	if len(payload) == 0 {
-		app.stakeKeeper.Logger(ctx).Info("receive cross stake fail ack package")
+		app.stakeKeeper.Logger(ctx).Error("receive empty cross stake fail ack package")
 		return sdk.ExecuteResult{}
 	}
 
@@ -265,6 +270,10 @@ func (app *CrossStakeApp) handleRedelegate(ctx sdk.Context, pack *types.CrossSta
 		return sdk.ExecuteResult{}, errCode, err
 	} else {
 		ctx = scCtx
+	}
+
+	if pack.ValSrc.Equals(pack.ValDst) {
+		return sdk.ExecuteResult{}, errCode, sdk.ErrInternal("src validator is the same as dst validator")
 	}
 
 	valDst, found := app.stakeKeeper.GetValidator(ctx, pack.ValDst)

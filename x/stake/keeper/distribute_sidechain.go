@@ -386,6 +386,9 @@ func crossDistributeReward(k Keeper, ctx sdk.Context, rewardCAoB sdk.AccAddress,
 		return sdk.Events{}, fmt.Errorf("no fee calculator of transferOutRewards")
 	}
 	relayFee := relayFeeCalc(nil)
+	if relayFee.Tokens.AmountOf(denom) >= amount {
+		return sdk.Events{}, sdk.ErrInternal("not enough funds to cover relay fee")
+	}
 	bscRelayFee := bsc.ConvertBCAmountToBSCAmount(relayFee.Tokens.AmountOf(denom))
 
 	bscTransferAmount := new(big.Int).Sub(bsc.ConvertBCAmountToBSCAmount(amount), bscRelayFee)
