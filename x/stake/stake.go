@@ -18,6 +18,7 @@ type (
 	Params                     = types.Params
 	Pool                       = types.Pool
 	MsgCreateValidator         = types.MsgCreateValidator
+	MsgCreateValidatorOpen     = types.MsgCreateValidatorOpen
 	MsgRemoveValidator         = types.MsgRemoveValidator
 	MsgCreateValidatorProposal = types.MsgCreateValidatorProposal
 	MsgEditValidator           = types.MsgEditValidator
@@ -205,4 +206,5 @@ var (
 	ErrBothShareMsgsGiven    = types.ErrBothShareMsgsGiven
 	ErrNeitherShareMsgsGiven = types.ErrNeitherShareMsgsGiven
 	ErrMissingSignature      = types.ErrMissingSignature
+	ErrInvalidPubKey         = types.ErrInvalidPubKey
 )

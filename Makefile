@@ -10,6 +10,7 @@ GOTOOLS = \
 	github.com/golang/dep/cmd/dep \
 	github.com/alecthomas/gometalinter \
 	github.com/rakyll/statik
+
 all: get_tools get_vendor_deps install install_examples install_cosmos-sdk-cli test_lint test
 
 ########################################
@@ -157,12 +158,13 @@ test_lint:
 	!(grep -n branch Gopkg.toml)
 
 format:
-
 	sh scripts/importssort.sh
 
 benchmark:
 	@go test -bench=. $(PACKAGES_NOSIMULATION)
 
+precommit: test_coverage format
+	@echo 'finish precommit check'
 
 ########################################
 ### Devdoc

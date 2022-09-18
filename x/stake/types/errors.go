@@ -112,6 +112,10 @@ func ErrNilDelegatorAddr(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidInput, "delegator address is nil")
 }
 
+func ErrInvalidPubKey(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidInput, "validator pubkey is invalid")
+}
+
 func ErrNilLauncherAddr(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidInput, "launcher address of remove validator is nil")
 }

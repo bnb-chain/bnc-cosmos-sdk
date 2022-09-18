@@ -17,7 +17,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/stake"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/tendermint/tendermint/crypto"
 )
 
 // GetCmdCreateValidator implements the create validator command handler.
@@ -252,11 +251,6 @@ func GetCmdCreateValidatorOpen(cdc *codec.Codec) *cobra.Command {
 				return fmt.Errorf("must use --pubkey flag")
 			}
 
-			pk, err := sdk.GetConsPubKeyBech32(pkStr)
-			if err != nil {
-				return err
-			}
-
 			if viper.GetString(FlagMoniker) == "" {
 				return fmt.Errorf("please enter a moniker for the validator using --moniker")
 			}
@@ -277,20 +271,20 @@ func GetCmdCreateValidatorOpen(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			var msg sdk.Msg
+			msg := stake.MsgCreateValidatorOpen{
+				DelegatorAddr: valAddr,
+				ValidatorAddr: sdk.ValAddress(valAddr),
+				PubKey:        pkStr,
+				Description:   description,
+				Commission:    commissionMsg,
+				Delegation:    amount,
+			}
 			if viper.GetString(FlagAddressDelegator) != "" {
 				delAddr, err := sdk.AccAddressFromBech32(viper.GetString(FlagAddressDelegator))
 				if err != nil {
 					return err
 				}
-
-				msg = stake.NewMsgCreateValidatorOnBehalfOf(
-					delAddr, sdk.ValAddress(valAddr), pk, amount, description, commissionMsg,
-				)
-			} else {
-				msg = stake.NewMsgCreateValidator(
-					sdk.ValAddress(valAddr), pk, amount, description, commissionMsg,
-				)
+				msg.DelegatorAddr = delAddr
 			}
 			// build and sign the transaction, then broadcast to Tendermint
 			return utils.CompleteAndBroadcastTxCli(txBldr, cliCtx, []sdk.Msg{msg})
@@ -342,16 +336,9 @@ func GetCmdEditValidator(cdc *codec.Codec) *cobra.Command {
 				newRate = &rate
 			}
 
-			var pk crypto.PubKey = nil
 			pkStr := viper.GetString(FlagPubKey)
-			if len(pkStr) != 0 {
-				pk, err = sdk.GetConsPubKeyBech32(pkStr)
-				if err != nil {
-					return err
-				}
-			}
 
-			msg := stake.NewMsgEditValidator(sdk.ValAddress(valAddr), description, newRate, pk)
+			msg := stake.NewMsgEditValidator(sdk.ValAddress(valAddr), description, newRate, pkStr)
 			return utils.GenerateOrBroadcastMsgs(txBldr, cliCtx, []sdk.Msg{msg})
 		},
 	}

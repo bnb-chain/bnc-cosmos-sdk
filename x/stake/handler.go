@@ -24,11 +24,11 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 		case types.MsgRemoveValidator:
 			return handleMsgRemoveValidatorAfterProposal(ctx, msg, k, govKeeper)
 		// Beacon Chain New Staking in BEP-159
-		case types.MsgCreateValidator:
+		case types.MsgCreateValidatorOpen:
 			if !sdk.IsUpgrade(sdk.BEP159Phase2) {
 				return sdk.ErrMsgNotSupported("BEP-159 Phase 2 not activated yet").Result()
 			}
-			return handleMsgCreateValidator(ctx, msg, k)
+			return handleMsgCreateValidatorOpen(ctx, msg, k)
 		case types.MsgEditValidator:
 			return handleMsgEditValidator(ctx, msg, k)
 		case types.MsgDelegate:
@@ -119,6 +119,22 @@ func handleMsgRemoveValidatorAfterProposal(ctx sdk.Context, msg MsgRemoveValidat
 	}
 
 	return sdk.Result{Tags: tags}
+}
+
+func handleMsgCreateValidatorOpen(ctx sdk.Context, msg MsgCreateValidatorOpen, k keeper.Keeper) sdk.Result {
+	pubkey, err := sdk.GetConsPubKeyBech32(msg.PubKey)
+	if err != nil {
+		return ErrInvalidPubKey(k.Codespace()).Result()
+	}
+	msgCreateValidator := MsgCreateValidator{
+		Description:   msg.Description,
+		Commission:    msg.Commission,
+		DelegatorAddr: msg.DelegatorAddr,
+		ValidatorAddr: msg.ValidatorAddr,
+		PubKey:        pubkey,
+		Delegation:    msg.Delegation,
+	}
+	return handleMsgCreateValidator(ctx, msgCreateValidator, k)
 }
 
 func handleMsgCreateValidator(ctx sdk.Context, msg MsgCreateValidator, k keeper.Keeper) sdk.Result {
@@ -267,13 +283,17 @@ func handleMsgEditValidator(ctx sdk.Context, msg types.MsgEditValidator, k keepe
 	}
 
 	onValidatorModified := false
-	if msg.PubKey != nil {
-		_, found = k.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(msg.PubKey))
+	if len(msg.PubKey) != 0 {
+		pubkey, err := sdk.GetConsPubKeyBech32(msg.PubKey)
+		if err != nil {
+			return ErrInvalidPubKey(k.Codespace()).Result()
+		}
+		_, found = k.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(pubkey))
 		if found {
 			return ErrValidatorPubKeyExists(k.Codespace()).Result()
 		}
-		k.UpdateValidatorPubKey(ctx, validator, msg.PubKey)
-		validator.ConsPubKey = msg.PubKey
+		k.UpdateValidatorPubKey(ctx, validator, pubkey)
+		validator.ConsPubKey = pubkey
 		onValidatorModified = true
 	}
 

@@ -68,7 +68,7 @@ func TestMsgEditValidator(t *testing.T) {
 		description := NewDescription(tc.moniker, tc.identity, tc.website, tc.details)
 		newRate := sdk.ZeroDec()
 
-		msg := NewMsgEditValidator(tc.validatorAddr, description, &newRate, nil)
+		msg := NewMsgEditValidator(tc.validatorAddr, description, &newRate, "")
 		if tc.expectPass {
 			require.Nil(t, msg.ValidateBasic(), "test: %v", tc.name)
 		} else {

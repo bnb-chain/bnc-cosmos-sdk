@@ -209,10 +209,15 @@ func TestNewStake(t *testing.T) {
 	for i := 2; i < 12; i++ {
 		newBondCoin := sdk.NewCoin("BNB", sdk.NewDecWithoutFra(20000+int64(i)).RawInt())
 		description := NewDescription(fmt.Sprintf("account%d", i), "", "", "")
-		createValidatorMsg := NewMsgCreateValidator(
-			sdk.ValAddress(accounts[i].Address), accounts[i].Priv.PubKey(), newBondCoin, description, commissionMsg,
-		)
-		msgs = append(msgs, createValidatorMsg)
+		createValidatorOpenMsg := MsgCreateValidatorOpen{
+			DelegatorAddr: accounts[i].Address,
+			ValidatorAddr: sdk.ValAddress(accounts[i].Address),
+			Delegation:    newBondCoin,
+			Description:   description,
+			Commission:    commissionMsg,
+			PubKey:        sdk.MustBech32ifyConsPub(accounts[i].Priv.PubKey()),
+		}
+		msgs = append(msgs, createValidatorOpenMsg)
 		privs = append(privs, accounts[i].Priv)
 	}
 	txs = mock.GenSimTxs(t, mApp, msgs, true, privs...)

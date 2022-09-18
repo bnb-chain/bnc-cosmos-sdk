@@ -59,44 +59,6 @@ type MsgCreateValidatorProposal struct {
 	ProposalId int64 `json:"proposal_id"`
 }
 
-func (msg MsgCreateValidatorProposal) GetSignBytes() []byte {
-	var b []byte
-	if sdk.IsUpgrade(sdk.BEP159) {
-		b = MsgCdc.MustMarshalJSON(struct {
-			Description
-			Commission    CommissionMsg
-			DelegatorAddr sdk.AccAddress `json:"delegator_address"`
-			ValidatorAddr sdk.ValAddress `json:"validator_address"`
-			PubKey        string         `json:"pubkey"`
-			Delegation    sdk.Coin       `json:"delegation"`
-			ProposalId    int64          `json:"proposal_id"`
-		}{
-			Description:   msg.Description,
-			Commission:    msg.Commission,
-			ValidatorAddr: msg.ValidatorAddr,
-			PubKey:        sdk.MustBech32ifyConsPub(msg.PubKey),
-			Delegation:    msg.Delegation,
-			ProposalId:    msg.ProposalId,
-		})
-	} else {
-		// There is a new implementation of MsgCreateValidator GetSignBytes after BEP159
-		// This is left for backwards compatibility
-		b = MsgCdc.MustMarshalJSON(struct {
-			Description
-			DelegatorAddr sdk.AccAddress `json:"delegator_address"`
-			ValidatorAddr sdk.ValAddress `json:"validator_address"`
-			PubKey        string         `json:"pubkey"`
-			Delegation    sdk.Coin       `json:"delegation"`
-		}{
-			Description:   msg.Description,
-			ValidatorAddr: msg.ValidatorAddr,
-			PubKey:        sdk.MustBech32ifyConsPub(msg.PubKey),
-			Delegation:    msg.Delegation,
-		})
-	}
-	return sdk.MustSortJSON(b)
-}
-
 // Default way to create validator. Delegator address and validator address are the same
 func NewMsgCreateValidator(valAddr sdk.ValAddress, pubkey crypto.PubKey,
 	selfDelegation sdk.Coin, description Description, commission CommissionMsg) MsgCreateValidator {
@@ -121,11 +83,7 @@ func NewMsgCreateValidatorOnBehalfOf(delAddr sdk.AccAddress, valAddr sdk.ValAddr
 
 //nolint
 func (msg MsgCreateValidator) Route() string { return MsgRoute }
-
-// MsgCreateValidator was introduced in BEP159, but the original Type `create_validator` has been occupied by `MsgCreateValidatorProposal`
-// we will keep it so for backwards compatibility, and use a new Type for `MsgCreateValidator`
-func (msg MsgCreateValidator) Type() string         { return "create_validator_open" }
-func (msg MsgCreateValidatorProposal) Type() string { return "create_validator" }
+func (msg MsgCreateValidator) Type() string  { return "create_validator" }
 
 // Return address(es) that must sign over msg.GetSignBytes()
 func (msg MsgCreateValidator) GetSigners() []sdk.AccAddress {
@@ -144,14 +102,12 @@ func (msg MsgCreateValidator) GetSigners() []sdk.AccAddress {
 func (msg MsgCreateValidator) GetSignBytes() []byte {
 	b := MsgCdc.MustMarshalJSON(struct {
 		Description
-		Commission    CommissionMsg
 		DelegatorAddr sdk.AccAddress `json:"delegator_address"`
 		ValidatorAddr sdk.ValAddress `json:"validator_address"`
 		PubKey        string         `json:"pubkey"`
 		Delegation    sdk.Coin       `json:"delegation"`
 	}{
 		Description:   msg.Description,
-		Commission:    msg.Commission,
 		ValidatorAddr: msg.ValidatorAddr,
 		PubKey:        sdk.MustBech32ifyConsPub(msg.PubKey),
 		Delegation:    msg.Delegation,
@@ -206,9 +162,88 @@ func (msg MsgCreateValidator) Equals(other MsgCreateValidator) bool {
 
 //______________________________________________________________________
 
+// the MsgCreateValidator has been taken by MsgCreateValidatorProposal,
+// use a new Msg for CreateValidatorOpen for open staking, and change pubkey to string(bech32 format)
+// to make it friendly for multi-language implementation.
+type MsgCreateValidatorOpen struct {
+	Description   Description    `json:"description"`
+	Commission    CommissionMsg  `json:"commission"`
+	DelegatorAddr sdk.AccAddress `json:"delegator_address"`
+	ValidatorAddr sdk.ValAddress `json:"validator_address"`
+	PubKey        string         `json:"pubkey"`
+	Delegation    sdk.Coin       `json:"delegation"`
+}
+
+func (msg MsgCreateValidatorOpen) Route() string { return MsgRoute }
+func (msg MsgCreateValidatorOpen) Type() string  { return "create_validator_open" }
+
+func (msg MsgCreateValidatorOpen) GetSigners() []sdk.AccAddress {
+	// delegator is first signer so delegator pays fees
+	addrs := []sdk.AccAddress{msg.DelegatorAddr}
+
+	if !bytes.Equal(msg.DelegatorAddr.Bytes(), msg.ValidatorAddr.Bytes()) {
+		// if validator addr is not same as delegator addr, validator must sign
+		// msg as well
+		addrs = append(addrs, sdk.AccAddress(msg.ValidatorAddr))
+	}
+	return addrs
+}
+
+func (msg MsgCreateValidatorOpen) GetSignBytes() []byte {
+	b := MsgCdc.MustMarshalJSON(msg)
+	return sdk.MustSortJSON(b)
+}
+
+func (msg MsgCreateValidatorOpen) GetInvolvedAddresses() []sdk.AccAddress {
+	return msg.GetSigners()
+}
+
+func (msg MsgCreateValidatorOpen) ValidateBasic() sdk.Error {
+	if len(msg.DelegatorAddr) != sdk.AddrLen {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected delegator address length is %d, actual length is %d", sdk.AddrLen, len(msg.DelegatorAddr)))
+	}
+	if len(msg.ValidatorAddr) != sdk.AddrLen {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected validator address length is %d, actual length is %d", sdk.AddrLen, len(msg.ValidatorAddr)))
+	}
+	if msg.Delegation.Amount < 1e8 {
+		return ErrBadDelegationAmount(DefaultCodespace, "self delegation must not be less than 1e8")
+	}
+	if msg.Description == (Description{}) {
+		return sdk.NewError(DefaultCodespace, CodeInvalidInput, "description must be included")
+	}
+	if _, err := msg.Description.EnsureLength(); err != nil {
+		return err
+	}
+	commission := NewCommission(msg.Commission.Rate, msg.Commission.MaxRate, msg.Commission.MaxChangeRate)
+	if err := commission.Validate(); err != nil {
+		return err
+	}
+	if len(msg.PubKey) != 0 {
+		if _, err := sdk.GetConsPubKeyBech32(msg.PubKey); err != nil {
+			return sdk.ErrInvalidPubKey(err.Error())
+		}
+	}
+
+	return nil
+}
+
+func (msg MsgCreateValidatorOpen) Equals(other MsgCreateValidatorOpen) bool {
+	if !msg.Commission.Equal(other.Commission) {
+		return false
+	}
+
+	return msg.Delegation.IsEqual(other.Delegation) &&
+		msg.DelegatorAddr.Equals(other.DelegatorAddr) &&
+		msg.ValidatorAddr.Equals(other.ValidatorAddr) &&
+		msg.PubKey == other.PubKey &&
+		msg.Description.Equals(other.Description)
+}
+
+//______________________________________________________________________
+
 // MsgEditValidator - struct for editing a validator
 type MsgEditValidator struct {
-	Description
+	Description   Description    `json:"description"`
 	ValidatorAddr sdk.ValAddress `json:"address"`
 
 	// We pass a reference to the new commission rate as it's not mandatory to
@@ -216,11 +251,11 @@ type MsgEditValidator struct {
 	// distinguish if an update was intended.
 	//
 	// REF: #2373
-	CommissionRate *sdk.Dec      `json:"commission_rate"`
-	PubKey         crypto.PubKey `json:"pubkey"`
+	CommissionRate *sdk.Dec `json:"commission_rate"`
+	PubKey         string   `json:"pubkey"`
 }
 
-func NewMsgEditValidator(valAddr sdk.ValAddress, description Description, newRate *sdk.Dec, pubkey crypto.PubKey) MsgEditValidator {
+func NewMsgEditValidator(valAddr sdk.ValAddress, description Description, newRate *sdk.Dec, pubkey string) MsgEditValidator {
 	return MsgEditValidator{
 		Description:    description,
 		CommissionRate: newRate,
@@ -238,21 +273,7 @@ func (msg MsgEditValidator) GetSigners() []sdk.AccAddress {
 
 // get the bytes for the message signer to sign on
 func (msg MsgEditValidator) GetSignBytes() []byte {
-	var pubkey string
-	if msg.PubKey != nil {
-		pubkey = sdk.MustBech32ifyConsPub(msg.PubKey)
-	}
-	b := MsgCdc.MustMarshalJSON(struct {
-		Description
-		ValidatorAddr  sdk.ValAddress `json:"validator_address"`
-		PubKey         string         `json:"pubkey,omitempty"`
-		CommissionRate *sdk.Dec       `json:"commission_rate,omitempty"`
-	}{
-		Description:    msg.Description,
-		ValidatorAddr:  msg.ValidatorAddr,
-		PubKey:         pubkey,
-		CommissionRate: msg.CommissionRate,
-	})
+	b := MsgCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(b)
 }
 
@@ -264,6 +285,12 @@ func (msg MsgEditValidator) ValidateBasic() sdk.Error {
 
 	if msg.Description == (Description{}) {
 		return sdk.NewError(DefaultCodespace, CodeInvalidInput, "transaction must include some information to modify")
+	}
+
+	if len(msg.PubKey) != 0 {
+		if _, err := sdk.GetConsPubKeyBech32(msg.PubKey); err != nil {
+			return sdk.ErrInvalidPubKey(err.Error())
+		}
 	}
 
 	return nil
