@@ -2,16 +2,16 @@ package cross_stake
 
 import (
 	"github.com/cosmos/cosmos-sdk/baseapp"
+	"github.com/cosmos/cosmos-sdk/pubsub"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
 
-func PublishCrossStakeEvent(ctx sdk.Context, keeper Keeper, from string, to []types.CrossReceiver, symbol string,
+func PublishCrossStakeEvent(ctx sdk.Context, keeper Keeper, from string, to []pubsub.CrossReceiver, symbol string,
 	eventType string, relayerFee int64) {
 	if keeper.PbsbServer != nil {
 		txHash := ctx.Value(baseapp.TxHashKey)
 		if txHashStr, ok := txHash.(string); ok {
-			event := types.CrossTransferEvent{
+			event := pubsub.CrossTransferEvent{
 				TxHash:     txHashStr,
 				ChainId:    keeper.DestChainName,
 				RelayerFee: relayerFee,

@@ -6,6 +6,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/bsc"
 	"github.com/cosmos/cosmos-sdk/bsc/rlp"
+	"github.com/cosmos/cosmos-sdk/pubsub"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
@@ -188,8 +189,8 @@ func (app *CrossStakeApp) handleDelegate(ctx sdk.Context, pack *types.CrossStake
 			SideChainId: sideChainId,
 		}
 		app.stakeKeeper.PbsbServer.Publish(event)
-		PublishCrossStakeEvent(ctx, app.stakeKeeper, sdk.PegAccount.String(), []types.CrossReceiver{{delAddr.String(), pack.Amount.Int64()}},
-			app.stakeKeeper.BondDenom(ctx), types.CrossStakeDelegateType, relayFee)
+		PublishCrossStakeEvent(ctx, app.stakeKeeper, sdk.PegAccount.String(), []pubsub.CrossReceiver{{delAddr.String(), pack.Amount.Int64()}},
+			app.stakeKeeper.BondDenom(ctx), types.TransferInType, relayFee)
 	}
 
 	resultTags := sdk.NewTags(
@@ -329,8 +330,8 @@ func (app *CrossStakeApp) handleDistributeRewardRefund(ctx sdk.Context, pack *ty
 	// publish  event
 	if app.stakeKeeper.PbsbServer != nil && ctx.IsDeliverTx() {
 		app.stakeKeeper.AddrPool.AddAddrs([]sdk.AccAddress{sdk.PegAccount, refundAddr})
-		PublishCrossStakeEvent(ctx, app.stakeKeeper, sdk.PegAccount.String(), []types.CrossReceiver{{refundAddr.String(), pack.Amount.Int64()}},
-			app.stakeKeeper.BondDenom(ctx), types.CrossStakeDistributeRewardFailAckRefundType, 0)
+		PublishCrossStakeEvent(ctx, app.stakeKeeper, sdk.PegAccount.String(), []pubsub.CrossReceiver{{refundAddr.String(), pack.Amount.Int64()}},
+			app.stakeKeeper.BondDenom(ctx), types.TransferInType, 0)
 	}
 
 	return sdk.ExecuteResult{
@@ -350,8 +351,8 @@ func (app *CrossStakeApp) handleDistributeUndelegatedRefund(ctx sdk.Context, pac
 	// publish  event
 	if app.stakeKeeper.PbsbServer != nil && ctx.IsDeliverTx() {
 		app.stakeKeeper.AddrPool.AddAddrs([]sdk.AccAddress{sdk.PegAccount, refundAddr})
-		PublishCrossStakeEvent(ctx, app.stakeKeeper, sdk.PegAccount.String(), []types.CrossReceiver{{refundAddr.String(), pack.Amount.Int64()}},
-			app.stakeKeeper.BondDenom(ctx), types.CrossStakeDistributeUndelegatedFailAckRefundType, 0)
+		PublishCrossStakeEvent(ctx, app.stakeKeeper, sdk.PegAccount.String(), []pubsub.CrossReceiver{{refundAddr.String(), pack.Amount.Int64()}},
+			app.stakeKeeper.BondDenom(ctx), types.TransferInType, 0)
 	}
 
 	return sdk.ExecuteResult{
