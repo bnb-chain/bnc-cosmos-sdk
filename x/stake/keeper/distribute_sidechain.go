@@ -134,6 +134,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 	var toPublish []types.DistributionData           // data to be published in breathe blocks
 	var toSaveRewards []types.Reward                 // rewards to be saved
 	var toSaveValDistAddrs []types.StoredValDistAddr // mapping between validator and distribution address, to be saved
+	var rewardSum int64
 
 	bondDenom := k.BondDenom(ctx)
 	for _, validator := range validators {
@@ -195,6 +196,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 			if k.AddrPool != nil {
 				k.AddrPool.AddAddrs(changedAddrs[:])
 			}
+			rewardSum += totalReward
 		}
 
 		if ctx.IsDeliverTx() && k.PbsbServer != nil {
@@ -228,6 +230,13 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 
 		// save validator <-> distribution address map
 		k.setRewardValDistAddrs(ctx, toSaveValDistAddrs)
+	}
+
+	if rewardSum > 0 {
+		events = events.AppendEvent(sdk.Event{
+			Type:       types.EventTypeTotalDistribution,
+			Attributes: sdk.NewTags(types.AttributeKeyRewardSum, []byte(strconv.FormatInt(rewardSum, 10))),
+		})
 	}
 
 	// publish data if needed
