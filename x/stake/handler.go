@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/cosmos/cosmos-sdk/baseapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/stake/keeper"
 	"github.com/cosmos/cosmos-sdk/x/stake/tags"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
+	"github.com/tendermint/tendermint/crypto/ed25519"
 )
 
 func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
@@ -138,6 +140,10 @@ func handleMsgCreateValidatorOpen(ctx sdk.Context, msg MsgCreateValidatorOpen, k
 }
 
 func handleMsgCreateValidator(ctx sdk.Context, msg MsgCreateValidator, k keeper.Keeper) sdk.Result {
+	// consensus pubkey only support ed25519
+	if _, ok := msg.PubKey.(ed25519.PubKeyEd25519); !ok {
+		return ErrInvalidPubKey(k.Codespace()).Result()
+	}
 	// check to see if the pubkey or sender has been registered before
 	_, found := k.GetValidator(ctx, msg.ValidatorAddr)
 	if found {
@@ -288,6 +294,10 @@ func handleMsgEditValidator(ctx sdk.Context, msg types.MsgEditValidator, k keepe
 		if err != nil {
 			return ErrInvalidPubKey(k.Codespace()).Result()
 		}
+		// consensus pubkey only support ed25519
+		if _, ok := pubkey.(ed25519.PubKeyEd25519); !ok {
+			return ErrInvalidPubKey(k.Codespace()).Result()
+		}
 		_, found = k.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(pubkey))
 		if found {
 			return ErrValidatorPubKeyExists(k.Codespace()).Result()
@@ -362,6 +372,23 @@ func handleMsgDelegate(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper) 
 		return err.Result()
 	}
 
+	// publish delegate event
+	if k.PbsbServer != nil && ctx.IsDeliverTx() {
+		event := types.ChainDelegateEvent{
+			DelegateEvent: types.DelegateEvent{
+				StakeEvent: types.StakeEvent{
+					IsFromTx: true,
+				},
+				Delegator: msg.DelegatorAddr,
+				Validator: msg.ValidatorAddr,
+				Amount:    msg.Delegation.Amount,
+				Denom:     msg.Delegation.Denom,
+				TxHash:    ctx.Value(baseapp.TxHashKey).(string),
+			},
+			ChainId: ChainIDForBeaconChain,
+		}
+		k.PbsbServer.Publish(event)
+	}
 	tags := sdk.NewTags(
 		tags.Delegator, []byte(msg.DelegatorAddr.String()),
 		tags.DstValidator, []byte(msg.ValidatorAddr.String()),
@@ -385,7 +412,24 @@ func handleMsgUndelegate(ctx sdk.Context, msg types.MsgUndelegate, k keeper.Keep
 		ValidatorAddr: msg.ValidatorAddr,
 		SharesAmount:  shares,
 	}
-	return handleMsgBeginUnbonding(ctx, msgBeginUnbonding, k)
+	res := handleMsgBeginUnbonding(ctx, msgBeginUnbonding, k)
+	if k.PbsbServer != nil && ctx.IsDeliverTx() {
+		event := types.ChainUndelegateEvent{
+			UndelegateEvent: types.UndelegateEvent{
+				StakeEvent: types.StakeEvent{
+					IsFromTx: true,
+				},
+				Delegator: msg.DelegatorAddr,
+				Validator: msg.ValidatorAddr,
+				Amount:    msg.Amount.Amount,
+				Denom:     msg.Amount.Denom,
+				TxHash:    ctx.Value(baseapp.TxHashKey).(string),
+			},
+			ChainId: ChainIDForBeaconChain,
+		}
+		k.PbsbServer.Publish(event)
+	}
+	return res
 }
 
 func handleMsgBeginUnbonding(ctx sdk.Context, msg types.MsgBeginUnbonding, k keeper.Keeper) sdk.Result {
@@ -436,5 +480,22 @@ func handleMsgRedelegate(ctx sdk.Context, msg types.MsgRedelegate, k keeper.Keep
 		tags.DstValidator, []byte(msg.ValidatorDstAddr.String()),
 		tags.EndTime, finishTime,
 	)
+	if k.PbsbServer != nil && ctx.IsDeliverTx() {
+		event := types.ChainRedelegateEvent{
+			RedelegateEvent: types.RedelegateEvent{
+				StakeEvent: types.StakeEvent{
+					IsFromTx: true,
+				},
+				Delegator:    msg.DelegatorAddr,
+				SrcValidator: msg.ValidatorSrcAddr,
+				DstValidator: msg.ValidatorDstAddr,
+				Amount:       msg.Amount.Amount,
+				Denom:        msg.Amount.Denom,
+				TxHash:       ctx.Value(baseapp.TxHashKey).(string),
+			},
+			ChainId: ChainIDForBeaconChain,
+		}
+		k.PbsbServer.Publish(event)
+	}
 	return sdk.Result{Data: finishTime, Tags: tags}
 }

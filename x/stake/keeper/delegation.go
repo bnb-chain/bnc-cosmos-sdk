@@ -92,17 +92,16 @@ func (k Keeper) SetDelegation(ctx sdk.Context, delegation types.Delegation) {
 
 	// publish delegation update
 	if k.PbsbServer != nil && ctx.IsDeliverTx() {
+		chainId := ctx.SideChainId()
+		if len(chainId) == 0 {
+			chainId = types.ChainIDForBeaconChain
+		}
 		var event pubsub.Event = types.DelegationUpdateEvent{
 			StakeEvent: types.StakeEvent{
 				IsFromTx: ctx.Tx() != nil,
 			},
 			Delegation: delegation,
-		}
-		if len(ctx.SideChainId()) > 0 {
-			event = types.SideDelegationUpdateEvent{
-				DelegationUpdateEvent: event.(types.DelegationUpdateEvent),
-				SideChainId:           ctx.SideChainId(),
-			}
+			ChainId:    chainId,
 		}
 		k.PbsbServer.Publish(event)
 	}
@@ -128,6 +127,10 @@ func (k Keeper) RemoveDelegation(ctx sdk.Context, delegation types.Delegation) {
 
 	// publish delegation update
 	if k.PbsbServer != nil && ctx.IsDeliverTx() {
+		chainId := ctx.SideChainId()
+		if len(chainId) == 0 {
+			chainId = types.ChainIDForBeaconChain
+		}
 		var event pubsub.Event = types.DelegationRemovedEvent{
 			StakeEvent: types.StakeEvent{
 				IsFromTx: ctx.Tx() != nil,
@@ -136,12 +139,7 @@ func (k Keeper) RemoveDelegation(ctx sdk.Context, delegation types.Delegation) {
 				DelegatorAddr: delegation.DelegatorAddr,
 				ValidatorAddr: delegation.ValidatorAddr,
 			},
-		}
-		if len(ctx.SideChainId()) > 0 {
-			event = types.SideDelegationRemovedEvent{
-				DelegationRemovedEvent: event.(types.DelegationRemovedEvent),
-				SideChainId:            ctx.SideChainId(),
-			}
+			ChainId: chainId,
 		}
 		k.PbsbServer.Publish(event)
 	}
@@ -253,17 +251,16 @@ func (k Keeper) SetUnbondingDelegation(ctx sdk.Context, ubd types.UnbondingDeleg
 
 	// publish ubd update
 	if k.PbsbServer != nil && ctx.IsDeliverTx() {
+		chainId := ctx.SideChainId()
+		if len(chainId) == 0 {
+			chainId = types.ChainIDForBeaconChain
+		}
 		var event pubsub.Event = types.UBDUpdateEvent{
 			StakeEvent: types.StakeEvent{
 				IsFromTx: ctx.Tx() != nil,
 			},
-			UBD: ubd,
-		}
-		if len(ctx.SideChainId()) > 0 {
-			event = types.SideUBDUpdateEvent{
-				UBDUpdateEvent: event.(types.UBDUpdateEvent),
-				SideChainId:    ctx.SideChainId(),
-			}
+			UBD:     ubd,
+			ChainId: chainId,
 		}
 		k.PbsbServer.Publish(event)
 	}
@@ -406,17 +403,16 @@ func (k Keeper) SetRedelegation(ctx sdk.Context, red types.Redelegation) {
 
 	// publish red update
 	if k.PbsbServer != nil && ctx.IsDeliverTx() {
+		chainId := ctx.SideChainId()
+		if len(chainId) == 0 {
+			chainId = types.ChainIDForBeaconChain
+		}
 		var event pubsub.Event = types.REDUpdateEvent{
 			StakeEvent: types.StakeEvent{
 				IsFromTx: ctx.Tx() != nil,
 			},
-			RED: red,
-		}
-		if len(ctx.SideChainId()) > 0 {
-			event = types.SideREDUpdateEvent{
-				REDUpdateEvent: event.(types.REDUpdateEvent),
-				SideChainId:    ctx.SideChainId(),
-			}
+			RED:     red,
+			ChainId: chainId,
 		}
 		k.PbsbServer.Publish(event)
 	}

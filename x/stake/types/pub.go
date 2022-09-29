@@ -32,77 +32,57 @@ type ValidatorUpdateEvent struct {
 // validator removed event
 type ValidatorRemovedEvent struct {
 	StakeEvent
-	Operator    sdk.ValAddress
-	SideChainId string
+	Operator sdk.ValAddress
+	ChainId  string
 }
 
 // delegation update
 type DelegationUpdateEvent struct {
 	StakeEvent
 	Delegation Delegation
-}
-
-// side delegation update
-type SideDelegationUpdateEvent struct {
-	DelegationUpdateEvent
-	SideChainId string
+	ChainId    string
 }
 
 // delegation removed
 type DelegationRemovedEvent struct {
 	StakeEvent
-	DvPair DVPair
-}
-
-// side delegation removed
-type SideDelegationRemovedEvent struct {
-	DelegationRemovedEvent
-	SideChainId string
+	DvPair  DVPair
+	ChainId string
 }
 
 // UBDs update
 type UBDUpdateEvent struct {
 	StakeEvent
-	UBD UnbondingDelegation
-}
-
-// side UBD update
-type SideUBDUpdateEvent struct {
-	UBDUpdateEvent
-	SideChainId string
+	UBD     UnbondingDelegation
+	ChainId string
 }
 
 // RED update
 type REDUpdateEvent struct {
 	StakeEvent
-	RED Redelegation
+	RED     Redelegation
+	ChainId string
 }
 
-// Side RED update
-type SideREDUpdateEvent struct {
-	REDUpdateEvent
-	SideChainId string
-}
-
-// side completed unBonding event
-type SideCompletedUBDEvent struct {
+// completed unBonding event
+type CompletedUBDEvent struct {
 	StakeEvent
-	SideChainId string
-	CompUBDs    []UnbondingDelegation
+	ChainId  string
+	CompUBDs []UnbondingDelegation
 }
 
-// side completed reDelegation event
-type SideCompletedREDEvent struct {
+// completed reDelegation event
+type CompletedREDEvent struct {
 	StakeEvent
-	SideChainId string
-	CompREDs    []DVVTriplet
+	ChainId  string
+	CompREDs []DVVTriplet
 }
 
-// side chain reward distribution event after BEP128
-type SideDistributionEvent struct {
+// chain reward distribution event after BEP128
+type DistributionEvent struct {
 	StakeEvent
-	SideChainId string
-	Data        []DistributionData
+	ChainId string
+	Data    []DistributionData
 }
 
 type DistributionData struct {
@@ -126,9 +106,9 @@ type DelegateEvent struct {
 	TxHash    string
 }
 
-type SideDelegateEvent struct {
+type ChainDelegateEvent struct {
 	DelegateEvent
-	SideChainId string
+	ChainId string
 }
 
 // undelegate
@@ -141,9 +121,9 @@ type UndelegateEvent struct {
 	TxHash    string
 }
 
-type SideUnDelegateEvent struct {
+type ChainUndelegateEvent struct {
 	UndelegateEvent
-	SideChainId string
+	ChainId string
 }
 
 // redelegate
@@ -157,13 +137,13 @@ type RedelegateEvent struct {
 	TxHash       string
 }
 
-type SideRedelegateEvent struct {
+type ChainRedelegateEvent struct {
 	RedelegateEvent
-	SideChainId string
+	ChainId string
 }
 
-type SideElectedValidatorsEvent struct {
+type ElectedValidatorsEvent struct {
 	StakeEvent
-	Validators  []Validator
-	SideChainId string
+	Validators []Validator
+	ChainId    string
 }

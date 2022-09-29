@@ -40,29 +40,25 @@ type (
 	MsgSideChainRedelegate      = types.MsgSideChainRedelegate
 	MsgSideChainUndelegate      = types.MsgSideChainUndelegate
 
-	SideDistributionEvent      = types.SideDistributionEvent
-	DistributionData           = types.DistributionData
-	SideCompletedUBDEvent      = types.SideCompletedUBDEvent
-	SideCompletedREDEvent      = types.SideCompletedREDEvent
-	ValidatorUpdateEvent       = types.ValidatorUpdateEvent
-	ValidatorRemovedEvent      = types.ValidatorRemovedEvent
-	DelegationUpdateEvent      = types.DelegationUpdateEvent
-	DelegationRemovedEvent     = types.DelegationRemovedEvent
-	SideDelegationRemovedEvent = types.SideDelegationRemovedEvent
-	SideDelegationUpdateEvent  = types.SideDelegationUpdateEvent
-	UBDUpdateEvent             = types.UBDUpdateEvent
-	SideUBDUpdateEvent         = types.SideUBDUpdateEvent
-	REDUpdateEvent             = types.REDUpdateEvent
-	SideREDUpdateEvent         = types.SideREDUpdateEvent
-	DVVTriplet                 = types.DVVTriplet
-	DVPair                     = types.DVPair
-	DelegateEvent              = types.DelegateEvent
-	UndelegateEvent            = types.UndelegateEvent
-	RedelegateEvent            = types.RedelegateEvent
-	SideDelegateEvent          = types.SideDelegateEvent
-	SideUndelegateEvent        = types.SideUnDelegateEvent
-	SideRedelegateEvent        = types.SideRedelegateEvent
-	SideElectedValidatorsEvent = types.SideElectedValidatorsEvent
+	DistributionEvent      = types.DistributionEvent
+	DistributionData       = types.DistributionData
+	CompletedUBDEvent      = types.CompletedUBDEvent
+	CompletedREDEvent      = types.CompletedREDEvent
+	ValidatorUpdateEvent   = types.ValidatorUpdateEvent
+	ValidatorRemovedEvent  = types.ValidatorRemovedEvent
+	DelegationUpdateEvent  = types.DelegationUpdateEvent
+	DelegationRemovedEvent = types.DelegationRemovedEvent
+	UBDUpdateEvent         = types.UBDUpdateEvent
+	REDUpdateEvent         = types.REDUpdateEvent
+	DVVTriplet             = types.DVVTriplet
+	DVPair                 = types.DVPair
+	DelegateEvent          = types.DelegateEvent
+	UndelegateEvent        = types.UndelegateEvent
+	RedelegateEvent        = types.RedelegateEvent
+	ChainDelegateEvent     = types.ChainDelegateEvent
+	ChainUndelegateEvent   = types.ChainUndelegateEvent
+	ChainRedelegateEvent   = types.ChainRedelegateEvent
+	ElectedValidatorsEvent = types.ElectedValidatorsEvent
 )
 
 var (
@@ -165,6 +161,7 @@ const (
 	CodeUnauthorized      = types.CodeUnauthorized
 	CodeInternal          = types.CodeInternal
 	CodeUnknownRequest    = types.CodeUnknownRequest
+	ChainIDForBeaconChain = types.ChainIDForBeaconChain
 )
 
 var (

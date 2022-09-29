@@ -16,7 +16,7 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.Valid
 	if !sdk.IsUpgrade(sdk.BEP159) {
 		_, validatorUpdates, completedUbds, _, events = handleValidatorAndDelegations(ctx, k)
 	} else {
-		k.DistributeInBlock(ctx, types.MockSideChainIDForBeaconChain)
+		k.DistributeInBlock(ctx, types.ChainIDForBeaconChain)
 	}
 	if sdk.IsUpgrade(sdk.BEP128) {
 		sideChainIds, storePrefixes := k.ScKeeper.GetAllSideChainPrefixes(ctx)
@@ -39,8 +39,18 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.Valid
 func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.ValidatorUpdate, completedUbds []types.UnbondingDelegation) {
 	var events sdk.Events
 	var newVals []types.Validator
-	newVals, validatorUpdates, completedUbds, _, events = handleValidatorAndDelegations(ctx, k)
+	var completedREDs []types.DVVTriplet
+	newVals, validatorUpdates, completedUbds, completedREDs, events = handleValidatorAndDelegations(ctx, k)
 	ctx.Logger().Debug("EndBreatheBlock", "newValsLen", len(newVals), "newVals", newVals)
+	publishCompletedUBD(k, completedUbds, ChainIDForBeaconChain, ctx.BlockHeight())
+	publishCompletedRED(k, completedREDs, ChainIDForBeaconChain)
+	if k.PbsbServer != nil {
+		sideValidatorsEvent := types.ElectedValidatorsEvent{
+			Validators: newVals,
+			ChainId:    ChainIDForBeaconChain,
+		}
+		k.PbsbServer.Publish(sideValidatorsEvent)
+	}
 	if sdk.IsUpgrade(sdk.BEP159) {
 		storeValidatorsWithHeight(ctx, newVals, k)
 	}
@@ -77,7 +87,7 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 		}
 		if sdk.IsUpgrade(sdk.BEP159) {
 			// distribute beacon chain rewards
-			k.DistributeInBreathBlock(ctx, types.MockSideChainIDForBeaconChain)
+			k.DistributeInBreathBlock(ctx, types.ChainIDForBeaconChain)
 		}
 	}
 	ctx.EventManager().EmitEvents(events)
@@ -86,9 +96,9 @@ func EndBreatheBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.
 
 func publishCompletedUBD(k keeper.Keeper, completedUbds []types.UnbondingDelegation, sideChainId string, height int64) {
 	if k.PbsbServer != nil && len(completedUbds) > 0 {
-		compUBDsEvent := types.SideCompletedUBDEvent{
-			CompUBDs:    completedUbds,
-			SideChainId: sideChainId,
+		compUBDsEvent := types.CompletedUBDEvent{
+			CompUBDs: completedUbds,
+			ChainId:  sideChainId,
 		}
 		k.PbsbServer.Publish(compUBDsEvent)
 	}
@@ -96,9 +106,9 @@ func publishCompletedUBD(k keeper.Keeper, completedUbds []types.UnbondingDelegat
 
 func publishCompletedRED(k keeper.Keeper, completedReds []types.DVVTriplet, sideChainId string) {
 	if k.PbsbServer != nil && len(completedReds) > 0 {
-		compREDsEvent := types.SideCompletedREDEvent{
-			CompREDs:    completedReds,
-			SideChainId: sideChainId,
+		compREDsEvent := types.CompletedREDEvent{
+			CompREDs: completedReds,
+			ChainId:  sideChainId,
 		}
 		k.PbsbServer.Publish(compREDsEvent)
 	}
@@ -123,9 +133,9 @@ func saveSideChainValidatorsToIBC(ctx sdk.Context, sideChainId string, newVals [
 		return
 	}
 	if k.PbsbServer != nil {
-		sideValidatorsEvent := types.SideElectedValidatorsEvent{
-			Validators:  newVals,
-			SideChainId: sideChainId,
+		sideValidatorsEvent := types.ElectedValidatorsEvent{
+			Validators: newVals,
+			ChainId:    sideChainId,
 		}
 		k.PbsbServer.Publish(sideValidatorsEvent)
 	}

@@ -13,7 +13,7 @@ import (
 	tmtypes "github.com/tendermint/tendermint/types"
 )
 
-const MockSideChainIDForBeaconChain = "beacon_chain"
+const ChainIDForBeaconChain string = "bbc" // short for BNB Beacon Chain
 
 // Validator defines the total amount of bond shares and their exchange rate to
 // coins. Accumulation of interest is modelled as an in increase in the
@@ -73,7 +73,7 @@ func NewValidatorWithFeeAddr(feeAddr sdk.AccAddress, operator sdk.ValAddress, pu
 		Commission:         NewCommission(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec()),
 	}
 	if sdk.IsUpgrade(sdk.BEP159) {
-		val.DistributionAddr = GenerateDistributionAddr(operator, MockSideChainIDForBeaconChain)
+		val.DistributionAddr = GenerateDistributionAddr(operator, ChainIDForBeaconChain)
 	}
 	return val
 }

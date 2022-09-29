@@ -107,9 +107,9 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 	}
 
 	if ctx.IsDeliverTx() && len(toPublish) > 0 && k.PbsbServer != nil {
-		event := types.SideDistributionEvent{
-			SideChainId: sideChainId,
-			Data:        toPublish,
+		event := types.DistributionEvent{
+			ChainId: sideChainId,
+			Data:    toPublish,
 		}
 		k.PbsbServer.Publish(event)
 	}
@@ -130,7 +130,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 	}
 
 	var daysBackward int
-	if sideChainId != types.MockSideChainIDForBeaconChain {
+	if sideChainId != types.ChainIDForBeaconChain {
 		daysBackward = daysBackwardForValidatorSnapshot
 	} else {
 		daysBackward = daysBackwardForValidatorSnapshotBeaconChain
@@ -147,7 +147,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 	bondDenom := k.BondDenom(ctx)
 	feeFromBscToBcRatio := k.FeeFromBscToBcRatio(ctx)
 	avgFeeForBcVals := sdk.ZeroDec()
-	if sdk.IsUpgrade(sdk.BEP159) && sideChainId == types.MockSideChainIDForBeaconChain {
+	if sdk.IsUpgrade(sdk.BEP159) && sideChainId == types.ChainIDForBeaconChain {
 		feeForAllBcValsCoins := k.BankKeeper.GetCoins(ctx, FeeForAllBcValsAccAddr)
 		feeForAllBcVals := feeForAllBcValsCoins.AmountOf(bondDenom)
 		avgFeeForBcVals = sdk.NewDec(feeForAllBcVals / int64(len(validators)))
@@ -160,7 +160,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 		totalReward := distAccCoins.AmountOf(bondDenom)
 		totalRewardDec := sdk.NewDec(totalReward)
 		if sdk.IsUpgrade(sdk.BEP159) {
-			if sideChainId != types.MockSideChainIDForBeaconChain {
+			if sideChainId != types.ChainIDForBeaconChain {
 				// split a portion of fees to BC validators
 				feeToBC := totalRewardDec.Mul(feeFromBscToBcRatio)
 				if feeToBC.RawInt() > 0 {
@@ -276,9 +276,9 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 
 	// publish data if needed
 	if ctx.IsDeliverTx() && len(toPublish) > 0 && k.PbsbServer != nil {
-		event := types.SideDistributionEvent{
-			SideChainId: sideChainId,
-			Data:        toPublish,
+		event := types.DistributionEvent{
+			ChainId: sideChainId,
+			Data:    toPublish,
 		}
 		k.PbsbServer.Publish(event)
 	}
@@ -390,9 +390,9 @@ func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) sdk.E
 			Commission:     sdk.Dec{},
 			Rewards:        toPublishRewards, // only publish rewards in normal block
 		})
-		event := types.SideDistributionEvent{
-			SideChainId: sideChainId,
-			Data:        toPublish,
+		event := types.DistributionEvent{
+			ChainId: sideChainId,
+			Data:    toPublish,
 		}
 		k.PbsbServer.Publish(event)
 	}
