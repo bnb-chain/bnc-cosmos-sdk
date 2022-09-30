@@ -6,6 +6,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/bsc"
 	"github.com/cosmos/cosmos-sdk/bsc/rlp"
+	"github.com/cosmos/cosmos-sdk/pubsub"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
@@ -21,6 +22,11 @@ func NewCrossStakeApp(stakeKeeper Keeper) *CrossStakeApp {
 }
 
 func (app *CrossStakeApp) ExecuteSynPackage(ctx sdk.Context, payload []byte, relayFee int64) sdk.ExecuteResult {
+	if len(payload) == 0 {
+		app.stakeKeeper.Logger(ctx).Error("receive empty cross stake syn package")
+		return sdk.ExecuteResult{}
+	}
+
 	app.stakeKeeper.Logger(ctx).Info("receive cross stake syn package")
 	pack, err := DeserializeCrossStakeSynPackage(payload)
 	if err != nil {
@@ -63,7 +69,7 @@ func (app *CrossStakeApp) ExecuteSynPackage(ctx sdk.Context, payload []byte, rel
 
 func (app *CrossStakeApp) ExecuteAckPackage(ctx sdk.Context, payload []byte) sdk.ExecuteResult {
 	if len(payload) == 0 {
-		app.stakeKeeper.Logger(ctx).Info("receive cross stake ack package")
+		app.stakeKeeper.Logger(ctx).Error("receive empty cross stake ack package")
 		return sdk.ExecuteResult{}
 	}
 
@@ -93,7 +99,7 @@ func (app *CrossStakeApp) ExecuteAckPackage(ctx sdk.Context, payload []byte) sdk
 
 func (app *CrossStakeApp) ExecuteFailAckPackage(ctx sdk.Context, payload []byte) sdk.ExecuteResult {
 	if len(payload) == 0 {
-		app.stakeKeeper.Logger(ctx).Info("receive cross stake fail ack package")
+		app.stakeKeeper.Logger(ctx).Error("receive empty cross stake fail ack package")
 		return sdk.ExecuteResult{}
 	}
 
@@ -179,17 +185,18 @@ func (app *CrossStakeApp) handleDelegate(ctx sdk.Context, pack *types.CrossStake
 				StakeEvent: types.StakeEvent{
 					IsFromTx: true,
 				},
-				Delegator: delAddr,
-				Validator: pack.Validator,
-				Amount:    pack.Amount.Int64(),
-				Denom:     app.stakeKeeper.BondDenom(ctx),
-				TxHash:    ctx.Value(baseapp.TxHashKey).(string),
+				Delegator:  delAddr,
+				Validator:  pack.Validator,
+				Amount:     pack.Amount.Int64(),
+				Denom:      app.stakeKeeper.BondDenom(ctx),
+				TxHash:     ctx.Value(baseapp.TxHashKey).(string),
+				CrossStake: true,
 			},
 			SideChainId: sideChainId,
 		}
 		app.stakeKeeper.PbsbServer.Publish(event)
-		PublishCrossStakeEvent(ctx, app.stakeKeeper, sdk.PegAccount.String(), []types.CrossReceiver{{delAddr.String(), pack.Amount.Int64()}},
-			app.stakeKeeper.BondDenom(ctx), types.CrossStakeDelegateType, relayFee)
+		PublishCrossStakeEvent(ctx, app.stakeKeeper, sdk.PegAccount.String(), []pubsub.CrossReceiver{{delAddr.String(), pack.Amount.Int64()}},
+			app.stakeKeeper.BondDenom(ctx), types.TransferInType, relayFee)
 	}
 
 	resultTags := sdk.NewTags(
@@ -227,20 +234,25 @@ func (app *CrossStakeApp) handleUndelegate(ctx sdk.Context, pack *types.CrossSta
 
 	// publish undelegate event
 	if app.stakeKeeper.PbsbServer != nil && ctx.IsDeliverTx() {
-		event := types.SideUnDelegateEvent{
-			UndelegateEvent: types.UndelegateEvent{
-				StakeEvent: types.StakeEvent{
-					IsFromTx: true,
+		txHash := ctx.Value(baseapp.TxHashKey)
+		if txHashStr, ok := txHash.(string); ok {
+			event := types.SideUnDelegateEvent{
+				UndelegateEvent: types.UndelegateEvent{
+					StakeEvent: types.StakeEvent{
+						IsFromTx: true,
+					},
+					Delegator: delAddr,
+					Validator: pack.Validator,
+					Amount:    shares.RawInt(),
+					Denom:     app.stakeKeeper.BondDenom(ctx),
+					TxHash:    txHashStr,
 				},
-				Delegator: delAddr,
-				Validator: pack.Validator,
-				Amount:    shares.RawInt(),
-				Denom:     app.stakeKeeper.BondDenom(ctx),
-				TxHash:    ctx.Value(baseapp.TxHashKey).(string),
-			},
-			SideChainId: sideChainId,
+				SideChainId: sideChainId,
+			}
+			app.stakeKeeper.PbsbServer.Publish(event)
+		} else {
+			ctx.Logger().With("module", "stake").Error("failed to get txhash, will not publish side undelegate event ")
 		}
-		app.stakeKeeper.PbsbServer.Publish(event)
 	}
 
 	resultTags := sdk.NewTags(
@@ -258,6 +270,10 @@ func (app *CrossStakeApp) handleRedelegate(ctx sdk.Context, pack *types.CrossSta
 		return sdk.ExecuteResult{}, errCode, err
 	} else {
 		ctx = scCtx
+	}
+
+	if pack.ValSrc.Equals(pack.ValDst) {
+		return sdk.ExecuteResult{}, errCode, sdk.ErrInternal("src validator is the same as dst validator")
 	}
 
 	valDst, found := app.stakeKeeper.GetValidator(ctx, pack.ValDst)
@@ -291,21 +307,27 @@ func (app *CrossStakeApp) handleRedelegate(ctx sdk.Context, pack *types.CrossSta
 
 	// publish redelegate event
 	if app.stakeKeeper.PbsbServer != nil && ctx.IsDeliverTx() {
-		event := types.SideRedelegateEvent{
-			RedelegateEvent: types.RedelegateEvent{
-				StakeEvent: types.StakeEvent{
-					IsFromTx: true,
+		txHash := ctx.Value(baseapp.TxHashKey)
+		if txHashStr, ok := txHash.(string); ok {
+			event := types.SideRedelegateEvent{
+				RedelegateEvent: types.RedelegateEvent{
+					StakeEvent: types.StakeEvent{
+						IsFromTx: true,
+					},
+					Delegator:    delAddr,
+					SrcValidator: pack.ValSrc,
+					DstValidator: pack.ValDst,
+					Amount:       pack.Amount.Int64(),
+					Denom:        app.stakeKeeper.BondDenom(ctx),
+					TxHash:       txHashStr,
 				},
-				Delegator:    delAddr,
-				SrcValidator: pack.ValSrc,
-				DstValidator: pack.ValDst,
-				Amount:       pack.Amount.Int64(),
-				Denom:        app.stakeKeeper.BondDenom(ctx),
-				TxHash:       ctx.Value(baseapp.TxHashKey).(string),
-			},
-			SideChainId: sideChainId,
+				SideChainId: sideChainId,
+			}
+			app.stakeKeeper.PbsbServer.Publish(event)
+		} else {
+			ctx.Logger().With("module", "stake").Error("failed to get txhash, will not publish side redelegate event ")
 		}
-		app.stakeKeeper.PbsbServer.Publish(event)
+
 	}
 
 	resultTags := sdk.NewTags(
@@ -329,8 +351,8 @@ func (app *CrossStakeApp) handleDistributeRewardRefund(ctx sdk.Context, pack *ty
 	// publish  event
 	if app.stakeKeeper.PbsbServer != nil && ctx.IsDeliverTx() {
 		app.stakeKeeper.AddrPool.AddAddrs([]sdk.AccAddress{sdk.PegAccount, refundAddr})
-		PublishCrossStakeEvent(ctx, app.stakeKeeper, sdk.PegAccount.String(), []types.CrossReceiver{{refundAddr.String(), pack.Amount.Int64()}},
-			app.stakeKeeper.BondDenom(ctx), types.CrossStakeDistributeRewardFailAckRefundType, 0)
+		PublishCrossStakeEvent(ctx, app.stakeKeeper, sdk.PegAccount.String(), []pubsub.CrossReceiver{{refundAddr.String(), pack.Amount.Int64()}},
+			app.stakeKeeper.BondDenom(ctx), types.TransferInType, 0)
 	}
 
 	return sdk.ExecuteResult{
@@ -350,8 +372,8 @@ func (app *CrossStakeApp) handleDistributeUndelegatedRefund(ctx sdk.Context, pac
 	// publish  event
 	if app.stakeKeeper.PbsbServer != nil && ctx.IsDeliverTx() {
 		app.stakeKeeper.AddrPool.AddAddrs([]sdk.AccAddress{sdk.PegAccount, refundAddr})
-		PublishCrossStakeEvent(ctx, app.stakeKeeper, sdk.PegAccount.String(), []types.CrossReceiver{{refundAddr.String(), pack.Amount.Int64()}},
-			app.stakeKeeper.BondDenom(ctx), types.CrossStakeDistributeUndelegatedFailAckRefundType, 0)
+		PublishCrossStakeEvent(ctx, app.stakeKeeper, sdk.PegAccount.String(), []pubsub.CrossReceiver{{refundAddr.String(), pack.Amount.Int64()}},
+			app.stakeKeeper.BondDenom(ctx), types.TransferInType, 0)
 	}
 
 	return sdk.ExecuteResult{

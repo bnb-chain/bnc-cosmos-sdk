@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/bsc"
 	"github.com/cosmos/cosmos-sdk/bsc/rlp"
 	"github.com/cosmos/cosmos-sdk/pubsub"
@@ -825,7 +824,7 @@ func (k Keeper) crossDistributeUndelegated(ctx sdk.Context, delAddr sdk.AccAddre
 		return sdk.Events{}, sdk.ErrInternal("no fee calculator of distributeUndelegated")
 	}
 	relayFee := relayFeeCalc(nil)
-	if relayFee.Tokens.AmountOf(denom) > amount {
+	if relayFee.Tokens.AmountOf(denom) >= amount {
 		return sdk.Events{}, sdk.ErrInternal("not enough funds to cover relay fee")
 	}
 	bscRelayFee := bsc.ConvertBCAmountToBSCAmount(relayFee.Tokens.AmountOf(denom))
@@ -861,21 +860,15 @@ func (k Keeper) crossDistributeUndelegated(ctx sdk.Context, delAddr sdk.AccAddre
 
 	// publish data if needed
 	if ctx.IsDeliverTx() && k.PbsbServer != nil {
-		txHash := ctx.Value(baseapp.TxHashKey)
-		if txHashStr, ok := txHash.(string); ok {
-			event := types.CrossTransferEvent{
-				TxHash:     txHashStr,
-				ChainId:    k.DestChainName,
-				RelayerFee: relayFee.Tokens.AmountOf(denom),
-				Type:       types.CrossStakeDistributeUndelegatedType,
-				From:       DelegationAccAddr.String(),
-				Denom:      denom,
-				To:         []types.CrossReceiver{{sdk.PegAccount.String(), amount}},
-			}
-			k.PbsbServer.Publish(event)
-		} else {
-			ctx.Logger().With("module", "stake").Error("failed to get txhash, will not publish cross transfer event ")
+		event := pubsub.CrossTransferEvent{
+			ChainId:    k.DestChainName,
+			RelayerFee: relayFee.Tokens.AmountOf(denom),
+			Type:       types.TransferOutType,
+			From:       delAddr.String(),
+			Denom:      denom,
+			To:         []pubsub.CrossReceiver{{sdk.PegAccount.String(), amount}},
 		}
+		k.PbsbServer.Publish(event)
 	}
 
 	resultTags := sdk.NewTags(

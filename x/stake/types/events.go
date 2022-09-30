@@ -9,7 +9,8 @@ const (
 	EventTypeUnbond               = "unbond"
 	EventTypeRedelegate           = "redelegate"
 
-	EventTypeCrossStake = "crossStake"
+	EventTypeCrossStake        = "cross_stake"
+	EventTypeTotalDistribution = "total_distribution"
 
 	AttributeKeyValidator         = "validator"
 	AttributeKeyCommissionRate    = "commission_rate"
@@ -20,4 +21,6 @@ const (
 	AttributeKeyCompletionTime    = "completion_time"
 
 	AttributeKeySideChainId = "side_chain_id"
+
+	AttributeKeyRewardSum = "reward_sum"
 )
