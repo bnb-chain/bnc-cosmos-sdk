@@ -119,11 +119,12 @@ type DistributionData struct {
 // delegate event
 type DelegateEvent struct {
 	StakeEvent
-	Delegator sdk.AccAddress
-	Validator sdk.ValAddress
-	Amount    int64
-	Denom     string
-	TxHash    string
+	Delegator  sdk.AccAddress
+	Validator  sdk.ValAddress
+	Amount     int64
+	Denom      string
+	TxHash     string
+	CrossStake bool
 }
 
 type SideDelegateEvent struct {
