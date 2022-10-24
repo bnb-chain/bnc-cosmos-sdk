@@ -5,6 +5,7 @@ go 1.17
 require (
 	github.com/bartekn/go-bip39 v0.0.0-20171116152956-a05967ea095d
 	github.com/bgentry/speakeasy v0.1.0
+	github.com/bnb-chain/ics23 v0.0.0-20221021082321-d0a365dd9898
 	github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d
 	github.com/go-kit/kit v0.9.0
 	github.com/gorilla/mux v1.7.3
