@@ -173,7 +173,7 @@ func VerifyValue(prt *merkle.ProofRuntime, root []byte, version int64, proof *me
 
 	// calculate store hash
 	storeInfo := StoreInfo{
-		Name: string(keys[1]),
+		Name: string(storeKey),
 		Core: StoreCore{
 			CommitID: CommitID{
 				Version: version,
