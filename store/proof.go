@@ -184,6 +184,10 @@ func VerifyValue(prt *merkle.ProofRuntime, root []byte, version int64, proof *me
 	storeHash := storeInfo.Hash()
 
 	simplePo := poz[1]
+	if simplePo.ProofOp().Type != ProofOpSimpleMerkleCommitment {
+		return fmt.Errorf("invalid proof op type, should be  %s", ProofOpSimpleMerkleCommitment)
+	}
+
 	if !bytes.Equal(storeKey, simplePo.GetKey()) {
 		return fmt.Errorf("invalid proof of key, require %X, got %X", simplePo.GetKey(), storeKey)
 	}
