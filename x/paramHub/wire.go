@@ -14,4 +14,5 @@ func RegisterWire(cdc *amino.Codec) {
 	cdc.RegisterConcrete(&types.TransferFeeParam{}, "params/TransferFeeParams", nil)
 	cdc.RegisterConcrete(&types.DexFeeParam{}, "params/DexFeeParam", nil)
 	cdc.RegisterInterface((*types.SCParam)(nil), nil)
+	cdc.RegisterInterface((*types.BCParam)(nil), nil)
 }

@@ -98,6 +98,25 @@ func CreateAbciQueryHandler(paramHub *ParamHub) func(sdk.Context, abci.RequestQu
 				Code:  uint32(sdk.ABCICodeOK),
 				Value: bz,
 			}
+		case "params":
+			params, sdkErr := paramHub.GetBCParams(ctx)
+			if sdkErr != nil {
+				return &abci.ResponseQuery{
+					Code: uint32(sdkErr.ABCICode()),
+					Log:  sdkErr.ABCILog(),
+				}
+			}
+			bz, err := paramHub.GetCodeC().MarshalJSON(params)
+			if err != nil {
+				return &abci.ResponseQuery{
+					Code: uint32(sdk.CodeInternal),
+					Log:  err.Error(),
+				}
+			}
+			return &abci.ResponseQuery{
+				Code:  uint32(sdk.ABCICodeOK),
+				Value: bz,
+			}
 
 		default:
 			return &abci.ResponseQuery{

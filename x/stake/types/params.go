@@ -64,6 +64,10 @@ type Params struct {
 	FeeFromBscToBcRatio      types.Dec `json:"fee_from_bsc_to_bc_ratio"`    // the fee from bsc to bc ratio
 }
 
+func (p *Params) GetBCParamAttribute() string {
+	return "staking"
+}
+
 func (p *Params) GetParamAttribute() (string, bool) {
 	return "staking", false
 }
