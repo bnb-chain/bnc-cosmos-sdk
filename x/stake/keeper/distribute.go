@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"strconv"
 
-	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/bsc"
 	"github.com/cosmos/cosmos-sdk/bsc/rlp"
 	"github.com/cosmos/cosmos-sdk/pubsub"
@@ -143,6 +142,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 	var toPublish []types.DistributionData           // data to be published in breathe blocks
 	var toSaveRewards []types.Reward                 // rewards to be saved
 	var toSaveValDistAddrs []types.StoredValDistAddr // mapping between validator and distribution address, to be saved
+	var rewardSum int64
 
 	bondDenom := k.BondDenom(ctx)
 	feeFromBscToBcRatio := k.FeeFromBscToBcRatio(ctx)
@@ -238,6 +238,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 			if k.AddrPool != nil {
 				k.AddrPool.AddAddrs(changedAddrs[:])
 			}
+			rewardSum += totalReward
 		}
 
 		if ctx.IsDeliverTx() && k.PbsbServer != nil {
@@ -272,6 +273,13 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 
 		// save validator <-> distribution address map
 		k.setRewardValDistAddrs(ctx, toSaveValDistAddrs)
+	}
+
+	if rewardSum > 0 {
+		events = events.AppendEvent(sdk.Event{
+			Type:       types.EventTypeTotalDistribution,
+			Attributes: sdk.NewTags(types.AttributeKeyRewardSum, []byte(strconv.FormatInt(rewardSum, 10))),
+		})
 	}
 
 	// publish data if needed
@@ -430,6 +438,9 @@ func crossDistributeReward(k Keeper, ctx sdk.Context, rewardCAoB sdk.AccAddress,
 		return sdk.Events{}, fmt.Errorf("no fee calculator of transferOutRewards")
 	}
 	relayFee := relayFeeCalc(nil)
+	if relayFee.Tokens.AmountOf(denom) >= amount {
+		return sdk.Events{}, sdk.ErrInternal("not enough funds to cover relay fee")
+	}
 	bscRelayFee := bsc.ConvertBCAmountToBSCAmount(relayFee.Tokens.AmountOf(denom))
 
 	bscTransferAmount := new(big.Int).Sub(bsc.ConvertBCAmountToBSCAmount(amount), bscRelayFee)
@@ -463,21 +474,15 @@ func crossDistributeReward(k Keeper, ctx sdk.Context, rewardCAoB sdk.AccAddress,
 
 	// publish data if needed
 	if ctx.IsDeliverTx() && k.PbsbServer != nil {
-		txHash := ctx.Value(baseapp.TxHashKey)
-		if txHashStr, ok := txHash.(string); ok {
-			event := pubsub.CrossTransferEvent{
-				TxHash:     txHashStr,
-				ChainId:    k.DestChainName,
-				RelayerFee: relayFee.Tokens.AmountOf(denom),
-				Type:       types.TransferOutType,
-				From:       rewardCAoB.String(),
-				Denom:      denom,
-				To:         []pubsub.CrossReceiver{{sdk.PegAccount.String(), amount}},
-			}
-			k.PbsbServer.Publish(event)
-		} else {
-			ctx.Logger().With("module", "stake").Error("failed to get txhash, will not publish cross transfer event ")
+		event := pubsub.CrossTransferEvent{
+			ChainId:    k.DestChainName,
+			RelayerFee: relayFee.Tokens.AmountOf(denom),
+			Type:       types.TransferOutType,
+			From:       rewardCAoB.String(),
+			Denom:      denom,
+			To:         []pubsub.CrossReceiver{{sdk.PegAccount.String(), amount}},
 		}
+		k.PbsbServer.Publish(event)
 	}
 
 	resultTags := sdk.NewTags(
