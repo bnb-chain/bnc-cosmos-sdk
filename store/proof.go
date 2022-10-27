@@ -1,10 +1,7 @@
 package store
 
 import (
-	"bytes"
 	"fmt"
-
-	"github.com/pkg/errors"
 
 	"github.com/bnb-chain/ics23"
 	"github.com/tendermint/tendermint/crypto/merkle"
@@ -130,75 +127,4 @@ func (op CommitmentOp) ProofOp() merkle.ProofOp {
 		Key:  op.Key,
 		Data: bz,
 	}
-}
-
-func VerifyValue(prt *merkle.ProofRuntime, root []byte, version int64, proof *merkle.Proof, keyPath string, value []byte) error {
-	poz, err := prt.DecodeProof(proof)
-	if err != nil {
-		return errors.Wrap(err, "decoding proof")
-	}
-
-	if len(poz) != 2 {
-		return fmt.Errorf("length of proof ops should be 2")
-	}
-
-	keys, err := merkle.KeyPathToKeys(keyPath)
-	if err != nil {
-		return fmt.Errorf("get keys error, err=%s", err.Error())
-	}
-
-	if len(keys) != 2 {
-		return fmt.Errorf("length of keys should be 2")
-	}
-
-	storeKey, valueKey := keys[0], keys[1]
-
-	iavlPo := poz[0]
-	if iavlPo.ProofOp().Type != ProofOpIAVLCommitment {
-		return fmt.Errorf("invalid proof op type, should be  %s", ProofOpIAVLCommitment)
-	}
-
-	if !bytes.Equal(valueKey, iavlPo.GetKey()) {
-		return fmt.Errorf("invalid proof of key, require %X, got %X", iavlPo.GetKey(), valueKey)
-	}
-
-	iavlRoot, err := iavlPo.Run([][]byte{value})
-	if err != nil {
-		return fmt.Errorf("invalid iavl proof, err=%s", err.Error())
-	}
-
-	if len(iavlRoot) != 1 {
-		return fmt.Errorf("invalid return of iavl proof")
-	}
-
-	// calculate store hash
-	storeInfo := StoreInfo{
-		Name: string(storeKey),
-		Core: StoreCore{
-			CommitID: CommitID{
-				Version: version,
-				Hash:    iavlRoot[0],
-			},
-		},
-	}
-	storeHash := storeInfo.Hash()
-
-	simplePo := poz[1]
-	if simplePo.ProofOp().Type != ProofOpSimpleMerkleCommitment {
-		return fmt.Errorf("invalid proof op type, should be  %s", ProofOpSimpleMerkleCommitment)
-	}
-
-	if !bytes.Equal(storeKey, simplePo.GetKey()) {
-		return fmt.Errorf("invalid proof of key, require %X, got %X", simplePo.GetKey(), storeKey)
-	}
-
-	storeRoot, err := simplePo.Run([][]byte{storeHash})
-	if len(storeRoot) != 1 {
-		return fmt.Errorf("invald return of simple proof")
-	}
-
-	if !bytes.Equal(root, storeRoot[0]) {
-		return errors.Errorf("Calculated root hash is invalid: expected %+v but got %+v", root, storeRoot[0])
-	}
-	return nil
 }
