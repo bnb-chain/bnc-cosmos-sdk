@@ -5,15 +5,13 @@ import (
 	"io"
 	"strings"
 
-	sdkproofs "github.com/cosmos/cosmos-sdk/store/proofs"
-
 	"github.com/bnb-chain/ics23"
-
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/merkle"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 	dbm "github.com/tendermint/tendermint/libs/db"
 
+	sdkproofs "github.com/cosmos/cosmos-sdk/store/proofs"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
