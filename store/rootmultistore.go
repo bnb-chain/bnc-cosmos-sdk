@@ -409,12 +409,23 @@ type CommitInfo struct {
 	StoreInfos []StoreInfo
 }
 
+// GetHash returns the GetHash from the CommitID.
+// This is used in CommitInfo.Hash()
+//
+// When we commit to this in a merkle proof, we create a map of storeInfo.Name -> storeInfo.GetHash()
+// and build a merkle proof from that.
+// This is then chained with the substore proof, so we prove the root hash from the substore before this
+// and need to pass that (unmodified) as the leaf value of the multistore proof.
+func (si StoreInfo) GetHash() []byte {
+	return si.Core.CommitID.Hash
+}
+
 // Hash returns the simple merkle root hash of the stores sorted by name.
 func (ci CommitInfo) Hash() []byte {
 	m := make(map[string][]byte, len(ci.StoreInfos))
 	if sdk.IsUpgrade(sdk.BEP154) {
 		for _, storeInfo := range ci.StoreInfos {
-			m[storeInfo.Name] = storeInfo.Core.CommitID.Hash
+			m[storeInfo.Name] = storeInfo.GetHash()
 		}
 	} else {
 		for _, storeInfo := range ci.StoreInfos {
