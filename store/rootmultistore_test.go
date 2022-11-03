@@ -172,7 +172,7 @@ func TestMultiStoreQueryICS23Proof(t *testing.T) {
 func TestMultiStoreICS23Query(t *testing.T) {
 	// set upgrade env
 	sdk.UpgradeMgr.SetHeight(100)
-	sdk.UpgradeMgr.AddUpgradeHeight(sdk.BEP154, 1)
+	sdk.UpgradeMgr.AddUpgradeHeight(sdk.BEP171, 1)
 
 	db := dbm.NewMemDB()
 	multi := newMultiStoreWithMounts(db)

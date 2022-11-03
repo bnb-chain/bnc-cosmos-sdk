@@ -421,7 +421,7 @@ func (si StoreInfo) GetHash() []byte {
 // Hash returns the simple merkle root hash of the stores sorted by name.
 func (ci CommitInfo) Hash() []byte {
 	m := make(map[string][]byte, len(ci.StoreInfos))
-	if sdk.IsUpgrade(sdk.BEP154) {
+	if sdk.IsUpgrade(sdk.BEP171) {
 		for _, storeInfo := range ci.StoreInfos {
 			m[storeInfo.Name] = storeInfo.GetHash()
 		}
@@ -443,7 +443,7 @@ func (ci CommitInfo) CommitID() CommitID {
 
 func (ci CommitInfo) toMap() map[string][]byte {
 	m := make(map[string][]byte, len(ci.StoreInfos))
-	if sdk.IsUpgrade(sdk.BEP154) {
+	if sdk.IsUpgrade(sdk.BEP171) {
 		for _, storeInfo := range ci.StoreInfos {
 			m[storeInfo.Name] = storeInfo.Core.CommitID.Hash
 		}
