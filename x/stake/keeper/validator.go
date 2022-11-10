@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	abci "github.com/tendermint/tendermint/abci/types"
+	tmtypes "github.com/tendermint/tendermint/types"
 	"sort"
 	"time"
 
@@ -154,6 +156,18 @@ func (k Keeper) UpdateValidatorPubKey(ctx sdk.Context, validator types.Validator
 	store.Delete(GetValidatorByConsAddrKey(oldConsAddr))
 	newConsAddr := sdk.ConsAddress(pubkey.Address())
 	store.Set(GetValidatorByConsAddrKey(newConsAddr), validator.OperatorAddr)
+	// update the abci validator update
+	if validator.IsBonded() {
+		oldValidatorUpdate := abci.ValidatorUpdate{
+			PubKey: tmtypes.TM2PB.PubKey(validator.ConsPubKey),
+			Power:  0,
+		}
+		newValidatorUpdate := abci.ValidatorUpdate{
+			PubKey: tmtypes.TM2PB.PubKey(pubkey),
+			Power:  validator.BondedTokens().RawInt(),
+		}
+		k.AddPendingABCIValidatorUpdate(ctx, []abci.ValidatorUpdate{oldValidatorUpdate, newValidatorUpdate})
+	}
 }
 
 // validator index

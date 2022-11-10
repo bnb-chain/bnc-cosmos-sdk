@@ -390,3 +390,40 @@ func (k Keeper) sortNoLongerBonded(last validatorsByAddr) [][]byte {
 	})
 	return noLongerBonded
 }
+
+func (k Keeper) AddPendingABCIValidatorUpdate(ctx sdk.Context, validatorUpdate []abci.ValidatorUpdate) {
+	if len(validatorUpdate) == 0 {
+		return
+	}
+	store := ctx.KVStore(k.storeKey)
+	var currentValidatorUpdate []abci.ValidatorUpdate
+	bz := store.Get(PendingValidatorUpdateKey)
+	if bz != nil {
+		k.cdc.MustUnmarshalBinaryLengthPrefixed(bz, &currentValidatorUpdate)
+	}
+	// remove the duplicates
+	validatorUpdateMap := make(map[string]abci.ValidatorUpdate)
+	for _, v := range currentValidatorUpdate {
+		validatorUpdateMap[v.PubKey.String()] = v
+	}
+	for _, v := range validatorUpdate {
+		validatorUpdateMap[v.PubKey.String()] = v
+	}
+	var finalValidatorUpdate []abci.ValidatorUpdate
+	for _, v := range validatorUpdateMap {
+		finalValidatorUpdate = append(finalValidatorUpdate, v)
+	}
+	bz = k.cdc.MustMarshalBinaryLengthPrefixed(finalValidatorUpdate)
+	store.Set(PendingValidatorUpdateKey, bz)
+
+}
+
+func (k Keeper) PopPendingABCIValidatorUpdate(ctx sdk.Context) (validatorUpdate []abci.ValidatorUpdate) {
+	store := ctx.KVStore(k.storeKey)
+	bz := store.Get(PendingValidatorUpdateKey)
+	if bz != nil {
+		k.cdc.MustUnmarshalBinaryLengthPrefixed(bz, &validatorUpdate)
+		store.Delete(PendingValidatorUpdateKey)
+	}
+	return
+}

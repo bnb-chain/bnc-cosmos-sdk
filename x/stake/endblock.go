@@ -17,6 +17,7 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.Valid
 		_, validatorUpdates, completedUbds, _, events = handleValidatorAndDelegations(ctx, k)
 	} else {
 		k.DistributeInBlock(ctx, types.ChainIDForBeaconChain)
+		validatorUpdates = k.PopPendingABCIValidatorUpdate(ctx)
 	}
 	if sdk.IsUpgrade(sdk.BEP128) {
 		sideChainIds, storePrefixes := k.ScKeeper.GetAllSideChainPrefixes(ctx)
@@ -156,11 +157,24 @@ func handleValidatorAndDelegations(ctx sdk.Context, k keeper.Keeper) ([]types.Va
 	var validatorUpdates []abci.ValidatorUpdate
 	ctx.Logger().Debug("handleValidatorAndDelegations", "height", ctx.BlockHeader().Height, "addSnapshot", sdk.IsUpgrade(sdk.BEP159) && ctx.SideChainKeyPrefix() == nil)
 	if sdk.IsUpgrade(sdk.BEP159) && ctx.SideChainKeyPrefix() == nil {
-		newVals, validatorUpdates = k.UpdateAndElectValidators(ctx)
+		validatorUpdatesOfEditValidators := k.PopPendingABCIValidatorUpdate(ctx)
+		var validatorUpdatesElect []abci.ValidatorUpdate
+		newVals, validatorUpdatesElect = k.UpdateAndElectValidators(ctx)
+		// remove the duplicates
+		validatorUpdateMap := make(map[string]abci.ValidatorUpdate)
+		for _, v := range validatorUpdatesOfEditValidators {
+			validatorUpdateMap[v.PubKey.String()] = v
+		}
+		for _, v := range validatorUpdatesElect {
+			validatorUpdateMap[v.PubKey.String()] = v
+		}
+		for _, v := range validatorUpdateMap {
+			validatorUpdates = append(validatorUpdates, v)
+		}
+		ctx.Logger().Debug("handleValidatorAndDelegations", "height", ctx.BlockHeight(), "validatorUpdates", validatorUpdates, "validatorUpdatesOfEditValidators", validatorUpdatesOfEditValidators)
 	} else {
 		newVals, validatorUpdates = k.ApplyAndReturnValidatorSetUpdates(ctx)
 	}
-	ctx.Logger().Debug("handleValidatorAndDelegations", "validatorUpdates", validatorUpdates)
 
 	k.UnbondAllMatureValidatorQueue(ctx)
 	completedUbd, events := handleMatureUnbondingDelegations(k, ctx)

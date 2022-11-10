@@ -147,18 +147,19 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 	bondDenom := k.BondDenom(ctx)
 	feeFromBscToBcRatio := k.FeeFromBscToBcRatio(ctx)
 	avgFeeForBcVals := sdk.ZeroDec()
+	ctx.Logger().Info("FeeCalculation", "height", ctx.BlockHeight(), "sideChainId", sideChainId)
 	if sdk.IsUpgrade(sdk.BEP159) && sideChainId == types.ChainIDForBeaconChain {
 		feeForAllBcValsCoins := k.BankKeeper.GetCoins(ctx, FeeForAllBcValsAccAddr)
 		feeForAllBcVals := feeForAllBcValsCoins.AmountOf(bondDenom)
 		avgFeeForBcVals = sdk.NewDec(feeForAllBcVals / int64(len(validators)))
+		ctx.Logger().Info("FeeCalculation", "avgFeeForBcVals", avgFeeForBcVals, "feeForAllBcVals", feeForAllBcVals, "len(validators)", len(validators))
 	}
-	ctx.Logger().Debug("DistributeInBreathBlock", "height", ctx.BlockHeight(), "sideChainId", sideChainId, "avgFeeForBcVals", avgFeeForBcVals)
 
 	for _, validator := range validators {
 		distAccCoins := k.BankKeeper.GetCoins(ctx, validator.DistributionAddr)
-		//ctx.Logger().Debug("DistributeInBreathBlock", "distAccCoins", distAccCoins)
 		totalReward := distAccCoins.AmountOf(bondDenom)
 		totalRewardDec := sdk.NewDec(totalReward)
+		ctx.Logger().Info("FeeCalculation", "validator DistributionAddr", validator.DistributionAddr, "totalReward", totalReward)
 		if sdk.IsUpgrade(sdk.BEP159) {
 			if sideChainId != types.ChainIDForBeaconChain {
 				// split a portion of fees to BC validators
@@ -170,6 +171,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 					}
 					totalRewardDec = totalRewardDec.Sub(feeToBC)
 					totalReward = totalRewardDec.RawInt()
+					ctx.Logger().Info("FeeCalculation send to FeeForAllBcValsAccAddr", "feeToBC", feeToBC.RawInt(), "new totalReward", totalReward)
 				}
 			} else {
 				// for beacon chain, split the fees accumulated in FeeForAllBcValsAccAddr
@@ -180,6 +182,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 					}
 					totalRewardDec = totalRewardDec.Add(avgFeeForBcVals)
 					totalReward = totalRewardDec.RawInt()
+					ctx.Logger().Info("FeeCalculation receive avgFeeForBcVals", "avgFeeForBcVals", avgFeeForBcVals.RawInt(), "new totalReward", totalReward)
 				}
 			}
 		}
@@ -211,6 +214,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 
 			//calculate rewards for delegators
 			remainReward := totalRewardDec.Sub(commission)
+			ctx.Logger().Info("FeeCalculation commission", "rate", validator.Commission.Rate, "commission", commission, "remainReward", remainReward)
 			rewards = allocate(simDelsToSharers(delegations), remainReward)
 			for i := range rewards {
 				// previous tokens calculation is in `node` repo, move it to here
@@ -255,7 +259,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 		}
 	}
 
-	ctx.Logger().Debug("DistributeInBreathBlock", "toSaveRewards", toSaveRewards)
+	ctx.Logger().Info("FeeCalculation DistributeInBreathBlock", "toSaveRewards", toSaveRewards)
 	if len(toSaveRewards) > 0 { //to save rewards
 		//1) get batch size from parameters, 2) hard limit to make sure rewards can be distributed in a day
 		batchSize := getDistributionBatchSize(k.GetParams(ctx).RewardDistributionBatchSize, int64(len(toSaveRewards)))
