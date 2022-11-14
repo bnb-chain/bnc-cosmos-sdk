@@ -3,7 +3,6 @@ package types
 import (
 	"encoding/json"
 	"fmt"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/params"
 )
@@ -103,7 +102,7 @@ func (dbProphecy DBProphecy) DeserializeFromDB() (Prophecy, error) {
 
 // FindHighestClaim looks through all the existing claims on a given prophecy. It adds up the total power across
 // all claims and returns the highest claim, power for that claim, and total power claimed on the prophecy overall.
-func (prophecy Prophecy) FindHighestClaim(ctx sdk.Context, stakeKeeper StakingKeeper) (string, int64, int64) {
+func (prophecy Prophecy) FindHighestClaim(ctx sdk.Context, stakeKeeper StakingKeeper) (string, int64, int64, int64) {
 	validatorsPowerMap := stakeKeeper.GetOracleRelayersPower(ctx)
 	totalClaimsPower := int64(0)
 	highestClaimPower := int64(-1)
@@ -124,7 +123,11 @@ func (prophecy Prophecy) FindHighestClaim(ctx sdk.Context, stakeKeeper StakingKe
 			highestClaim = claim
 		}
 	}
-	return highestClaim, highestClaimPower, totalClaimsPower
+	totalPower := int64(0)
+	for _, power := range validatorsPowerMap {
+		totalPower += power
+	}
+	return highestClaim, highestClaimPower, totalClaimsPower, totalPower
 }
 
 // AddClaim adds a given claim to this prophecy
