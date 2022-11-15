@@ -772,13 +772,7 @@ func GetCmdQueryCrossStakeRewardByBscAddress(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			switch viper.Get(cli.OutputFlag) {
-			case "text":
-				fmt.Println("The reward balance is:", string(response))
-			case "json":
-				//TODO
-				fmt.Println("The reward balance is:", string(response))
-			}
+			fmt.Println("The reward balance of specified side chain address on BC is:", string(response))
 
 			return nil
 		},
