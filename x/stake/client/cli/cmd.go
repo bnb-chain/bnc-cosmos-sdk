@@ -56,6 +56,7 @@ func AddCommands(root *cobra.Command, cdc *codec.Codec) {
 			GetCmdQuerySideChainReDelegationsByValidator(cdc),
 			GetCmdQuerySideChainTopValidators(cdc),
 			GetCmdQuerySideAllValidatorsCount(cdc),
+			GetCmdQueryCrossStakeRewardByBscAddress(cdc),
 		)...,
 	)
 

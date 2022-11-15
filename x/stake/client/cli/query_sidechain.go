@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"strconv"
 
 	"github.com/tendermint/tendermint/libs/cli"
 
@@ -735,6 +736,56 @@ func GetCmdQuerySideAllValidatorsCount(cdc *codec.Codec) *cobra.Command {
 	}
 	cmd.Flags().AddFlagSet(fsSideChainId)
 	cmd.Flags().Bool("jail-involved", false, "")
+	return cmd
+}
+
+// GetCmdQueryCrossStakeRewardByBscAddress implements the cross stake reward query command.
+func GetCmdQueryCrossStakeRewardByBscAddress(cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "cross-stake-reward",
+		Short: "Query the cross stake reward balance by BSC address",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			bscAddress, err := sdk.NewSmartChainAddress(args[0])
+			if err != nil {
+				return err
+			}
+
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			sideChainId, _, err := getSideChainConfig(cliCtx)
+			if err != nil {
+				return err
+			}
+
+			params := stake.QueryCrossStakeRewardParams{
+				BaseParams: stake.NewBaseParams(sideChainId),
+				BscAddress: bscAddress,
+			}
+
+			bz, err := json.Marshal(params)
+			if err != nil {
+				return err
+			}
+
+			response, err := cliCtx.QueryWithData("custom/stake/"+stake.QueryCrossStakeReward, bz)
+			if err != nil {
+				return err
+			}
+
+			switch viper.Get(cli.OutputFlag) {
+			case "text":
+				fmt.Println("The reward balance is:", string(response))
+			case "json":
+				//TODO
+				fmt.Println("The reward balance is:", string(response))
+			}
+
+			return nil
+		},
+	}
+
+	cmd.Flags().AddFlagSet(fsSideChainId)
+
 	return cmd
 }
 

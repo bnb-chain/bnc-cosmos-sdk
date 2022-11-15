@@ -462,7 +462,7 @@ func GetCmdQueryPool(storeName string, cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
-// GetCmdQueryPool implements the params query command.
+// GetCmdQueryParams implements the params query command.
 func GetCmdQueryParams(storeName string, cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "parameters",

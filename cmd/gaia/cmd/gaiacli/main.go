@@ -82,6 +82,7 @@ func main() {
 		stakecmd.GetCmdQueryValidators(storeStake, cdc),
 		govcmd.GetCmdQueryVote(storeGov, cdc),
 		govcmd.GetCmdQueryVotes(storeGov, cdc),
+		stakecmd.GetCmdQueryCrossStakeRewardByBscAddress(storeStake, cdc),
 	)...)
 
 	//Add query commands
