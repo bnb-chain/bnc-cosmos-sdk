@@ -6,6 +6,10 @@ import (
 )
 
 func handleMsgSideChainSubmitProposal(ctx sdk.Context, keeper Keeper, msg MsgSideChainSubmitProposal) sdk.Result {
+	if msg.ProposalType == ProposalTypeText && !sdk.IsUpgrade(sdk.BEP154) {
+		return ErrInvalidProposalType(keeper.codespace, msg.ProposalType).Result()
+	}
+
 	ctx, err := keeper.ScKeeper.PrepareCtxForSideChain(ctx, msg.SideChainId)
 	if err != nil {
 		return ErrInvalidSideChainId(keeper.codespace, msg.SideChainId).Result()
