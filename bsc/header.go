@@ -3,6 +3,7 @@ package bsc
 import (
 	"encoding/json"
 	"errors"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"io"
 	"math/big"
 
@@ -162,12 +163,12 @@ func (h *Header) GetSignature() ([]byte, error) {
 	return signature, nil
 }
 
-func (h *Header) ExtractSignerFromHeader() (signer Address, err error) {
+func (h *Header) ExtractSignerFromHeader(chainID *big.Int) (signer Address, err error) {
 	signature, err := h.GetSignature()
 	if err != nil {
 		return
 	}
-	pubKey, err := secp256k1.RecoverPubkey(SealHash(h).Bytes(), signature)
+	pubKey, err := secp256k1.RecoverPubkey(SealHash(h, chainID).Bytes(), signature)
 	if err != nil {
 		return
 	}
@@ -185,31 +186,54 @@ func Keccak256(data ...[]byte) []byte {
 }
 
 // SealHash returns the hash of a block prior to it being sealed.
-func SealHash(header *Header) (hash Hash) {
+func SealHash(header *Header, chainID *big.Int) (hash Hash) {
 	hasher := sha3.NewLegacyKeccak256()
-	encodeSigHeader(hasher, header)
+	encodeSigHeader(hasher, header, chainID)
 	hasher.Sum(hash[:0])
 	return hash
 }
 
-func encodeSigHeader(w io.Writer, header *Header) {
-	err := rlp.Encode(w, []interface{}{
-		header.ParentHash,
-		header.UncleHash,
-		header.Coinbase,
-		header.Root,
-		header.TxHash,
-		header.ReceiptHash,
-		header.Bloom,
-		big.NewInt(header.Difficulty),
-		big.NewInt(header.Number),
-		header.GasLimit,
-		header.GasUsed,
-		header.Time,
-		header.Extra[:len(header.Extra)-65], // this will panic if extra is too short, should check before calling encodeSigHeader
-		header.MixDigest,
-		header.Nonce,
-	})
+func encodeSigHeader(w io.Writer, header *Header, chainId *big.Int) {
+	var err error
+	if sdk.IsUpgrade(sdk.BEP174) {
+		err = rlp.Encode(w, []interface{}{
+			chainId,
+			header.ParentHash,
+			header.UncleHash,
+			header.Coinbase,
+			header.Root,
+			header.TxHash,
+			header.ReceiptHash,
+			header.Bloom,
+			big.NewInt(header.Difficulty),
+			big.NewInt(header.Number),
+			header.GasLimit,
+			header.GasUsed,
+			header.Time,
+			header.Extra[:len(header.Extra)-65], // this will panic if extra is too short, should check before calling encodeSigHeader
+			header.MixDigest,
+			header.Nonce,
+		})
+	} else {
+		err = rlp.Encode(w, []interface{}{
+			header.ParentHash,
+			header.UncleHash,
+			header.Coinbase,
+			header.Root,
+			header.TxHash,
+			header.ReceiptHash,
+			header.Bloom,
+			big.NewInt(header.Difficulty),
+			big.NewInt(header.Number),
+			header.GasLimit,
+			header.GasUsed,
+			header.Time,
+			header.Extra[:len(header.Extra)-65], // this will panic if extra is too short, should check before calling encodeSigHeader
+			header.MixDigest,
+			header.Nonce,
+		})
+	}
+
 	if err != nil {
 		panic("can't encode: " + err.Error())
 	}

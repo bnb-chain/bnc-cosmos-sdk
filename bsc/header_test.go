@@ -2,40 +2,40 @@ package bsc
 
 import (
 	"encoding/hex"
+	"math/big"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestHeader_UnmarshalJSON(t *testing.T) {
+	chainID := big.NewInt(56)
 	h := &Header{}
-	jsonStr := `{"difficulty":"0x2",
-        "extraData":"0xd98301090a846765746889676f312e31322e3137856c696e75780000000000005b28385ac3a02a84c391c5d90b3aa0a62365136d80892c5e6158797b394f436c70c697f8d44d6dcfa49d4871897d2ff132356496f066d0adf28ddb3b7099ff5d00",
-        "gasLimit":"0x2625a00",
-        "gasUsed":"0xd752e8",
-        "hash":"0x14c62182b7138b45c400afccbebda3c68a78ca7a6100d3e1fe9e1e8e71ef2b66",
-        "logsBloom":"0x984e3983604a6120412617213b05004281984c60680c0cd0070200181d240016810500880001002b00055a0470461c09201145010c4e0729408998810a8800400a280247010848590804014800800454317020c88041a40248321010229290e68000011a808068002a56e2c41087114422a9841921a24ea709000430069010315e2c120124080610200cc18c137a0021206170070de90887502148600090002a50440040800905028a640401210c004089c20c4000e44054100cd00907642b4040900a920126454158b64181002d10014e80820508201c0480492880008c84102b0614804474840400413818940819042084c0042a002040498000c201309400",
-        "miner":"0xfffffffffffffffffffffffffffffffffffffffe",
-        "mixHash":"0x0000000000000000000000000000000000000000000000000000000000000000",
-        "nonce":"0x0000000000000000",
-        "number":"0x1b4",
-        "parentHash":"0xbfbb0f930378e623c27c1b6888694abd63926581697cf70a268a7455497e1011",
-        "receiptsRoot":"0x32a9e85c5b51c5b99ce76dac6d1a75dd603bd7406b36d62cf8e74475c2be7462",
-        "sha3Uncles":"0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-        "size":"0xd73c",
-        "stateRoot":"0xa20ff6190c7d8a7993a50a3d60bdeca460c19128ba363413f5bff57670ddccb1",
-        "timestamp":"0x5e79a878",
-        "totalDifficulty":"0x365",
-		"transactionsRoot":"0x8f192c648a6d9035adbf72a55cab5652e3c0d7549c378be45bd3d5248d4b3ac5"
-		}`
+	jsonStr := `{"parentHash":"0xa9c482b74a276389681eabff076b19bef53cae9b5e44f02224e70e3bfc4e9142",
+				"sha3Uncles":"0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+				"miner":"0x72b61c6014342d914470ec7ac2975be345796c2b",
+				"stateRoot":"0xacd5bca0bc33ed07cb35a635fa674e4ce06211ba201500564dd14dcdaf53e5a9",
+				"transactionsRoot":"0xcb374b870584bd587dec2e82af38924a5c0d5765913568434c50448856f97a2c",
+				"receiptsRoot":"0x6f2dc6ade8cf9422d62abd8e8386f20576a6b1f31cc00aa83dba140d183cff16",
+				"logsBloom":"0xfcfef2ce9d78d29fcbfefbff9dfdf3afb23eff54be7efe7ffdb47abcffdff35fff7bf5de80e257fc836eb97fab43eef33dc7b7ffdfb7fcebfb3df6efff7fecfef473d6fe31dcbcebf7ffeff957b6fbbc6d1efb7ebfddbd3bddfeffded78df79ef3ff9ffd4fd67fcfdfdfff3fecdeddefddadf6ef802b5feaf6f4debffbd7ff9b1fcffff73ceb76fddcfd5f73ffff61bed4be7fb59fe77baebb746f4bcefbdebb76df77fdfb8b73bd2ffcf763b33ff7a6cfeefd7e36f6ed275ffa7fff7fbb996ff33bfbdfe76f23bfecf1ffcfceff3fefbd57b5f5dbfd7fde75cffff77ffffa7feefdf7ddef66f7db77fffd47efa6e5bf55f7fef3ebfbbdf3b1fe77f93ffacedf",
+				"difficulty":"0x2",
+				"number":"0x161d4e8",
+				"gasLimit":"0x7355c0c",
+				"gasUsed":"0x2134d60",
+				"timestamp":"0x6378bdd7",
+				"extraData":"0xd883010111846765746888676f312e31392e32856c696e757800000040fc9c67c61ee4a053e5ec524393cb2608e7a1b0de9a91f880095cd7bfc009b8e0ab5de96c2085a484239f38ca437bc805d2df9b88ea2a9a2a1ce9f5ab6005ae3464b17601",
+				"mixHash":"0x0000000000000000000000000000000000000000000000000000000000000000",
+				"nonce":"0x0000000000000000",
+				"baseFeePerGas":null,
+				"hash":"0x8b6eeece6cedbb23038e7e5c2ce647fbdffa04972247d60a7564e81897e8bc30"}`
 	err := h.UnmarshalJSON([]byte(jsonStr))
 	require.NoError(t, err)
 
 	signature, err := h.GetSignature()
 	require.NoError(t, err)
-	require.Equal(t, "5b28385ac3a02a84c391c5d90b3aa0a62365136d80892c5e6158797b394f436c70c697f8d44d6dcfa49d4871897d2ff132356496f066d0adf28ddb3b7099ff5d00", hex.EncodeToString(signature))
+	require.Equal(t, "c61ee4a053e5ec524393cb2608e7a1b0de9a91f880095cd7bfc009b8e0ab5de96c2085a484239f38ca437bc805d2df9b88ea2a9a2a1ce9f5ab6005ae3464b17601", hex.EncodeToString(signature))
 
-	signer, err := h.ExtractSignerFromHeader()
+	signer, err := h.ExtractSignerFromHeader(chainID)
 	require.NoError(t, err)
-	require.Equal(t, "0xB12fA6F899a16C156B67dBcb124d3733E72A164E", signer.String())
+	require.Equal(t, "0x72b61c6014342d914470eC7aC2975bE345796c2b", signer.String())
 }

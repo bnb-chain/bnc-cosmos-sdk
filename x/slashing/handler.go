@@ -2,7 +2,26 @@ package slashing
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/pkg/errors"
+	"strings"
 )
+
+const (
+	SideChainIdBsc  int64 = 56
+	SideChainIdTest int64 = 97
+)
+
+func SideChainIdFromText(str string) (int64, error) {
+	switch strings.ToLower(str) {
+	case "bsc":
+		return SideChainIdBsc, nil
+	case "test":
+		return SideChainIdTest, nil
+	default:
+		//return 0, ErrInvalidSideChainId(DefaultCodespace).Result()
+		return 0, errors.Errorf("'%s' is not a valid side chain id", str)
+	}
+}
 
 func NewHandler(k Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
