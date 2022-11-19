@@ -187,13 +187,14 @@ func Keccak256(data ...[]byte) []byte {
 // SealHash returns the hash of a block prior to it being sealed.
 func SealHash(header *Header) (hash Hash) {
 	hasher := sha3.NewLegacyKeccak256()
-	encodeSigHeader(hasher, header)
+	encodeSigHeader(hasher, header, big.NewInt(56))
 	hasher.Sum(hash[:0])
 	return hash
 }
 
-func encodeSigHeader(w io.Writer, header *Header) {
+func encodeSigHeader(w io.Writer, header *Header, chainId *big.Int) {
 	err := rlp.Encode(w, []interface{}{
+		chainId,
 		header.ParentHash,
 		header.UncleHash,
 		header.Coinbase,
