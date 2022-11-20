@@ -3,6 +3,7 @@ package slashing
 import (
 	"bytes"
 	"fmt"
+	"math/big"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -15,13 +16,14 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 	if err != nil {
 		return ErrInvalidSideChainId(DefaultCodespace).Result()
 	}
+	chainID, _ := new(big.Int).SetString(sideChainId, 10)
 
 	header := ctx.BlockHeader()
-	sideConsAddr, err := msg.Headers[0].ExtractSignerFromHeader()
+	sideConsAddr, err := msg.Headers[0].ExtractSignerFromHeader(chainID)
 	if err != nil {
 		return ErrInvalidEvidence(DefaultCodespace, fmt.Sprintf("Failed to extract signer from block header, %s", err.Error())).Result()
 	}
-	sideConsAddr2, err := msg.Headers[1].ExtractSignerFromHeader()
+	sideConsAddr2, err := msg.Headers[1].ExtractSignerFromHeader(chainID)
 	if err != nil {
 		return ErrInvalidEvidence(DefaultCodespace, fmt.Sprintf("Failed to extract signer from block header, %s", err.Error())).Result()
 	}

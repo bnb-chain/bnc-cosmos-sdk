@@ -162,12 +162,12 @@ func (h *Header) GetSignature() ([]byte, error) {
 	return signature, nil
 }
 
-func (h *Header) ExtractSignerFromHeader() (signer Address, err error) {
+func (h *Header) ExtractSignerFromHeader(chainID *big.Int) (signer Address, err error) {
 	signature, err := h.GetSignature()
 	if err != nil {
 		return
 	}
-	pubKey, err := secp256k1.RecoverPubkey(SealHash(h).Bytes(), signature)
+	pubKey, err := secp256k1.RecoverPubkey(SealHash(h, chainID).Bytes(), signature)
 	if err != nil {
 		return
 	}
@@ -185,9 +185,9 @@ func Keccak256(data ...[]byte) []byte {
 }
 
 // SealHash returns the hash of a block prior to it being sealed.
-func SealHash(header *Header) (hash Hash) {
+func SealHash(header *Header, chainID *big.Int) (hash Hash) {
 	hasher := sha3.NewLegacyKeccak256()
-	encodeSigHeader(hasher, header, big.NewInt(56))
+	encodeSigHeader(hasher, header, chainID)
 	hasher.Sum(hash[:0])
 	return hash
 }
