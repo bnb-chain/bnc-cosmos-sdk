@@ -1,6 +1,6 @@
 package gov
 
-//nolint
+// nolint
 const (
 	// side chain params change
 	ProposalTypeSCParamsChange ProposalKind = 0x81
@@ -9,7 +9,8 @@ const (
 )
 
 func validSideProposalType(pt ProposalKind) bool {
-	if pt == ProposalTypeSCParamsChange ||
+	if pt == ProposalTypeText ||
+		pt == ProposalTypeSCParamsChange ||
 		pt == ProposalTypeCSCParamsChange {
 		return true
 	}
