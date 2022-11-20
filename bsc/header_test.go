@@ -37,5 +37,5 @@ func TestHeader_UnmarshalJSON(t *testing.T) {
 
 	signer, err := h.ExtractSignerFromHeader(chainID)
 	require.NoError(t, err)
-	require.Equal(t, "0x72b61c6014342d914470ec7ac2975be345796c2b", signer.String())
+	require.Equal(t, "0x72b61c6014342d914470eC7aC2975bE345796c2b", signer.String())
 }
