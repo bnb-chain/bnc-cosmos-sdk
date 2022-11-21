@@ -1,5 +1,14 @@
 # Changelog
 
+##v0.25.4
+* [sdk] [\#305](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/305) BEP173: enable text proposal on BNB Smart Chain
+
+##v0.25.3
+* [sdk] [\#299](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/299) Fix some audit and recon related issues
+
+##v0.25.2
+* [sdk] [\#295](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/295) Update cross chain logic of native staking
+
 ##v0.25.1
 * [sdk] [\#290](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/290) BEP153: Native Staking Implementation
 
