@@ -11,13 +11,16 @@ import (
 )
 
 func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Keeper) sdk.Result {
+	var chainID *big.Int
 	sideChainId := k.ScKeeper.BscSideChainId(ctx)
 	sideCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, sideChainId)
 	if err != nil {
 		return ErrInvalidSideChainId(DefaultCodespace).Result()
 	}
-	chainID, _ := new(big.Int).SetString(sideChainId, 10)
-
+	if sideChainId == "bsc" {
+		chainID = big.NewInt(56)
+	}
+	fmt.Println(chainID)
 	header := ctx.BlockHeader()
 	sideConsAddr, err := msg.Headers[0].ExtractSignerFromHeader(chainID)
 	if err != nil {
