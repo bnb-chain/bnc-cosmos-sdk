@@ -20,7 +20,7 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 	if sideChainId == "bsc" {
 		chainID = big.NewInt(56)
 	}
-	fmt.Println(chainID)
+
 	header := ctx.BlockHeader()
 	sideConsAddr, err := msg.Headers[0].ExtractSignerFromHeader(chainID)
 	if err != nil {
