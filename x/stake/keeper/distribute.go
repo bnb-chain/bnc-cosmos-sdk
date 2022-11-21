@@ -119,6 +119,7 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 // DistributeInBreathBlock will 1) calculate rewards as Distribute does, 2) transfer commissions to all validators, and
 // 3) save delegator's rewards to reward store for later distribution.
 func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk.Events {
+	ctx.Logger().Info("FeeCalculation", "currentHeight", ctx.BlockHeight(), "sideChainId", sideChainId)
 	// if there are left reward distribution batches in the previous day, will distribute all of them here
 	// this is only a safe guard to make sure that all the previous day's rewards are distributed
 	// because this case should happen in very very special case (e.g., bc maintenance for a long time), so there is no much optimization here
@@ -135,6 +136,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 		daysBackward = daysBackwardForValidatorSnapshotBeaconChain
 	}
 	validators, height, found := k.GetHeightValidatorsByIndex(ctx, daysBackward)
+	ctx.Logger().Info("FeeCalculation GetHeightValidatorsByIndex", "validators", validators, "height", height)
 	if !found {
 		return events
 	}
@@ -147,7 +149,6 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 	bondDenom := k.BondDenom(ctx)
 	feeFromBscToBcRatio := k.FeeFromBscToBcRatio(ctx)
 	avgFeeForBcVals := sdk.ZeroDec()
-	ctx.Logger().Info("FeeCalculation", "height", ctx.BlockHeight(), "sideChainId", sideChainId)
 	if sdk.IsUpgrade(sdk.BEP159) && sideChainId == types.ChainIDForBeaconChain {
 		feeForAllBcValsCoins := k.BankKeeper.GetCoins(ctx, FeeForAllBcValsAccAddr)
 		feeForAllBcVals := feeForAllBcValsCoins.AmountOf(bondDenom)
@@ -214,7 +215,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 
 			//calculate rewards for delegators
 			remainReward := totalRewardDec.Sub(commission)
-			ctx.Logger().Info("FeeCalculation commission", "rate", validator.Commission.Rate, "commission", commission, "remainReward", remainReward)
+			ctx.Logger().Info("FeeCalculation commission", "rate", validator.Commission.Rate, "commission", commission, "remainReward", remainReward, "delegations", delegations)
 			rewards = allocate(simDelsToSharers(delegations), remainReward)
 			for i := range rewards {
 				// previous tokens calculation is in `node` repo, move it to here
