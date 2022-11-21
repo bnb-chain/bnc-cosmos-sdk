@@ -136,7 +136,6 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 		daysBackward = daysBackwardForValidatorSnapshotBeaconChain
 	}
 	validators, height, found := k.GetHeightValidatorsByIndex(ctx, daysBackward)
-	ctx.Logger().Info("FeeCalculation GetHeightValidatorsByIndex", "validators", validators, "height", height)
 	if !found {
 		return events
 	}
@@ -160,7 +159,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 		distAccCoins := k.BankKeeper.GetCoins(ctx, validator.DistributionAddr)
 		totalReward := distAccCoins.AmountOf(bondDenom)
 		totalRewardDec := sdk.NewDec(totalReward)
-		ctx.Logger().Info("FeeCalculation", "validator DistributionAddr", validator.DistributionAddr, "totalReward", totalReward)
+		ctx.Logger().Info("FeeCalculation validator", "DistributionAddr", validator.DistributionAddr, "totalReward", totalReward, "height", height, "validator", validator)
 		if sdk.IsUpgrade(sdk.BEP159) {
 			if sideChainId != types.ChainIDForBeaconChain {
 				// split a portion of fees to BC validators
