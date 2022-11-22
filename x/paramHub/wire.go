@@ -1,9 +1,8 @@
 package paramHub
 
 import (
-	"github.com/tendermint/go-amino"
-
 	"github.com/cosmos/cosmos-sdk/x/paramHub/types"
+	"github.com/tendermint/go-amino"
 )
 
 // Register concrete types on wire codec

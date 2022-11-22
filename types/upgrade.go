@@ -19,6 +19,7 @@ const (
 	BEP153               = "BEP153"       // https://github.com/bnb-chain/BEPs/pull/153
 	BEP159               = "BEP159"       // https://github.com/bnb-chain/BEPs/pull/159
 	BEP159Phase2         = "BEP159Phase2" // phase 2 activation height of BEP159, enable create validator and active oracle relayer whitelist
+	BEP173               = "BEP173"       //https://github.com/bnb-chain/BEPs/pull/173
 )
 
 var MainNetConfig = UpgradeConfig{

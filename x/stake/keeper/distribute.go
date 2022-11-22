@@ -242,7 +242,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 			if k.AddrPool != nil {
 				k.AddrPool.AddAddrs(changedAddrs[:])
 			}
-			rewardSum += totalReward
+			rewardSum += remainReward.RawInt()
 		}
 
 		if ctx.IsDeliverTx() && k.PbsbServer != nil {

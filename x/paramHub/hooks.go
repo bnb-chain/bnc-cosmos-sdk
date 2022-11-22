@@ -3,11 +3,10 @@ package paramHub
 import (
 	"fmt"
 
-	"github.com/tendermint/go-amino"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/paramHub/types"
+	"github.com/tendermint/go-amino"
 )
 
 //---------------------    FeeChangeHooks -----------------

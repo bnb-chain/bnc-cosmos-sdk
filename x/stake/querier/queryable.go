@@ -30,6 +30,7 @@ const (
 	QueryTopValidators                 = "topValidators"
 	QueryAllValidatorsCount            = "allValidatorsCount"
 	QueryAllUnJailValidatorsCount      = "allUnJailValidatorsCount"
+	QueryCrossStakeRewardByBscAddress  = "crossStakeRewardByBscAddress"
 )
 
 // creates a querier for staking REST endpoints
@@ -155,6 +156,13 @@ func NewQuerier(k keep.Keeper, cdc *codec.Codec) sdk.Querier {
 				return res, err
 			}
 			return queryAllUnJailValidatorsCount(ctx, cdc, k)
+		case QueryCrossStakeRewardByBscAddress:
+			p := new(QueryCrossStakeRewardParams)
+			ctx, err = RequestPrepare(ctx, k, req, p)
+			if err != nil {
+				return res, err
+			}
+			return queryCrossStakeRewardByBscAddress(ctx, cdc, p, k)
 		default:
 			return nil, sdk.ErrUnknownRequest("unknown stake query endpoint")
 		}
@@ -235,6 +243,12 @@ type QueryRedelegationParams struct {
 	DelegatorAddr sdk.AccAddress
 	ValSrcAddr    sdk.ValAddress
 	ValDstAddr    sdk.ValAddress
+}
+
+// defines the params for 'custom/stake/crossStakeReward'
+type QueryCrossStakeRewardParams struct {
+	BaseParams
+	BscAddress sdk.SmartChainAddress
 }
 
 func queryValidators(ctx sdk.Context, cdc *codec.Codec, k keep.Keeper) (res []byte, err sdk.Error) {
@@ -442,6 +456,20 @@ func queryAllUnJailValidatorsCount(ctx sdk.Context, cdc *codec.Codec, k keep.Kee
 
 	count := k.GetAllUnJailValidatorsCount(ctx)
 	res, errRes := codec.MarshalJSONIndent(cdc, count)
+	if errRes != nil {
+		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("could not marshal result to JSON", errRes.Error()))
+	}
+	return res, nil
+}
+
+func queryCrossStakeRewardByBscAddress(ctx sdk.Context, cdc *codec.Codec, params *QueryCrossStakeRewardParams, k keep.Keeper) ([]byte, sdk.Error) {
+	if params.BscAddress.IsEmpty() {
+		return []byte{}, sdk.ErrInternal("invalid side chain address")
+	}
+	delegateCAoB := types.GetStakeCAoB(params.BscAddress[:], types.DelegateCAoBSalt)
+	rewardCAoB := types.GetStakeCAoB(delegateCAoB.Bytes(), types.RewardCAoBSalt)
+	reward := k.BankKeeper.GetCoins(ctx, rewardCAoB).AmountOf(k.BondDenom(ctx))
+	res, errRes := codec.MarshalJSONIndent(cdc, reward)
 	if errRes != nil {
 		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("could not marshal result to JSON", errRes.Error()))
 	}

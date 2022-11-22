@@ -787,6 +787,50 @@ func GetCmdQuerySideParams(storeName string, cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
+// GetCmdQueryCrossStakeRewardByBscAddress implements the cross stake reward query command.
+func GetCmdQueryCrossStakeRewardByBscAddress(cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "cross-stake-reward",
+		Short: "Query the cross stake reward balance by BSC address",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			bscAddress, err := sdk.NewSmartChainAddress(args[0])
+			if err != nil {
+				return err
+			}
+
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			sideChainId, _, err := getSideChainConfig(cliCtx)
+			if err != nil {
+				return err
+			}
+
+			params := stake.QueryCrossStakeRewardParams{
+				BaseParams: stake.NewBaseParams(sideChainId),
+				BscAddress: bscAddress,
+			}
+
+			bz, err := json.Marshal(params)
+			if err != nil {
+				return err
+			}
+
+			response, err := cliCtx.QueryWithData("custom/stake/"+stake.QueryCrossStakeReward, bz)
+			if err != nil {
+				return err
+			}
+
+			fmt.Println("The reward balance of specified side chain address on BC is:", string(response))
+
+			return nil
+		},
+	}
+
+	cmd.Flags().AddFlagSet(fsSideChainId)
+
+	return cmd
+}
+
 func getSideChainConfig(cliCtx context.CLIContext) (sideChainId string, prefix []byte, error error) {
 	sideChainId, error = getSideChainId()
 	if error != nil {

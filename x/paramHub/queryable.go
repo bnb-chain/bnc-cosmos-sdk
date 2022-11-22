@@ -2,11 +2,11 @@ package paramHub
 
 import (
 	"fmt"
-	abci "github.com/tendermint/tendermint/abci/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/paramHub/types"
+	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 func NewQuerier(hub *ParamHub, cdc *codec.Codec) sdk.Querier {
