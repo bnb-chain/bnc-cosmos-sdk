@@ -205,6 +205,7 @@ func (k Keeper) UpdateAndElectValidators(ctx sdk.Context) (newVals []types.Valid
 			updates = append(updates, validator.ABCIValidatorUpdate())
 			k.SetLastValidatorPower(ctx, validator.OperatorAddr, newPower)
 		}
+		delete(last, operatorBytes)
 		totalPower = totalPower + newPower
 	}
 	for _, validator := range valsNotElected {
@@ -213,10 +214,13 @@ func (k Keeper) UpdateAndElectValidators(ctx sdk.Context) (newVals []types.Valid
 			k.DeleteLastValidatorPower(ctx, validator.OperatorAddr)
 			updates = append(updates, validator.ABCIValidatorUpdateZero())
 		}
+		copy(operatorBytes[:], validator.OperatorAddr[:])
+		delete(last, operatorBytes)
 	}
-	if len(updates) > 0 {
-		k.SetLastTotalPower(ctx, totalPower)
+	for operatorBytes := range last {
+		k.DeleteLastValidatorPower(ctx, operatorBytes[:])
 	}
+	k.SetLastTotalPower(ctx, totalPower)
 
 	return newVals, updates
 }

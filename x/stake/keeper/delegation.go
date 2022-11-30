@@ -13,6 +13,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/fees"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
+	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 // return a specific delegation
@@ -581,6 +582,10 @@ func (k Keeper) unbond(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValA
 		validator.TokensFromShares(delegation.Shares).RawInt() < k.MinSelfDelegation(ctx) {
 		k.jailValidator(ctx, validator)
 		k.OnSelfDelDropBelowMin(ctx, valAddr)
+		if sdk.IsUpgrade(sdk.BEP159) {
+			k.AddPendingABCIValidatorUpdate(ctx, []abci.ValidatorUpdate{validator.ABCIValidatorUpdateZero()})
+			k.DeleteLastValidatorPower(ctx, validator.OperatorAddr)
+		}
 		validator = k.mustGetValidator(ctx, validator.OperatorAddr)
 	}
 

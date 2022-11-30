@@ -43,7 +43,7 @@ func (msg MsgUnjail) GetSigners() []sdk.AccAddress {
 
 // get the bytes for the message signer to sign on
 func (msg MsgUnjail) GetSignBytes() []byte {
-	b, err := cdc.MarshalJSON(msg)
+	b, err := MsgCdc.MarshalJSON(msg)
 	if err != nil {
 		panic(err)
 	}

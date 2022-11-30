@@ -90,6 +90,7 @@ func RegisterUpgradeBeginBlocker(paramHub *ParamHub) {
 			&param.FixedFeeParams{MsgType: "delegate", Fee: ChainDelegateFee, FeeFor: sdk.FeeForProposer},
 			&param.FixedFeeParams{MsgType: "redelegate", Fee: ChainRedelegateFee, FeeFor: sdk.FeeForProposer},
 			&param.FixedFeeParams{MsgType: "undelegate", Fee: ChainUndelegateFee, FeeFor: sdk.FeeForProposer},
+			&param.FixedFeeParams{MsgType: "unjail", Fee: Unjail, FeeFor: sdk.FeeForProposer},
 		}
 		paramHub.UpdateFeeParams(ctx, updateFeeParams)
 	})
@@ -159,5 +160,6 @@ func init() {
 		"delegate":                           fees.FixedFeeCalculatorGen,
 		"redelegate":                         fees.FixedFeeCalculatorGen,
 		"undelegate":                         fees.FixedFeeCalculatorGen,
+		"unjail":                             fees.FixedFeeCalculatorGen,
 	}
 }

@@ -77,6 +77,7 @@ var (
 		"delegate":              {},
 		"redelegate":            {},
 		"undelegate":            {},
+		"unjail":                {},
 	}
 
 	ValidTransferFeeMsgTypes = map[string]struct{}{

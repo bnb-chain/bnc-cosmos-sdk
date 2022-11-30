@@ -47,6 +47,7 @@ const (
 	// slashing fee
 	BscSubmitEvidenceFee = 10e8
 	SideChainUnjail      = 1e8
+	Unjail               = 1e8
 
 	// Transfer fee
 	TransferFee       = 62500
