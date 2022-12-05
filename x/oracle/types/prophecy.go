@@ -125,8 +125,12 @@ func (prophecy Prophecy) FindHighestClaim(ctx sdk.Context, stakeKeeper StakingKe
 		}
 	}
 	totalPower := int64(0)
-	for _, power := range validatorsPowerMap {
-		totalPower += power
+	if !sdk.IsUpgrade(sdk.BEP159Phase2) {
+		totalPower = stakeKeeper.GetLastTotalPower(ctx)
+	} else {
+		for _, power := range validatorsPowerMap {
+			totalPower += power
+		}
 	}
 	return highestClaim, highestClaimPower, totalClaimsPower, totalPower
 }

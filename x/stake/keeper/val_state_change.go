@@ -406,16 +406,16 @@ func (k Keeper) AddPendingABCIValidatorUpdate(ctx sdk.Context, validatorUpdate [
 		k.cdc.MustUnmarshalBinaryLengthPrefixed(bz, &currentValidatorUpdate)
 	}
 	// remove the duplicates
-	validatorUpdateMap := make(map[string]abci.ValidatorUpdate)
-	for _, v := range currentValidatorUpdate {
-		validatorUpdateMap[v.PubKey.String()] = v
-	}
-	for _, v := range validatorUpdate {
-		validatorUpdateMap[v.PubKey.String()] = v
-	}
+	validatorUpdateMap := make(map[string]int)
+	combinedSlice := append(currentValidatorUpdate[:], validatorUpdate...)
 	var finalValidatorUpdate []abci.ValidatorUpdate
-	for _, v := range validatorUpdateMap {
-		finalValidatorUpdate = append(finalValidatorUpdate, v)
+	for _, v := range combinedSlice {
+		if index, ok := validatorUpdateMap[v.PubKey.String()]; ok {
+			finalValidatorUpdate[index] = v
+		} else {
+			validatorUpdateMap[v.PubKey.String()] = len(finalValidatorUpdate)
+			finalValidatorUpdate = append(finalValidatorUpdate, v)
+		}
 	}
 	bz = k.cdc.MustMarshalBinaryLengthPrefixed(finalValidatorUpdate)
 	store.Set(PendingValidatorUpdateKey, bz)

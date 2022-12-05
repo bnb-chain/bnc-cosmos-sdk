@@ -582,7 +582,7 @@ func (k Keeper) unbond(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValA
 		validator.TokensFromShares(delegation.Shares).RawInt() < k.MinSelfDelegation(ctx) {
 		k.jailValidator(ctx, validator)
 		k.OnSelfDelDropBelowMin(ctx, valAddr)
-		if sdk.IsUpgrade(sdk.BEP159) {
+		if sdk.IsUpgrade(sdk.BEP159) && ctx.SideChainId() == "" && validator.IsBonded() {
 			k.AddPendingABCIValidatorUpdate(ctx, []abci.ValidatorUpdate{validator.ABCIValidatorUpdateZero()})
 			k.DeleteLastValidatorPower(ctx, validator.OperatorAddr)
 		}

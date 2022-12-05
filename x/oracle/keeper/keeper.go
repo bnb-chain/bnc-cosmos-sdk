@@ -154,9 +154,6 @@ func (k Keeper) ProcessClaim(ctx sdk.Context, claim types.Claim) (types.Prophecy
 // left to push it over the threshold required for consensus.
 func (k Keeper) processCompletion(ctx sdk.Context, prophecy types.Prophecy) types.Prophecy {
 	highestClaim, highestClaimPower, totalClaimsPower, totalPower := prophecy.FindHighestClaim(ctx, k.stakeKeeper)
-	if !sdk.IsUpgrade(sdk.BEP159Phase2) {
-		totalPower = k.stakeKeeper.GetLastTotalPower(ctx)
-	}
 
 	highestConsensusRatio := sdk.NewDec(highestClaimPower).Quo(sdk.NewDec(totalPower))
 	remainingPossibleClaimPower := totalPower - totalClaimsPower

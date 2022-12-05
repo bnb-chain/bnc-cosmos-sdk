@@ -161,15 +161,15 @@ func handleValidatorAndDelegations(ctx sdk.Context, k keeper.Keeper) ([]types.Va
 		var validatorUpdatesElect []abci.ValidatorUpdate
 		newVals, validatorUpdatesElect = k.UpdateAndElectValidators(ctx)
 		// remove the duplicates
-		validatorUpdateMap := make(map[string]abci.ValidatorUpdate)
-		for _, v := range validatorUpdatesOfEditValidators {
-			validatorUpdateMap[v.PubKey.String()] = v
-		}
-		for _, v := range validatorUpdatesElect {
-			validatorUpdateMap[v.PubKey.String()] = v
-		}
-		for _, v := range validatorUpdateMap {
-			validatorUpdates = append(validatorUpdates, v)
+		validatorUpdateMap := make(map[string]int)
+		combinedSlice := append(validatorUpdatesOfEditValidators[:], validatorUpdatesElect...)
+		for _, v := range combinedSlice {
+			if index, ok := validatorUpdateMap[v.PubKey.String()]; ok {
+				validatorUpdates[index] = v
+			} else {
+				validatorUpdateMap[v.PubKey.String()] = len(validatorUpdates)
+				validatorUpdates = append(validatorUpdates, v)
+			}
 		}
 		ctx.Logger().Debug("handleValidatorAndDelegations", "height", ctx.BlockHeight(), "validatorUpdates", validatorUpdates, "validatorUpdatesOfEditValidators", validatorUpdatesOfEditValidators)
 	} else {
