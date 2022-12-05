@@ -3,7 +3,7 @@ package bsc
 import (
 	"encoding/json"
 	"errors"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"io"
 	"math/big"
 
@@ -195,7 +195,7 @@ func SealHash(header *Header, chainID *big.Int) (hash Hash) {
 
 func encodeSigHeader(w io.Writer, header *Header, chainId *big.Int) {
 	var err error
-	if sdk.IsUpgrade(sdk.BEP174) {
+	if chainId != nil {
 		err = rlp.Encode(w, []interface{}{
 			chainId,
 			header.ParentHash,
