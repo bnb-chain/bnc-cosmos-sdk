@@ -255,3 +255,7 @@ func ErrNoBalance(msg string) sdk.Error {
 func ErrNotEnoughBalance(msg string) sdk.Error {
 	return sdk.NewError(DefaultCodespace, CodeCrossStakingNotEnoughBalance, msg)
 }
+
+func ErrNotSelfDelegate(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidValidator, "only self delegate is allowed")
+}

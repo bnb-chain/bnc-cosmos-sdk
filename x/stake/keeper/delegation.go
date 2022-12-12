@@ -885,3 +885,12 @@ func (k Keeper) crossDistributeUndelegated(ctx sdk.Context, delAddr sdk.AccAddre
 	}}
 	return events, nil
 }
+
+func (k Keeper) IsSelfDelegator(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) (bool, sdk.Error) {
+	// get validator
+	validator, found := k.GetValidator(ctx, valAddr)
+	if !found {
+		return false, types.ErrNoValidatorFound(k.Codespace())
+	}
+	return validator.IsSelfDelegator(delAddr), nil
+}

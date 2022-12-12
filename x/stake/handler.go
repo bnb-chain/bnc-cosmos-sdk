@@ -34,11 +34,9 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 		case types.MsgEditValidator:
 			return handleMsgEditValidator(ctx, msg, k)
 		case types.MsgDelegate:
-			return handleMsgDelegate(ctx, msg, k)
-		case types.MsgRedelegate:
-			return handleMsgRedelegate(ctx, msg, k)
+			return handleMsgDelegateV1(ctx, msg, k)
 		case types.MsgUndelegate:
-			return handleMsgUndelegate(ctx, msg, k)
+			return handleMsgUndelegateV1(ctx, msg, k)
 		//case MsgSideChain
 		case types.MsgCreateSideChainValidator:
 			return handleMsgCreateSideChainValidator(ctx, msg, k)
@@ -340,6 +338,16 @@ func handleMsgEditValidator(ctx sdk.Context, msg types.MsgEditValidator, k keepe
 	}
 }
 
+// handleMsgDelegateV1 is used before we open staking to common users
+func handleMsgDelegateV1(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper) sdk.Result {
+	if selfDelegate, err := k.IsSelfDelegator(ctx, msg.DelegatorAddr, msg.ValidatorAddr); err != nil {
+		return err.Result()
+	} else if !selfDelegate {
+		return ErrNotSelfDelegate(k.Codespace()).Result()
+	}
+	return handleMsgDelegate(ctx, msg, k)
+}
+
 func handleMsgDelegate(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper) sdk.Result {
 	validator, found := k.GetValidator(ctx, msg.ValidatorAddr)
 	if !found {
@@ -397,6 +405,16 @@ func handleMsgDelegate(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper) 
 	return sdk.Result{
 		Tags: tags,
 	}
+}
+
+// handleMsgUndelegateV1 is used before we open staking to common users
+func handleMsgUndelegateV1(ctx sdk.Context, msg types.MsgUndelegate, k keeper.Keeper) sdk.Result {
+	if selfDelegate, err := k.IsSelfDelegator(ctx, msg.DelegatorAddr, msg.ValidatorAddr); err != nil {
+		return err.Result()
+	} else if !selfDelegate {
+		return ErrNotSelfDelegate(k.Codespace()).Result()
+	}
+	return handleMsgUndelegate(ctx, msg, k)
 }
 
 func handleMsgUndelegate(ctx sdk.Context, msg types.MsgUndelegate, k keeper.Keeper) sdk.Result {

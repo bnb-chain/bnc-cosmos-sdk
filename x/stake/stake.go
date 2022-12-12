@@ -201,6 +201,7 @@ var (
 	ErrBadRedelegationDst    = types.ErrBadRedelegationDst
 	ErrSelfRedelegation      = types.ErrSelfRedelegation
 	ErrInvalidRedelegator    = types.ErrInvalidRedelegator
+	ErrNotSelfDelegate       = types.ErrNotSelfDelegate
 
 	ErrBothShareMsgsGiven    = types.ErrBothShareMsgsGiven
 	ErrNeitherShareMsgsGiven = types.ErrNeitherShareMsgsGiven
