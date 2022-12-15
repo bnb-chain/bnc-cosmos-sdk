@@ -2,6 +2,7 @@ package slashing
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/bsc"
 	"math/big"
@@ -18,8 +19,8 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 		return ErrInvalidSideChainId(DefaultCodespace).Result()
 	}
 
-	c := SideChainIdFromText(sideChainId)
-	chainID := big.NewInt(c)
+	//c := SideChainIdFromText(sideChainId)
+	chainID := big.NewInt(48)
 
 	header := ctx.BlockHeader()
 
@@ -28,18 +29,25 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 
 	if sdk.IsUpgrade(sdk.BEP174) {
 		sideConsAddr, err = msg.Headers[0].ExtractSignerFromHeader(chainID)
+	} else {
+		sideConsAddr, err = msg.Headers[0].ExtractSignerFromHeader(nil)
 	}
 	if err != nil {
 		return ErrInvalidEvidence(DefaultCodespace, fmt.Sprintf("Failed to extract signer from block header, %s", err.Error())).Result()
 	}
 	if sdk.IsUpgrade(sdk.BEP174) {
 		sideConsAddr2, err = msg.Headers[1].ExtractSignerFromHeader(chainID)
+	} else {
+		sideConsAddr, err = msg.Headers[0].ExtractSignerFromHeader(nil)
 	}
 	if err != nil {
 		return ErrInvalidEvidence(DefaultCodespace, fmt.Sprintf("Failed to extract signer from block header, %s", err.Error())).Result()
 	}
 	if bytes.Compare(sideConsAddr.Bytes(), sideConsAddr2.Bytes()) != 0 {
-		return ErrInvalidEvidence(DefaultCodespace, "The signers of two block headers are not the same").Result()
+		return ErrInvalidEvidence(DefaultCodespace, "chainId"+string(chainID.Bytes())+" Signer 1 "+hex.EncodeToString(sideConsAddr[:bsc.AddressLength])+" Signer 2"+hex.EncodeToString(sideConsAddr2[:bsc.AddressLength])).Result()
+		//return ErrInvalidEvidence(DefaultCodespace, "The signers of two block headers are not the same").Result()
+	} else {
+		println("success")
 	}
 
 	if k.hasSlashRecord(sideCtx, sideConsAddr.Bytes(), DoubleSign, uint64(msg.Headers[0].Number)) {
