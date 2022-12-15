@@ -21,6 +21,8 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 
 	c := SideChainIdFromText(sideChainId)
 	chainID := big.NewInt(c)
+	// Comment out the 2 lines above and use this for testing (local chainID)
+	// chainID := big.NewInt(48)
 
 	header := ctx.BlockHeader()
 
@@ -46,8 +48,6 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 	if bytes.Compare(sideConsAddr.Bytes(), sideConsAddr2.Bytes()) != 0 {
 		return ErrInvalidEvidence(DefaultCodespace, "chainId"+string(chainID.Bytes())+" Signer 1 "+hex.EncodeToString(sideConsAddr[:bsc.AddressLength])+" Signer 2"+hex.EncodeToString(sideConsAddr2[:bsc.AddressLength])).Result()
 		//return ErrInvalidEvidence(DefaultCodespace, "The signers of two block headers are not the same").Result()
-	} else {
-		println("success")
 	}
 
 	if k.hasSlashRecord(sideCtx, sideConsAddr.Bytes(), DoubleSign, uint64(msg.Headers[0].Number)) {
