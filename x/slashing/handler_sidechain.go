@@ -19,8 +19,8 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 		return ErrInvalidSideChainId(DefaultCodespace).Result()
 	}
 
-	//c := SideChainIdFromText(sideChainId)
-	chainID := big.NewInt(48)
+	c := SideChainIdFromText(sideChainId)
+	chainID := big.NewInt(c)
 
 	header := ctx.BlockHeader()
 
