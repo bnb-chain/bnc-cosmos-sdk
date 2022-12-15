@@ -21,7 +21,7 @@ func SideChainIdFromText(str string) int64 {
 	case "rialto":
 		return SideChainIdRialto
 	default:
-		return 48
+		panic("Provided sidechain name is not supported.")
 	}
 }
 

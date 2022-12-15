@@ -3,14 +3,12 @@ package bsc
 import (
 	"encoding/json"
 	"errors"
-
 	"io"
 	"math/big"
 
+	"github.com/cosmos/cosmos-sdk/bsc/rlp"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
 	"golang.org/x/crypto/sha3"
-
-	"github.com/cosmos/cosmos-sdk/bsc/rlp"
 )
 
 type Header struct {
@@ -195,44 +193,30 @@ func SealHash(header *Header, chainID *big.Int) (hash Hash) {
 
 func encodeSigHeader(w io.Writer, header *Header, chainId *big.Int) {
 	var err error
+	var content []interface{}
+
 	if chainId != nil {
-		err = rlp.Encode(w, []interface{}{
-			chainId,
-			header.ParentHash,
-			header.UncleHash,
-			header.Coinbase,
-			header.Root,
-			header.TxHash,
-			header.ReceiptHash,
-			header.Bloom,
-			big.NewInt(header.Difficulty),
-			big.NewInt(header.Number),
-			header.GasLimit,
-			header.GasUsed,
-			header.Time,
-			header.Extra[:len(header.Extra)-65], // this will panic if extra is too short, should check before calling encodeSigHeader
-			header.MixDigest,
-			header.Nonce,
-		})
-	} else {
-		err = rlp.Encode(w, []interface{}{
-			header.ParentHash,
-			header.UncleHash,
-			header.Coinbase,
-			header.Root,
-			header.TxHash,
-			header.ReceiptHash,
-			header.Bloom,
-			big.NewInt(header.Difficulty),
-			big.NewInt(header.Number),
-			header.GasLimit,
-			header.GasUsed,
-			header.Time,
-			header.Extra[:len(header.Extra)-65], // this will panic if extra is too short, should check before calling encodeSigHeader
-			header.MixDigest,
-			header.Nonce,
-		})
+		content = append(content, chainId)
 	}
+	content = append(content, []interface{}{
+		chainId,
+		header.ParentHash,
+		header.UncleHash,
+		header.Coinbase,
+		header.Root,
+		header.TxHash,
+		header.ReceiptHash,
+		header.Bloom,
+		big.NewInt(header.Difficulty),
+		big.NewInt(header.Number),
+		header.GasLimit,
+		header.GasUsed,
+		header.Time,
+		header.Extra[:len(header.Extra)-65], // this will panic if extra is too short, should check before calling encodeSigHeader
+		header.MixDigest,
+		header.Nonce,
+	}...)
+	err = rlp.Encode(w, content)
 
 	if err != nil {
 		panic("can't encode: " + err.Error())
