@@ -199,7 +199,6 @@ func encodeSigHeader(w io.Writer, header *Header, chainId *big.Int) {
 		content = append(content, chainId)
 	}
 	content = append(content, []interface{}{
-		chainId,
 		header.ParentHash,
 		header.UncleHash,
 		header.Coinbase,
