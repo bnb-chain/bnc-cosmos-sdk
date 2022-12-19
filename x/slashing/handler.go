@@ -1,6 +1,7 @@
 package slashing
 
 import (
+	"fmt"
 	"math/big"
 	"strings"
 
@@ -22,7 +23,7 @@ func SideChainIdFromText(str string) (*big.Int, error) {
 	case "rialto":
 		return SideChainIdRialto, nil
 	default:
-		return big.NewInt(-1), ErrInvalidSideChainId(DefaultCodespace)
+		return nil, fmt.Errorf("Provided sidechain name is not supported.")
 	}
 }
 

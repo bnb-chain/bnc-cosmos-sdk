@@ -19,7 +19,7 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 
 	chainID, err := SideChainIdFromText(sideChainId)
 	if err != nil {
-		return ErrInvalidSideChainId(DefaultCodespace).Result()
+		return ErrInvalidEvidence(DefaultCodespace, err.Error()).Result()
 	}
 
 	header := ctx.BlockHeader()
