@@ -146,7 +146,8 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 	var rewardSum int64
 
 	bondDenom := k.BondDenom(ctx)
-	feeFromBscToBcRatio := k.FeeFromBscToBcRatio(ctx)
+	// force getting FeeFromBscToBcRatio from bc context
+	feeFromBscToBcRatio := k.FeeFromBscToBcRatio(ctx.WithSideChainKeyPrefix(nil))
 	avgFeeForBcVals := sdk.ZeroDec()
 	if sdk.IsUpgrade(sdk.BEP159) && sideChainId == types.ChainIDForBeaconChain {
 		feeForAllBcValsCoins := k.BankKeeper.GetCoins(ctx, FeeForAllBcValsAccAddr)
