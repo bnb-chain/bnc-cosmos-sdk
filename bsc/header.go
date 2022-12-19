@@ -193,7 +193,7 @@ func SealHash(header *Header, chainID *big.Int) (hash Hash) {
 
 func encodeSigHeader(w io.Writer, header *Header, chainId *big.Int) {
 	var err error
-	var content []interface{}
+	var content = make([]interface{}, 0, 16)
 
 	if chainId != nil {
 		content = append(content, chainId)

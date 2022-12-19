@@ -3,7 +3,6 @@ package slashing
 import (
 	"bytes"
 	"fmt"
-	"math/big"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/bsc"
@@ -18,22 +17,28 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 		return ErrInvalidSideChainId(DefaultCodespace).Result()
 	}
 
-	c := SideChainIdFromText(sideChainId)
-	chainID := big.NewInt(c)
+	chainID, err := SideChainIdFromText(sideChainId)
+	if err != nil {
+		return ErrInvalidSideChainId(DefaultCodespace).Result()
+	}
 
 	header := ctx.BlockHeader()
 
 	var sideConsAddr bsc.Address
 	var sideConsAddr2 bsc.Address
+	var err2 error
 
 	if sdk.IsUpgrade(sdk.BEP174) {
 		sideConsAddr, err = msg.Headers[0].ExtractSignerFromHeader(chainID)
-		sideConsAddr2, err = msg.Headers[1].ExtractSignerFromHeader(chainID)
+		sideConsAddr2, err2 = msg.Headers[1].ExtractSignerFromHeader(chainID)
 	} else {
 		sideConsAddr, err = msg.Headers[0].ExtractSignerFromHeader(nil)
-		sideConsAddr2, err = msg.Headers[1].ExtractSignerFromHeader(nil)
+		sideConsAddr2, err2 = msg.Headers[1].ExtractSignerFromHeader(nil)
 	}
 	if err != nil {
+		return ErrInvalidEvidence(DefaultCodespace, fmt.Sprintf("Failed to extract signer from block header, %s", err.Error())).Result()
+	}
+	if err2 != nil {
 		return ErrInvalidEvidence(DefaultCodespace, fmt.Sprintf("Failed to extract signer from block header, %s", err.Error())).Result()
 	}
 	if bytes.Compare(sideConsAddr.Bytes(), sideConsAddr2.Bytes()) != 0 {

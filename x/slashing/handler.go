@@ -1,27 +1,28 @@
 package slashing
 
 import (
+	"math/big"
 	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-const (
-	SideChainIdBsc    int64 = 56
-	SideChainIdChapel int64 = 97
-	SideChainIdRialto int64 = 714
+var (
+	SideChainIdBsc    = big.NewInt(56)
+	SideChainIdChapel = big.NewInt(97)
+	SideChainIdRialto = big.NewInt(714)
 )
 
-func SideChainIdFromText(str string) int64 {
+func SideChainIdFromText(str string) (*big.Int, error) {
 	switch strings.ToLower(str) {
 	case "bsc":
-		return SideChainIdBsc
+		return SideChainIdBsc, nil
 	case "chapel":
-		return SideChainIdChapel
+		return SideChainIdChapel, nil
 	case "rialto":
-		return SideChainIdRialto
+		return SideChainIdRialto, nil
 	default:
-		panic("Provided sidechain name is not supported.")
+		return big.NewInt(-1), ErrInvalidSideChainId(DefaultCodespace)
 	}
 }
 
