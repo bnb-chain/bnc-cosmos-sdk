@@ -106,6 +106,10 @@ func handleMsgEditSideChainValidator(ctx sdk.Context, msg MsgEditSideChainValida
 	}
 
 	if len(msg.SideConsAddr) != 0 && sdk.IsUpgrade(sdk.BEP159) {
+		_, found = k.GetValidatorBySideConsAddr(ctx, msg.SideConsAddr)
+		if found {
+			return ErrValidatorSideConsAddrExist(k.Codespace()).Result()
+		}
 		validator.SideConsAddr = msg.SideConsAddr
 	}
 
