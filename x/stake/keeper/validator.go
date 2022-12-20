@@ -150,6 +150,12 @@ func (k Keeper) SetValidatorByConsAddr(ctx sdk.Context, validator types.Validato
 	}
 }
 
+func (k Keeper) UpdateSideValidatorConsAddr(ctx sdk.Context, validator types.Validator, newConsAddr []byte) {
+	store := ctx.KVStore(k.storeKey)
+	store.Delete(GetValidatorByConsAddrKey(validator.SideConsAddr))
+	store.Set(GetValidatorByConsAddrKey(newConsAddr), validator.OperatorAddr)
+}
+
 func (k Keeper) UpdateValidatorPubKey(ctx sdk.Context, validator types.Validator, pubkey crypto.PubKey) {
 	store := ctx.KVStore(k.storeKey)
 	oldConsAddr := sdk.ConsAddress(validator.ConsPubKey.Address())

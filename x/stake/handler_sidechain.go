@@ -110,6 +110,8 @@ func handleMsgEditSideChainValidator(ctx sdk.Context, msg MsgEditSideChainValida
 		if found {
 			return ErrValidatorSideConsAddrExist(k.Codespace()).Result()
 		}
+		// here consAddr is the sideConsAddr
+		k.UpdateSideValidatorConsAddr(ctx, validator, msg.SideConsAddr)
 		validator.SideConsAddr = msg.SideConsAddr
 	}
 
