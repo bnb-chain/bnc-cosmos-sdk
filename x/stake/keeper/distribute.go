@@ -17,6 +17,8 @@ import (
 const (
 	// for getting the snapshot of validators in the specific days ago
 	daysBackwardForValidatorSnapshot = 3
+	// there is no cross-chain in Beacon Chain, only backward to validator snapshot of yesterday
+	daysBackwardForValidatorSnapshotBeaconChain = 2
 	// the count of blocks to distribute a day's rewards should be smaller than this value
 	boundOfRewardDistributionBlockCount = int64(10000)
 )
@@ -104,9 +106,9 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 	}
 
 	if ctx.IsDeliverTx() && len(toPublish) > 0 && k.PbsbServer != nil {
-		event := types.SideDistributionEvent{
-			SideChainId: sideChainId,
-			Data:        toPublish,
+		event := types.DistributionEvent{
+			ChainId: sideChainId,
+			Data:    toPublish,
 		}
 		k.PbsbServer.Publish(event)
 	}
@@ -117,6 +119,7 @@ func (k Keeper) Distribute(ctx sdk.Context, sideChainId string) {
 // DistributeInBreathBlock will 1) calculate rewards as Distribute does, 2) transfer commissions to all validators, and
 // 3) save delegator's rewards to reward store for later distribution.
 func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk.Events {
+	ctx.Logger().Info("FeeCalculation", "currentHeight", ctx.BlockHeight(), "sideChainId", sideChainId)
 	// if there are left reward distribution batches in the previous day, will distribute all of them here
 	// this is only a safe guard to make sure that all the previous day's rewards are distributed
 	// because this case should happen in very very special case (e.g., bc maintenance for a long time), so there is no much optimization here
@@ -126,7 +129,13 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 		events = events.AppendEvents(singleBatchEvents)
 	}
 
-	validators, height, found := k.GetHeightValidatorsByIndex(ctx, daysBackwardForValidatorSnapshot)
+	var daysBackward int
+	if sideChainId != types.ChainIDForBeaconChain {
+		daysBackward = daysBackwardForValidatorSnapshot
+	} else {
+		daysBackward = daysBackwardForValidatorSnapshotBeaconChain
+	}
+	validators, height, found := k.GetHeightValidatorsByIndex(ctx, daysBackward)
 	if !found {
 		return events
 	}
@@ -137,10 +146,47 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 	var rewardSum int64
 
 	bondDenom := k.BondDenom(ctx)
+	// force getting FeeFromBscToBcRatio from bc context
+	feeFromBscToBcRatio := k.FeeFromBscToBcRatio(ctx.WithSideChainKeyPrefix(nil))
+	avgFeeForBcVals := sdk.ZeroDec()
+	if sdk.IsUpgrade(sdk.BEP159) && sideChainId == types.ChainIDForBeaconChain {
+		feeForAllBcValsCoins := k.BankKeeper.GetCoins(ctx, FeeForAllBcValsAccAddr)
+		feeForAllBcVals := feeForAllBcValsCoins.AmountOf(bondDenom)
+		avgFeeForBcVals = sdk.NewDec(feeForAllBcVals / int64(len(validators)))
+		ctx.Logger().Info("FeeCalculation", "avgFeeForBcVals", avgFeeForBcVals, "feeForAllBcVals", feeForAllBcVals, "len(validators)", len(validators))
+	}
+
 	for _, validator := range validators {
 		distAccCoins := k.BankKeeper.GetCoins(ctx, validator.DistributionAddr)
 		totalReward := distAccCoins.AmountOf(bondDenom)
-		totalRewardDec := sdk.ZeroDec()
+		totalRewardDec := sdk.NewDec(totalReward)
+		ctx.Logger().Info("FeeCalculation validator", "DistributionAddr", validator.DistributionAddr, "totalReward", totalReward, "height", height, "validator", validator)
+		if sdk.IsUpgrade(sdk.BEP159) {
+			if sideChainId != types.ChainIDForBeaconChain {
+				// split a portion of fees to BC validators
+				feeToBC := totalRewardDec.Mul(feeFromBscToBcRatio)
+				if feeToBC.RawInt() > 0 {
+					_, err := k.BankKeeper.SendCoins(ctx, validator.DistributionAddr, FeeForAllBcValsAccAddr, sdk.Coins{sdk.NewCoin(bondDenom, feeToBC.RawInt())})
+					if err != nil {
+						panic(err)
+					}
+					totalRewardDec = totalRewardDec.Sub(feeToBC)
+					totalReward = totalRewardDec.RawInt()
+					ctx.Logger().Info("FeeCalculation send to FeeForAllBcValsAccAddr", "feeToBC", feeToBC.RawInt(), "new totalReward", totalReward)
+				}
+			} else {
+				// for beacon chain, split the fees accumulated in FeeForAllBcValsAccAddr
+				if avgFeeForBcVals.RawInt() > 0 {
+					_, err := k.BankKeeper.SendCoins(ctx, FeeForAllBcValsAccAddr, validator.DistributionAddr, sdk.Coins{sdk.NewCoin(bondDenom, avgFeeForBcVals.RawInt())})
+					if err != nil {
+						panic(err)
+					}
+					totalRewardDec = totalRewardDec.Add(avgFeeForBcVals)
+					totalReward = totalRewardDec.RawInt()
+					ctx.Logger().Info("FeeCalculation receive avgFeeForBcVals", "avgFeeForBcVals", avgFeeForBcVals.RawInt(), "new totalReward", totalReward)
+				}
+			}
+		}
 		commission := sdk.ZeroDec()
 		rewards := make([]types.PreReward, 0)
 		crossStake := make(map[string]bool)
@@ -169,6 +215,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 
 			//calculate rewards for delegators
 			remainReward := totalRewardDec.Sub(commission)
+			ctx.Logger().Info("FeeCalculation commission", "rate", validator.Commission.Rate, "commission", commission, "remainReward", remainReward, "delegations", delegations)
 			rewards = allocate(simDelsToSharers(delegations), remainReward)
 			for i := range rewards {
 				// previous tokens calculation is in `node` repo, move it to here
@@ -213,6 +260,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 		}
 	}
 
+	ctx.Logger().Info("FeeCalculation DistributeInBreathBlock", "toSaveRewards", toSaveRewards)
 	if len(toSaveRewards) > 0 { //to save rewards
 		//1) get batch size from parameters, 2) hard limit to make sure rewards can be distributed in a day
 		batchSize := getDistributionBatchSize(k.GetParams(ctx).RewardDistributionBatchSize, int64(len(toSaveRewards)))
@@ -241,9 +289,9 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 
 	// publish data if needed
 	if ctx.IsDeliverTx() && len(toPublish) > 0 && k.PbsbServer != nil {
-		event := types.SideDistributionEvent{
-			SideChainId: sideChainId,
-			Data:        toPublish,
+		event := types.DistributionEvent{
+			ChainId: sideChainId,
+			Data:    toPublish,
 		}
 		k.PbsbServer.Publish(event)
 	}
@@ -355,9 +403,9 @@ func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) sdk.E
 			Commission:     sdk.Dec{},
 			Rewards:        toPublishRewards, // only publish rewards in normal block
 		})
-		event := types.SideDistributionEvent{
-			SideChainId: sideChainId,
-			Data:        toPublish,
+		event := types.DistributionEvent{
+			ChainId: sideChainId,
+			Data:    toPublish,
 		}
 		k.PbsbServer.Publish(event)
 	}
@@ -454,4 +502,15 @@ func crossDistributeReward(k Keeper, ctx sdk.Context, rewardCAoB sdk.AccAddress,
 		Attributes: resultTags,
 	}}
 	return events, nil
+}
+
+func (k Keeper) GetPrevProposerDistributionAddr(ctx sdk.Context) sdk.AccAddress {
+	store := ctx.KVStore(k.storeKey)
+	bz := store.Get(PrevProposerDistributionAddrKey)
+	return bz
+}
+
+func (k Keeper) SetPrevProposerDistributionAddr(ctx sdk.Context, addr sdk.AccAddress) {
+	store := ctx.KVStore(k.storeKey)
+	store.Set(PrevProposerDistributionAddrKey, addr)
 }

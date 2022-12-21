@@ -4,14 +4,13 @@ import (
 	"fmt"
 	"math/rand"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/mock"
 	"github.com/cosmos/cosmos-sdk/x/mock/simulation"
 	"github.com/cosmos/cosmos-sdk/x/stake"
+	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 // SimulateMsgCreateValidator
@@ -209,11 +208,12 @@ func SimulateMsgBeginRedelegate(m auth.AccountKeeper, k stake.Keeper) simulation
 		if amount == 0 {
 			return "no-operation", nil, nil
 		}
-		msg := stake.MsgBeginRedelegate{
+		coin := sdk.NewCoin(denom, amount)
+		msg := stake.MsgRedelegate{
 			DelegatorAddr:    delegatorAddress,
 			ValidatorSrcAddr: sourceValidatorAddress,
 			ValidatorDstAddr: destValidatorAddress,
-			SharesAmount:     sdk.NewDecFromInt(amount),
+			Amount:           coin,
 		}
 		if msg.ValidateBasic() != nil {
 			return "", nil, fmt.Errorf("expected msg to pass ValidateBasic: %s", msg.GetSignBytes())
@@ -223,7 +223,7 @@ func SimulateMsgBeginRedelegate(m auth.AccountKeeper, k stake.Keeper) simulation
 		if result.IsOK() {
 			write()
 		}
-		event(fmt.Sprintf("stake/MsgBeginRedelegate/%v", result.IsOK()))
+		event(fmt.Sprintf("stake/MsgRedelegate/%v", result.IsOK()))
 		action = fmt.Sprintf("TestMsgBeginRedelegate: %s", msg.GetSignBytes())
 		return action, nil, nil
 	}

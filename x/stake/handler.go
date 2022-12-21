@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/cosmos/cosmos-sdk/baseapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/stake/keeper"
 	"github.com/cosmos/cosmos-sdk/x/stake/tags"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
+	"github.com/tendermint/tendermint/crypto/ed25519"
 )
 
 func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
@@ -17,18 +19,24 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 		// NOTE msg already has validate basic run
 		switch msg := msg.(type) {
 		case types.MsgCreateValidatorProposal:
+			if sdk.IsUpgrade(sdk.BEP159) {
+				return sdk.ErrMsgNotSupported("MsgCreateValidatorProposal disabled in BEP-159").Result()
+			}
 			return handleMsgCreateValidatorAfterProposal(ctx, msg, k, govKeeper)
 		case types.MsgRemoveValidator:
 			return handleMsgRemoveValidatorAfterProposal(ctx, msg, k, govKeeper)
-		// disabled other msg handling
-		//case types.MsgEditValidator:
-		//	return handleMsgEditValidator(ctx, msg, k)
-		//case types.MsgDelegate:
-		//	return handleMsgDelegate(ctx, msg, k)
-		//case types.MsgBeginRedelegate:
-		//	return handleMsgBeginRedelegate(ctx, msg, k)
-		//case types.MsgBeginUnbonding:
-		//	return handleMsgBeginUnbonding(ctx, msg, k)
+		// Beacon Chain New Staking in BEP-159
+		case types.MsgCreateValidatorOpen:
+			if !sdk.IsUpgrade(sdk.BEP159Phase2) {
+				return sdk.ErrMsgNotSupported("BEP-159 Phase 2 not activated yet").Result()
+			}
+			return handleMsgCreateValidatorOpen(ctx, msg, k)
+		case types.MsgEditValidator:
+			return handleMsgEditValidator(ctx, msg, k)
+		case types.MsgDelegate:
+			return handleMsgDelegateV1(ctx, msg, k)
+		case types.MsgUndelegate:
+			return handleMsgUndelegate(ctx, msg, k)
 		//case MsgSideChain
 		case types.MsgCreateSideChainValidator:
 			return handleMsgCreateSideChainValidator(ctx, msg, k)
@@ -56,8 +64,8 @@ func NewStakeHandler(k Keeper) sdk.Handler {
 			return handleMsgEditValidator(ctx, msg, k)
 		case types.MsgDelegate:
 			return handleMsgDelegate(ctx, msg, k)
-		case types.MsgBeginRedelegate:
-			return handleMsgBeginRedelegate(ctx, msg, k)
+		case types.MsgRedelegate:
+			return handleMsgRedelegate(ctx, msg, k)
 		case types.MsgBeginUnbonding:
 			return handleMsgBeginUnbonding(ctx, msg, k)
 		default:
@@ -113,7 +121,27 @@ func handleMsgRemoveValidatorAfterProposal(ctx sdk.Context, msg MsgRemoveValidat
 	return sdk.Result{Tags: tags}
 }
 
+func handleMsgCreateValidatorOpen(ctx sdk.Context, msg MsgCreateValidatorOpen, k keeper.Keeper) sdk.Result {
+	pubkey, err := sdk.GetConsPubKeyBech32(msg.PubKey)
+	if err != nil {
+		return ErrInvalidPubKey(k.Codespace()).Result()
+	}
+	msgCreateValidator := MsgCreateValidator{
+		Description:   msg.Description,
+		Commission:    msg.Commission,
+		DelegatorAddr: msg.DelegatorAddr,
+		ValidatorAddr: msg.ValidatorAddr,
+		PubKey:        pubkey,
+		Delegation:    msg.Delegation,
+	}
+	return handleMsgCreateValidator(ctx, msgCreateValidator, k)
+}
+
 func handleMsgCreateValidator(ctx sdk.Context, msg MsgCreateValidator, k keeper.Keeper) sdk.Result {
+	// consensus pubkey only support ed25519
+	if _, ok := msg.PubKey.(ed25519.PubKeyEd25519); !ok {
+		return ErrInvalidPubKey(k.Codespace()).Result()
+	}
 	// check to see if the pubkey or sender has been registered before
 	_, found := k.GetValidator(ctx, msg.ValidatorAddr)
 	if found {
@@ -129,6 +157,13 @@ func handleMsgCreateValidator(ctx sdk.Context, msg MsgCreateValidator, k keeper.
 		return ErrBadDenom(k.Codespace()).Result()
 	}
 
+	if sdk.IsUpgrade(sdk.BEP159) {
+		minSelfDelegation := k.MinSelfDelegation(ctx)
+		if msg.Delegation.Amount < minSelfDelegation {
+			return ErrBadDelegationAmount(DefaultCodespace,
+				fmt.Sprintf("self delegation must not be less than %d", minSelfDelegation)).Result()
+		}
+	}
 	// self-delegate address will be used to collect fees.
 	feeAddr := msg.DelegatorAddr
 	validator := NewValidatorWithFeeAddr(feeAddr, msg.ValidatorAddr, msg.PubKey, msg.Description)
@@ -251,6 +286,25 @@ func handleMsgEditValidator(ctx sdk.Context, msg types.MsgEditValidator, k keepe
 		return ErrNoValidatorFound(k.Codespace()).Result()
 	}
 
+	onValidatorModified := false
+	if len(msg.PubKey) != 0 {
+		pubkey, err := sdk.GetConsPubKeyBech32(msg.PubKey)
+		if err != nil {
+			return ErrInvalidPubKey(k.Codespace()).Result()
+		}
+		// consensus pubkey only support ed25519
+		if _, ok := pubkey.(ed25519.PubKeyEd25519); !ok {
+			return ErrInvalidPubKey(k.Codespace()).Result()
+		}
+		_, found = k.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(pubkey))
+		if found {
+			return ErrValidatorPubKeyExists(k.Codespace()).Result()
+		}
+		k.UpdateValidatorPubKey(ctx, validator, pubkey)
+		validator.ConsPubKey = pubkey
+		onValidatorModified = true
+	}
+
 	// replace all editable fields (clients should autofill existing values)
 	description, err := validator.Description.UpdateDescription(msg.Description)
 	if err != nil {
@@ -265,6 +319,9 @@ func handleMsgEditValidator(ctx sdk.Context, msg types.MsgEditValidator, k keepe
 			return err.Result()
 		}
 		validator.Commission = commission
+		onValidatorModified = true
+	}
+	if onValidatorModified {
 		k.OnValidatorModified(ctx, msg.ValidatorAddr)
 	}
 
@@ -281,6 +338,16 @@ func handleMsgEditValidator(ctx sdk.Context, msg types.MsgEditValidator, k keepe
 	}
 }
 
+// handleMsgDelegateV1 is used before we open staking to common users
+func handleMsgDelegateV1(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper) sdk.Result {
+	if selfDelegate, err := k.IsSelfDelegator(ctx, msg.DelegatorAddr, msg.ValidatorAddr); err != nil {
+		return err.Result()
+	} else if !selfDelegate {
+		return ErrNotSelfDelegate(k.Codespace()).Result()
+	}
+	return handleMsgDelegate(ctx, msg, k)
+}
+
 func handleMsgDelegate(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper) sdk.Result {
 	validator, found := k.GetValidator(ctx, msg.ValidatorAddr)
 	if !found {
@@ -289,6 +356,12 @@ func handleMsgDelegate(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper) 
 
 	if msg.Delegation.Denom != k.BondDenom(ctx) {
 		return ErrBadDenom(k.Codespace()).Result()
+	}
+
+	// we need this lower limit to prevent too many delegation records.
+	minDelegationChange := k.MinDelegationChange(ctx)
+	if msg.Delegation.Amount < minDelegationChange {
+		return ErrBadDelegationAmount(DefaultCodespace, fmt.Sprintf("delegation must not be less than %d", minDelegationChange)).Result()
 	}
 
 	if bytes.Equal(msg.DelegatorAddr.Bytes(), validator.OperatorAddr.Bytes()) {
@@ -307,6 +380,23 @@ func handleMsgDelegate(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper) 
 		return err.Result()
 	}
 
+	// publish delegate event
+	if k.PbsbServer != nil && ctx.IsDeliverTx() {
+		event := types.ChainDelegateEvent{
+			DelegateEvent: types.DelegateEvent{
+				StakeEvent: types.StakeEvent{
+					IsFromTx: true,
+				},
+				Delegator: msg.DelegatorAddr,
+				Validator: msg.ValidatorAddr,
+				Amount:    msg.Delegation.Amount,
+				Denom:     msg.Delegation.Denom,
+				TxHash:    ctx.Value(baseapp.TxHashKey).(string),
+			},
+			ChainId: ChainIDForBeaconChain,
+		}
+		k.PbsbServer.Publish(event)
+	}
 	tags := sdk.NewTags(
 		tags.Delegator, []byte(msg.DelegatorAddr.String()),
 		tags.DstValidator, []byte(msg.ValidatorAddr.String()),
@@ -315,6 +405,39 @@ func handleMsgDelegate(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper) 
 	return sdk.Result{
 		Tags: tags,
 	}
+}
+
+func handleMsgUndelegate(ctx sdk.Context, msg types.MsgUndelegate, k keeper.Keeper) sdk.Result {
+	if msg.Amount.Denom != k.BondDenom(ctx) {
+		return ErrBadDenom(k.Codespace()).Result()
+	}
+	shares, err := k.ValidateUnbondAmount(ctx, msg.DelegatorAddr, msg.ValidatorAddr, msg.Amount.Amount)
+	if err != nil {
+		return err.Result()
+	}
+	msgBeginUnbonding := types.MsgBeginUnbonding{
+		DelegatorAddr: msg.DelegatorAddr,
+		ValidatorAddr: msg.ValidatorAddr,
+		SharesAmount:  shares,
+	}
+	res := handleMsgBeginUnbonding(ctx, msgBeginUnbonding, k)
+	if k.PbsbServer != nil && ctx.IsDeliverTx() {
+		event := types.ChainUndelegateEvent{
+			UndelegateEvent: types.UndelegateEvent{
+				StakeEvent: types.StakeEvent{
+					IsFromTx: true,
+				},
+				Delegator: msg.DelegatorAddr,
+				Validator: msg.ValidatorAddr,
+				Amount:    msg.Amount.Amount,
+				Denom:     msg.Amount.Denom,
+				TxHash:    ctx.Value(baseapp.TxHashKey).(string),
+			},
+			ChainId: ChainIDForBeaconChain,
+		}
+		k.PbsbServer.Publish(event)
+	}
+	return res
 }
 
 func handleMsgBeginUnbonding(ctx sdk.Context, msg types.MsgBeginUnbonding, k keeper.Keeper) sdk.Result {
@@ -333,9 +456,26 @@ func handleMsgBeginUnbonding(ctx sdk.Context, msg types.MsgBeginUnbonding, k kee
 	return sdk.Result{Data: finishTime, Tags: tags}
 }
 
-func handleMsgBeginRedelegate(ctx sdk.Context, msg types.MsgBeginRedelegate, k keeper.Keeper) sdk.Result {
+func handleMsgRedelegate(ctx sdk.Context, msg types.MsgRedelegate, k keeper.Keeper) sdk.Result {
+	if msg.Amount.Denom != k.BondDenom(ctx) {
+		return ErrBadDenom(k.Codespace()).Result()
+	}
+
+	dstValidator, found := k.GetValidator(ctx, msg.ValidatorDstAddr)
+	if !found {
+		return types.ErrBadRedelegationDst(k.Codespace()).Result()
+	}
+
+	if err := checkOperatorAsDelegator(k, msg.DelegatorAddr, dstValidator); err != nil {
+		return err.Result()
+	}
+
+	shares, err := k.ValidateUnbondAmount(ctx, msg.DelegatorAddr, msg.ValidatorSrcAddr, msg.Amount.Amount)
+	if err != nil {
+		return err.Result()
+	}
 	red, err := k.BeginRedelegation(ctx, msg.DelegatorAddr, msg.ValidatorSrcAddr,
-		msg.ValidatorDstAddr, msg.SharesAmount)
+		msg.ValidatorDstAddr, shares)
 	if err != nil {
 		return err.Result()
 	}
@@ -348,5 +488,22 @@ func handleMsgBeginRedelegate(ctx sdk.Context, msg types.MsgBeginRedelegate, k k
 		tags.DstValidator, []byte(msg.ValidatorDstAddr.String()),
 		tags.EndTime, finishTime,
 	)
+	if k.PbsbServer != nil && ctx.IsDeliverTx() {
+		event := types.ChainRedelegateEvent{
+			RedelegateEvent: types.RedelegateEvent{
+				StakeEvent: types.StakeEvent{
+					IsFromTx: true,
+				},
+				Delegator:    msg.DelegatorAddr,
+				SrcValidator: msg.ValidatorSrcAddr,
+				DstValidator: msg.ValidatorDstAddr,
+				Amount:       msg.Amount.Amount,
+				Denom:        msg.Amount.Denom,
+				TxHash:       ctx.Value(baseapp.TxHashKey).(string),
+			},
+			ChainId: ChainIDForBeaconChain,
+		}
+		k.PbsbServer.Publish(event)
+	}
 	return sdk.Result{Data: finishTime, Tags: tags}
 }

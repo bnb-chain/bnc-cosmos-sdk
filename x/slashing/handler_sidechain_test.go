@@ -56,6 +56,9 @@ func TestSideChainSlashDoubleSign(t *testing.T) {
 
 	feesInPoolBefore := fees.Pool.BlockFees().Tokens.AmountOf("steak")
 	msgSubmitEvidence := NewMsgBscSubmitEvidence(submitter, headers)
+
+	sdk.UpgradeMgr.AddUpgradeHeight(sdk.FixDoubleSignChainId, 199)
+	sdk.UpgradeMgr.SetHeight(200)
 	got = NewHandler(keeper)(ctx, msgSubmitEvidence)
 	require.True(t, got.IsOK(), "expected submit evidence msg to be ok, got: %v", got)
 
@@ -161,6 +164,9 @@ func TestSideChainSlashDoubleSignUBD(t *testing.T) {
 	require.Nil(t, err)
 
 	feesInPoolBefore := fees.Pool.BlockFees().Tokens.AmountOf("steak")
+
+	sdk.UpgradeMgr.AddUpgradeHeight(sdk.FixDoubleSignChainId, 199)
+	sdk.UpgradeMgr.SetHeight(200)
 	msgSubmitEvidence := NewMsgBscSubmitEvidence(submitter, headers)
 	got = NewHandler(keeper)(ctx, msgSubmitEvidence)
 	require.True(t, got.IsOK(), "expected submit evidence msg to be ok, got: %v", got)

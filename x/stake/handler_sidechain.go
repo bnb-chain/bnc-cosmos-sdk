@@ -105,6 +105,16 @@ func handleMsgEditSideChainValidator(ctx sdk.Context, msg MsgEditSideChainValida
 		validator.SideFeeAddr = msg.SideFeeAddr
 	}
 
+	if len(msg.SideConsAddr) != 0 && sdk.IsUpgrade(sdk.BEP159) {
+		_, found = k.GetValidatorBySideConsAddr(ctx, msg.SideConsAddr)
+		if found {
+			return ErrValidatorSideConsAddrExist(k.Codespace()).Result()
+		}
+		// here consAddr is the sideConsAddr
+		k.UpdateSideValidatorConsAddr(ctx, validator, msg.SideConsAddr)
+		validator.SideConsAddr = msg.SideConsAddr
+	}
+
 	k.SetValidator(ctx, validator)
 	return sdk.Result{
 		Tags: sdk.NewTags(
@@ -154,7 +164,7 @@ func handleMsgSideChainDelegate(ctx sdk.Context, msg MsgSideChainDelegate, k kee
 
 	// publish delegate event
 	if k.PbsbServer != nil && ctx.IsDeliverTx() {
-		event := types.SideDelegateEvent{
+		event := types.ChainDelegateEvent{
 			DelegateEvent: types.DelegateEvent{
 				StakeEvent: types.StakeEvent{
 					IsFromTx: true,
@@ -165,7 +175,7 @@ func handleMsgSideChainDelegate(ctx sdk.Context, msg MsgSideChainDelegate, k kee
 				Denom:     msg.Delegation.Denom,
 				TxHash:    ctx.Value(baseapp.TxHashKey).(string),
 			},
-			SideChainId: msg.SideChainId,
+			ChainId: msg.SideChainId,
 		}
 		k.PbsbServer.Publish(event)
 	}
@@ -220,7 +230,7 @@ func handleMsgSideChainRedelegate(ctx sdk.Context, msg MsgSideChainRedelegate, k
 
 	// publish redelegate event
 	if k.PbsbServer != nil && ctx.IsDeliverTx() {
-		event := types.SideRedelegateEvent{
+		event := types.ChainRedelegateEvent{
 			RedelegateEvent: types.RedelegateEvent{
 				StakeEvent: types.StakeEvent{
 					IsFromTx: true,
@@ -232,7 +242,7 @@ func handleMsgSideChainRedelegate(ctx sdk.Context, msg MsgSideChainRedelegate, k
 				Denom:        msg.Amount.Denom,
 				TxHash:       ctx.Value(baseapp.TxHashKey).(string),
 			},
-			SideChainId: msg.SideChainId,
+			ChainId: msg.SideChainId,
 		}
 		k.PbsbServer.Publish(event)
 	}
@@ -271,7 +281,7 @@ func handleMsgSideChainUndelegate(ctx sdk.Context, msg MsgSideChainUndelegate, k
 
 	// publish undelegate event
 	if k.PbsbServer != nil && ctx.IsDeliverTx() {
-		event := types.SideUnDelegateEvent{
+		event := types.ChainUndelegateEvent{
 			UndelegateEvent: types.UndelegateEvent{
 				StakeEvent: types.StakeEvent{
 					IsFromTx: true,
@@ -282,7 +292,7 @@ func handleMsgSideChainUndelegate(ctx sdk.Context, msg MsgSideChainUndelegate, k
 				Denom:     msg.Amount.Denom,
 				TxHash:    ctx.Value(baseapp.TxHashKey).(string),
 			},
-			SideChainId: msg.SideChainId,
+			ChainId: msg.SideChainId,
 		}
 		k.PbsbServer.Publish(event)
 	}

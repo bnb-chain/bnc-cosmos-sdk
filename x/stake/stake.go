@@ -18,20 +18,22 @@ type (
 	Params                      = types.Params
 	Pool                        = types.Pool
 	MsgCreateValidator          = types.MsgCreateValidator
+	MsgCreateValidatorOpen      = types.MsgCreateValidatorOpen
 	MsgRemoveValidator          = types.MsgRemoveValidator
 	MsgCreateValidatorProposal  = types.MsgCreateValidatorProposal
 	MsgEditValidator            = types.MsgEditValidator
 	MsgDelegate                 = types.MsgDelegate
 	MsgBeginUnbonding           = types.MsgBeginUnbonding
-	MsgBeginRedelegate          = types.MsgBeginRedelegate
+	MsgRedelegate               = types.MsgRedelegate
+	MsgUndelegate               = types.MsgUndelegate
 	GenesisState                = types.GenesisState
 	QueryDelegatorParams        = querier.QueryDelegatorParams
 	QueryValidatorParams        = querier.QueryValidatorParams
 	QueryBondsParams            = querier.QueryBondsParams
-	QueryCrossStakeRewardParams = querier.QueryCrossStakeRewardParams
 	CreateValidatorJsonMsg      = types.CreateValidatorJsonMsg
 	QueryTopValidatorsParams    = querier.QueryTopValidatorsParams
 	BaseParams                  = querier.BaseParams
+	QueryCrossStakeRewardParams = querier.QueryCrossStakeRewardParams
 
 	MsgCreateSideChainValidator = types.MsgCreateSideChainValidator
 	MsgEditSideChainValidator   = types.MsgEditSideChainValidator
@@ -39,60 +41,58 @@ type (
 	MsgSideChainRedelegate      = types.MsgSideChainRedelegate
 	MsgSideChainUndelegate      = types.MsgSideChainUndelegate
 
-	SideDistributionEvent      = types.SideDistributionEvent
-	DistributionData           = types.DistributionData
-	SideCompletedUBDEvent      = types.SideCompletedUBDEvent
-	SideCompletedREDEvent      = types.SideCompletedREDEvent
-	ValidatorUpdateEvent       = types.ValidatorUpdateEvent
-	ValidatorRemovedEvent      = types.ValidatorRemovedEvent
-	DelegationUpdateEvent      = types.DelegationUpdateEvent
-	DelegationRemovedEvent     = types.DelegationRemovedEvent
-	SideDelegationRemovedEvent = types.SideDelegationRemovedEvent
-	SideDelegationUpdateEvent  = types.SideDelegationUpdateEvent
-	UBDUpdateEvent             = types.UBDUpdateEvent
-	SideUBDUpdateEvent         = types.SideUBDUpdateEvent
-	REDUpdateEvent             = types.REDUpdateEvent
-	SideREDUpdateEvent         = types.SideREDUpdateEvent
-	DVVTriplet                 = types.DVVTriplet
-	DVPair                     = types.DVPair
-	DelegateEvent              = types.DelegateEvent
-	UndelegateEvent            = types.UndelegateEvent
-	RedelegateEvent            = types.RedelegateEvent
-	SideDelegateEvent          = types.SideDelegateEvent
-	SideUndelegateEvent        = types.SideUnDelegateEvent
-	SideRedelegateEvent        = types.SideRedelegateEvent
-	SideElectedValidatorsEvent = types.SideElectedValidatorsEvent
+	DistributionEvent      = types.DistributionEvent
+	DistributionData       = types.DistributionData
+	CompletedUBDEvent      = types.CompletedUBDEvent
+	CompletedREDEvent      = types.CompletedREDEvent
+	ValidatorUpdateEvent   = types.ValidatorUpdateEvent
+	ValidatorRemovedEvent  = types.ValidatorRemovedEvent
+	DelegationUpdateEvent  = types.DelegationUpdateEvent
+	DelegationRemovedEvent = types.DelegationRemovedEvent
+	UBDUpdateEvent         = types.UBDUpdateEvent
+	REDUpdateEvent         = types.REDUpdateEvent
+	DVVTriplet             = types.DVVTriplet
+	DVPair                 = types.DVPair
+	DelegateEvent          = types.DelegateEvent
+	UndelegateEvent        = types.UndelegateEvent
+	RedelegateEvent        = types.RedelegateEvent
+	ChainDelegateEvent     = types.ChainDelegateEvent
+	ChainUndelegateEvent   = types.ChainUndelegateEvent
+	ChainRedelegateEvent   = types.ChainRedelegateEvent
+	ElectedValidatorsEvent = types.ElectedValidatorsEvent
 )
 
 var (
 	NewKeeper = keeper.NewKeeper
 
-	GetValidatorKey              = keeper.GetValidatorKey
-	GetValidatorByConsAddrKey    = keeper.GetValidatorByConsAddrKey
-	GetValidatorsByPowerIndexKey = keeper.GetValidatorsByPowerIndexKey
-	GetDelegationKey             = keeper.GetDelegationKey
-	GetDelegationsKey            = keeper.GetDelegationsKey
-	PoolKey                      = keeper.PoolKey
-	IntraTxCounterKey            = keeper.IntraTxCounterKey
-	LastValidatorPowerKey        = keeper.LastValidatorPowerKey
-	LastTotalPowerKey            = keeper.LastTotalPowerKey
-	ValidatorsKey                = keeper.ValidatorsKey
-	ValidatorsByConsAddrKey      = keeper.ValidatorsByConsAddrKey
-	ValidatorsByPowerIndexKey    = keeper.ValidatorsByPowerIndexKey
-	DelegationKey                = keeper.DelegationKey
-	GetUBDKey                    = keeper.GetUBDKey
-	GetUBDByValIndexKey          = keeper.GetUBDByValIndexKey
-	GetUBDsKey                   = keeper.GetUBDsKey
-	GetUBDsByValIndexKey         = keeper.GetUBDsByValIndexKey
-	GetREDKey                    = keeper.GetREDKey
-	GetREDByValSrcIndexKey       = keeper.GetREDByValSrcIndexKey
-	GetREDByValDstIndexKey       = keeper.GetREDByValDstIndexKey
-	GetREDsKey                   = keeper.GetREDsKey
-	GetREDsFromValSrcIndexKey    = keeper.GetREDsFromValSrcIndexKey
-	GetREDsToValDstIndexKey      = keeper.GetREDsToValDstIndexKey
-	GetREDsByDelToValDstIndexKey = keeper.GetREDsByDelToValDstIndexKey
-	TestingUpdateValidator       = keeper.TestingUpdateValidator
-	MigratePowerRankKey          = keeper.MigratePowerRankKey
+	GetValidatorKey                  = keeper.GetValidatorKey
+	GetValidatorByConsAddrKey        = keeper.GetValidatorByConsAddrKey
+	GetValidatorsByPowerIndexKey     = keeper.GetValidatorsByPowerIndexKey
+	GetDelegationKey                 = keeper.GetDelegationKey
+	GetDelegationsKey                = keeper.GetDelegationsKey
+	PoolKey                          = keeper.PoolKey
+	IntraTxCounterKey                = keeper.IntraTxCounterKey
+	LastValidatorPowerKey            = keeper.LastValidatorPowerKey
+	LastTotalPowerKey                = keeper.LastTotalPowerKey
+	ValidatorsKey                    = keeper.ValidatorsKey
+	ValidatorsByConsAddrKey          = keeper.ValidatorsByConsAddrKey
+	ValidatorsByPowerIndexKey        = keeper.ValidatorsByPowerIndexKey
+	DelegationKey                    = keeper.DelegationKey
+	GetUBDKey                        = keeper.GetUBDKey
+	GetUBDByValIndexKey              = keeper.GetUBDByValIndexKey
+	GetUBDsKey                       = keeper.GetUBDsKey
+	GetUBDsByValIndexKey             = keeper.GetUBDsByValIndexKey
+	GetREDKey                        = keeper.GetREDKey
+	GetREDByValSrcIndexKey           = keeper.GetREDByValSrcIndexKey
+	GetREDByValDstIndexKey           = keeper.GetREDByValDstIndexKey
+	GetREDsKey                       = keeper.GetREDsKey
+	GetREDsFromValSrcIndexKey        = keeper.GetREDsFromValSrcIndexKey
+	GetREDsToValDstIndexKey          = keeper.GetREDsToValDstIndexKey
+	GetREDsByDelToValDstIndexKey     = keeper.GetREDsByDelToValDstIndexKey
+	TestingUpdateValidator           = keeper.TestingUpdateValidator
+	MigratePowerRankKey              = keeper.MigratePowerRankKey
+	MigrateValidatorDistributionAddr = keeper.MigrateValidators
+	MigrateWhiteLabelOracleRelayer   = keeper.MigrateWhiteLabelOracleRelayer
 
 	DefaultParamspace = keeper.DefaultParamspace
 	KeyUnbondingTime  = types.KeyUnbondingTime
@@ -114,11 +114,12 @@ var (
 
 	NewMsgCreateValidator           = types.NewMsgCreateValidator
 	NewMsgRemoveValidator           = types.NewMsgRemoveValidator
+	NewMsgBeginUnbonding            = types.NewMsgBeginUnbonding
 	NewMsgCreateValidatorOnBehalfOf = types.NewMsgCreateValidatorOnBehalfOf
 	NewMsgEditValidator             = types.NewMsgEditValidator
 	NewMsgDelegate                  = types.NewMsgDelegate
-	NewMsgBeginUnbonding            = types.NewMsgBeginUnbonding
-	NewMsgBeginRedelegate           = types.NewMsgBeginRedelegate
+	NewMsgUndelegate                = types.NewMsgUndelegate
+	NewMsgRedelegate                = types.NewMsgRedelegate
 
 	NewMsgCreateSideChainValidator           = types.NewMsgCreateSideChainValidator
 	NewMsgCreateSideChainValidatorOnBehalfOf = types.NewMsgCreateSideChainValidatorOnBehalfOf
@@ -130,7 +131,9 @@ var (
 	NewQuerier    = querier.NewQuerier
 	NewBaseParams = querier.NewBaseParams
 
+	FeeCollectorAddr  = keeper.FeeCollectorAddr
 	DelegationAccAddr = keeper.DelegationAccAddr
+	FeeForAllAccAddr  = keeper.FeeForAllBcValsAccAddr
 )
 
 const (
@@ -161,6 +164,7 @@ const (
 	CodeUnauthorized      = types.CodeUnauthorized
 	CodeInternal          = types.CodeInternal
 	CodeUnknownRequest    = types.CodeUnknownRequest
+	ChainIDForBeaconChain = types.ChainIDForBeaconChain
 )
 
 var (
@@ -198,8 +202,10 @@ var (
 	ErrBadRedelegationDst    = types.ErrBadRedelegationDst
 	ErrSelfRedelegation      = types.ErrSelfRedelegation
 	ErrInvalidRedelegator    = types.ErrInvalidRedelegator
+	ErrNotSelfDelegate       = types.ErrNotSelfDelegate
 
 	ErrBothShareMsgsGiven    = types.ErrBothShareMsgsGiven
 	ErrNeitherShareMsgsGiven = types.ErrNeitherShareMsgsGiven
 	ErrMissingSignature      = types.ErrMissingSignature
+	ErrInvalidPubKey         = types.ErrInvalidPubKey
 )

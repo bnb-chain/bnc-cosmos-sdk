@@ -3,11 +3,10 @@ package paramHub
 import (
 	"fmt"
 
-	"github.com/tendermint/go-amino"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/paramHub/types"
+	"github.com/tendermint/go-amino"
 )
 
 //---------------------    FeeChangeHooks -----------------
@@ -80,7 +79,36 @@ func (hooks SCParamsChangeHooks) OnProposalSubmitted(ctx sdk.Context, proposal g
 	strProposal := proposal.GetDescription()
 	err := hooks.cdc.UnmarshalJSON([]byte(strProposal), &changeParam)
 	if err != nil {
-		fmt.Errorf("get broken data when unmarshal SCParamsChange msg. proposalId %d, err %v", proposal.GetProposalID(), err)
+		return fmt.Errorf("get broken data when unmarshal SCParamsChange msg. proposalId %d, err %v", proposal.GetProposalID(), err)
+	}
+	return changeParam.Check()
+}
+
+//---------------------    BCParamsChangeHook  -----------------
+type BCParamsChangeHooks struct {
+	cdc *amino.Codec
+}
+
+func NewBCParamsChangeHook(cdc *amino.Codec) BCParamsChangeHooks {
+	return BCParamsChangeHooks{cdc}
+}
+
+var _ gov.GovHooks = BCParamsChangeHooks{}
+
+func (hooks BCParamsChangeHooks) OnProposalSubmitted(ctx sdk.Context, proposal gov.Proposal) error {
+	// enable after BEP159
+	if !sdk.IsUpgrade(sdk.BEP159) {
+		return nil
+	}
+	if proposal.GetProposalType() != gov.ProposalTypeParameterChange {
+		panic(fmt.Sprintf("received wrong type of proposal %x", proposal.GetProposalType()))
+	}
+
+	var changeParam types.BCChangeParams
+	strProposal := proposal.GetDescription()
+	err := hooks.cdc.UnmarshalJSON([]byte(strProposal), &changeParam)
+	if err != nil {
+		return fmt.Errorf("get broken data when unmarshal BCParamsChange msg. proposalId %d, err %v", proposal.GetProposalID(), err)
 	}
 	return changeParam.Check()
 }

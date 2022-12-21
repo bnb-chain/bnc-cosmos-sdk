@@ -1,6 +1,8 @@
 package types
 
-import "fmt"
+import (
+	"fmt"
+)
 
 var UpgradeMgr = NewUpgradeManager(UpgradeConfig{})
 
@@ -13,9 +15,11 @@ const (
 	LaunchBscUpgrade     = "LaunchBscUpgrade"
 	BEP82                = "BEP82" // https://github.com/bnb-chain/BEPs/pull/82
 	FixFailAckPackage    = "FixFailAckPackage"
-	BEP128               = "BEP128" //https://github.com/bnb-chain/BEPs/pull/128
-	BEP153               = "BEP153" //https://github.com/bnb-chain/BEPs/pull/153
-	BEP173               = "BEP173" //https://github.com/bnb-chain/BEPs/pull/173
+	BEP128               = "BEP128"       // https://github.com/bnb-chain/BEPs/pull/128
+	BEP153               = "BEP153"       // https://github.com/bnb-chain/BEPs/pull/153
+	BEP159               = "BEP159"       // https://github.com/bnb-chain/BEPs/pull/159
+	BEP159Phase2         = "BEP159Phase2" // phase 2 activation height of BEP159, enable create validator and active oracle relayer whitelist
+	BEP173               = "BEP173"       // https://github.com/bnb-chain/BEPs/pull/173
 	FixDoubleSignChainId = "FixDoubleSignChainId"
 )
 
@@ -39,6 +43,10 @@ func NewUpgradeManager(config UpgradeConfig) *UpgradeManager {
 	return &UpgradeManager{
 		Config: config,
 	}
+}
+
+func (mgr *UpgradeManager) Reset() {
+	*mgr = *NewUpgradeManager(UpgradeConfig{})
 }
 
 func (mgr *UpgradeManager) AddConfig(config UpgradeConfig) {

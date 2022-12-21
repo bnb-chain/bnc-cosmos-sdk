@@ -35,6 +35,8 @@ func NewHandler(k Keeper) sdk.Handler {
 			return handleMsgSideChainUnjail(ctx, msg, k)
 		case MsgBscSubmitEvidence:
 			return handleMsgBscSubmitEvidence(ctx, msg, k)
+		case MsgUnjail:
+			return handleMsgUnjail(ctx, msg, k)
 		default:
 			return sdk.ErrTxDecode("invalid message parse in staking module").Result()
 		}

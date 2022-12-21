@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/tendermint/tendermint/libs/log"
-
 	"github.com/cosmos/cosmos-sdk/bsc/rlp"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -15,6 +13,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/params"
 	"github.com/cosmos/cosmos-sdk/x/sidechain"
 	sTypes "github.com/cosmos/cosmos-sdk/x/sidechain/types"
+	"github.com/tendermint/tendermint/libs/log"
 )
 
 var (
@@ -23,6 +22,8 @@ var (
 
 	// for side chain
 	ParamStoreKeySCLastParamsChangeProposalID = []byte("SCLastParamsChangeProposalID")
+	// for beacon chain
+	ParamStoreKeyBCLastParamsChangeProposalID = []byte("BCLastParamsChangeProposalID")
 )
 
 const (
@@ -36,6 +37,7 @@ func ParamTypeTable() params.TypeTable {
 		ParamStoreKeyLastFeeChangeProposalID, types.LastProposalID{},
 		ParamStoreKeyFees, []types.FeeParam{},
 		ParamStoreKeySCLastParamsChangeProposalID, types.LastProposalID{},
+		ParamStoreKeyBCLastParamsChangeProposalID, types.LastProposalID{},
 	)
 }
 
@@ -54,6 +56,9 @@ type Keeper struct {
 	updateCallbacks  []func(sdk.Context, interface{})
 	genesisCallbacks []func(sdk.Context, interface{})
 	loadCallBacks    []func(sdk.Context, interface{})
+	// for beacon chain
+	subscriberBCParamSpace []*types.BCParamSpaceProto
+	updateBCCallbacks      []func(sdk.Context, interface{})
 }
 
 func NewKeeper(cdc *codec.Codec, key *sdk.KVStoreKey, tkey *sdk.TransientStoreKey) *Keeper {
@@ -73,6 +78,10 @@ func NewKeeper(cdc *codec.Codec, key *sdk.KVStoreKey, tkey *sdk.TransientStoreKe
 
 func (keeper *Keeper) GetSubscriberParamSpace() []*types.ParamSpaceProto {
 	return keeper.subscriberParamSpace
+}
+
+func (keeper *Keeper) GetSubscriberBCParamSpace() []*types.BCParamSpaceProto {
+	return keeper.subscriberBCParamSpace
 }
 
 func (keeper *Keeper) SetGovKeeper(govKeeper *gov.Keeper) {
@@ -134,6 +143,14 @@ func (keeper *Keeper) EndBlock(ctx sdk.Context) {
 			}
 		}
 	}
+	if sdk.IsUpgrade(sdk.BEP159) {
+		bcParamChanges := keeper.getLastBCParamChanges(ctx)
+		if bcParamChanges != nil {
+			for _, change := range bcParamChanges.BCParams {
+				keeper.notifyOnBCUpdate(ctx, change)
+			}
+		}
+	}
 	return
 }
 
@@ -143,6 +160,12 @@ func (keeper *Keeper) Logger(ctx sdk.Context) log.Logger {
 
 func (keeper *Keeper) notifyOnUpdate(context sdk.Context, change interface{}) {
 	for _, c := range keeper.updateCallbacks {
+		c(context, change)
+	}
+}
+
+func (keeper *Keeper) notifyOnBCUpdate(context sdk.Context, change interface{}) {
+	for _, c := range keeper.updateBCCallbacks {
 		c(context, change)
 	}
 }
@@ -181,6 +204,15 @@ func (keeper *Keeper) SubscribeParamChange(updateCb func(sdk.Context, interface{
 	}
 	if spaceProto != nil {
 		keeper.subscriberParamSpace = append(keeper.subscriberParamSpace, spaceProto)
+	}
+}
+
+func (keeper *Keeper) SubscribeBCParamChange(updateCb func(sdk.Context, interface{}), spaceProto *types.BCParamSpaceProto) {
+	if updateCb != nil {
+		keeper.updateBCCallbacks = append(keeper.updateBCCallbacks, updateCb)
+	}
+	if spaceProto != nil {
+		keeper.subscriberBCParamSpace = append(keeper.subscriberBCParamSpace, spaceProto)
 	}
 }
 

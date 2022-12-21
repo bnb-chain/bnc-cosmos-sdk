@@ -1,12 +1,17 @@
 package keeper
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
+	"sort"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
+	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/crypto"
+	tmtypes "github.com/tendermint/tendermint/types"
 )
 
 // get a single validator
@@ -145,6 +150,32 @@ func (k Keeper) SetValidatorByConsAddr(ctx sdk.Context, validator types.Validato
 	}
 }
 
+func (k Keeper) UpdateSideValidatorConsAddr(ctx sdk.Context, validator types.Validator, newConsAddr []byte) {
+	store := ctx.KVStore(k.storeKey)
+	store.Delete(GetValidatorByConsAddrKey(validator.SideConsAddr))
+	store.Set(GetValidatorByConsAddrKey(newConsAddr), validator.OperatorAddr)
+}
+
+func (k Keeper) UpdateValidatorPubKey(ctx sdk.Context, validator types.Validator, pubkey crypto.PubKey) {
+	store := ctx.KVStore(k.storeKey)
+	oldConsAddr := sdk.ConsAddress(validator.ConsPubKey.Address())
+	store.Delete(GetValidatorByConsAddrKey(oldConsAddr))
+	newConsAddr := sdk.ConsAddress(pubkey.Address())
+	store.Set(GetValidatorByConsAddrKey(newConsAddr), validator.OperatorAddr)
+	// update the abci validator update
+	if validator.IsBonded() {
+		oldValidatorUpdate := abci.ValidatorUpdate{
+			PubKey: tmtypes.TM2PB.PubKey(validator.ConsPubKey),
+			Power:  0,
+		}
+		newValidatorUpdate := abci.ValidatorUpdate{
+			PubKey: tmtypes.TM2PB.PubKey(pubkey),
+			Power:  validator.BondedTokens().RawInt(),
+		}
+		k.AddPendingABCIValidatorUpdate(ctx, []abci.ValidatorUpdate{oldValidatorUpdate, newValidatorUpdate})
+	}
+}
+
 // validator index
 func (k Keeper) SetValidatorByPowerIndex(ctx sdk.Context, validator types.Validator) {
 	// jailed validators are not kept in the power index
@@ -255,12 +286,16 @@ func (k Keeper) RemoveValidator(ctx sdk.Context, address sdk.ValAddress) {
 
 	// publish validator update
 	if k.PbsbServer != nil && ctx.IsDeliverTx() {
+		chainId := validator.SideChainId
+		if chainId == "" {
+			chainId = types.ChainIDForBeaconChain
+		}
 		k.PbsbServer.Publish(types.ValidatorRemovedEvent{
 			StakeEvent: types.StakeEvent{
 				IsFromTx: ctx.Tx() != nil,
 			},
-			Operator:    validator.OperatorAddr,
-			SideChainId: validator.SideChainId,
+			Operator: validator.OperatorAddr,
+			ChainId:  chainId,
 		})
 	}
 }
@@ -356,6 +391,26 @@ func (k Keeper) GetBondedValidatorsByPower(ctx sdk.Context) []types.Validator {
 		}
 	}
 	return validators[:i] // trim
+}
+
+func (k Keeper) GetSortedBondedValidators(ctx sdk.Context) []types.Validator {
+	validators := k.GetBondedValidatorsByPower(ctx)
+	sort.Slice(validators, func(i, j int) bool {
+		if validators[i].AccumulatedStake.GT(validators[j].AccumulatedStake) {
+			return true
+		}
+		if validators[i].AccumulatedStake.LT(validators[j].AccumulatedStake) {
+			return false
+		}
+		if validators[i].Tokens.GT(validators[j].Tokens) {
+			return true
+		}
+		if validators[i].Tokens.LT(validators[j].Tokens) {
+			return false
+		}
+		return bytes.Compare(validators[i].OperatorAddr, validators[j].OperatorAddr) > 0
+	})
+	return validators
 }
 
 // gets a specific validator queue timeslice. A timeslice is a slice of ValAddresses corresponding to unbonding validators

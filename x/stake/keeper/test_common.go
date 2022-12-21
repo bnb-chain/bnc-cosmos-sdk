@@ -7,23 +7,22 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/cosmos/cosmos-sdk/x/ibc"
-	"github.com/cosmos/cosmos-sdk/x/sidechain"
-	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/ed25519"
-	dbm "github.com/tendermint/tendermint/libs/db"
-	"github.com/tendermint/tendermint/libs/log"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/gov"
+	"github.com/cosmos/cosmos-sdk/x/ibc"
 	"github.com/cosmos/cosmos-sdk/x/params"
+	"github.com/cosmos/cosmos-sdk/x/sidechain"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
+	"github.com/stretchr/testify/require"
+	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/crypto/ed25519"
+	dbm "github.com/tendermint/tendermint/libs/db"
+	"github.com/tendermint/tendermint/libs/log"
 )
 
 // dummy addresses used for testing
@@ -63,11 +62,12 @@ func MakeTestCodec() *codec.Codec {
 	cdc.RegisterInterface((*sdk.Msg)(nil), nil)
 	cdc.RegisterConcrete(bank.MsgSend{}, "test/stake/Send", nil)
 	cdc.RegisterConcrete(types.MsgCreateValidator{}, "test/stake/CreateValidator", nil)
+	cdc.RegisterConcrete(types.MsgCreateValidatorOpen{}, "test/stake/CreateValidatorOpen", nil)
 	cdc.RegisterConcrete(types.MsgRemoveValidator{}, "test/stake/RemoveValidator", nil)
 	cdc.RegisterConcrete(types.MsgCreateValidatorProposal{}, "test/stake/CreateValidatorProposal", nil)
 	cdc.RegisterConcrete(types.MsgEditValidator{}, "test/stake/EditValidator", nil)
 	cdc.RegisterConcrete(types.MsgBeginUnbonding{}, "test/stake/BeginUnbonding", nil)
-	cdc.RegisterConcrete(types.MsgBeginRedelegate{}, "test/stake/BeginRedelegate", nil)
+	cdc.RegisterConcrete(types.MsgRedelegate{}, "test/stake/BeginRedelegate", nil)
 
 	// Register AppAccount
 	cdc.RegisterInterface((*sdk.Account)(nil), nil)
@@ -85,6 +85,7 @@ func getAccountCache(cdc *codec.Codec, ms sdk.MultiStore, accountKey *sdk.KVStor
 
 // hodgepodge of all sorts of input required for testing
 func CreateTestInput(t *testing.T, isCheckTx bool, initCoins int64) (sdk.Context, auth.AccountKeeper, Keeper) {
+	sdk.UpgradeMgr.Reset()
 
 	keyStake := sdk.NewKVStoreKey("stake")
 	keyStakeReward := sdk.NewKVStoreKey("stake_reward")
@@ -132,11 +133,13 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initCoins int64) (sdk.Context
 	ibcKeeper := ibc.NewKeeper(keyIbc, pk.Subspace(ibc.DefaultParamspace), ibc.DefaultCodespace, scKeeper)
 	keeper := NewKeeper(cdc, keyStake, keyStakeReward, tkeyStake, ck, nil, pk.Subspace(DefaultParamspace), types.DefaultCodespace, sdk.ChainID(0), "")
 	keeper.SetPool(ctx, types.InitialPool())
-	keeper.SetParams(ctx, types.DefaultParams())
 	sdk.UpgradeMgr.AddUpgradeHeight(sdk.LaunchBscUpgrade, 1)
 	sdk.UpgradeMgr.AddUpgradeHeight(sdk.BEP128, 100)
 	sdk.UpgradeMgr.Height = 100
-	keeper.SetParams(ctx, types.DefaultParams())
+	params := types.DefaultParams()
+	params.MinSelfDelegation = 10
+	params.MinDelegationChange = 2
+	keeper.SetParams(ctx, params)
 	keeper.SetupForSideChain(&scKeeper, &ibcKeeper)
 
 	// fill all the addresses with some coins, set the loose pool tokens simultaneously

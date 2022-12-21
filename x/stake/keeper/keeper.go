@@ -198,7 +198,7 @@ func (k *Keeper) SubscribeParamChange(hub pTypes.ParamChangePublisher) {
 				// do double check
 				err := change.UpdateCheck()
 				if err != nil {
-					context.Logger().Error("skip invalid param change", "err", err, "param", change)
+					context.Logger().Error("[sc] skip invalid param change", "err", err, "param", change)
 				} else {
 					res := k.GetParams(context)
 					// ignore BondDenom update if have.
@@ -208,7 +208,7 @@ func (k *Keeper) SubscribeParamChange(hub pTypes.ParamChangePublisher) {
 				}
 
 			default:
-				context.Logger().Debug("skip unknown param change")
+				context.Logger().Debug("[sc] skip unknown param change")
 			}
 		},
 		&pTypes.ParamSpaceProto{ParamSpace: k.paramstore, Proto: func() pTypes.SCParam {
@@ -216,6 +216,28 @@ func (k *Keeper) SubscribeParamChange(hub pTypes.ParamChangePublisher) {
 		}},
 		nil,
 		nil,
+	)
+}
+
+func (k *Keeper) SubscribeBCParamChange(hub pTypes.BCParamChangePublisher) {
+	hub.SubscribeBCParamChange(
+		func(context sdk.Context, iChange interface{}) {
+			switch change := iChange.(type) {
+			case *types.Params:
+				err := change.UpdateCheck()
+				if err != nil {
+					context.Logger().Error("[bc] skip invalid param change", "err", err, "param", change)
+				} else {
+					k.SetParams(context, *change)
+					break
+				}
+			default:
+				context.Logger().Debug("[bc] skip unknown bc param change")
+			}
+		},
+		&pTypes.BCParamSpaceProto{ParamSpace: k.paramstore, Proto: func() pTypes.BCParam {
+			return new(types.Params)
+		}},
 	)
 }
 

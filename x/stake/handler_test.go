@@ -5,13 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	keep "github.com/cosmos/cosmos-sdk/x/stake/keeper"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 //______________________________________________________________________
@@ -758,8 +757,8 @@ func TestRedelegationPeriod(t *testing.T) {
 	require.True(t, got.IsOK(), "expected no error on runMsgCreateValidator")
 
 	// self-validator begin redelegate, should fail
-	msgBeginRedelegate := NewMsgBeginRedelegate(sdk.AccAddress(validatorAddr), validatorAddr, validatorAddr2, sdk.NewDecWithoutFra(10))
-	got = handleMsgBeginRedelegate(ctx, msgBeginRedelegate, keeper)
+	msgBeginRedelegate := NewMsgRedelegate(sdk.AccAddress(validatorAddr), validatorAddr, validatorAddr2, sdk.NewCoin("steak", 10))
+	got = handleMsgRedelegate(ctx, msgBeginRedelegate, keeper)
 	require.False(t, got.IsOK(), "", got)
 	require.Contains(t, got.Log, "self-delegator cannot redelegate to other validators")
 
@@ -770,8 +769,8 @@ func TestRedelegationPeriod(t *testing.T) {
 
 	bal1 := AccMapper.GetAccount(ctx, delegatorAddr).GetCoins()
 	// partially redelegate
-	msgBeginRedelegate = NewMsgBeginRedelegate(delegatorAddr, validatorAddr, validatorAddr2, sdk.NewDecWithoutFra(6))
-	got = handleMsgBeginRedelegate(ctx, msgBeginRedelegate, keeper)
+	msgBeginRedelegate = NewMsgRedelegate(delegatorAddr, validatorAddr, validatorAddr2, sdk.NewCoin("steak", 6))
+	got = handleMsgRedelegate(ctx, msgBeginRedelegate, keeper)
 	require.True(t, got.IsOK())
 	// origin account should not lose tokens as with a regular delegation
 	bal2 := AccMapper.GetAccount(ctx, delegatorAddr).GetCoins()
@@ -782,8 +781,8 @@ func TestRedelegationPeriod(t *testing.T) {
 	// make the validator bonded
 	keeper.ApplyAndReturnValidatorSetUpdates(ctx)
 	// redelegate the rest tokens
-	msgBeginRedelegate = NewMsgBeginRedelegate(delegatorAddr, validatorAddr, validatorAddr2, sdk.NewDecWithoutFra(4))
-	got = handleMsgBeginRedelegate(ctx, msgBeginRedelegate, keeper)
+	msgBeginRedelegate = NewMsgRedelegate(delegatorAddr, validatorAddr, validatorAddr2, sdk.NewCoin("steak", 4))
+	got = handleMsgRedelegate(ctx, msgBeginRedelegate, keeper)
 	require.True(t, got.IsOK())
 
 	red, found = keeper.GetRedelegation(ctx, delegatorAddr, validatorAddr, validatorAddr2)
@@ -845,13 +844,13 @@ func TestTransitiveRedelegation(t *testing.T) {
 	require.True(t, got.IsOK())
 
 	// redelegate from 1->2 first
-	msgBeginRedelegate := NewMsgBeginRedelegate(delegatorAddr, validatorAddr, validatorAddr2, sdk.NewDecWithoutFra(10))
-	got = handleMsgBeginRedelegate(ctx, msgBeginRedelegate, keeper)
+	msgBeginRedelegate := NewMsgRedelegate(delegatorAddr, validatorAddr, validatorAddr2, sdk.NewCoin("steak", 10))
+	got = handleMsgRedelegate(ctx, msgBeginRedelegate, keeper)
 	require.True(t, got.IsOK(), "expected no error, %v", got)
 
 	// redelegate from 2->3 would fail
-	msgBeginRedelegate = NewMsgBeginRedelegate(delegatorAddr, validatorAddr2, validatorAddr3, sdk.NewDecWithoutFra(10))
-	got = handleMsgBeginRedelegate(ctx, msgBeginRedelegate, keeper)
+	msgBeginRedelegate = NewMsgRedelegate(delegatorAddr, validatorAddr2, validatorAddr3, sdk.NewCoin("steak", 10))
+	got = handleMsgRedelegate(ctx, msgBeginRedelegate, keeper)
 	require.False(t, got.IsOK(), "expected an error, msg: %v", msgBeginRedelegate)
 	require.Equal(t, got.Log, types.ErrTransitiveRedelegation(DefaultCodespace).ABCILog())
 
@@ -859,7 +858,7 @@ func TestTransitiveRedelegation(t *testing.T) {
 	EndBlocker(ctx, keeper)
 
 	// now should be able to redelegate from the second validator to the third
-	got = handleMsgBeginRedelegate(ctx, msgBeginRedelegate, keeper)
+	got = handleMsgRedelegate(ctx, msgBeginRedelegate, keeper)
 	require.True(t, got.IsOK(), "expected no error")
 }
 
@@ -892,12 +891,12 @@ func TestConflictingRedelegation(t *testing.T) {
 	require.True(t, got.IsOK())
 
 	// begin redelegate
-	msgBeginRedelegate := NewMsgBeginRedelegate(delegatorAddr, validatorAddr, validatorAddr2, sdk.NewDecWithoutFra(5))
-	got = handleMsgBeginRedelegate(ctx, msgBeginRedelegate, keeper)
+	msgBeginRedelegate := NewMsgRedelegate(delegatorAddr, validatorAddr, validatorAddr2, sdk.NewCoin("steak", 5))
+	got = handleMsgRedelegate(ctx, msgBeginRedelegate, keeper)
 	require.True(t, got.IsOK(), "expected no error, %v", got)
 
 	// cannot redelegate again while first redelegation still exists
-	got = handleMsgBeginRedelegate(ctx, msgBeginRedelegate, keeper)
+	got = handleMsgRedelegate(ctx, msgBeginRedelegate, keeper)
 	require.True(t, !got.IsOK(), "expected an error, msg: %v", msgBeginRedelegate)
 
 	// progress forward in time
@@ -907,7 +906,7 @@ func TestConflictingRedelegation(t *testing.T) {
 	EndBlocker(ctx, keeper)
 
 	// now should be able to redelegate again
-	got = handleMsgBeginRedelegate(ctx, msgBeginRedelegate, keeper)
+	got = handleMsgRedelegate(ctx, msgBeginRedelegate, keeper)
 	require.True(t, got.IsOK(), "expected no error")
 }
 
@@ -994,8 +993,8 @@ func TestBondUnbondRedelegateSlashTwice(t *testing.T) {
 	require.True(t, got.IsOK(), "expected no error on runMsgBeginUnbonding")
 
 	// begin redelegate 6 stake
-	msgBeginRedelegate := NewMsgBeginRedelegate(del, valA, valB, sdk.NewDecWithoutFra(6))
-	got = handleMsgBeginRedelegate(ctx, msgBeginRedelegate, keeper)
+	msgBeginRedelegate := NewMsgRedelegate(del, valA, valB, sdk.NewCoin("steak", sdk.NewDecWithoutFra(6).RawInt()))
+	got = handleMsgRedelegate(ctx, msgBeginRedelegate, keeper)
 	require.True(t, got.IsOK(), "expected no error on runMsgBeginRedelegate")
 
 	// destination delegation should have 6 shares
@@ -1177,4 +1176,104 @@ func TestRemoveValidatorAfterProposal(t *testing.T) {
 	msgRemoveValidator = NewMsgRemoveValidator(sdk.AccAddress(valF), valB, sdk.ConsAddress(keep.PKs[1].Address()), 2)
 	result = handleMsgRemoveValidatorAfterProposal(ctx, msgRemoveValidator, keeper, govKeeper)
 	require.False(t, result.IsOK())
+}
+
+func TestNewStakingProcess(t *testing.T) {
+	ctx, _, keeper := keep.CreateTestInput(t, false, 100000)
+	//setInstantUnbondPeriod(keeper, ctx)
+	// set BEP159 hardfork
+	sdk.UpgradeMgr.AddUpgradeHeight(sdk.BEP159, 200)
+	sdk.UpgradeMgr.Height = 200
+
+	bondAmount := int64(10000)
+	valAddr := sdk.ValAddress(keep.Addrs[0])
+	valConsPubKey, valConsAddr := keep.PKs[0], sdk.ConsAddress(keep.PKs[0].Address())
+	delAddr := keep.Addrs[1]
+
+	// create validator
+	msgCreateVal := NewTestMsgCreateValidator(valAddr, valConsPubKey, bondAmount)
+	got := handleMsgCreateValidator(ctx, msgCreateVal, keeper)
+	require.True(t, got.IsOK(), "expected create validator msg to be ok, got %v", got)
+
+	// must end-block
+	_, updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	require.Equal(t, 1, len(updates))
+
+	// verify the validator exists and has the correct attributes
+	validator, found := keeper.GetValidator(ctx, valAddr)
+	require.True(t, found)
+	require.Equal(t, sdk.Bonded, validator.Status)
+	require.Equal(t, sdk.NewDecWithoutFra(bondAmount), validator.DelegatorShares)
+	require.Equal(t, sdk.NewDecWithoutFra(bondAmount), validator.BondedTokens())
+
+	// delegate tokens to the validator
+	msgDelegate := NewTestMsgDelegate(delAddr, valAddr, bondAmount)
+	got = handleMsgDelegate(ctx, msgDelegate, keeper)
+	require.True(t, got.IsOK(), "expected delegation to be ok, got %v", got)
+
+	// verify validator bonded shares
+	validator, found = keeper.GetValidator(ctx, valAddr)
+	require.True(t, found)
+	require.Equal(t, sdk.NewDecWithoutFra(bondAmount*2), validator.DelegatorShares)
+	require.Equal(t, sdk.NewDecWithoutFra(bondAmount*2), validator.BondedTokens())
+
+	// unbond validator total self-delegations (which should jail the validator)
+	unbondShares := sdk.NewDecWithoutFra(10000)
+	msgBeginUnbonding := NewMsgBeginUnbonding(sdk.AccAddress(valAddr), valAddr, unbondShares)
+
+	got = handleMsgBeginUnbonding(ctx, msgBeginUnbonding, keeper)
+	require.True(t, got.IsOK(), "expected begin unbonding validator msg to be ok, got %v", got)
+
+	var finishTime time.Time
+	types.MsgCdc.MustUnmarshalBinaryLengthPrefixed(got.Data, &finishTime)
+	ctx = ctx.WithBlockTime(finishTime)
+	EndBlocker(ctx, keeper)
+
+	// verify the validator record still exists, is jailed, and has correct tokens
+	validator, found = keeper.GetValidator(ctx, valAddr)
+	require.True(t, found)
+	require.True(t, validator.Jailed)
+	require.Equal(t, sdk.NewDecWithoutFra(10000), validator.Tokens)
+
+	// verify delegation still exists
+	bond, found := keeper.GetDelegation(ctx, delAddr, valAddr)
+	require.True(t, found)
+	require.Equal(t, sdk.NewDecWithoutFra(bondAmount), bond.Shares)
+	require.Equal(t, sdk.NewDecWithoutFra(bondAmount), validator.DelegatorShares)
+
+	// verify a delegator cannot create a new delegation to the now jailed validator
+	msgDelegate = NewTestMsgDelegate(delAddr, valAddr, bondAmount)
+	got = handleMsgDelegate(ctx, msgDelegate, keeper)
+	require.False(t, got.IsOK(), "expected delegation to not be ok, got %v", got)
+
+	// verify the validator can still self-delegate
+	msgSelfDelegate := NewTestMsgDelegate(sdk.AccAddress(valAddr), valAddr, bondAmount)
+	got = handleMsgDelegate(ctx, msgSelfDelegate, keeper)
+	require.True(t, got.IsOK(), "expected delegation to not be ok, got %v", got)
+
+	// verify validator bonded shares
+	validator, found = keeper.GetValidator(ctx, valAddr)
+	require.True(t, found)
+	require.Equal(t, sdk.NewDecWithoutFra(bondAmount*2), validator.DelegatorShares)
+	require.Equal(t, sdk.NewDecWithoutFra(bondAmount*2), validator.Tokens)
+
+	// unjail the validator now that is has non-zero self-delegated shares
+	keeper.Unjail(ctx, valConsAddr)
+
+	// verify the validator can now accept delegations
+	msgDelegate = NewTestMsgDelegate(delAddr, valAddr, bondAmount)
+	got = handleMsgDelegate(ctx, msgDelegate, keeper)
+	require.True(t, got.IsOK(), "expected delegation to be ok, got %v", got)
+
+	// verify validator bonded shares
+	validator, found = keeper.GetValidator(ctx, valAddr)
+	require.True(t, found)
+	require.Equal(t, sdk.NewDecWithoutFra(bondAmount*3), validator.DelegatorShares)
+	require.Equal(t, sdk.NewDecWithoutFra(bondAmount*3), validator.Tokens)
+
+	// verify new delegation
+	bond, found = keeper.GetDelegation(ctx, delAddr, valAddr)
+	require.True(t, found)
+	require.Equal(t, sdk.NewDecWithoutFra(bondAmount*2), bond.Shares)
+	require.Equal(t, sdk.NewDecWithoutFra(bondAmount*3), validator.DelegatorShares)
 }
