@@ -28,7 +28,7 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 	var sideConsAddr2 bsc.Address
 	var err2 error
 
-	if sdk.IsUpgrade(sdk.BEP174) {
+	if sdk.IsUpgrade(sdk.FixDoubleSignChainId) {
 		sideConsAddr, err = msg.Headers[0].ExtractSignerFromHeader(chainID)
 		sideConsAddr2, err2 = msg.Headers[1].ExtractSignerFromHeader(chainID)
 	} else {
