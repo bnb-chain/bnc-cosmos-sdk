@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/bsc"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/fees"
 )
@@ -16,13 +17,28 @@ func handleMsgBscSubmitEvidence(ctx sdk.Context, msg MsgBscSubmitEvidence, k Kee
 		return ErrInvalidSideChainId(DefaultCodespace).Result()
 	}
 
+	chainID, err := SideChainIdFromText(sideChainId)
+	if err != nil {
+		return ErrInvalidEvidence(DefaultCodespace, err.Error()).Result()
+	}
+
 	header := ctx.BlockHeader()
-	sideConsAddr, err := msg.Headers[0].ExtractSignerFromHeader()
+
+	var sideConsAddr bsc.Address
+	var sideConsAddr2 bsc.Address
+	var err2 error
+
+	if sdk.IsUpgrade(sdk.FixDoubleSignChainId) {
+		sideConsAddr, err = msg.Headers[0].ExtractSignerFromHeader(chainID)
+		sideConsAddr2, err2 = msg.Headers[1].ExtractSignerFromHeader(chainID)
+	} else {
+		sideConsAddr, err = msg.Headers[0].ExtractSignerFromHeader(nil)
+		sideConsAddr2, err2 = msg.Headers[1].ExtractSignerFromHeader(nil)
+	}
 	if err != nil {
 		return ErrInvalidEvidence(DefaultCodespace, fmt.Sprintf("Failed to extract signer from block header, %s", err.Error())).Result()
 	}
-	sideConsAddr2, err := msg.Headers[1].ExtractSignerFromHeader()
-	if err != nil {
+	if err2 != nil {
 		return ErrInvalidEvidence(DefaultCodespace, fmt.Sprintf("Failed to extract signer from block header, %s", err.Error())).Result()
 	}
 	if bytes.Compare(sideConsAddr.Bytes(), sideConsAddr2.Bytes()) != 0 {

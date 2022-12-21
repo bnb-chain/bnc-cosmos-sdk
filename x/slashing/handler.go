@@ -1,8 +1,31 @@
 package slashing
 
 import (
+	"fmt"
+	"math/big"
+	"strings"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
+
+var (
+	SideChainIdBsc    = big.NewInt(56)
+	SideChainIdChapel = big.NewInt(97)
+	SideChainIdRialto = big.NewInt(714)
+)
+
+func SideChainIdFromText(str string) (*big.Int, error) {
+	switch strings.ToLower(str) {
+	case "bsc":
+		return SideChainIdBsc, nil
+	case "chapel":
+		return SideChainIdChapel, nil
+	case "rialto":
+		return SideChainIdRialto, nil
+	default:
+		return nil, fmt.Errorf("Provided sidechain name is not supported.")
+	}
+}
 
 func NewHandler(k Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
