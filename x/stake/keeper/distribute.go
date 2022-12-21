@@ -503,3 +503,14 @@ func crossDistributeReward(k Keeper, ctx sdk.Context, rewardCAoB sdk.AccAddress,
 	}}
 	return events, nil
 }
+
+func (k Keeper) GetPrevProposerDistributionAddr(ctx sdk.Context) sdk.AccAddress {
+	store := ctx.KVStore(k.storeKey)
+	bz := store.Get(PrevProposerDistributionAddrKey)
+	return bz
+}
+
+func (k Keeper) SetPrevProposerDistributionAddr(ctx sdk.Context, addr sdk.AccAddress) {
+	store := ctx.KVStore(k.storeKey)
+	store.Set(PrevProposerDistributionAddrKey, addr)
+}

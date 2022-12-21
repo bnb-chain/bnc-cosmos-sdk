@@ -15,6 +15,7 @@ const (
 )
 
 var (
+	FeeCollectorAddr       = sdk.AccAddress(crypto.AddressHash([]byte("FeeCollector")))
 	DelegationAccAddr      = sdk.AccAddress(crypto.AddressHash([]byte("BinanceChainStakeDelegation")))
 	FeeForAllBcValsAccAddr = sdk.AccAddress(crypto.AddressHash([]byte("BinanceChainStakeFeeForAllBcVals")))
 )

@@ -131,6 +131,7 @@ var (
 	NewQuerier    = querier.NewQuerier
 	NewBaseParams = querier.NewBaseParams
 
+	FeeCollectorAddr  = keeper.FeeCollectorAddr
 	DelegationAccAddr = keeper.DelegationAccAddr
 	FeeForAllAccAddr  = keeper.FeeForAllBcValsAccAddr
 )
