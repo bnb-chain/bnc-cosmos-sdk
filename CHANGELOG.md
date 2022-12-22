@@ -1,4 +1,10 @@
 # Changelog
+##v0.25.6
+* [sdk] [\#312](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/312) hardfork: add bsc chainID to encodeSigHeader when submitting evidence for slashing
+* [sdk] [\#294](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/294) BEP153: Native Staking Implementation
+
+##v0.25.5
+* [sdk] [\#311](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/311) query: enrich cross stake info query
 
 ##v0.25.4
 * [sdk] [\#305](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/305) BEP173: enable text proposal on BNB Smart Chain
