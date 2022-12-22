@@ -30,10 +30,10 @@ type (
 	QueryDelegatorParams        = querier.QueryDelegatorParams
 	QueryValidatorParams        = querier.QueryValidatorParams
 	QueryBondsParams            = querier.QueryBondsParams
+	QueryCrossStakeRewardParams = querier.QueryCrossStakeInfoParams
 	CreateValidatorJsonMsg      = types.CreateValidatorJsonMsg
 	QueryTopValidatorsParams    = querier.QueryTopValidatorsParams
 	BaseParams                  = querier.BaseParams
-	QueryCrossStakeRewardParams = querier.QueryCrossStakeRewardParams
 
 	MsgCreateSideChainValidator = types.MsgCreateSideChainValidator
 	MsgEditSideChainValidator   = types.MsgEditSideChainValidator
@@ -150,7 +150,7 @@ const (
 	QueryDelegatorValidator            = querier.QueryDelegatorValidator
 	QueryPool                          = querier.QueryPool
 	QueryParameters                    = querier.QueryParameters
-	QueryCrossStakeReward              = querier.QueryCrossStakeRewardByBscAddress
+	QueryCrossStakeInfo                = querier.QueryCrossStakeInfoByBscAddress
 
 	Topic = types.Topic
 )
