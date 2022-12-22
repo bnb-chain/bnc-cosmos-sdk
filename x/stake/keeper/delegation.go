@@ -13,6 +13,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/fees"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
+	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 // return a specific delegation
@@ -85,23 +86,22 @@ func (k Keeper) SetDelegation(ctx sdk.Context, delegation types.Delegation) {
 	store.Set(GetDelegationKey(delegation.DelegatorAddr, delegation.ValidatorAddr), b)
 
 	// sync delegation to the store with DelegationKeyByVal based
-	if len(ctx.SideChainId()) > 0 {
+	if len(ctx.SideChainId()) > 0 || sdk.IsUpgrade(sdk.BEP159) {
 		k.SetDelegationByVal(ctx, delegation)
 	}
 
 	// publish delegation update
 	if k.PbsbServer != nil && ctx.IsDeliverTx() {
+		chainId := ctx.SideChainId()
+		if len(chainId) == 0 {
+			chainId = types.ChainIDForBeaconChain
+		}
 		var event pubsub.Event = types.DelegationUpdateEvent{
 			StakeEvent: types.StakeEvent{
 				IsFromTx: ctx.Tx() != nil,
 			},
 			Delegation: delegation,
-		}
-		if len(ctx.SideChainId()) > 0 {
-			event = types.SideDelegationUpdateEvent{
-				DelegationUpdateEvent: event.(types.DelegationUpdateEvent),
-				SideChainId:           ctx.SideChainId(),
-			}
+			ChainId:    chainId,
 		}
 		k.PbsbServer.Publish(event)
 	}
@@ -127,6 +127,10 @@ func (k Keeper) RemoveDelegation(ctx sdk.Context, delegation types.Delegation) {
 
 	// publish delegation update
 	if k.PbsbServer != nil && ctx.IsDeliverTx() {
+		chainId := ctx.SideChainId()
+		if len(chainId) == 0 {
+			chainId = types.ChainIDForBeaconChain
+		}
 		var event pubsub.Event = types.DelegationRemovedEvent{
 			StakeEvent: types.StakeEvent{
 				IsFromTx: ctx.Tx() != nil,
@@ -135,12 +139,7 @@ func (k Keeper) RemoveDelegation(ctx sdk.Context, delegation types.Delegation) {
 				DelegatorAddr: delegation.DelegatorAddr,
 				ValidatorAddr: delegation.ValidatorAddr,
 			},
-		}
-		if len(ctx.SideChainId()) > 0 {
-			event = types.SideDelegationRemovedEvent{
-				DelegationRemovedEvent: event.(types.DelegationRemovedEvent),
-				SideChainId:            ctx.SideChainId(),
-			}
+			ChainId: chainId,
 		}
 		k.PbsbServer.Publish(event)
 	}
@@ -252,17 +251,16 @@ func (k Keeper) SetUnbondingDelegation(ctx sdk.Context, ubd types.UnbondingDeleg
 
 	// publish ubd update
 	if k.PbsbServer != nil && ctx.IsDeliverTx() {
+		chainId := ctx.SideChainId()
+		if len(chainId) == 0 {
+			chainId = types.ChainIDForBeaconChain
+		}
 		var event pubsub.Event = types.UBDUpdateEvent{
 			StakeEvent: types.StakeEvent{
 				IsFromTx: ctx.Tx() != nil,
 			},
-			UBD: ubd,
-		}
-		if len(ctx.SideChainId()) > 0 {
-			event = types.SideUBDUpdateEvent{
-				UBDUpdateEvent: event.(types.UBDUpdateEvent),
-				SideChainId:    ctx.SideChainId(),
-			}
+			UBD:     ubd,
+			ChainId: chainId,
 		}
 		k.PbsbServer.Publish(event)
 	}
@@ -405,17 +403,16 @@ func (k Keeper) SetRedelegation(ctx sdk.Context, red types.Redelegation) {
 
 	// publish red update
 	if k.PbsbServer != nil && ctx.IsDeliverTx() {
+		chainId := ctx.SideChainId()
+		if len(chainId) == 0 {
+			chainId = types.ChainIDForBeaconChain
+		}
 		var event pubsub.Event = types.REDUpdateEvent{
 			StakeEvent: types.StakeEvent{
 				IsFromTx: ctx.Tx() != nil,
 			},
-			RED: red,
-		}
-		if len(ctx.SideChainId()) > 0 {
-			event = types.SideREDUpdateEvent{
-				REDUpdateEvent: event.(types.REDUpdateEvent),
-				SideChainId:    ctx.SideChainId(),
-			}
+			RED:     red,
+			ChainId: chainId,
 		}
 		k.PbsbServer.Publish(event)
 	}
@@ -585,6 +582,10 @@ func (k Keeper) unbond(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValA
 		validator.TokensFromShares(delegation.Shares).RawInt() < k.MinSelfDelegation(ctx) {
 		k.jailValidator(ctx, validator)
 		k.OnSelfDelDropBelowMin(ctx, valAddr)
+		if sdk.IsUpgrade(sdk.BEP159) && ctx.SideChainId() == "" && validator.IsBonded() {
+			k.AddPendingABCIValidatorUpdate(ctx, []abci.ValidatorUpdate{validator.ABCIValidatorUpdateZero()})
+			k.DeleteLastValidatorPower(ctx, validator.OperatorAddr)
+		}
 		validator = k.mustGetValidator(ctx, validator.OperatorAddr)
 	}
 
@@ -883,4 +884,13 @@ func (k Keeper) crossDistributeUndelegated(ctx sdk.Context, delAddr sdk.AccAddre
 		Attributes: resultTags,
 	}}
 	return events, nil
+}
+
+func (k Keeper) IsSelfDelegator(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) (bool, sdk.Error) {
+	// get validator
+	validator, found := k.GetValidator(ctx, valAddr)
+	if !found {
+		return false, types.ErrNoValidatorFound(k.Codespace())
+	}
+	return validator.IsSelfDelegator(delAddr), nil
 }

@@ -10,6 +10,7 @@ GOTOOLS = \
 	github.com/golang/dep/cmd/dep \
 	github.com/alecthomas/gometalinter \
 	github.com/rakyll/statik
+
 all: get_tools get_vendor_deps install install_examples install_cosmos-sdk-cli test_lint test
 
 ########################################
@@ -113,6 +114,9 @@ test_examples:
 test_unit:
 	@VERSION=$(VERSION) go test $(PACKAGES_NOSIMULATION)
 
+test_coverage:
+	@VERSION=$(VERSION) go test $(PACKAGES_NOSIMULATION) -coverprofile=coverage.txt -covermode=atomic
+
 test_race:
 	@VERSION=$(VERSION) go test -race $(PACKAGES_NOSIMULATION)
 
@@ -154,12 +158,13 @@ test_lint:
 	!(grep -n branch Gopkg.toml)
 
 format:
-	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./client/lcd/statik/statik.go" | xargs gofmt -w -s
-	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./client/lcd/statik/statik.go" | xargs misspell -w
+	sh scripts/importssort.sh
 
 benchmark:
 	@go test -bench=. $(PACKAGES_NOSIMULATION)
 
+precommit: test_coverage format
+	@echo 'finish precommit check'
 
 ########################################
 ### Devdoc

@@ -115,7 +115,7 @@ func (k Keeper) setProphecy(ctx sdk.Context, prophecy types.Prophecy) {
 
 // ProcessClaim ...
 func (k Keeper) ProcessClaim(ctx sdk.Context, claim types.Claim) (types.Prophecy, sdk.Error) {
-	activeValidator := k.checkActiveValidator(ctx, claim.ValidatorAddress)
+	activeValidator := k.stakeKeeper.CheckIsValidOracleRelayer(ctx, claim.ValidatorAddress)
 	if !activeValidator {
 		return types.Prophecy{}, types.ErrInvalidValidator()
 	}
@@ -147,23 +147,13 @@ func (k Keeper) ProcessClaim(ctx sdk.Context, claim types.Claim) (types.Prophecy
 	return prophecy, nil
 }
 
-func (k Keeper) checkActiveValidator(ctx sdk.Context, validatorAddress sdk.ValAddress) bool {
-	validator, found := k.stakeKeeper.GetValidator(ctx, validatorAddress)
-	if !found {
-		return false
-	}
-
-	return validator.GetStatus().Equal(sdk.Bonded)
-}
-
 // processCompletion looks at a given prophecy
 // and assesses whether the claim with the highest power on that prophecy has enough
 // power to be considered successful, or alternatively,
 // will never be able to become successful due to not enough validation power being
 // left to push it over the threshold required for consensus.
 func (k Keeper) processCompletion(ctx sdk.Context, prophecy types.Prophecy) types.Prophecy {
-	highestClaim, highestClaimPower, totalClaimsPower := prophecy.FindHighestClaim(ctx, k.stakeKeeper)
-	totalPower := k.stakeKeeper.GetLastTotalPower(ctx)
+	highestClaim, highestClaimPower, totalClaimsPower, totalPower := prophecy.FindHighestClaim(ctx, k.stakeKeeper)
 
 	highestConsensusRatio := sdk.NewDec(highestClaimPower).Quo(sdk.NewDec(totalPower))
 	remainingPossibleClaimPower := totalPower - totalClaimsPower

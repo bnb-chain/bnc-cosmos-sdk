@@ -19,6 +19,11 @@ func AddCommands(root *cobra.Command, cdc *codec.Codec) {
 		client.PostCommands(
 			GetCmdCreateValidator(cdc),
 			GetCmdRemoveValidator(cdc),
+			GetCmdCreateValidatorOpen(cdc),
+			GetCmdEditValidator(cdc),
+			GetCmdDelegate(cdc),
+			GetCmdRedelegate(storeKey, cdc),
+			GetCmdUnbond(storeKey, cdc),
 		)...,
 	)
 	stakingCmd.AddCommand(client.LineBreak)
@@ -27,6 +32,13 @@ func AddCommands(root *cobra.Command, cdc *codec.Codec) {
 		client.GetCommands(
 			GetCmdQueryValidator(storeKey, cdc),
 			GetCmdQueryValidators(storeKey, cdc),
+			GetCmdQueryParams(storeKey, cdc),
+			GetCmdQueryDelegation(storeKey, cdc),
+			GetCmdQueryDelegations(storeKey, cdc),
+			GetCmdQueryPool(storeKey, cdc),
+			GetCmdQueryRedelegation(storeKey, cdc),
+			GetCmdQueryRedelegations(storeKey, cdc),
+			GetCmdQueryUnbondingDelegation(storeKey, cdc),
 			GetCmdQueryUnbondingDelegations(storeKey, cdc),
 		)...,
 	)
@@ -44,6 +56,7 @@ func AddCommands(root *cobra.Command, cdc *codec.Codec) {
 	stakingCmd.AddCommand(client.LineBreak)
 	stakingCmd.AddCommand(
 		client.GetCommands(
+			GetCmdQuerySideParams(storeKey, cdc),
 			GetCmdQuerySideValidator(storeKey, cdc),
 			GetCmdQuerySideChainDelegation(storeKey, cdc),
 			GetCmdQuerySideChainDelegations(storeKey, cdc),

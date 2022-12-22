@@ -71,6 +71,13 @@ var (
 
 		"crossDistributeRewardRelayFee":      {},
 		"crossDistributeUndelegatedRelayFee": {},
+
+		"create_validator_open": {},
+		"edit_validator":        {},
+		"delegate":              {},
+		"redelegate":            {},
+		"undelegate":            {},
+		"unjail":                {},
 	}
 
 	ValidTransferFeeMsgTypes = map[string]struct{}{
@@ -80,6 +87,10 @@ var (
 
 type ParamChangePublisher interface {
 	SubscribeParamChange(updateCb func(sdk.Context, interface{}), spaceProto *ParamSpaceProto, genesisCb func(sdk.Context, interface{}), loadCb func(sdk.Context, interface{}))
+}
+
+type BCParamChangePublisher interface {
+	SubscribeBCParamChange(updateCb func(sdk.Context, interface{}), spaceProto *BCParamSpaceProto)
 }
 
 type LastProposalID struct {
@@ -310,6 +321,54 @@ func (s *SCChangeParams) Check() error {
 			return err
 		}
 		paramType, _ := sc.GetParamAttribute()
+		if exist := paramSet[paramType]; exist {
+			delete(paramSet, paramType)
+		} else {
+			return fmt.Errorf("unsupported param type %s", paramType)
+		}
+	}
+	return nil
+}
+
+// ---------   Definition beacon chain prams change ------------------- //
+type BCParamSpaceProto struct {
+	ParamSpace subspace.Subspace
+	Proto      func() BCParam
+}
+
+type BCParam interface {
+	subspace.ParamSet
+	UpdateCheck() error
+	GetBCParamAttribute() string
+}
+
+type BCChangeParams struct {
+	BCParams    []BCParam `json:"bc_params"`
+	Description string    `json:"description"`
+}
+
+func (s *BCChangeParams) Check() error {
+	// use literal string to avoid import cycle
+	supportParams := []string{"staking"}
+
+	if len(s.BCParams) != len(supportParams) {
+		return fmt.Errorf("the bc_params length mismatch, suppose %d", len(supportParams))
+	}
+
+	paramSet := make(map[string]bool)
+	for _, s := range supportParams {
+		paramSet[s] = true
+	}
+
+	for _, bc := range s.BCParams {
+		if bc == nil {
+			return fmt.Errorf("bc_params contains empty element")
+		}
+		err := bc.UpdateCheck()
+		if err != nil {
+			return err
+		}
+		paramType := bc.GetBCParamAttribute()
 		if exist := paramSet[paramType]; exist {
 			delete(paramSet, paramType)
 		} else {

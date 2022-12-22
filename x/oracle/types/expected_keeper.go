@@ -1,4 +1,4 @@
-package types // noalias
+package types
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -11,4 +11,6 @@ type StakingKeeper interface {
 	GetLastValidatorPower(ctx sdk.Context, operator sdk.ValAddress) (power int64)
 	GetLastTotalPower(ctx sdk.Context) (power int64)
 	GetBondedValidatorsByPower(ctx sdk.Context) []stake.Validator
+	GetOracleRelayersPower(ctx sdk.Context) map[string]int64
+	CheckIsValidOracleRelayer(ctx sdk.Context, validatorAddress sdk.ValAddress) bool
 }

@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"sort"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
+	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 // Apply and return accumulated updates to the bonded validator set. Also,
@@ -126,6 +125,102 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (newVals []ty
 	if len(updates) > 0 {
 		k.SetLastTotalPower(ctx, totalPower)
 	}
+
+	return newVals, updates
+}
+
+// update staked tokens snapshots of all validators
+// elect topN validators according to the accumulated staked tokens over snapshotNum
+func (k Keeper) UpdateAndElectValidators(ctx sdk.Context) (newVals []types.Validator, updates []abci.ValidatorUpdate) {
+	snapshotNum := int(k.MaxStakeSnapshots(ctx))
+	var validators []types.Validator
+	store := ctx.KVStore(k.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, ValidatorsKey)
+	defer iterator.Close()
+	var validator types.Validator
+	for ; iterator.Valid(); iterator.Next() {
+		validator = types.MustUnmarshalValidator(k.cdc, iterator.Value())
+		if validator.Tokens.IsZero() {
+			k.RemoveValidator(ctx, validator.OperatorAddr)
+			continue
+		}
+		validator.StakeSnapshots = append(validator.StakeSnapshots, validator.Tokens)
+		snapshotsLen := len(validator.StakeSnapshots)
+		if snapshotsLen > snapshotNum {
+			validator.StakeSnapshots = validator.StakeSnapshots[snapshotsLen-snapshotNum:]
+		}
+		accumulatedStake := sdk.ZeroDec()
+		for _, s := range validator.StakeSnapshots {
+			accumulatedStake = accumulatedStake.Add(s)
+		}
+		validator.AccumulatedStake = accumulatedStake
+		// set snapshot change
+		k.SetValidator(ctx, validator)
+		// validator which is jailed will not be election candidate
+		if validator.Jailed {
+			continue
+		}
+		validators = append(validators, validator)
+	}
+	sort.SliceStable(validators, func(i, j int) bool {
+		if validators[i].AccumulatedStake.GT(validators[j].AccumulatedStake) {
+			return true
+		}
+		if validators[i].AccumulatedStake.LT(validators[j].AccumulatedStake) {
+			return false
+		}
+		// for the same accumulated stake, sort by operator address
+		return bytes.Compare(validators[i].OperatorAddr, validators[j].OperatorAddr) > 0
+	})
+
+	var valsNotElected []types.Validator
+	maxValidators := int(k.MaxValidators(ctx))
+	if len(validators) > maxValidators {
+		newVals = validators[:maxValidators]
+		valsNotElected = validators[maxValidators:]
+	} else {
+		newVals = validators
+	}
+
+	var totalPower int64
+	var operatorBytes [sdk.AddrLen]byte
+	last := k.getLastValidatorsByAddr(ctx)
+	for i, validator := range newVals {
+		switch validator.Status {
+		case sdk.Unbonded:
+			validator = k.unbondedToBonded(ctx, validator)
+		case sdk.Unbonding:
+			validator = k.unbondingToBonded(ctx, validator)
+		case sdk.Bonded:
+			// no state change
+		default:
+			panic("unexpected validator status")
+		}
+		newVals[i] = validator
+		copy(operatorBytes[:], validator.OperatorAddr[:])
+		oldPowerBytes, found := last[operatorBytes]
+		newPower := validator.BondedTokens().RawInt()
+		newPowerBytes := k.cdc.MustMarshalBinaryLengthPrefixed(newPower)
+		if !found || !bytes.Equal(oldPowerBytes, newPowerBytes) {
+			updates = append(updates, validator.ABCIValidatorUpdate())
+			k.SetLastValidatorPower(ctx, validator.OperatorAddr, newPower)
+		}
+		delete(last, operatorBytes)
+		totalPower = totalPower + newPower
+	}
+	for _, validator := range valsNotElected {
+		if validator.Status == sdk.Bonded {
+			k.bondedToUnbonding(ctx, validator)
+			k.DeleteLastValidatorPower(ctx, validator.OperatorAddr)
+			updates = append(updates, validator.ABCIValidatorUpdateZero())
+		}
+		copy(operatorBytes[:], validator.OperatorAddr[:])
+		delete(last, operatorBytes)
+	}
+	for operatorBytes := range last {
+		k.DeleteLastValidatorPower(ctx, operatorBytes[:])
+	}
+	k.SetLastTotalPower(ctx, totalPower)
 
 	return newVals, updates
 }
@@ -298,4 +393,41 @@ func (k Keeper) sortNoLongerBonded(last validatorsByAddr) [][]byte {
 		return bytes.Compare(noLongerBonded[i], noLongerBonded[j]) == -1
 	})
 	return noLongerBonded
+}
+
+func (k Keeper) AddPendingABCIValidatorUpdate(ctx sdk.Context, validatorUpdate []abci.ValidatorUpdate) {
+	if len(validatorUpdate) == 0 {
+		return
+	}
+	store := ctx.KVStore(k.storeKey)
+	var currentValidatorUpdate []abci.ValidatorUpdate
+	bz := store.Get(PendingValidatorUpdateKey)
+	if bz != nil {
+		k.cdc.MustUnmarshalBinaryLengthPrefixed(bz, &currentValidatorUpdate)
+	}
+	// remove the duplicates
+	validatorUpdateMap := make(map[string]int)
+	combinedSlice := append(currentValidatorUpdate[:], validatorUpdate...)
+	var finalValidatorUpdate []abci.ValidatorUpdate
+	for _, v := range combinedSlice {
+		if index, ok := validatorUpdateMap[v.PubKey.String()]; ok {
+			finalValidatorUpdate[index] = v
+		} else {
+			validatorUpdateMap[v.PubKey.String()] = len(finalValidatorUpdate)
+			finalValidatorUpdate = append(finalValidatorUpdate, v)
+		}
+	}
+	bz = k.cdc.MustMarshalBinaryLengthPrefixed(finalValidatorUpdate)
+	store.Set(PendingValidatorUpdateKey, bz)
+
+}
+
+func (k Keeper) PopPendingABCIValidatorUpdate(ctx sdk.Context) (validatorUpdate []abci.ValidatorUpdate) {
+	store := ctx.KVStore(k.storeKey)
+	bz := store.Get(PendingValidatorUpdateKey)
+	if bz != nil {
+		k.cdc.MustUnmarshalBinaryLengthPrefixed(bz, &validatorUpdate)
+		store.Delete(PendingValidatorUpdateKey)
+	}
+	return
 }

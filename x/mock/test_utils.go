@@ -1,12 +1,14 @@
 package mock
 
 import (
+	"fmt"
 	"math/big"
 	"math/rand"
 	"testing"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
@@ -97,4 +99,58 @@ func SignCheckDeliver(
 	app.Commit()
 
 	return res
+}
+
+func GetAccount(app *App, addr sdk.AccAddress) sdk.Account {
+	ctxCheck := app.BaseApp.NewContext(sdk.RunTxModeCheck, abci.Header{})
+	res := app.AccountKeeper.GetAccount(ctxCheck, addr)
+	return res
+}
+
+func GenSimTxs(
+	t *testing.T, app *App, msgs []sdk.Msg, expSimPass bool, privs ...crypto.PrivKey,
+) (txs []auth.StdTx) {
+	accSeqMap := make(map[string][2]int64)
+	for i, priv := range privs {
+		addr := sdk.AccAddress(priv.PubKey().Address())
+		accNumSeq, found := accSeqMap[addr.String()]
+		if !found {
+			acc := GetAccount(app, addr)
+			if acc == nil {
+				panic(fmt.Sprintf("account %s not found", addr))
+			}
+			accNumSeq[0] = acc.GetAccountNumber()
+			accNumSeq[1] = acc.GetSequence()
+		}
+		tx := GenTx(msgs[i:i+1], []int64{accNumSeq[0]}, []int64{accNumSeq[1]}, priv)
+		res := app.Simulate(nil, tx)
+		if expSimPass {
+			require.Equal(t, sdk.ABCICodeOK, res.Code, res.Log)
+		} else {
+			require.NotEqual(t, sdk.ABCICodeOK, res.Code, res.Log)
+		}
+		accSeqMap[addr.String()] = [2]int64{accNumSeq[0], accNumSeq[1] + 1}
+		txs = append(txs, tx)
+	}
+	return txs
+}
+
+func ApplyBlock(t *testing.T, app *baseapp.BaseApp, height int64, txs []auth.StdTx) (newHeight int64) {
+	app.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{
+		Height: height,
+	}})
+	for _, tx := range txs {
+		res := app.Deliver(tx)
+		require.Equal(t, sdk.ABCICodeOK, res.Code, res.Log)
+	}
+	app.EndBlock(abci.RequestEndBlock{Height: height})
+	app.Commit()
+	return height + 1
+}
+
+func ApplyEmptyBlocks(t *testing.T, app *baseapp.BaseApp, height int64, blockNum int) (newHeight int64) {
+	for i := 0; i < blockNum; i++ {
+		height = ApplyBlock(t, app, height, []auth.StdTx{})
+	}
+	return height
 }

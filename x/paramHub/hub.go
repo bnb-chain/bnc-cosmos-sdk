@@ -83,6 +83,17 @@ func RegisterUpgradeBeginBlocker(paramHub *ParamHub) {
 		}
 		paramHub.UpdateFeeParams(ctx, crossStakeFeeParams)
 	})
+	sdk.UpgradeMgr.RegisterBeginBlocker(sdk.BEP159, func(ctx sdk.Context) {
+		updateFeeParams := []param.FeeParam{
+			&param.FixedFeeParams{MsgType: "create_validator_open", Fee: CreateValidatorFee, FeeFor: sdk.FeeForProposer},
+			&param.FixedFeeParams{MsgType: "edit_validator", Fee: EditChainValidatorFee, FeeFor: sdk.FeeForProposer},
+			&param.FixedFeeParams{MsgType: "delegate", Fee: ChainDelegateFee, FeeFor: sdk.FeeForProposer},
+			&param.FixedFeeParams{MsgType: "redelegate", Fee: ChainRedelegateFee, FeeFor: sdk.FeeForProposer},
+			&param.FixedFeeParams{MsgType: "undelegate", Fee: ChainUndelegateFee, FeeFor: sdk.FeeForProposer},
+			&param.FixedFeeParams{MsgType: "unjail", Fee: Unjail, FeeFor: sdk.FeeForProposer},
+		}
+		paramHub.UpdateFeeParams(ctx, updateFeeParams)
+	})
 }
 
 func EndBreatheBlock(ctx sdk.Context, paramHub *ParamHub) {
@@ -144,5 +155,11 @@ func init() {
 		"miniIssueMsg":                       fees.FixedFeeCalculatorGen,
 		"crossDistributeRewardRelayFee":      fees.FixedFeeCalculatorGen,
 		"crossDistributeUndelegatedRelayFee": fees.FixedFeeCalculatorGen,
+		"create_validator_open":              fees.FixedFeeCalculatorGen,
+		"edit_validator":                     fees.FixedFeeCalculatorGen,
+		"delegate":                           fees.FixedFeeCalculatorGen,
+		"redelegate":                         fees.FixedFeeCalculatorGen,
+		"undelegate":                         fees.FixedFeeCalculatorGen,
+		"unjail":                             fees.FixedFeeCalculatorGen,
 	}
 }

@@ -112,6 +112,10 @@ func ErrNilDelegatorAddr(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidInput, "delegator address is nil")
 }
 
+func ErrInvalidPubKey(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidInput, "validator pubkey is invalid")
+}
+
 func ErrNilLauncherAddr(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidInput, "launcher address of remove validator is nil")
 }
@@ -250,4 +254,8 @@ func ErrNoBalance(msg string) sdk.Error {
 
 func ErrNotEnoughBalance(msg string) sdk.Error {
 	return sdk.NewError(DefaultCodespace, CodeCrossStakingNotEnoughBalance, msg)
+}
+
+func ErrNotSelfDelegate(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidValidator, "only self delegate is allowed")
 }

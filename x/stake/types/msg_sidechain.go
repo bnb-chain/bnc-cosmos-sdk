@@ -129,15 +129,18 @@ type MsgEditSideChainValidator struct {
 	SideChainId string `json:"side_chain_id"`
 	// for SideFeeAddr, we do not update the values if they are not provided.
 	SideFeeAddr []byte `json:"side_fee_addr"`
+
+	SideConsAddr []byte `json:"side_cons_addr,omitempty"`
 }
 
-func NewMsgEditSideChainValidator(sideChainId string, validatorAddr sdk.ValAddress, description Description, commissionRate *sdk.Dec, sideFeeAddr []byte) MsgEditSideChainValidator {
+func NewMsgEditSideChainValidator(sideChainId string, validatorAddr sdk.ValAddress, description Description, commissionRate *sdk.Dec, sideFeeAddr, sideConsAddr []byte) MsgEditSideChainValidator {
 	return MsgEditSideChainValidator{
 		Description:    description,
 		ValidatorAddr:  validatorAddr,
 		CommissionRate: commissionRate,
 		SideChainId:    sideChainId,
 		SideFeeAddr:    sideFeeAddr,
+		SideConsAddr:   sideConsAddr,
 	}
 }
 
@@ -179,6 +182,15 @@ func (msg MsgEditSideChainValidator) ValidateBasic() sdk.Error {
 	// if SideFeeAddr is empty, we do not update it.
 	if len(msg.SideFeeAddr) != 0 {
 		if err := checkSideChainAddr("SideFeeAddr", msg.SideFeeAddr); err != nil {
+			return err
+		}
+	}
+
+	if len(msg.SideConsAddr) != 0 {
+		if !sdk.IsUpgrade(sdk.BEP159) {
+			return sdk.NewError(DefaultCodespace, CodeInvalidInput, "side consensus address cannot be updated before BEP159")
+		}
+		if err := checkSideChainAddr("SideConsAddr", msg.SideConsAddr); err != nil {
 			return err
 		}
 	}

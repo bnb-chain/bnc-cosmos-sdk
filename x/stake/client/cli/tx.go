@@ -15,7 +15,6 @@ import (
 	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/stake"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -227,6 +226,81 @@ func GetCmdRemoveValidator(cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
+func GetCmdCreateValidatorOpen(cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "create-validator-open",
+		Short: "create new validator initialized with a self-delegation to it",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			txBldr := authtxb.NewTxBuilderFromCLI().WithCodec(cdc)
+			cliCtx := context.NewCLIContext().
+				WithCodec(cdc).
+				WithAccountDecoder(authcmd.GetAccountDecoder(cdc))
+
+			amount, err := getAmount()
+			if err != nil {
+				return err
+			}
+
+			valAddr, err := cliCtx.GetFromAddress()
+			if err != nil {
+				return err
+			}
+
+			pkStr := viper.GetString(FlagPubKey)
+			if len(pkStr) == 0 {
+				return fmt.Errorf("must use --pubkey flag")
+			}
+
+			if viper.GetString(FlagMoniker) == "" {
+				return fmt.Errorf("please enter a moniker for the validator using --moniker")
+			}
+
+			description := stake.Description{
+				Moniker:  viper.GetString(FlagMoniker),
+				Identity: viper.GetString(FlagIdentity),
+				Website:  viper.GetString(FlagWebsite),
+				Details:  viper.GetString(FlagDetails),
+			}
+
+			// get the initial validator commission parameters
+			rateStr := viper.GetString(FlagCommissionRate)
+			maxRateStr := viper.GetString(FlagCommissionMaxRate)
+			maxChangeRateStr := viper.GetString(FlagCommissionMaxChangeRate)
+			commissionMsg, err := buildCommissionMsg(rateStr, maxRateStr, maxChangeRateStr)
+			if err != nil {
+				return err
+			}
+
+			msg := stake.MsgCreateValidatorOpen{
+				DelegatorAddr: valAddr,
+				ValidatorAddr: sdk.ValAddress(valAddr),
+				PubKey:        pkStr,
+				Description:   description,
+				Commission:    commissionMsg,
+				Delegation:    amount,
+			}
+			if viper.GetString(FlagAddressDelegator) != "" {
+				delAddr, err := sdk.AccAddressFromBech32(viper.GetString(FlagAddressDelegator))
+				if err != nil {
+					return err
+				}
+				msg.DelegatorAddr = delAddr
+			}
+			// build and sign the transaction, then broadcast to Tendermint
+			return utils.CompleteAndBroadcastTxCli(txBldr, cliCtx, []sdk.Msg{msg})
+		},
+	}
+
+	cmd.Flags().AddFlagSet(fsPk)
+	cmd.Flags().AddFlagSet(fsAmount)
+	cmd.Flags().AddFlagSet(fsDescriptionCreate)
+	cmd.Flags().AddFlagSet(fsCommissionCreate)
+	cmd.Flags().AddFlagSet(fsDelegator)
+	cmd.MarkFlagRequired(client.FlagFrom)
+
+	return cmd
+}
+
 // GetCmdEditValidator implements the create edit validator command.
 func GetCmdEditValidator(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
@@ -262,13 +336,16 @@ func GetCmdEditValidator(cdc *codec.Codec) *cobra.Command {
 				newRate = &rate
 			}
 
-			msg := stake.NewMsgEditValidator(sdk.ValAddress(valAddr), description, newRate)
+			pkStr := viper.GetString(FlagPubKey)
+
+			msg := stake.NewMsgEditValidator(sdk.ValAddress(valAddr), description, newRate, pkStr)
 			return utils.GenerateOrBroadcastMsgs(txBldr, cliCtx, []sdk.Msg{msg})
 		},
 	}
 
 	cmd.Flags().AddFlagSet(fsDescriptionEdit)
 	cmd.Flags().AddFlagSet(fsCommissionUpdate)
+	cmd.Flags().AddFlagSet(fsPk)
 
 	return cmd
 }
@@ -337,23 +414,17 @@ func GetCmdRedelegate(storeName string, cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			// get the shares amount
-			sharesAmountStr := viper.GetString(FlagSharesAmount)
-			sharesPercentStr := viper.GetString(FlagSharesPercent)
-			sharesAmount, err := getShares(
-				storeName, cdc, sharesAmountStr, sharesPercentStr,
-				delAddr, valSrcAddr,
-			)
+			amount, err := getAmount()
 			if err != nil {
 				return err
 			}
 
-			msg := stake.NewMsgBeginRedelegate(delAddr, valSrcAddr, valDstAddr, sharesAmount)
+			msg := stake.NewMsgRedelegate(delAddr, valSrcAddr, valDstAddr, amount)
 			return utils.GenerateOrBroadcastMsgs(txBldr, cliCtx, []sdk.Msg{msg})
 		},
 	}
 
-	cmd.Flags().AddFlagSet(fsShares)
+	cmd.Flags().AddFlagSet(fsAmount)
 	cmd.Flags().AddFlagSet(fsRedelegation)
 	return cmd
 }
@@ -361,8 +432,8 @@ func GetCmdRedelegate(storeName string, cdc *codec.Codec) *cobra.Command {
 // GetCmdUnbond implements the unbond validator command.
 func GetCmdUnbond(storeName string, cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "unbond",
-		Short: "unbond shares from a validator",
+		Use:   "undelegate",
+		Short: "undelegate token from a validator",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			txBldr := authtxb.NewTxBuilderFromCLI().WithCodec(cdc)
 			cliCtx := context.NewCLIContext().
@@ -379,23 +450,17 @@ func GetCmdUnbond(storeName string, cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			// get the shares amount
-			sharesAmountStr := viper.GetString(FlagSharesAmount)
-			sharesPercentStr := viper.GetString(FlagSharesPercent)
-			sharesAmount, err := getShares(
-				storeName, cdc, sharesAmountStr, sharesPercentStr,
-				delAddr, valAddr,
-			)
+			amount, err := getAmount()
 			if err != nil {
 				return err
 			}
 
-			msg := stake.NewMsgBeginUnbonding(delAddr, valAddr, sharesAmount)
+			msg := stake.NewMsgUndelegate(delAddr, valAddr, amount)
 			return utils.GenerateOrBroadcastMsgs(txBldr, cliCtx, []sdk.Msg{msg})
 		},
 	}
 
-	cmd.Flags().AddFlagSet(fsShares)
+	cmd.Flags().AddFlagSet(fsAmount)
 	cmd.Flags().AddFlagSet(fsValidator)
 	return cmd
 }

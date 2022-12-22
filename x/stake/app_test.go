@@ -3,10 +3,6 @@ package stake
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
-	abci "github.com/tendermint/tendermint/abci/types"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/bank"
@@ -14,6 +10,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/mock"
 	"github.com/cosmos/cosmos-sdk/x/params"
 	"github.com/cosmos/cosmos-sdk/x/sidechain"
+	"github.com/stretchr/testify/require"
+	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 // getMockApp returns an initialized mock application for this module.
@@ -159,7 +157,7 @@ func TestStakeMsgs(t *testing.T) {
 
 	// edit the validator
 	description = NewDescription("bar_moniker", "", "", "")
-	editValidatorMsg := NewMsgEditValidator(sdk.ValAddress(addr1), description, nil)
+	editValidatorMsg := NewMsgEditValidator(sdk.ValAddress(addr1), description, nil, "")
 
 	mock.SignCheckDeliver(t, mApp.BaseApp, []sdk.Msg{editValidatorMsg}, []int64{0}, []int64{2}, true, true, priv1)
 	validator = checkValidator(t, mApp, keeper, sdk.ValAddress(addr1), true)

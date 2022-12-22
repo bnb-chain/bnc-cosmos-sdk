@@ -180,7 +180,7 @@ func (app *CrossStakeApp) handleDelegate(ctx sdk.Context, pack *types.CrossStake
 	// publish delegate event
 	if app.stakeKeeper.PbsbServer != nil && ctx.IsDeliverTx() {
 		app.stakeKeeper.AddrPool.AddAddrs([]sdk.AccAddress{sdk.PegAccount, delAddr})
-		event := types.SideDelegateEvent{
+		event := types.ChainDelegateEvent{
 			DelegateEvent: types.DelegateEvent{
 				StakeEvent: types.StakeEvent{
 					IsFromTx: true,
@@ -192,7 +192,7 @@ func (app *CrossStakeApp) handleDelegate(ctx sdk.Context, pack *types.CrossStake
 				TxHash:     ctx.Value(baseapp.TxHashKey).(string),
 				CrossStake: true,
 			},
-			SideChainId: sideChainId,
+			ChainId: sideChainId,
 		}
 		app.stakeKeeper.PbsbServer.Publish(event)
 		PublishCrossStakeEvent(ctx, app.stakeKeeper, sdk.PegAccount.String(), []pubsub.CrossReceiver{{delAddr.String(), pack.Amount.Int64()}},
@@ -236,7 +236,7 @@ func (app *CrossStakeApp) handleUndelegate(ctx sdk.Context, pack *types.CrossSta
 	if app.stakeKeeper.PbsbServer != nil && ctx.IsDeliverTx() {
 		txHash := ctx.Value(baseapp.TxHashKey)
 		if txHashStr, ok := txHash.(string); ok {
-			event := types.SideUnDelegateEvent{
+			event := types.ChainUndelegateEvent{
 				UndelegateEvent: types.UndelegateEvent{
 					StakeEvent: types.StakeEvent{
 						IsFromTx: true,
@@ -247,7 +247,7 @@ func (app *CrossStakeApp) handleUndelegate(ctx sdk.Context, pack *types.CrossSta
 					Denom:     app.stakeKeeper.BondDenom(ctx),
 					TxHash:    txHashStr,
 				},
-				SideChainId: sideChainId,
+				ChainId: sideChainId,
 			}
 			app.stakeKeeper.PbsbServer.Publish(event)
 		} else {
@@ -309,7 +309,7 @@ func (app *CrossStakeApp) handleRedelegate(ctx sdk.Context, pack *types.CrossSta
 	if app.stakeKeeper.PbsbServer != nil && ctx.IsDeliverTx() {
 		txHash := ctx.Value(baseapp.TxHashKey)
 		if txHashStr, ok := txHash.(string); ok {
-			event := types.SideRedelegateEvent{
+			event := types.ChainRedelegateEvent{
 				RedelegateEvent: types.RedelegateEvent{
 					StakeEvent: types.StakeEvent{
 						IsFromTx: true,
@@ -321,13 +321,12 @@ func (app *CrossStakeApp) handleRedelegate(ctx sdk.Context, pack *types.CrossSta
 					Denom:        app.stakeKeeper.BondDenom(ctx),
 					TxHash:       txHashStr,
 				},
-				SideChainId: sideChainId,
+				ChainId: sideChainId,
 			}
 			app.stakeKeeper.PbsbServer.Publish(event)
 		} else {
-			ctx.Logger().With("module", "stake").Error("failed to get txhash, will not publish side redelegate event ")
+			ctx.Logger().With("module", "stake").Error("failed to get txhash, will not publish side undelegate event ")
 		}
-
 	}
 
 	resultTags := sdk.NewTags(
