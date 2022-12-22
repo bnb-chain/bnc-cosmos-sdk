@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"math/big"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -95,4 +96,33 @@ type CrossStakeRefundPackage struct {
 func GetStakeCAoB(sourceAddr []byte, salt string) sdk.AccAddress {
 	saltBytes := []byte("Staking" + salt + "Address Anchor")
 	return sdk.XOR(tmhash.SumTruncated(saltBytes), sourceAddr)
+}
+
+// ----------------------------------------------------------------------------
+// Client Types
+
+type CrossStakeInfoResponse struct {
+	Reward            int64          `json:"reward"`
+	DelegationAddress sdk.AccAddress `json:"delegation_address"`
+	RewardAddress     sdk.AccAddress `json:"reward_address"`
+}
+
+// NewCrossStakeInfoResponse creates a new CrossStakeInfoResponse instance
+func NewCrossStakeInfoResponse(
+	delAddr sdk.AccAddress, rewardAddr sdk.AccAddress, reward int64,
+) CrossStakeInfoResponse {
+	return CrossStakeInfoResponse{
+		reward,
+		delAddr,
+		rewardAddr,
+	}
+}
+
+func (dr CrossStakeInfoResponse) HumanReadableString() (string, error) {
+	resp := "Delegation \n"
+	resp += fmt.Sprintf("Reward: %d\n", dr.Reward)
+	resp += fmt.Sprintf("Delegation address: %s\n", dr.DelegationAddress.String())
+	resp += fmt.Sprintf("Reward address: %s", dr.RewardAddress.String())
+
+	return resp, nil
 }

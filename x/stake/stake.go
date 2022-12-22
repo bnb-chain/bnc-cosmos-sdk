@@ -8,32 +8,32 @@ import (
 )
 
 type (
-	Keeper                      = keeper.Keeper
-	Validator                   = types.Validator
-	Description                 = types.Description
-	Commission                  = types.Commission
-	Delegation                  = types.Delegation
-	UnbondingDelegation         = types.UnbondingDelegation
-	Redelegation                = types.Redelegation
-	Params                      = types.Params
-	Pool                        = types.Pool
-	MsgCreateValidator          = types.MsgCreateValidator
-	MsgCreateValidatorOpen      = types.MsgCreateValidatorOpen
-	MsgRemoveValidator          = types.MsgRemoveValidator
-	MsgCreateValidatorProposal  = types.MsgCreateValidatorProposal
-	MsgEditValidator            = types.MsgEditValidator
-	MsgDelegate                 = types.MsgDelegate
-	MsgBeginUnbonding           = types.MsgBeginUnbonding
-	MsgRedelegate               = types.MsgRedelegate
-	MsgUndelegate               = types.MsgUndelegate
-	GenesisState                = types.GenesisState
-	QueryDelegatorParams        = querier.QueryDelegatorParams
-	QueryValidatorParams        = querier.QueryValidatorParams
-	QueryBondsParams            = querier.QueryBondsParams
-	CreateValidatorJsonMsg      = types.CreateValidatorJsonMsg
-	QueryTopValidatorsParams    = querier.QueryTopValidatorsParams
-	BaseParams                  = querier.BaseParams
-	QueryCrossStakeRewardParams = querier.QueryCrossStakeRewardParams
+	Keeper                     = keeper.Keeper
+	Validator                  = types.Validator
+	Description                = types.Description
+	Commission                 = types.Commission
+	Delegation                 = types.Delegation
+	UnbondingDelegation        = types.UnbondingDelegation
+	Redelegation               = types.Redelegation
+	Params                     = types.Params
+	Pool                       = types.Pool
+	MsgCreateValidator         = types.MsgCreateValidator
+	MsgCreateValidatorOpen     = types.MsgCreateValidatorOpen
+	MsgRemoveValidator         = types.MsgRemoveValidator
+	MsgCreateValidatorProposal = types.MsgCreateValidatorProposal
+	MsgEditValidator           = types.MsgEditValidator
+	MsgDelegate                = types.MsgDelegate
+	MsgBeginUnbonding          = types.MsgBeginUnbonding
+	MsgRedelegate              = types.MsgRedelegate
+	MsgUndelegate              = types.MsgUndelegate
+	GenesisState               = types.GenesisState
+	QueryDelegatorParams       = querier.QueryDelegatorParams
+	QueryValidatorParams       = querier.QueryValidatorParams
+	QueryBondsParams           = querier.QueryBondsParams
+	QueryCrossStakeInfoParams  = querier.QueryCrossStakeInfoParams
+	CreateValidatorJsonMsg     = types.CreateValidatorJsonMsg
+	QueryTopValidatorsParams   = querier.QueryTopValidatorsParams
+	BaseParams                 = querier.BaseParams
 
 	MsgCreateSideChainValidator = types.MsgCreateSideChainValidator
 	MsgEditSideChainValidator   = types.MsgEditSideChainValidator
@@ -150,7 +150,7 @@ const (
 	QueryDelegatorValidator            = querier.QueryDelegatorValidator
 	QueryPool                          = querier.QueryPool
 	QueryParameters                    = querier.QueryParameters
-	QueryCrossStakeReward              = querier.QueryCrossStakeRewardByBscAddress
+	QueryCrossStakeInfo                = querier.QueryCrossStakeInfoByBscAddress
 
 	Topic = types.Topic
 )
