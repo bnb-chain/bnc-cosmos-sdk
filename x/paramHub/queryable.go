@@ -67,6 +67,7 @@ func CreateAbciQueryHandler(paramHub *ParamHub) func(sdk.Context, abci.RequestQu
 			}
 		case "sideParams":
 			if len(req.Data) == 0 {
+				fmt.Println("err-1")
 				return &abci.ResponseQuery{
 					Code: uint32(sdk.CodeInternal),
 					Log:  "missing side chain id",
@@ -75,6 +76,7 @@ func CreateAbciQueryHandler(paramHub *ParamHub) func(sdk.Context, abci.RequestQu
 			var sideChainId string
 			err := paramHub.GetCodeC().UnmarshalJSON(req.Data, &sideChainId)
 			if err != nil {
+				fmt.Println("err0", err.Error())
 				return &abci.ResponseQuery{
 					Code: uint32(sdk.CodeInternal),
 					Log:  fmt.Sprintf("invalid data %v", err),
@@ -82,6 +84,7 @@ func CreateAbciQueryHandler(paramHub *ParamHub) func(sdk.Context, abci.RequestQu
 			}
 			params, sdkErr := paramHub.GetSCParams(ctx, sideChainId)
 			if sdkErr != nil {
+				fmt.Println("err1", sdkErr.Error())
 				return &abci.ResponseQuery{
 					Code: uint32(sdkErr.ABCICode()),
 					Log:  sdkErr.ABCILog(),
@@ -89,6 +92,7 @@ func CreateAbciQueryHandler(paramHub *ParamHub) func(sdk.Context, abci.RequestQu
 			}
 			bz, err := paramHub.GetCodeC().MarshalJSON(params)
 			if err != nil {
+				fmt.Println("err2", err.Error())
 				return &abci.ResponseQuery{
 					Code: uint32(sdk.CodeInternal),
 					Log:  err.Error(),
