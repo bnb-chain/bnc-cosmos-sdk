@@ -84,6 +84,7 @@ func CreateAbciQueryHandler(paramHub *ParamHub) func(sdk.Context, abci.RequestQu
 					Log:  fmt.Sprintf("invalid data %v", err),
 				}
 			}
+			fmt.Println("step1")
 			params, sdkErr := paramHub.GetSCParams(ctx, sideChainId)
 			if sdkErr != nil {
 				fmt.Println("err1", sdkErr.Error())
@@ -92,6 +93,7 @@ func CreateAbciQueryHandler(paramHub *ParamHub) func(sdk.Context, abci.RequestQu
 					Log:  sdkErr.ABCILog(),
 				}
 			}
+			fmt.Println("step2")
 			bz, err := paramHub.GetCodeC().MarshalJSON(params)
 			if err != nil {
 				fmt.Println("err2", err.Error())
@@ -100,6 +102,8 @@ func CreateAbciQueryHandler(paramHub *ParamHub) func(sdk.Context, abci.RequestQu
 					Log:  err.Error(),
 				}
 			}
+			fmt.Println("step3")
+
 			return &abci.ResponseQuery{
 				Code:  uint32(sdk.ABCICodeOK),
 				Value: bz,
