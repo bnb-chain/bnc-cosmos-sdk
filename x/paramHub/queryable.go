@@ -2,11 +2,11 @@ package paramHub
 
 import (
 	"fmt"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/paramHub/types"
 	abci "github.com/tendermint/tendermint/abci/types"
+	"runtime/debug"
 )
 
 func NewQuerier(hub *ParamHub, cdc *codec.Codec) sdk.Querier {
@@ -85,6 +85,11 @@ func CreateAbciQueryHandler(paramHub *ParamHub) func(sdk.Context, abci.RequestQu
 				}
 			}
 			fmt.Println("step1")
+			defer func() {
+				if r := recover(); r != nil {
+					fmt.Println("recovered: %v\nstack:\n%v", r, string(debug.Stack()))
+				}
+			}()
 			params, sdkErr := paramHub.GetSCParams(ctx, sideChainId)
 			if sdkErr != nil {
 				fmt.Println("err1", sdkErr.Error())
@@ -93,7 +98,6 @@ func CreateAbciQueryHandler(paramHub *ParamHub) func(sdk.Context, abci.RequestQu
 					Log:  sdkErr.ABCILog(),
 				}
 			}
-			fmt.Println("step2")
 			bz, err := paramHub.GetCodeC().MarshalJSON(params)
 			if err != nil {
 				fmt.Println("err2", err.Error())
