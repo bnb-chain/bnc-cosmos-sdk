@@ -30,10 +30,12 @@ func NewQuerier(hub *ParamHub, cdc *codec.Codec) sdk.Querier {
 			}
 			params, sdkErr := hub.GetSCParams(ctx, sideChainId)
 			if err != nil {
+				fmt.Println("err-last-1", err.Error())
 				return nil, sdkErr
 			}
 			res, err := cdc.MarshalJSON(params)
 			if err != nil {
+				fmt.Println("err-last", err.Error())
 				return nil, sdk.ErrInternal(err.Error())
 			}
 			return res, nil
