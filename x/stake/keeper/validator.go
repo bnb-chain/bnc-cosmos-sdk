@@ -486,3 +486,19 @@ func (k Keeper) UnbondAllMatureValidatorQueue(ctx sdk.Context) {
 		store.Delete(validatorTimesliceIterator.Key())
 	}
 }
+
+func (k Keeper) GetValLatestUpdateConsAddrTime(ctx sdk.Context, addr sdk.ValAddress) (t time.Time, err error) {
+	store := ctx.KVStore(k.storeKey)
+	value := store.Get(GetValLatestUpdateConsAddrTimeKey(addr))
+	if value == nil {
+		return
+	}
+	t, err = sdk.ParseTimeBytes(value)
+	return
+}
+
+func (k Keeper) SetValLatestUpdateConsAddrTime(ctx sdk.Context, addr sdk.ValAddress, t time.Time) {
+	store := ctx.KVStore(k.storeKey)
+	bz := sdk.FormatTimeBytes(t)
+	store.Set(GetValLatestUpdateConsAddrTimeKey(addr), bz)
+}

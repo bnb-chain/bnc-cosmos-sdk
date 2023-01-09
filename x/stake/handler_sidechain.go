@@ -3,7 +3,6 @@ package stake
 import (
 	"bytes"
 	"fmt"
-
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/stake/keeper"
@@ -110,8 +109,17 @@ func handleMsgEditSideChainValidator(ctx sdk.Context, msg MsgEditSideChainValida
 		if found {
 			return ErrValidatorSideConsAddrExist(k.Codespace()).Result()
 		}
+		// check update sideConsAddr interval
+		latestUpdateConsAddrTime, err := k.GetValLatestUpdateConsAddrTime(ctx, validator.OperatorAddr)
+		if err != nil {
+			return sdk.ErrInternal(fmt.Sprintf("failed to get latest update cons addr time: %s", err)).Result()
+		}
+		if ctx.BlockHeader().Time.Sub(latestUpdateConsAddrTime).Hours() < 24*30 {
+			return types.ErrConsAddrUpdateTime().Result()
+		}
 		// here consAddr is the sideConsAddr
 		k.UpdateSideValidatorConsAddr(ctx, validator, msg.SideConsAddr)
+		k.SetValLatestUpdateConsAddrTime(ctx, validator.OperatorAddr, ctx.BlockHeader().Time)
 		validator.SideConsAddr = msg.SideConsAddr
 	}
 

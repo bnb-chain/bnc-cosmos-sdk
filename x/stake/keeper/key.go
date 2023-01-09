@@ -10,7 +10,7 @@ import (
 
 // TODO remove some of these prefixes once have working multistore
 
-//nolint
+// nolint
 var (
 	// Keys for store prefixes
 	// TODO DEPRECATED: delete in next release and reorder keys
@@ -38,6 +38,7 @@ var (
 	RedelegationByValDstIndexKey     = []byte{0x36} // prefix for each key for an redelegation, by destination validator operator
 	DelegationKeyByVal               = []byte{0x37} // prefix for each key for a delegation, by validator operator and delegator
 	SimplifiedDelegationsKey         = []byte{0x38} // prefix for each key for an simplifiedDelegations, by height and validator operator
+	ValLatestUpdateConsAddrTimeKey   = []byte{0x39} // prefix for each key for an latest update ConsAddr time, by validator operator
 
 	UnbondingQueueKey    = []byte{0x41} // prefix for the timestamps in unbonding queue
 	RedelegationQueueKey = []byte{0x42} // prefix for the timestamps in redelegations queue
@@ -329,4 +330,8 @@ func GetREDsByDelToValDstIndexKey(delAddr sdk.AccAddress, valDstAddr sdk.ValAddr
 	return append(
 		GetREDsToValDstIndexKey(valDstAddr),
 		delAddr.Bytes()...)
+}
+
+func GetValLatestUpdateConsAddrTimeKey(valAddr sdk.ValAddress) []byte {
+	return append(ValLatestUpdateConsAddrTimeKey, valAddr.Bytes()...)
 }
