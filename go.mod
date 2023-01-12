@@ -76,7 +76,7 @@ require (
 replace (
 	github.com/tendermint/go-amino => github.com/bnb-chain/bnc-go-amino v0.14.1-binance.2
 	github.com/tendermint/iavl => github.com/bnb-chain/bnc-tendermint-iavl v0.12.0-binance.4
-	github.com/tendermint/tendermint => github.com/j75689/bnc-tendermint v0.0.0-20230111171156-3a6a329312e2
+	github.com/tendermint/tendermint => github.com/j75689/bnc-tendermint v0.0.0-20230112083157-57426726bba0
 	//github.com/tendermint/tendermint => github.com/bnb-chain/bnc-tendermint v0.32.3-binance.7
 	github.com/zondax/ledger-cosmos-go => github.com/j75689/ledger-cosmos-go v0.0.0-20230112072609-4e4a718b5897
 	//github.com/zondax/ledger-cosmos-go => github.com/bnb-chain/ledger-cosmos-go v0.9.9-binance.3
