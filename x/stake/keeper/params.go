@@ -3,10 +3,11 @@ package keeper
 import (
 	"time"
 
+	"github.com/tendermint/tendermint/crypto"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/params"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
-	"github.com/tendermint/tendermint/crypto"
 )
 
 // Default parameter namespace
@@ -161,8 +162,14 @@ func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
 	k.paramstore.Set(ctx, types.KeyMaxValidators, params.MaxValidators)
 	k.paramstore.Set(ctx, types.KeyBondDenom, params.BondDenom)
 	if sdk.IsUpgrade(sdk.LaunchBscUpgrade) {
-		k.paramstore.Set(ctx, types.KeyMinSelfDelegation, params.MinSelfDelegation)
-		k.paramstore.Set(ctx, types.KeyMinDelegationChange, params.MinDelegationChange)
+		if ctx.ChainID() == sdk.ChainIdGanges {
+			k.paramstore.Set(ctx, types.KeyMaxValidators, uint16(11))
+			k.paramstore.Set(ctx, types.KeyMinSelfDelegation, int64(5000000000000))
+			k.paramstore.Set(ctx, types.KeyMinDelegationChange, params.MinDelegationChange)
+		} else {
+			k.paramstore.Set(ctx, types.KeyMinSelfDelegation, params.MinSelfDelegation)
+			k.paramstore.Set(ctx, types.KeyMinDelegationChange, params.MinDelegationChange)
+		}
 	}
 	if sdk.IsUpgrade(sdk.BEP128) {
 		k.paramstore.Set(ctx, types.KeyRewardDistributionBatchSize, params.RewardDistributionBatchSize)
