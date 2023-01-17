@@ -34,41 +34,82 @@ func RegisterUpgradeBeginBlocker(paramHub *ParamHub) {
 		paramHub.UpdateFeeParams(ctx, swapFeeParams)
 	})
 	sdk.UpgradeMgr.RegisterBeginBlocker(sdk.LaunchBscUpgrade, func(ctx sdk.Context) {
-		updateFeeParams := []param.FeeParam{
-			&param.FixedFeeParams{MsgType: "side_create_validator", Fee: CreateSideChainValidatorFee, FeeFor: sdk.FeeForProposer},
-			&param.FixedFeeParams{MsgType: "side_edit_validator", Fee: EditSideChainValidatorFee, FeeFor: sdk.FeeForProposer},
-			&param.FixedFeeParams{MsgType: "side_delegate", Fee: SideChainDelegateFee, FeeFor: sdk.FeeForProposer},
-			&param.FixedFeeParams{MsgType: "side_redelegate", Fee: SideChainRedelegateFee, FeeFor: sdk.FeeForProposer},
-			&param.FixedFeeParams{MsgType: "side_undelegate", Fee: SideChainUndelegateFee, FeeFor: sdk.FeeForProposer},
+		println("-=================-")
+		println(ctx.ChainID())
+		if ctx.ChainID() == sdk.ChainIdGanges {
+			updateFeeParams := []param.FeeParam{
+				&param.FixedFeeParams{MsgType: "side_create_validator", Fee: CreateSideChainValidatorFee, FeeFor: sdk.FeeForProposer},
+				&param.FixedFeeParams{MsgType: "side_edit_validator", Fee: EditSideChainValidatorFee, FeeFor: sdk.FeeForProposer},
+				&param.FixedFeeParams{MsgType: "side_delegate", Fee: SideChainDelegateFee, FeeFor: sdk.FeeForProposer},
+				&param.FixedFeeParams{MsgType: "side_redelegate", Fee: SideChainRedelegateFee, FeeFor: sdk.FeeForProposer},
+				&param.FixedFeeParams{MsgType: "side_undelegate", Fee: SideChainUndelegateFee, FeeFor: sdk.FeeForProposer},
 
-			&param.FixedFeeParams{MsgType: "bsc_submit_evidence", Fee: BscSubmitEvidenceFee, FeeFor: sdk.FeeForProposer},
-			&param.FixedFeeParams{MsgType: "side_chain_unjail", Fee: SideChainUnjail, FeeFor: sdk.FeeForProposer},
+				&param.FixedFeeParams{MsgType: "bsc_submit_evidence", Fee: BscSubmitEvidenceFee, FeeFor: sdk.FeeForProposer},
+				&param.FixedFeeParams{MsgType: "side_chain_unjail", Fee: SideChainUnjail, FeeFor: sdk.FeeForProposer},
 
-			&param.FixedFeeParams{MsgType: "side_submit_proposal", Fee: SideProposeFee, FeeFor: sdk.FeeForProposer},
-			&param.FixedFeeParams{MsgType: "side_deposit", Fee: SideDepositFee, FeeFor: sdk.FeeForProposer},
-			&param.FixedFeeParams{MsgType: "side_vote", Fee: SideVoteFee, FeeFor: sdk.FeeForProposer},
+				&param.FixedFeeParams{MsgType: "side_submit_proposal", Fee: SideProposeFee, FeeFor: sdk.FeeForProposer},
+				&param.FixedFeeParams{MsgType: "side_deposit", Fee: SideDepositFee, FeeFor: sdk.FeeForProposer},
+				&param.FixedFeeParams{MsgType: "side_vote", Fee: SideVoteFee, FeeFor: sdk.FeeForProposer},
 
-			&param.FixedFeeParams{MsgType: "crossBind", Fee: CrossBindFee, FeeFor: sdk.FeeForProposer},
-			&param.FixedFeeParams{MsgType: "crossUnbind", Fee: CrossUnbindFee, FeeFor: sdk.FeeForProposer},
-			&param.FixedFeeParams{MsgType: "crossTransferOut", Fee: CrossTransferOutFee, FeeFor: sdk.FeeForProposer},
-			&param.FixedFeeParams{MsgType: "oracleClaim", Fee: sdk.ZeroFee, FeeFor: sdk.FeeFree},
+				&param.FixedFeeParams{MsgType: "crossBind", Fee: 1e6, FeeFor: sdk.FeeForProposer},
+				&param.FixedFeeParams{MsgType: "crossUnbind", Fee: 1e6, FeeFor: sdk.FeeForProposer},
+				&param.FixedFeeParams{MsgType: "crossTransferOut", Fee: 1e6, FeeFor: sdk.FeeForProposer},
+				&param.FixedFeeParams{MsgType: "oracleClaim", Fee: sdk.ZeroFee, FeeFor: sdk.FeeFree},
 
-			// Following fees are charged on BC, and received at BSC, they are still fees in a broad sense, so still
-			// decide to put it here, rather than in paramset.
-			&param.FixedFeeParams{MsgType: "crossBindRelayFee", Fee: CrossBindRelayFee, FeeFor: sdk.FeeForProposer},
-			&param.FixedFeeParams{MsgType: "crossUnbindRelayFee", Fee: CrossUnbindRelayFee, FeeFor: sdk.FeeForProposer},
-			&param.FixedFeeParams{MsgType: "crossTransferOutRelayFee", Fee: CrossTransferOutRelayFee, FeeFor: sdk.FeeForProposer},
+				// Following fees are charged on BC, and received at BSC, they are still fees in a broad sense, so still
+				// decide to put it here, rather than in paramset.
+				&param.FixedFeeParams{MsgType: "crossBindRelayFee", Fee: CrossBindRelayFee, FeeFor: sdk.FeeForProposer},
+				&param.FixedFeeParams{MsgType: "crossUnbindRelayFee", Fee: CrossUnbindRelayFee, FeeFor: sdk.FeeForProposer},
+				&param.FixedFeeParams{MsgType: "crossTransferOutRelayFee", Fee: 2e6, FeeFor: sdk.FeeForProposer},
+			}
+			paramHub.UpdateFeeParams(ctx, updateFeeParams)
+		} else {
+			updateFeeParams := []param.FeeParam{
+				&param.FixedFeeParams{MsgType: "side_create_validator", Fee: CreateSideChainValidatorFee, FeeFor: sdk.FeeForProposer},
+				&param.FixedFeeParams{MsgType: "side_edit_validator", Fee: EditSideChainValidatorFee, FeeFor: sdk.FeeForProposer},
+				&param.FixedFeeParams{MsgType: "side_delegate", Fee: SideChainDelegateFee, FeeFor: sdk.FeeForProposer},
+				&param.FixedFeeParams{MsgType: "side_redelegate", Fee: SideChainRedelegateFee, FeeFor: sdk.FeeForProposer},
+				&param.FixedFeeParams{MsgType: "side_undelegate", Fee: SideChainUndelegateFee, FeeFor: sdk.FeeForProposer},
+
+				&param.FixedFeeParams{MsgType: "bsc_submit_evidence", Fee: BscSubmitEvidenceFee, FeeFor: sdk.FeeForProposer},
+				&param.FixedFeeParams{MsgType: "side_chain_unjail", Fee: SideChainUnjail, FeeFor: sdk.FeeForProposer},
+
+				&param.FixedFeeParams{MsgType: "side_submit_proposal", Fee: SideProposeFee, FeeFor: sdk.FeeForProposer},
+				&param.FixedFeeParams{MsgType: "side_deposit", Fee: SideDepositFee, FeeFor: sdk.FeeForProposer},
+				&param.FixedFeeParams{MsgType: "side_vote", Fee: SideVoteFee, FeeFor: sdk.FeeForProposer},
+
+				&param.FixedFeeParams{MsgType: "crossBind", Fee: CrossBindFee, FeeFor: sdk.FeeForProposer},
+				&param.FixedFeeParams{MsgType: "crossUnbind", Fee: CrossUnbindFee, FeeFor: sdk.FeeForProposer},
+				&param.FixedFeeParams{MsgType: "crossTransferOut", Fee: CrossTransferOutFee, FeeFor: sdk.FeeForProposer},
+				&param.FixedFeeParams{MsgType: "oracleClaim", Fee: sdk.ZeroFee, FeeFor: sdk.FeeFree},
+
+				// Following fees are charged on BC, and received at BSC, they are still fees in a broad sense, so still
+				// decide to put it here, rather than in paramset.
+				&param.FixedFeeParams{MsgType: "crossBindRelayFee", Fee: CrossBindRelayFee, FeeFor: sdk.FeeForProposer},
+				&param.FixedFeeParams{MsgType: "crossUnbindRelayFee", Fee: CrossUnbindRelayFee, FeeFor: sdk.FeeForProposer},
+				&param.FixedFeeParams{MsgType: "crossTransferOutRelayFee", Fee: CrossTransferOutRelayFee, FeeFor: sdk.FeeForProposer},
+			}
+			paramHub.UpdateFeeParams(ctx, updateFeeParams)
 		}
-		paramHub.UpdateFeeParams(ctx, updateFeeParams)
 	})
 	sdk.UpgradeMgr.RegisterBeginBlocker(sdk.BEP8, func(ctx sdk.Context) {
-		miniTokenFeeParams := []param.FeeParam{
-			&param.FixedFeeParams{MsgType: "tinyIssueMsg", Fee: TinyIssueFee, FeeFor: sdk.FeeForAll},
-			&param.FixedFeeParams{MsgType: "miniIssueMsg", Fee: MiniIssueFee, FeeFor: sdk.FeeForAll},
-			&param.FixedFeeParams{MsgType: "miniTokensSetURI", Fee: MiniSetUriFee, FeeFor: sdk.FeeForProposer},
-			&param.FixedFeeParams{MsgType: "dexListMini", Fee: MiniListingFee, FeeFor: sdk.FeeForAll},
+		if ctx.ChainID() == sdk.ChainIdGanges {
+			miniTokenFeeParams := []param.FeeParam{
+				&param.FixedFeeParams{MsgType: "tinyIssueMsg", Fee: TinyIssueFee, FeeFor: sdk.FeeForAll},
+				&param.FixedFeeParams{MsgType: "miniIssueMsg", Fee: 4e8, FeeFor: sdk.FeeForAll},
+				&param.FixedFeeParams{MsgType: "miniTokensSetURI", Fee: MiniSetUriFee, FeeFor: sdk.FeeForProposer},
+				&param.FixedFeeParams{MsgType: "dexListMini", Fee: 10e8, FeeFor: sdk.FeeForAll},
+			}
+			paramHub.UpdateFeeParams(ctx, miniTokenFeeParams)
+		} else {
+			miniTokenFeeParams := []param.FeeParam{
+				&param.FixedFeeParams{MsgType: "tinyIssueMsg", Fee: TinyIssueFee, FeeFor: sdk.FeeForAll},
+				&param.FixedFeeParams{MsgType: "miniIssueMsg", Fee: MiniIssueFee, FeeFor: sdk.FeeForAll},
+				&param.FixedFeeParams{MsgType: "miniTokensSetURI", Fee: MiniSetUriFee, FeeFor: sdk.FeeForProposer},
+				&param.FixedFeeParams{MsgType: "dexListMini", Fee: MiniListingFee, FeeFor: sdk.FeeForAll},
+			}
+			paramHub.UpdateFeeParams(ctx, miniTokenFeeParams)
 		}
-		paramHub.UpdateFeeParams(ctx, miniTokenFeeParams)
 	})
 	sdk.UpgradeMgr.RegisterBeginBlocker(sdk.BEP82, func(ctx sdk.Context) {
 		updateFeeParams := []param.FeeParam{
