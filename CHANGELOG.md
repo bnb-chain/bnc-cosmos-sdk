@@ -1,8 +1,10 @@
 # Changelog
 
 ##v0.25.7
+
 * [sdk] [\#320](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/320) fix: the breaking change of genesis state for testnet
 * [sdk] [\#319](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/319) dep: update deps that were reported in OSV issues
+* [sdk] [\#318](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/318) feat: limit sidechain consensus addr update interval
 * [sdk] [\#317](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/317) fix: bnbcli params side-params error
 * [sdk] [\#316](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/316) feat: support unjail cli
 
