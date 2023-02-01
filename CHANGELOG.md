@@ -1,4 +1,12 @@
 # Changelog
+
+##v0.25.7
+* [sdk] [\#320](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/320) fix: the breaking change of genesis state for testnet
+* [sdk] [\#319](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/319) dep: update deps that were reported in OSV issues
+* [sdk] [\#317](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/317) fix: bnbcli params side-params error
+* [sdk] [\#316](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/316) feat: support unjail cli
+
+
 ##v0.25.6
 * [sdk] [\#312](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/312) hardfork: add bsc chainID to encodeSigHeader when submitting evidence for slashing
 * [sdk] [\#294](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/294) BEP153: Native Staking Implementation
