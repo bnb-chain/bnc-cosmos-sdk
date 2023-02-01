@@ -3,10 +3,12 @@ package crypto
 import (
 	"bufio"
 	"fmt"
+	"math/big"
 	"os"
 	"strings"
 
-	"github.com/btcsuite/btcd/btcec"
+	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
 	"github.com/pkg/errors"
 	ledgergo "github.com/zondax/ledger-cosmos-go"
 
@@ -157,11 +159,14 @@ func (pkl PrivKeyLedgerSecp256k1) Sign(msg []byte) ([]byte, error) {
 }
 
 func convertDERtoBER(signatureDER []byte) ([]byte, error) {
-	sigDER, err := btcec.ParseDERSignature(signatureDER[:], btcec.S256())
+	sigDER, err := ecdsa.ParseDERSignature(signatureDER[:])
 	if err != nil {
 		return nil, err
 	}
-	sigBER := tmbtcec.Signature{R: sigDER.R, S: sigDER.S}
+	sig := sigDER.Serialize() // 0x30 <total length> 0x02 <length of R> <R> 0x02 <length of S> <S>
+	r := new(big.Int).SetBytes(sig[4:36])
+	s := new(big.Int).SetBytes(sig[38:70])
+	sigBER := tmbtcec.Signature{R: r, S: s}
 	return sigBER.Serialize(), nil
 }
 
@@ -190,7 +195,7 @@ func (pkl PrivKeyLedgerSecp256k1) pubkeyLedgerSecp256k1() (pub tmcrypto.PubKey, 
 	var pk tmsecp256k1.PubKeySecp256k1
 
 	// re-serialize in the 33-byte compressed format
-	cmp, err := btcec.ParsePubKey(key[:], btcec.S256())
+	cmp, err := btcec.ParsePubKey(key[:])
 	if err != nil {
 		return nil, fmt.Errorf("error parsing public key: %v", err)
 	}
