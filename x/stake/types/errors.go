@@ -262,5 +262,5 @@ func ErrNotSelfDelegate(codespace sdk.CodespaceType) sdk.Error {
 }
 
 func ErrConsAddrUpdateTime() sdk.Error {
-	return sdk.NewError(DefaultCodespace, CodeInvalidConsAddrUpdateTime, "ConsAddr cannot be changed more than once in one month")
+	return sdk.NewError(DefaultCodespace, CodeInvalidConsAddrUpdateTime, "ConsAddr cannot be changed more than once in 30 days")
 }

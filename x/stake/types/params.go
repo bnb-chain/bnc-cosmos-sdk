@@ -30,6 +30,8 @@ const (
 
 	// defaultRewardDistributionBatchSize represents the default batch size for distributing delegators' staking rewards in blocks
 	defaultRewardDistributionBatchSize = 1000
+
+	ConsAddrUpdateIntervalInHours = 24 * 30
 )
 
 // nolint - Keys for parameter access

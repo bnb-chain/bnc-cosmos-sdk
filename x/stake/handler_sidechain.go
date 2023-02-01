@@ -116,7 +116,7 @@ func handleMsgEditSideChainValidator(ctx sdk.Context, msg MsgEditSideChainValida
 			if err != nil {
 				return sdk.ErrInternal(fmt.Sprintf("failed to get latest update cons addr time: %s", err)).Result()
 			}
-			if ctx.BlockHeader().Time.Sub(latestUpdateConsAddrTime).Hours() < 24*30 {
+			if ctx.BlockHeader().Time.Sub(latestUpdateConsAddrTime).Hours() < types.ConsAddrUpdateIntervalInHours {
 				return types.ErrConsAddrUpdateTime().Result()
 			}
 			k.SetValLatestUpdateConsAddrTime(ctx, validator.OperatorAddr, ctx.BlockHeader().Time)
