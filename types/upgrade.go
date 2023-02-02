@@ -7,20 +7,21 @@ import (
 var UpgradeMgr = NewUpgradeManager(UpgradeConfig{})
 
 const (
-	FixSignBytesOverflow = "FixSignBytesOverflow" // fix json unmarshal overflow when build SignBytes
-	BEP9                 = "BEP9"                 // https://github.com/bnb-chain/BEPs/pull/9
-	BEP12                = "BEP12"                // https://github.com/bnb-chain/BEPs/pull/17
-	BEP3                 = "BEP3"                 // https://github.com/bnb-chain/BEPs/pull/30
-	BEP8                 = "BEP8"                 // https://github.com/bnb-chain/BEPs/pull/69
-	LaunchBscUpgrade     = "LaunchBscUpgrade"
-	BEP82                = "BEP82" // https://github.com/bnb-chain/BEPs/pull/82
-	FixFailAckPackage    = "FixFailAckPackage"
-	BEP128               = "BEP128"       // https://github.com/bnb-chain/BEPs/pull/128
-	BEP153               = "BEP153"       // https://github.com/bnb-chain/BEPs/pull/153
-	BEP159               = "BEP159"       // https://github.com/bnb-chain/BEPs/pull/159
-	BEP159Phase2         = "BEP159Phase2" // phase 2 activation height of BEP159, enable create validator and active oracle relayer whitelist
-	BEP173               = "BEP173"       // https://github.com/bnb-chain/BEPs/pull/173
-	FixDoubleSignChainId = "FixDoubleSignChainId"
+	FixSignBytesOverflow        = "FixSignBytesOverflow" // fix json unmarshal overflow when build SignBytes
+	BEP9                        = "BEP9"                 // https://github.com/bnb-chain/BEPs/pull/9
+	BEP12                       = "BEP12"                // https://github.com/bnb-chain/BEPs/pull/17
+	BEP3                        = "BEP3"                 // https://github.com/bnb-chain/BEPs/pull/30
+	BEP8                        = "BEP8"                 // https://github.com/bnb-chain/BEPs/pull/69
+	LaunchBscUpgrade            = "LaunchBscUpgrade"
+	BEP82                       = "BEP82" // https://github.com/bnb-chain/BEPs/pull/82
+	FixFailAckPackage           = "FixFailAckPackage"
+	BEP128                      = "BEP128"       // https://github.com/bnb-chain/BEPs/pull/128
+	BEP153                      = "BEP153"       // https://github.com/bnb-chain/BEPs/pull/153
+	BEP159                      = "BEP159"       // https://github.com/bnb-chain/BEPs/pull/159
+	BEP159Phase2                = "BEP159Phase2" // phase 2 activation height of BEP159, enable create validator and active oracle relayer whitelist
+	LimitConsAddrUpdateInterval = "LimitConsAddrUpdateInterval"
+	BEP173                      = "BEP173" // https://github.com/bnb-chain/BEPs/pull/173
+	FixDoubleSignChainId        = "FixDoubleSignChainId"
 )
 
 var MainNetConfig = UpgradeConfig{

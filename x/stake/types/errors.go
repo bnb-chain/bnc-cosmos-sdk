@@ -24,13 +24,14 @@ const (
 	CodeExpiredCrossStakeSyncPackage CodeType = 109
 	CodeCrossStakingNoBalance        CodeType = 110
 	CodeCrossStakingNotEnoughBalance CodeType = 111
+	CodeInvalidConsAddrUpdateTime    CodeType = 112
 	CodeInvalidAddress               CodeType = sdk.CodeInvalidAddress
 	CodeUnauthorized                 CodeType = sdk.CodeUnauthorized
 	CodeInternal                     CodeType = sdk.CodeInternal
 	CodeUnknownRequest               CodeType = sdk.CodeUnknownRequest
 )
 
-//validator
+// validator
 func ErrNilValidatorAddr(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidInput, "validator address is nil")
 }
@@ -258,4 +259,8 @@ func ErrNotEnoughBalance(msg string) sdk.Error {
 
 func ErrNotSelfDelegate(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidValidator, "only self delegate is allowed")
+}
+
+func ErrConsAddrUpdateTime() sdk.Error {
+	return sdk.NewError(DefaultCodespace, CodeInvalidConsAddrUpdateTime, "ConsAddr cannot be changed more than once in 30 days")
 }
