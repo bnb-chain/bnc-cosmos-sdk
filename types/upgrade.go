@@ -22,6 +22,8 @@ const (
 	LimitConsAddrUpdateInterval = "LimitConsAddrUpdateInterval"
 	BEP173                      = "BEP173" // https://github.com/bnb-chain/BEPs/pull/173
 	FixDoubleSignChainId        = "FixDoubleSignChainId"
+	BEP126                      = "BEP126" //https://github.com/binance-chain/BEPs/pull/126
+
 )
 
 var MainNetConfig = UpgradeConfig{

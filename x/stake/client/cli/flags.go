@@ -1,8 +1,9 @@
 package cli
 
 import (
-	"github.com/cosmos/cosmos-sdk/x/stake/types"
 	flag "github.com/spf13/pflag"
+
+	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
 
 // nolint
@@ -40,6 +41,7 @@ const (
 	FlagSideChainId  = "side-chain-id"
 	FlagSideConsAddr = "side-cons-addr"
 	FlagSideFeeAddr  = "side-fee-addr"
+	FlagSideVoteAddr = "side-vote-addr"
 )
 
 // common flagsets to add to various functions
@@ -64,27 +66,24 @@ func init() {
 	fsAmount.String(FlagAmount, "", "Amount of coins to bond")
 	fsShares.String(FlagSharesAmount, "", "Amount of source-shares to either unbond or redelegate as a positive integer or decimal")
 	fsShares.String(FlagSharesPercent, "", "Percent of source-shares to either unbond or redelegate as a positive integer or decimal >0 and <=1")
-	fsDescriptionCreate.String(FlagMoniker, "", "validator name")
-	fsDescriptionCreate.String(FlagIdentity, "", "optional identity signature (ex. UPort or Keybase)")
-	fsDescriptionCreate.String(FlagWebsite, "", "optional website")
-	fsDescriptionCreate.String(FlagDetails, "", "optional details")
+	fsDescriptionCreate.String(FlagMoniker, "", "Validator name")
+	fsDescriptionCreate.String(FlagIdentity, "", "Optional identity signature (ex. UPort or Keybase)")
+	fsDescriptionCreate.String(FlagWebsite, "", "Optional website")
+	fsDescriptionCreate.String(FlagDetails, "", "Optional details")
 	fsCommissionUpdate.String(FlagCommissionRate, "", "The new commission rate percentage")
 	fsCommissionCreate.String(FlagCommissionRate, "", "The initial commission rate percentage")
 	fsCommissionCreate.String(FlagCommissionMaxRate, "", "The maximum commission rate percentage")
 	fsCommissionCreate.String(FlagCommissionMaxChangeRate, "", "The maximum commission change rate percentage (per day)")
-	fsDescriptionEdit.String(FlagMoniker, types.DoNotModifyDesc, "validator name")
-	fsDescriptionEdit.String(FlagIdentity, types.DoNotModifyDesc, "optional identity signature (ex. UPort or Keybase)")
-	fsDescriptionEdit.String(FlagWebsite, types.DoNotModifyDesc, "optional website")
-	fsDescriptionEdit.String(FlagDetails, types.DoNotModifyDesc, "optional details")
-	fsValidator.String(FlagAddressValidator, "", "bech address of the validator")
-	fsDelegator.String(FlagAddressDelegator, "", "bech address of the delegator")
-	fsRedelegation.String(FlagAddressValidatorSrc, "", "bech address of the source validator")
-	fsRedelegation.String(FlagAddressValidatorDst, "", "bech address of the destination validator")
-	fsSideChainFull.String(FlagSideChainId, "", "chain-id of the side chain the validator belongs to")
-	fsSideChainFull.String(FlagSideConsAddr, "", "consensus address of the validator on side chain, please use hex format prefixed with 0x")
-	fsSideChainFull.String(FlagSideFeeAddr, "", "address that validator collects fee rewards on side chain, please use hex format prefixed with 0x")
-	fsSideChainEdit.String(FlagSideChainId, "", "chain-id of the side chain the validator belongs to")
-	fsSideChainEdit.String(FlagSideFeeAddr, "", "address that validator collects fee rewards on side chain, please use hex format prefixed with 0x")
-	fsSideChainEdit.String(FlagSideConsAddr, "", "consensus address of the validator on side chain, please use hex format prefixed with 0x")
-	fsSideChainId.String(FlagSideChainId, "", "chain-id of the side chain the validator belongs to")
+	fsDescriptionEdit.String(FlagMoniker, types.DoNotModifyDesc, "Validator name")
+	fsDescriptionEdit.String(FlagIdentity, types.DoNotModifyDesc, "Optional identity signature (ex. UPort or Keybase)")
+	fsDescriptionEdit.String(FlagWebsite, types.DoNotModifyDesc, "Optional website")
+	fsDescriptionEdit.String(FlagDetails, types.DoNotModifyDesc, "Optional details")
+	fsValidator.String(FlagAddressValidator, "", "Bech address of the validator")
+	fsDelegator.String(FlagAddressDelegator, "", "Bech address of the delegator")
+	fsRedelegation.String(FlagAddressValidatorSrc, "", "Bech address of the source validator")
+	fsRedelegation.String(FlagAddressValidatorDst, "", "Bech address of the destination validator")
+	fsSideChainFull.String(FlagSideChainId, "", "Chain-id of the side chain the validator belongs to")
+	fsSideChainFull.String(FlagSideConsAddr, "", "Consensus address of the validator on side chain, please use hex format prefixed with 0x")
+	fsSideChainFull.String(FlagSideFeeAddr, "", "Address that validator collects fee rewards on side chain, please use hex format prefixed with 0x")
+	fsSideChainFull.String(FlagSideVoteAddr, "", "BLS public key that validator votes for block on side chain, please use hex format prefixed with 0x")
 }
