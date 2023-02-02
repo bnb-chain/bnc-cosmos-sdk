@@ -250,6 +250,27 @@ func handleMsgEditSideChainValidatorWithVoteAddr(ctx sdk.Context, msg MsgEditSid
 		validator.SideFeeAddr = msg.SideFeeAddr
 	}
 
+	if len(msg.SideConsAddr) != 0 && sdk.IsUpgrade(sdk.BEP159) {
+		_, found = k.GetValidatorBySideConsAddr(ctx, msg.SideConsAddr)
+		if found {
+			return ErrValidatorSideConsAddrExist(k.Codespace()).Result()
+		}
+		if sdk.IsUpgrade(sdk.LimitConsAddrUpdateInterval) {
+			// check update sideConsAddr interval
+			latestUpdateConsAddrTime, err := k.GetValLatestUpdateConsAddrTime(ctx, validator.OperatorAddr)
+			if err != nil {
+				return sdk.ErrInternal(fmt.Sprintf("failed to get latest update cons addr time: %s", err)).Result()
+			}
+			if ctx.BlockHeader().Time.Sub(latestUpdateConsAddrTime).Hours() < types.ConsAddrUpdateIntervalInHours {
+				return types.ErrConsAddrUpdateTime().Result()
+			}
+			k.SetValLatestUpdateConsAddrTime(ctx, validator.OperatorAddr, ctx.BlockHeader().Time)
+		}
+		// here consAddr is the sideConsAddr
+		k.UpdateSideValidatorConsAddr(ctx, validator, msg.SideConsAddr)
+		validator.SideConsAddr = msg.SideConsAddr
+	}
+
 	if len(msg.SideVoteAddr) != 0 {
 		_, found = k.GetValidatorBySideVoteAddr(ctx, msg.SideVoteAddr)
 		if found {
