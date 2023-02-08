@@ -283,7 +283,7 @@ func TestPlusCoins(t *testing.T) {
 	}
 }
 
-//Test the parsing of Coin and Coins
+// Test the parsing of Coin and Coins
 func TestParse(t *testing.T) {
 	one := int64(1)
 
@@ -482,4 +482,44 @@ func BenchmarkCoinsAdditionNoIntersect(b *testing.B) {
 		sizeB := benchmarkSizes[i][1]
 		b.Run(fmt.Sprintf("sizes: A_%d, B_%d", sizeA, sizeB), benchmarkingFunc(sizeA, sizeB))
 	}
+}
+
+func TestSafeAddNotOverflow(t *testing.T) {
+	a := int64(2000)
+	b := int64(2000)
+	c := safePlus(a, b)
+
+	assert.Equal(t, int64(4000), c)
+}
+
+func TestSafeAddOverflow(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("The code did not panic")
+		}
+	}()
+
+	a := int64(9223372036854775000)
+	b := int64(2000)
+	safePlus(a, b)
+}
+
+func TestSafeMinusNotOverflow(t *testing.T) {
+	a := int64(2000)
+	b := int64(1000)
+	c := safeMinus(a, b)
+
+	assert.Equal(t, int64(1000), c)
+}
+
+func TestSafeMinusOverflow(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("The code did not panic")
+		}
+	}()
+
+	a := int64(-1000)
+	b := int64(9223372036854775000)
+	safeMinus(a, b)
 }

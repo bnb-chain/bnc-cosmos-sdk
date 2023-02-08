@@ -1,5 +1,9 @@
 # Changelog
 
+##v0.25.8
+
+* [sdk] [\#323](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/323) fix: update Coin to fix amount calculation issues
+
 ##v0.25.7
 
 * [sdk] [\#320](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/320) fix: the breaking change of genesis state for testnet
