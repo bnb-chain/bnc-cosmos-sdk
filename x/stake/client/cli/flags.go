@@ -86,4 +86,9 @@ func init() {
 	fsSideChainFull.String(FlagSideConsAddr, "", "Consensus address of the validator on side chain, please use hex format prefixed with 0x")
 	fsSideChainFull.String(FlagSideFeeAddr, "", "Address that validator collects fee rewards on side chain, please use hex format prefixed with 0x")
 	fsSideChainFull.String(FlagSideVoteAddr, "", "BLS public key that validator votes for block on side chain, please use hex format prefixed with 0x")
+	fsSideChainEdit.String(FlagSideChainId, "", "Chain-id of the side chain the validator belongs to")
+	fsSideChainEdit.String(FlagSideFeeAddr, "", "Address that validator collects fee rewards on side chain, please use hex format prefixed with 0x")
+	fsSideChainEdit.String(FlagSideConsAddr, "", "consensus address of the validator on side chain, please use hex format prefixed with 0x")
+	fsSideChainEdit.String(FlagSideVoteAddr, "", "BLS public key that validator votes for block on side chain, please use hex format prefixed with 0x")
+	fsSideChainId.String(FlagSideChainId, "", "Chain-id of the side chain the validator belongs to")
 }
