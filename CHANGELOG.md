@@ -1,5 +1,9 @@
 # Changelog
 
+##v0.25.9
+
+* [sdk] [\#300](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/300) feats: add ics23 proof support
+
 ##v0.25.8
 
 * [sdk] [\#323](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/323) fix: update Coin to fix amount calculation issues
