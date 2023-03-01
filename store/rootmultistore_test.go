@@ -3,11 +3,13 @@ package store
 import (
 	"testing"
 
+	"github.com/bnb-chain/ics23"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/merkle"
 	dbm "github.com/tendermint/tendermint/libs/db"
 
+	sdkproofs "github.com/cosmos/cosmos-sdk/store/proofs"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -115,6 +117,123 @@ func TestParsePath(t *testing.T) {
 	require.Equal(t, substore, "bang")
 	require.Equal(t, subsubpath, "/baz")
 
+}
+
+func TestMultiStoreQueryICS23Proof(t *testing.T) {
+	db := dbm.NewMemDB()
+	multi := newMultiStoreWithMounts(db)
+	err := multi.LoadLatestVersion()
+	require.Nil(t, err)
+
+	k, v := []byte("wind"), []byte("blows")
+	k2, v2 := []byte("water"), []byte("flows")
+	// v3 := []byte("is cold")
+
+	cid := multi.Commit()
+
+	// Make sure we can get by name.
+	garbage := multi.getStoreByName("bad-name")
+	require.Nil(t, garbage)
+
+	// Set and commit data in one store.
+	store1 := multi.getStoreByName("store1").(KVStore)
+	store1.Set(k, v)
+
+	// ... and another.
+	store2 := multi.getStoreByName("store2").(KVStore)
+	store2.Set(k2, v2)
+
+	// Commit the multistore.
+	cid = multi.Commit()
+
+	commitInfo, _ := getCommitInfo(db, cid.Version)
+
+	cmap := commitInfo.toMap()
+	_, proofs, _ := merkle.SimpleProofsFromMap(cmap)
+
+	proof := proofs["store1"]
+	require.NotNil(t, proof)
+
+	// convert merkle.SimpleProof to CommitmentProof
+	existProof, err := sdkproofs.ConvertExistenceProof(proof, []byte("store1"), cmap["store1"])
+	require.Nil(t, err)
+
+	commitmentProof := &ics23.CommitmentProof{
+		Proof: &ics23.CommitmentProof_Exist{
+			Exist: existProof,
+		},
+	}
+
+	proofOp := NewSimpleMerkleCommitmentOp([]byte("store1"), commitmentProof)
+	result := ics23.VerifyMembership(proofOp.Spec, cid.Hash, proofOp.Proof, []byte("store1"), cmap["store1"])
+	require.True(t, result)
+}
+
+func TestMultiStoreICS23Query(t *testing.T) {
+	// set upgrade env
+	sdk.UpgradeMgr.SetHeight(100)
+	sdk.UpgradeMgr.AddUpgradeHeight(sdk.BEP171, 1)
+
+	db := dbm.NewMemDB()
+	multi := newMultiStoreWithMounts(db)
+	err := multi.LoadLatestVersion()
+	require.Nil(t, err)
+
+	k, v := []byte("wind"), []byte("blows")
+	k2, v2 := []byte("water"), []byte("flows")
+	// v3 := []byte("is cold")
+
+	cid := multi.Commit()
+
+	// Make sure we can get by name.
+	garbage := multi.getStoreByName("bad-name")
+	require.Nil(t, garbage)
+
+	// Set and commit data in one store.
+	store1 := multi.getStoreByName("store1").(KVStore)
+	store1.Set(k, v)
+
+	// ... and another.
+	store2 := multi.getStoreByName("store2").(KVStore)
+	store2.Set(k2, v2)
+
+	// Commit the multistore.
+	cid = multi.Commit()
+	ver := cid.Version
+
+	// Reload multistore from database
+	multi = newMultiStoreWithMounts(db)
+	err = multi.LoadLatestVersion()
+	require.Nil(t, err)
+
+	// Test bad path.
+	query := abci.RequestQuery{Path: "/ics23-key", Data: k, Height: ver}
+	qres := multi.Query(query)
+	require.Equal(t, sdk.ToABCICode(sdk.CodespaceRoot, sdk.CodeUnknownRequest), sdk.ABCICodeType(qres.Code))
+
+	query.Path = "h897fy32890rf63296r92"
+	qres = multi.Query(query)
+	require.Equal(t, sdk.ToABCICode(sdk.CodespaceRoot, sdk.CodeUnknownRequest), sdk.ABCICodeType(qres.Code))
+
+	// Test invalid store name.
+	query.Path = "/garbage/key"
+	qres = multi.Query(query)
+	require.Equal(t, sdk.ToABCICode(sdk.CodespaceRoot, sdk.CodeUnknownRequest), sdk.ABCICodeType(qres.Code))
+
+	// Test valid query with data.
+	query.Path = "/store1/ics23-key"
+	query.Prove = true
+	qres = multi.Query(query)
+	require.Equal(t, sdk.ToABCICode(sdk.CodespaceRoot, sdk.CodeOK), sdk.ABCICodeType(qres.Code))
+	require.Equal(t, v, qres.Value)
+
+	prt := DefaultProofRuntime()
+
+	err = prt.VerifyValue(qres.Proof, cid.Hash, "/store1/"+string(query.Data), qres.Value)
+	if err != nil {
+		println(err.Error())
+		return
+	}
 }
 
 func TestMultiStoreQuery(t *testing.T) {
