@@ -4,10 +4,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 	dbm "github.com/tendermint/tendermint/libs/db"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 func TestVerifyIAVLStoreQueryProof(t *testing.T) {
@@ -51,6 +51,29 @@ func TestVerifyIAVLStoreQueryProof(t *testing.T) {
 	// Verify (bad) proof.
 	err = prt.VerifyValue(res.Proof, cid.Hash, "/MYKEY", []byte(nil))
 	require.NotNil(t, err)
+}
+
+func TestVerifyICS23QueryProof(t *testing.T) {
+	// Create main tree for testing.
+	db := dbm.NewMemDB()
+	iStore, err := LoadIAVLStore(db, CommitID{}, sdk.PruneNothing)
+	store := iStore.(*IavlStore)
+	require.Nil(t, err)
+	store.Set([]byte("MYKEY"), []byte("MYVALUE"))
+	cid := store.Commit()
+
+	// Get Proof
+	res := store.Query(abci.RequestQuery{
+		Path:  "/ics23-key", // required path to get key/value+proof
+		Data:  []byte("MYKEY"),
+		Prove: true,
+	})
+	require.NotNil(t, res.Proof)
+
+	// Verify proof.
+	prt := DefaultProofRuntime()
+	err = prt.VerifyValue(res.Proof, cid.Hash, "/MYKEY", []byte("MYVALUE"))
+	require.Nil(t, err)
 }
 
 func TestVerifyMultiStoreQueryProof(t *testing.T) {
