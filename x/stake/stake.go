@@ -168,18 +168,19 @@ const (
 )
 
 var (
-	ErrNilValidatorAddr           = types.ErrNilValidatorAddr
-	ErrNoValidatorFound           = types.ErrNoValidatorFound
-	ErrValidatorOwnerExists       = types.ErrValidatorOwnerExists
-	ErrValidatorPubKeyExists      = types.ErrValidatorPubKeyExists
-	ErrValidatorSideConsAddrExist = types.ErrValidatorSideConsAddrExists
-	ErrInvalidDelegator           = types.ErrInvalidDelegator
-	ErrValidatorJailed            = types.ErrValidatorJailed
-	ErrInvalidProposal            = types.ErrInvalidProposal
-	ErrBadRemoveValidator         = types.ErrBadRemoveValidator
-	ErrDescriptionLength          = types.ErrDescriptionLength
-	ErrCommissionNegative         = types.ErrCommissionNegative
-	ErrCommissionHuge             = types.ErrCommissionHuge
+	ErrNilValidatorAddr             = types.ErrNilValidatorAddr
+	ErrNoValidatorFound             = types.ErrNoValidatorFound
+	ErrEditConsensusKeyBeforeBEP159 = types.ErrEditConsensusKeyBeforeBEP159
+	ErrValidatorOwnerExists         = types.ErrValidatorOwnerExists
+	ErrValidatorPubKeyExists        = types.ErrValidatorPubKeyExists
+	ErrValidatorSideConsAddrExist   = types.ErrValidatorSideConsAddrExists
+	ErrInvalidDelegator             = types.ErrInvalidDelegator
+	ErrValidatorJailed              = types.ErrValidatorJailed
+	ErrInvalidProposal              = types.ErrInvalidProposal
+	ErrBadRemoveValidator           = types.ErrBadRemoveValidator
+	ErrDescriptionLength            = types.ErrDescriptionLength
+	ErrCommissionNegative           = types.ErrCommissionNegative
+	ErrCommissionHuge               = types.ErrCommissionHuge
 
 	ErrNilDelegatorAddr          = types.ErrNilDelegatorAddr
 	ErrBadDenom                  = types.ErrBadDenom

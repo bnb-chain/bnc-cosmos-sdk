@@ -185,16 +185,11 @@ func (msg MsgEditSideChainValidator) ValidateBasic() sdk.Error {
 			return err
 		}
 	}
-
 	if len(msg.SideConsAddr) != 0 {
-		if !sdk.IsUpgrade(sdk.BEP159) {
-			return sdk.NewError(DefaultCodespace, CodeInvalidInput, "side consensus address cannot be updated before BEP159")
-		}
 		if err := checkSideChainAddr("SideConsAddr", msg.SideConsAddr); err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
