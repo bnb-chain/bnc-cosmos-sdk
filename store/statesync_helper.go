@@ -181,6 +181,10 @@ func (helper *StateSyncHelper) WriteRecoveryChunk(hash abci.SHA256Sum, chunk *ab
 	if chunk != nil {
 		numOfNodes := len(chunk.Nodes)
 		nodes := make([]*iavl.Node, 0, numOfNodes)
+		
+		if numOfNodes == 0 {
+			return fmt.Errorf("length of nodes is 0")
+		}
 
 		helper.logger.Info("start write recovery chunk", "isComplete", isComplete, "hash", fmt.Sprintf("%x", hash), "startIdx", chunk.StartIdx, "numOfNodes", numOfNodes, "chunkCompletion", chunk.Completeness)
 
@@ -200,6 +204,7 @@ func (helper *StateSyncHelper) WriteRecoveryChunk(hash abci.SHA256Sum, chunk *ab
 					return err
 				}
 			}
+
 			nodeIdx := chunk.StartIdx + int64(numOfNodes-1)
 			helper.incompleteChunks[nodeIdx] = append(helper.incompleteChunks[nodeIdx],
 				incompleteChunkItem{
@@ -276,6 +281,10 @@ func (helper *StateSyncHelper) saveIncompleteChunks() error {
 		helper.logger.Debug("processing incomplete node", "nodeIdx", nodeIdx)
 		// sort and check chunkItems are valid
 		sort.Sort(&chunkItemSorter{chunkItems})
+
+		if len(chunkItems) == 0 {
+			return fmt.Errorf("length of chunks is 0")
+		}
 
 		expectedNodeParts := chunkItems[len(chunkItems)-1].chunkIdx - chunkItems[0].chunkIdx + 1
 		if expectedNodeParts != len(chunkItems) {
