@@ -1,5 +1,8 @@
 # Changelog
 
+##v0.26.0
+* [sec] [\#328](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/328) sec: implement security enhancements (#328)
+
 ##v0.25.9
 
 * [sdk] [\#300](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/300) feats: add ics23 proof support
