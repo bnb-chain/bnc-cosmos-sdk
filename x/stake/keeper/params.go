@@ -162,7 +162,12 @@ func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
 	k.paramstore.Set(ctx, types.KeyMaxValidators, params.MaxValidators)
 	k.paramstore.Set(ctx, types.KeyBondDenom, params.BondDenom)
 	if sdk.IsUpgrade(sdk.LaunchBscUpgrade) {
-		if ctx.ChainID() == sdk.ChainIdGanges {
+		// the reason for this logic is:
+		// 1. when the testnet is set up, the config of `MaxValidators` and `MinSelfDelegation` is different from the default value in code
+		// 2. the first fix has a bug that the overwrite of the configs happens after the bsc upgrade instead of only taking effect block 1
+		// 3. so this is why the check `ctx.BlockHeight() == 1 || ctx.BlockHeight() == 37501781` is added to fix the bug. 37501781 is the height
+		// when the first proposal executed after the first fix
+		if ctx.ChainID() == sdk.ChainIdGanges && (ctx.BlockHeight() == 1 || ctx.BlockHeight() == 37501781) {
 			k.paramstore.Set(ctx, types.KeyMaxValidators, uint16(11))
 			k.paramstore.Set(ctx, types.KeyMinSelfDelegation, int64(5000000000000))
 			k.paramstore.Set(ctx, types.KeyMinDelegationChange, params.MinDelegationChange)
