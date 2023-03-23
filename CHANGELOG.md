@@ -1,5 +1,8 @@
 # Changelog
 
+##v0.26.1
+* [sdk] [\#331] (https://github.com/bnb-chain/bnc-cosmos-sdk/pull/331) fix: fix the bug introduced by fixing the testnet syncing issue
+
 ##v0.26.0
 * [sec] [\#328](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/328) sec: implement security enhancements (#328)
 
