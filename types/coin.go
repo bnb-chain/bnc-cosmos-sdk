@@ -68,7 +68,7 @@ func (coin Coin) Plus(coinB Coin) Coin {
 	if !coin.SameDenomAs(coinB) {
 		return coin
 	}
-	return Coin{coin.Denom, coin.Amount + coinB.Amount}
+	return Coin{coin.Denom, safePlus(coin.Amount, coinB.Amount)}
 }
 
 // Subtracts amounts of two coins with same denom
@@ -76,7 +76,23 @@ func (coin Coin) Minus(coinB Coin) Coin {
 	if !coin.SameDenomAs(coinB) {
 		return coin
 	}
-	return Coin{coin.Denom, coin.Amount - coinB.Amount}
+	return Coin{coin.Denom, safeMinus(coin.Amount, coinB.Amount)}
+}
+
+func safePlus(a, b int64) int64 {
+	c := a + b
+	if (c > a) != (b > 0) {
+		panic("Int overflow")
+	}
+	return c
+}
+
+func safeMinus(a, b int64) int64 {
+	c := a - b
+	if (c < a) != (b > 0) {
+		panic("Int overflow")
+	}
+	return c
 }
 
 //----------------------------------------
@@ -141,7 +157,7 @@ func (coins Coins) Plus(coinsB Coins) Coins {
 			sum = append(sum, coinA)
 			indexA++
 		case 0:
-			if coinA.Amount+coinB.Amount == 0 {
+			if safePlus(coinA.Amount, coinB.Amount) == 0 {
 				// ignore 0 sum coin type
 			} else {
 				sum = append(sum, coinA.Plus(coinB))
@@ -268,7 +284,7 @@ func (coins Coins) AmountOf(denom string) int64 {
 //----------------------------------------
 // Sort interface
 
-//nolint
+// nolint
 func (coins Coins) Len() int           { return len(coins) }
 func (coins Coins) Less(i, j int) bool { return coins[i].Denom < coins[j].Denom }
 func (coins Coins) Swap(i, j int)      { coins[i], coins[j] = coins[j], coins[i] }

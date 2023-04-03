@@ -1,5 +1,19 @@
 # Changelog
 
+##v0.26.1
+* [sdk] [\#331] (https://github.com/bnb-chain/bnc-cosmos-sdk/pull/331) fix: fix the bug introduced by fixing the testnet syncing issue
+
+##v0.26.0
+* [sec] [\#328](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/328) sec: implement security enhancements (#328)
+
+##v0.25.9
+
+* [sdk] [\#300](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/300) feats: add ics23 proof support
+
+##v0.25.8
+
+* [sdk] [\#323](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/323) fix: update Coin to fix amount calculation issues
+
 ##v0.25.7
 
 * [sdk] [\#320](https://github.com/bnb-chain/bnc-cosmos-sdk/pull/320) fix: the breaking change of genesis state for testnet

@@ -32,7 +32,7 @@ func RequireProof(subpath string) bool {
 	// XXX: create a better convention.
 	// Currently, only when query subpath is "/store" or "/key", will proof be included in response.
 	// If there are some changes about proof building in iavlstore.go, we must change code here to keep consistency with iavlstore.go:212
-	if subpath == "/store" || subpath == "/key" {
+	if subpath == "/store" || subpath == "/key" || subpath == "/ics23-key" {
 		return true
 	}
 	return false
@@ -132,6 +132,8 @@ func DefaultProofRuntime() (prt *merkle.ProofRuntime) {
 	prt = merkle.NewProofRuntime()
 	prt.RegisterOpDecoder(merkle.ProofOpSimpleValue, merkle.SimpleValueOpDecoder)
 	prt.RegisterOpDecoder(iavl.ProofOpIAVLValue, iavl.IAVLValueOpDecoder)
+	prt.RegisterOpDecoder(ProofOpIAVLCommitment, CommitmentOpDecoder)
+	prt.RegisterOpDecoder(ProofOpSimpleMerkleCommitment, CommitmentOpDecoder)
 	prt.RegisterOpDecoder(iavl.ProofOpIAVLAbsence, iavl.IAVLAbsenceOpDecoder)
 	prt.RegisterOpDecoder(ProofOpMultiStore, MultiStoreProofOpDecoder)
 	return

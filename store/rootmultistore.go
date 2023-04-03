@@ -5,11 +5,13 @@ import (
 	"io"
 	"strings"
 
+	"github.com/bnb-chain/ics23"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/merkle"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 	dbm "github.com/tendermint/tendermint/libs/db"
 
+	sdkproofs "github.com/cosmos/cosmos-sdk/store/proofs"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -313,11 +315,15 @@ func (rs *rootMultiStore) Query(req abci.RequestQuery) abci.ResponseQuery {
 		return sdk.ErrInternal(errMsg.Error()).QueryResult()
 	}
 
-	// Restore origin path and append proof op.
-	res.Proof.Ops = append(res.Proof.Ops, NewMultiStoreProofOp(
-		[]byte(storeName),
-		NewMultiStoreProof(commitInfo.StoreInfos),
-	).ProofOp())
+	if subpath == "/ics23-key" {
+		res.Proof.Ops = append(res.Proof.Ops, commitInfo.ProofOp(storeName))
+	} else {
+		// Restore origin path and append proof op.
+		res.Proof.Ops = append(res.Proof.Ops, NewMultiStoreProofOp(
+			[]byte(storeName),
+			NewMultiStoreProof(commitInfo.StoreInfos),
+		).ProofOp())
+	}
 
 	return res
 }
@@ -401,13 +407,30 @@ type CommitInfo struct {
 	StoreInfos []StoreInfo
 }
 
+// GetHash returns the GetHash from the CommitID.
+// This is used in CommitInfo.Hash()
+//
+// When we commit to this in a merkle proof, we create a map of storeInfo.Name -> storeInfo.GetHash()
+// and build a merkle proof from that.
+// This is then chained with the substore proof, so we prove the root hash from the substore before this
+// and need to pass that (unmodified) as the leaf value of the multistore proof.
+func (si StoreInfo) GetHash() []byte {
+	return si.Core.CommitID.Hash
+}
+
 // Hash returns the simple merkle root hash of the stores sorted by name.
 func (ci CommitInfo) Hash() []byte {
-	// TODO cache to ci.hash []byte
 	m := make(map[string][]byte, len(ci.StoreInfos))
-	for _, storeInfo := range ci.StoreInfos {
-		m[storeInfo.Name] = storeInfo.Hash()
+	if sdk.IsUpgrade(sdk.BEP171) {
+		for _, storeInfo := range ci.StoreInfos {
+			m[storeInfo.Name] = storeInfo.GetHash()
+		}
+	} else {
+		for _, storeInfo := range ci.StoreInfos {
+			m[storeInfo.Name] = storeInfo.Hash()
+		}
 	}
+
 	return merkle.SimpleHashFromMap(m)
 }
 
@@ -416,6 +439,45 @@ func (ci CommitInfo) CommitID() CommitID {
 		Version: ci.Version,
 		Hash:    ci.Hash(),
 	}
+}
+
+func (ci CommitInfo) toMap() map[string][]byte {
+	m := make(map[string][]byte, len(ci.StoreInfos))
+	if sdk.IsUpgrade(sdk.BEP171) {
+		for _, storeInfo := range ci.StoreInfos {
+			m[storeInfo.Name] = storeInfo.Core.CommitID.Hash
+		}
+	} else {
+		for _, storeInfo := range ci.StoreInfos {
+			m[storeInfo.Name] = storeInfo.Hash()
+		}
+	}
+
+	return m
+}
+
+func (ci CommitInfo) ProofOp(storeName string) merkle.ProofOp {
+	cmap := ci.toMap()
+	_, proofs, _ := merkle.SimpleProofsFromMap(cmap)
+
+	proof := proofs[storeName]
+	if proof == nil {
+		panic(fmt.Sprintf("ProofOp for %s but not registered store name", storeName))
+	}
+
+	// convert merkle.SimpleProof to CommitmentProof
+	existProof, err := sdkproofs.ConvertExistenceProof(proof, []byte(storeName), cmap[storeName])
+	if err != nil {
+		panic(fmt.Errorf("could not convert simple proof to existence proof: %w", err))
+	}
+
+	commitmentProof := &ics23.CommitmentProof{
+		Proof: &ics23.CommitmentProof_Exist{
+			Exist: existProof,
+		},
+	}
+
+	return NewSimpleMerkleCommitmentOp([]byte(storeName), commitmentProof).ProofOp()
 }
 
 //----------------------------------------
