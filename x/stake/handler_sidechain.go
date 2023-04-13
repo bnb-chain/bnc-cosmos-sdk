@@ -17,6 +17,10 @@ func handleMsgCreateSideChainValidator(ctx sdk.Context, msg MsgCreateSideChainVa
 	} else {
 		ctx = scCtx
 	}
+	// check to see if BEP126 has upgraded
+	if sdk.IsUpgrade(sdk.BEP126) {
+		return types.ErrNilValidatorSideVoteAddr(k.Codespace()).Result()
+	}
 
 	// check to see if the pubkey or sender has been registered before
 	_, found := k.GetValidator(ctx, msg.ValidatorAddr)
@@ -40,7 +44,7 @@ func handleMsgCreateSideChainValidator(ctx sdk.Context, msg MsgCreateSideChainVa
 
 	// self-delegate address will be used to collect fees.
 	feeAddr := msg.DelegatorAddr
-	validator := NewSideChainValidator(feeAddr, msg.ValidatorAddr, msg.Description, msg.SideChainId, msg.SideConsAddr, msg.SideFeeAddr)
+	validator := NewSideChainValidator(feeAddr, msg.ValidatorAddr, msg.Description, msg.SideChainId, msg.SideConsAddr, msg.SideFeeAddr, nil)
 	commission := NewCommissionWithTime(
 		msg.Commission.Rate, msg.Commission.MaxRate,
 		msg.Commission.MaxChangeRate, ctx.BlockHeader().Time,
@@ -136,6 +140,156 @@ func handleMsgEditSideChainValidator(ctx sdk.Context, msg MsgEditSideChainValida
 	}
 }
 
+func handleMsgCreateSideChainValidatorWithVoteAddr(ctx sdk.Context, msg MsgCreateSideChainValidatorWithVoteAddr, k keeper.Keeper) sdk.Result {
+	if scCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, msg.SideChainId); err != nil {
+		return ErrInvalidSideChainId(k.Codespace()).Result()
+	} else {
+		ctx = scCtx
+	}
+
+	// check to see if BEP126 has upgraded
+	if !sdk.IsUpgrade(sdk.BEP126) {
+		return types.ErrBadValidatorSideVoteAddr(k.Codespace()).Result()
+	}
+
+	// check to see if the pubkey or sender has been registered before
+	_, found := k.GetValidator(ctx, msg.ValidatorAddr)
+	if found {
+		return ErrValidatorOwnerExists(k.Codespace()).Result()
+	}
+
+	_, found = k.GetValidatorBySideConsAddr(ctx, msg.SideConsAddr)
+	if found {
+		return ErrValidatorSideConsAddrExist(k.Codespace()).Result()
+	}
+
+	_, found = k.GetValidatorBySideVoteAddr(ctx, msg.SideVoteAddr)
+	if found {
+		return ErrValidatorSideVoteAddrExist(k.Codespace()).Result()
+	}
+
+	minSelfDelegation := k.MinSelfDelegation(ctx)
+	if msg.Delegation.Amount < minSelfDelegation {
+		return ErrBadDelegationAmount(DefaultCodespace,
+			fmt.Sprintf("self delegation must not be less than %d", minSelfDelegation)).Result()
+	}
+	if msg.Delegation.Denom != k.GetParams(ctx).BondDenom {
+		return ErrBadDenom(k.Codespace()).Result()
+	}
+
+	// self-delegate address will be used to collect fees.
+	feeAddr := msg.DelegatorAddr
+	validator := NewSideChainValidator(feeAddr, msg.ValidatorAddr, msg.Description, msg.SideChainId, msg.SideConsAddr, msg.SideFeeAddr, msg.SideVoteAddr)
+	commission := NewCommissionWithTime(
+		msg.Commission.Rate, msg.Commission.MaxRate,
+		msg.Commission.MaxChangeRate, ctx.BlockHeader().Time,
+	)
+	var err sdk.Error
+	validator, err = validator.SetInitialCommission(commission)
+	if err != nil {
+		return err.Result()
+	}
+
+	k.SetValidator(ctx, validator)
+	k.SetValidatorByConsAddr(ctx, validator) // here consAddr is the sideConsAddr
+	k.SetValidatorBySideVoteAddr(ctx, validator)
+	k.SetNewValidatorByPowerIndex(ctx, validator)
+	k.OnValidatorCreated(ctx, validator.OperatorAddr)
+
+	// move coins from the msg.Address account to a (self-delegation) delegator account
+	// the validator account and global shares are updated within here
+	_, err = k.Delegate(ctx, msg.DelegatorAddr, msg.Delegation, validator, true)
+	if err != nil {
+		return err.Result()
+	}
+
+	return sdk.Result{
+		Tags: sdk.NewTags(
+			tags.DstValidator, []byte(msg.ValidatorAddr.String()),
+			tags.Moniker, []byte(msg.Description.Moniker),
+			tags.Identity, []byte(msg.Description.Identity),
+		),
+	}
+}
+
+func handleMsgEditSideChainValidatorWithVoteAddr(ctx sdk.Context, msg MsgEditSideChainValidatorWithVoteAddr, k keeper.Keeper) sdk.Result {
+	if scCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, msg.SideChainId); err != nil {
+		return ErrInvalidSideChainId(k.Codespace()).Result()
+	} else {
+		ctx = scCtx
+	}
+
+	// check to see if BEP126 has upgraded
+	if !sdk.IsUpgrade(sdk.BEP126) {
+		return types.ErrBadValidatorSideVoteAddr(k.Codespace()).Result()
+	}
+
+	// validator must already be registered
+	validator, found := k.GetValidator(ctx, msg.ValidatorAddr)
+	if !found {
+		return ErrNoValidatorFound(k.Codespace()).Result()
+	}
+
+	// replace all editable fields (clients should autofill existing values)
+	if description, err := validator.Description.UpdateDescription(msg.Description); err != nil {
+		return err.Result()
+	} else {
+		validator.Description = description
+	}
+
+	if msg.CommissionRate != nil {
+		commission, err := k.UpdateValidatorCommission(ctx, validator, *msg.CommissionRate)
+		if err != nil {
+			return err.Result()
+		}
+		validator.Commission = commission
+		k.OnValidatorModified(ctx, msg.ValidatorAddr)
+	}
+
+	if len(msg.SideFeeAddr) != 0 {
+		validator.SideFeeAddr = msg.SideFeeAddr
+	}
+
+	if len(msg.SideConsAddr) != 0 && sdk.IsUpgrade(sdk.BEP159) {
+		_, found = k.GetValidatorBySideConsAddr(ctx, msg.SideConsAddr)
+		if found {
+			return ErrValidatorSideConsAddrExist(k.Codespace()).Result()
+		}
+		if sdk.IsUpgrade(sdk.LimitConsAddrUpdateInterval) {
+			// check update sideConsAddr interval
+			latestUpdateConsAddrTime, err := k.GetValLatestUpdateConsAddrTime(ctx, validator.OperatorAddr)
+			if err != nil {
+				return sdk.ErrInternal(fmt.Sprintf("failed to get latest update cons addr time: %s", err)).Result()
+			}
+			if ctx.BlockHeader().Time.Sub(latestUpdateConsAddrTime).Hours() < types.ConsAddrUpdateIntervalInHours {
+				return types.ErrConsAddrUpdateTime().Result()
+			}
+			k.SetValLatestUpdateConsAddrTime(ctx, validator.OperatorAddr, ctx.BlockHeader().Time)
+		}
+		// here consAddr is the sideConsAddr
+		k.UpdateSideValidatorConsAddr(ctx, validator, msg.SideConsAddr)
+		validator.SideConsAddr = msg.SideConsAddr
+	}
+
+	if len(msg.SideVoteAddr) != 0 {
+		_, found = k.GetValidatorBySideVoteAddr(ctx, msg.SideVoteAddr)
+		if found {
+			return ErrValidatorSideVoteAddrExist(k.Codespace()).Result()
+		}
+		validator.SideVoteAddr = msg.SideVoteAddr
+		k.SetValidatorBySideVoteAddr(ctx, validator)
+	}
+
+	k.SetValidator(ctx, validator)
+	return sdk.Result{
+		Tags: sdk.NewTags(
+			tags.DstValidator, []byte(msg.ValidatorAddr.String()),
+			tags.Moniker, []byte(validator.Description.Moniker),
+			tags.Identity, []byte(validator.Description.Identity),
+		),
+	}
+}
+
 func handleMsgSideChainDelegate(ctx sdk.Context, msg MsgSideChainDelegate, k keeper.Keeper) sdk.Result {
 	if scCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, msg.SideChainId); err != nil {
 		return ErrInvalidSideChainId(k.Codespace()).Result()
@@ -168,7 +322,6 @@ func handleMsgSideChainDelegate(ctx sdk.Context, msg MsgSideChainDelegate, k kee
 	}
 
 	_, err := k.Delegate(ctx, msg.DelegatorAddr, msg.Delegation, validator, true)
-
 	if err != nil {
 		return err.Result()
 	}

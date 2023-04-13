@@ -5,13 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/tendermint/tendermint/crypto/ed25519"
+
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/stake/keeper"
 	"github.com/cosmos/cosmos-sdk/x/stake/tags"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
-	"github.com/tendermint/tendermint/crypto/ed25519"
 )
 
 func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
@@ -37,11 +38,15 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 			return handleMsgDelegateV1(ctx, msg, k)
 		case types.MsgUndelegate:
 			return handleMsgUndelegate(ctx, msg, k)
-		//case MsgSideChain
+		// case MsgSideChain
 		case types.MsgCreateSideChainValidator:
 			return handleMsgCreateSideChainValidator(ctx, msg, k)
 		case types.MsgEditSideChainValidator:
 			return handleMsgEditSideChainValidator(ctx, msg, k)
+		case types.MsgCreateSideChainValidatorWithVoteAddr:
+			return handleMsgCreateSideChainValidatorWithVoteAddr(ctx, msg, k)
+		case types.MsgEditSideChainValidatorWithVoteAddr:
+			return handleMsgEditSideChainValidatorWithVoteAddr(ctx, msg, k)
 		case types.MsgSideChainDelegate:
 			return handleMsgSideChainDelegate(ctx, msg, k)
 		case types.MsgSideChainRedelegate:
