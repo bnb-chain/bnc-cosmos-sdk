@@ -1,8 +1,9 @@
-//nolint
+// nolint
 package slashing
 
 import (
 	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -21,16 +22,21 @@ const (
 	CodeSelfDelegationTooLowToUnjail CodeType = 105
 	CodeInvalidClaim                 CodeType = 106
 
-	CodeExpiredEvidence        CodeType = 201
-	CodeFailSlash              CodeType = 202
-	CodeHandledEvidence        CodeType = 203
-	CodeInvalidEvidence        CodeType = 204
-	CodeInvalidSideChain       CodeType = 205
-	CodeDuplicateDowntimeClaim CodeType = 206
+	CodeExpiredEvidence            CodeType = 201
+	CodeFailSlash                  CodeType = 202
+	CodeHandledEvidence            CodeType = 203
+	CodeInvalidEvidence            CodeType = 204
+	CodeInvalidSideChain           CodeType = 205
+	CodeDuplicateDowntimeClaim     CodeType = 206
+	CodeDuplicateMalicousVoteClaim CodeType = 207
 )
 
 func ErrNoValidatorForAddress(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidValidator, "that address is not associated with any known validator")
+}
+
+func ErrNoValidatorWithVoteAddr(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidValidator, "that vote address is not associated with any known validator")
 }
 
 func ErrBadValidatorAddr(codespace sdk.CodespaceType) sdk.Error {
@@ -79,6 +85,10 @@ func ErrInvalidSideChainId(codespace sdk.CodespaceType) sdk.Error {
 
 func ErrDuplicateDowntimeClaim(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeDuplicateDowntimeClaim, "duplicate downtime claim")
+}
+
+func ErrDuplicateMalicousVoteClaim(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeDuplicateMalicousVoteClaim, "duplicate malicious vote claim")
 }
 
 func ErrInvalidInput(codespace sdk.CodespaceType, msg string) sdk.Error {

@@ -13,6 +13,7 @@ import (
 const (
 	DoubleSign byte = iota
 	Downtime
+	MalicousVote
 )
 
 type SlashRecord struct {

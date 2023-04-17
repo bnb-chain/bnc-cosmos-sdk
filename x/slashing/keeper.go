@@ -237,9 +237,13 @@ func (k *Keeper) SubscribeParamChange(hub types.ParamChangePublisher) {
 // implement cross chain app
 func (k *Keeper) ExecuteSynPackage(ctx sdk.Context, payload []byte, _ int64) sdk.ExecuteResult {
 	var resCode uint32
-	pack, err := k.checkSideDowntimeSlashPackage(payload)
+	sideSlashPack, err := k.checkSideSlashPackage(payload)
 	if err == nil {
-		err = k.slashingSideDowntime(ctx, pack)
+		if sideSlashPack.addrType == SideConsAddrType {
+			err = k.slashingSideDowntime(ctx, sideSlashPack)
+		} else if sideSlashPack.addrType == SideVoteAddrType {
+			err = k.slashingSideMalicousVote(ctx, sideSlashPack)
+		}
 	}
 	if err != nil {
 		resCode = uint32(err.ABCICode())
@@ -263,14 +267,19 @@ func (k *Keeper) ExecuteFailAckPackage(ctx sdk.Context, payload []byte) sdk.Exec
 	panic("receive unexpected fail ack package")
 }
 
-func (k *Keeper) checkSideDowntimeSlashPackage(payload []byte) (*SideDowntimeSlashPackage, sdk.Error) {
-	var slashEvent SideDowntimeSlashPackage
+func (k *Keeper) checkSideSlashPackage(payload []byte) (*SideSlashPackage, sdk.Error) {
+	var slashEvent SideSlashPackage
 	err := rlp.DecodeBytes(payload, &slashEvent)
 	if err != nil {
 		return nil, ErrInvalidInput(k.Codespace, "failed to parse the payload")
 	}
-	if len(slashEvent.SideConsAddr) != sdk.AddrLen {
-		return nil, ErrInvalidClaim(k.Codespace, fmt.Sprintf("wrong sideConsAddr length, expected=%d", slashEvent.SideConsAddr))
+
+	if len(slashEvent.SideAddr) == sdk.AddrLen {
+		slashEvent.addrType = SideConsAddrType
+	} else if len(slashEvent.SideAddr) == sdk.VoteAddrLen {
+		slashEvent.addrType = SideVoteAddrType
+	} else {
+		return nil, ErrInvalidClaim(k.Codespace, fmt.Sprintf("wrong sideAddr length:%d, expected:%d or %d", len(slashEvent.SideAddr), sdk.AddrLen, sdk.VoteAddrLen))
 	}
 
 	if slashEvent.SideHeight <= 0 {
@@ -287,7 +296,8 @@ func (k *Keeper) checkSideDowntimeSlashPackage(payload []byte) (*SideDowntimeSla
 	return &slashEvent, nil
 }
 
-func (k *Keeper) slashingSideDowntime(ctx sdk.Context, pack *SideDowntimeSlashPackage) sdk.Error {
+func (k *Keeper) slashingSideDowntime(ctx sdk.Context, pack *SideSlashPackage) sdk.Error {
+	sideConsAddr := pack.SideAddr
 	sideChainName, err := k.ScKeeper.GetDestChainName(pack.SideChainId)
 	if err != nil {
 		return ErrInvalidSideChainId(DefaultCodespace)
@@ -303,12 +313,12 @@ func (k *Keeper) slashingSideDowntime(ctx sdk.Context, pack *SideDowntimeSlashPa
 		return ErrExpiredEvidence(DefaultCodespace)
 	}
 
-	if k.hasSlashRecord(sideCtx, pack.SideConsAddr, Downtime, pack.SideHeight) {
+	if k.hasSlashRecord(sideCtx, sideConsAddr, Downtime, pack.SideHeight) {
 		return ErrDuplicateDowntimeClaim(k.Codespace)
 	}
 
 	slashAmt := k.DowntimeSlashAmount(sideCtx)
-	validator, slashedAmt, err := k.validatorSet.SlashSideChain(ctx, sideChainName, pack.SideConsAddr, sdk.NewDec(slashAmt))
+	validator, slashedAmt, err := k.validatorSet.SlashSideChain(ctx, sideChainName, sideConsAddr, sdk.NewDec(slashAmt))
 	if err != nil {
 		return ErrFailedToSlash(k.Codespace, err.Error())
 	}
@@ -327,7 +337,7 @@ func (k *Keeper) slashingSideDowntime(ctx sdk.Context, pack *SideDowntimeSlashPa
 	var validatorsAllocatedAmt map[string]int64
 	var found bool
 	if remaining > 0 {
-		found, validatorsAllocatedAmt, err = k.validatorSet.AllocateSlashAmtToValidators(sideCtx, pack.SideConsAddr, sdk.NewDec(remaining))
+		found, validatorsAllocatedAmt, err = k.validatorSet.AllocateSlashAmtToValidators(sideCtx, sideConsAddr, sdk.NewDec(remaining))
 		if err != nil {
 			return ErrFailedToSlash(k.Codespace, err.Error())
 		}
@@ -340,7 +350,7 @@ func (k *Keeper) slashingSideDowntime(ctx sdk.Context, pack *SideDowntimeSlashPa
 
 	jailUntil := header.Time.Add(k.DowntimeUnbondDuration(sideCtx))
 	sr := SlashRecord{
-		ConsAddr:         pack.SideConsAddr,
+		ConsAddr:         sideConsAddr,
 		InfractionType:   Downtime,
 		InfractionHeight: pack.SideHeight,
 		SlashHeight:      header.Height,
@@ -351,12 +361,12 @@ func (k *Keeper) slashingSideDowntime(ctx sdk.Context, pack *SideDowntimeSlashPa
 	k.setSlashRecord(sideCtx, sr)
 
 	// Set or updated validator jail duration
-	signInfo, found := k.getValidatorSigningInfo(sideCtx, pack.SideConsAddr)
+	signInfo, found := k.getValidatorSigningInfo(sideCtx, sideConsAddr)
 	if !found {
-		return sdk.ErrInternal(fmt.Sprintf("Expected signing info for validator %s but not found", sdk.HexEncode(pack.SideConsAddr)))
+		return sdk.ErrInternal(fmt.Sprintf("Expected signing info for validator %s but not found", sdk.HexEncode(sideConsAddr)))
 	}
 	signInfo.JailedUntil = jailUntil
-	k.setValidatorSigningInfo(sideCtx, pack.SideConsAddr, signInfo)
+	k.setValidatorSigningInfo(sideCtx, sideConsAddr, signInfo)
 
 	if k.PbsbServer != nil {
 		event := SideSlashEvent{
@@ -369,6 +379,92 @@ func (k *Keeper) slashingSideDowntime(ctx sdk.Context, pack *SideDowntimeSlashPa
 			ToFeePool:              toFeePool,
 			SideChainId:            sideChainName,
 			ValidatorsCompensation: validatorsAllocatedAmt,
+		}
+		k.PbsbServer.Publish(event)
+	}
+
+	return nil
+}
+
+func (k *Keeper) slashingSideMalicousVote(ctx sdk.Context, pack *SideSlashPackage) sdk.Error {
+	sideVoteAddr := pack.SideAddr
+	sideChainName, err := k.ScKeeper.GetDestChainName(pack.SideChainId)
+	if err != nil {
+		return ErrInvalidSideChainId(DefaultCodespace)
+	}
+	sideCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, sideChainName)
+	if err != nil {
+		return ErrInvalidSideChainId(DefaultCodespace)
+	}
+
+	header := sideCtx.BlockHeader()
+	age := uint64(header.Time.Unix()) - pack.SideTimestamp
+	if age > uint64(k.MaxEvidenceAge(sideCtx).Seconds()) {
+		return ErrExpiredEvidence(DefaultCodespace)
+	}
+
+	validator := k.validatorSet.ValidatorByVoteAddr(sideCtx, sideVoteAddr)
+	if validator == nil {
+		return ErrNoValidatorWithVoteAddr(k.Codespace)
+	}
+	sideConsAddr := []byte(validator.GetSideChainConsAddr())
+	if k.hasSlashRecord(sideCtx, sideConsAddr, MalicousVote, pack.SideHeight) {
+		return ErrDuplicateMalicousVoteClaim(k.Codespace)
+	}
+
+	slashAmt := k.DoubleSignSlashAmount(sideCtx)
+	validator, slashedAmt, err := k.validatorSet.SlashSideChain(ctx, sideChainName, sideConsAddr, sdk.NewDec(slashAmt))
+	if err != nil {
+		return ErrFailedToSlash(k.Codespace, err.Error())
+	}
+
+	var toFeePool int64
+	var validatorsCompensation map[string]int64
+	var found bool
+	if slashAmt > 0 {
+		found, validatorsCompensation, err = k.validatorSet.AllocateSlashAmtToValidators(sideCtx, sideConsAddr, sdk.NewDec(slashAmt))
+		if err != nil {
+			return ErrFailedToSlash(k.Codespace, err.Error())
+		}
+		if !found && ctx.IsDeliverTx() {
+			bondDenom := k.validatorSet.BondDenom(sideCtx)
+			toFeePool = slashAmt
+			remainingCoin := sdk.NewCoin(bondDenom, slashAmt)
+			fees.Pool.AddAndCommitFee("side_malicious_vote_slash", sdk.NewFee(sdk.Coins{remainingCoin}, sdk.FeeForAll))
+		}
+	}
+
+	jailUntil := header.Time.Add(k.DoubleSignUnbondDuration(sideCtx))
+	sr := SlashRecord{
+		ConsAddr:         sideConsAddr,
+		InfractionType:   MalicousVote,
+		InfractionHeight: pack.SideHeight,
+		SlashHeight:      header.Height,
+		JailUntil:        jailUntil,
+		SlashAmt:         slashedAmt.RawInt(),
+		SideChainId:      sideChainName,
+	}
+	k.setSlashRecord(sideCtx, sr)
+
+	// Set or updated validator jail duration
+	signInfo, found := k.getValidatorSigningInfo(sideCtx, sideConsAddr)
+	if !found {
+		return sdk.ErrInternal(fmt.Sprintf("Expected signing info for validator %s but not found", sdk.HexEncode(sideConsAddr)))
+	}
+	signInfo.JailedUntil = jailUntil
+	k.setValidatorSigningInfo(sideCtx, sideConsAddr, signInfo)
+
+	if k.PbsbServer != nil {
+		event := SideSlashEvent{
+			Validator:              validator.GetOperator(),
+			InfractionType:         MalicousVote,
+			InfractionHeight:       int64(pack.SideHeight),
+			SlashHeight:            header.Height,
+			JailUtil:               jailUntil,
+			SlashAmt:               slashedAmt.RawInt(),
+			ToFeePool:              toFeePool,
+			SideChainId:            sideChainName,
+			ValidatorsCompensation: validatorsCompensation,
 		}
 		k.PbsbServer.Publish(event)
 	}

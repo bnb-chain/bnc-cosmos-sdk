@@ -15,7 +15,7 @@ const (
 	Bonded    BondStatus = 0x02
 )
 
-//BondStatusToString for pretty prints of Bond Status
+// BondStatusToString for pretty prints of Bond Status
 func BondStatusToString(b BondStatus) string {
 	switch b {
 	case 0x00:
@@ -73,6 +73,7 @@ type ValidatorSet interface {
 
 	Validator(Context, ValAddress) Validator            // get a particular validator by operator address
 	ValidatorByConsAddr(Context, ConsAddress) Validator // get a particular validator by consensus address
+	ValidatorByVoteAddr(Context, []byte) Validator      // get a particular validator by vote address
 	TotalPower(Context) Dec                             // total power of the validator set
 
 	// slash the validator and delegators of the validator, specifying offence height, offence power, and slash fraction
