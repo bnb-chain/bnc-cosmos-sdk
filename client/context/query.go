@@ -43,7 +43,7 @@ func (ctx CLIContext) QueryWithData(path string, data []byte) (res []byte, err e
 // QueryStore performs a query from a Tendermint node with the provided key and
 // store name.
 func (ctx CLIContext) QueryStore(key cmn.HexBytes, storeName string) (res []byte, err error) {
-	return ctx.queryStore(key, storeName, "key")
+	return ctx.queryStore(key, storeName, "ics23-key")
 }
 
 // QuerySubspace performs a query from a Tendermint node with the provided
@@ -279,11 +279,11 @@ func parseQueryStorePath(path string) (storeName string, err error) {
 	paths := strings.SplitN(path[1:], "/", 3)
 	switch {
 	case len(paths) != 3:
-		return "", errors.New("expected format like /store/<storeName>/key")
+		return "", errors.New("expected format like /store/<storeName>/key|ics23-key")
 	case paths[0] != "store":
-		return "", errors.New("expected format like /store/<storeName>/key")
-	case paths[2] != "key":
-		return "", errors.New("expected format like /store/<storeName>/key")
+		return "", errors.New("expected format like /store/<storeName>/key|ics23-key")
+	case paths[2] != "key" && paths[2] != "ics23-key":
+		return "", errors.New("expected format like /store/<storeName>/key|ics23-key")
 	}
 
 	return paths[1], nil
