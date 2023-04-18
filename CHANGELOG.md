@@ -1,5 +1,8 @@
 # Changelog
 
+##v0.26.2
+* [cli] [\#336] (https://github.com/bnb-chain/bnc-cosmos-sdk/pull/336) fix: fix merkle proof invalid issue of cli query
+
 ##v0.26.1
 * [sdk] [\#331] (https://github.com/bnb-chain/bnc-cosmos-sdk/pull/331) fix: fix the bug introduced by fixing the testnet syncing issue
 
