@@ -425,7 +425,7 @@ func (k *Keeper) slashingSideMaliciousVote(ctx sdk.Context, pack *SideSlashPacka
 		return sdk.ErrInternal(fmt.Sprintf("Expected signing info for validator %s but not found", sdk.HexEncode(sideConsAddr)))
 	}
 	// in duration of malicious vote slash, validator can only be slashed once, to protect validator from funds drained
-	if k.isMaliciousVoteSlashed(sideCtx, sideConsAddr) && pack.SideTimestamp < uint64(signInfo.JailedUntil.Second()) {
+	if k.isMaliciousVoteSlashed(sideCtx, sideConsAddr) && pack.SideTimestamp < uint64(signInfo.JailedUntil.Unix()) {
 		logger.Info(fmt.Sprintf("slashing is blocked because %s is still in duration of lastest malicious vote slash", sideConsAddr))
 		return ErrFailedToSlash(k.Codespace, "still in duration of lastest malicious vote slash")
 	} else if k.hasSlashRecord(sideCtx, sideConsAddr, MaliciousVote, pack.SideHeight) {
@@ -435,7 +435,7 @@ func (k *Keeper) slashingSideMaliciousVote(ctx sdk.Context, pack *SideSlashPacka
 
 	// Malicious vote confirmed
 	logger.Info(fmt.Sprintf("Confirmed malicious vote from %s at height %d, age %d is less than max age %d, summit at %d, jailed until %d before slashing",
-		sideConsAddr, pack.SideHeight, age, maxEvidenceAge, pack.SideTimestamp, uint64(signInfo.JailedUntil.Second())))
+		sideConsAddr, pack.SideHeight, age, maxEvidenceAge, pack.SideTimestamp, uint64(signInfo.JailedUntil.Unix())))
 
 	slashAmt := k.DoubleSignSlashAmount(sideCtx)
 	validator, slashedAmt, err := k.validatorSet.SlashSideChain(ctx, sideChainName, sideConsAddr, sdk.NewDec(slashAmt))
