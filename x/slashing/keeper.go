@@ -435,7 +435,7 @@ func (k *Keeper) slashingSideMaliciousVote(ctx sdk.Context, pack *SideSlashPacka
 
 	// Malicious vote confirmed
 	logger.Info(fmt.Sprintf("Confirmed malicious vote from %s at height %d, age %d is less than max age %d, summit at %d, jailed until %d before slashing",
-		sideConsAddr, pack.SideHeight, age, maxEvidenceAge, pack.SideTimestamp, uint64(signInfo.JailedUntil.Unix())))
+		sdk.HexAddress(sideConsAddr), pack.SideHeight, age, maxEvidenceAge, pack.SideTimestamp, uint64(signInfo.JailedUntil.Unix())))
 
 	slashAmt := k.DoubleSignSlashAmount(sideCtx)
 	validator, slashedAmt, err := k.validatorSet.SlashSideChain(ctx, sideChainName, sideConsAddr, sdk.NewDec(slashAmt))
