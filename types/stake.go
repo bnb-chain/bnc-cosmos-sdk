@@ -50,6 +50,7 @@ type Validator interface {
 	GetDelegatorShares() Dec         // Total out standing delegator shares
 	GetBondHeight() int64            // height in which the validator became active
 	GetSideChainConsAddr() []byte    // validation consensus address on side chain
+	GetSideChainVoteAddr() []byte    // validation vote address on side chain
 	IsSideChainValidator() bool      // if it belongs to side chain
 }
 

@@ -151,6 +151,21 @@ func (k Keeper) getSlashRecordsByConsAddr(ctx sdk.Context, consAddr []byte) (sla
 	return
 }
 
+func (k Keeper) isMaliciousSlashed(ctx sdk.Context, consAddr []byte) bool {
+	store := ctx.KVStore(k.storeKey)
+	consAddrPrefixKey := GetSlashRecordsByAddrIndexKey(consAddr)
+	iterator := sdk.KVStorePrefixIterator(store, consAddrPrefixKey)
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		slashRecord := MustUnmarshalSlashRecord(k.cdc, iterator.Key(), iterator.Value())
+		if slashRecord.InfractionType == MalicousVote {
+			return true
+		}
+	}
+	return false
+}
+
 func (k Keeper) getSlashRecordsByConsAddrAndType(ctx sdk.Context, consAddr []byte, infractionType byte) (slashRecords []SlashRecord) {
 	store := ctx.KVStore(k.storeKey)
 	consAddrPrefixKey := GetSlashRecordsByAddrAndTypeIndexKey(consAddr, infractionType)

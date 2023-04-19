@@ -365,7 +365,9 @@ func (k *Keeper) slashingSideDowntime(ctx sdk.Context, pack *SideSlashPackage) s
 	if !found {
 		return sdk.ErrInternal(fmt.Sprintf("Expected signing info for validator %s but not found", sdk.HexEncode(sideConsAddr)))
 	}
+	//if jailUntil.After(signInfo.JailedUntil) {
 	signInfo.JailedUntil = jailUntil
+	//}
 	k.setValidatorSigningInfo(sideCtx, sideConsAddr, signInfo)
 
 	if k.PbsbServer != nil {
@@ -407,8 +409,20 @@ func (k *Keeper) slashingSideMalicousVote(ctx sdk.Context, pack *SideSlashPackag
 	if validator == nil {
 		return ErrNoValidatorWithVoteAddr(k.Codespace)
 	}
+	// important!!!
+	// validator.GetSideChainVoteAddr() may not equal to sideVoteAddr
+	// because validator may edit vote addr, but previous vote addr would still point to this validator
+	// so validator can't escape from slashing by editing vote addr
+	// But once the voting private key is leaked, validator can't save itself by editing vote addr at the same time
 	sideConsAddr := []byte(validator.GetSideChainConsAddr())
-	if k.hasSlashRecord(sideCtx, sideConsAddr, MalicousVote, pack.SideHeight) {
+	signInfo, found := k.getValidatorSigningInfo(sideCtx, sideConsAddr)
+	if !found {
+		return sdk.ErrInternal(fmt.Sprintf("Expected signing info for validator %s but not found", sdk.HexEncode(sideConsAddr)))
+	}
+	// in duration of malicious vote slash, validator can only be slashed once, to protect validator from funds drained
+	if k.isMaliciousSlashed(sideCtx, sideConsAddr) && pack.SideTimestamp < uint64(signInfo.JailedUntil.Second()) {
+		return ErrFailedToSlash(k.Codespace, "still in duration of lastest malicious vote slash")
+	} else if k.hasSlashRecord(sideCtx, sideConsAddr, MalicousVote, pack.SideHeight) {
 		return ErrDuplicateMalicousVoteClaim(k.Codespace)
 	}
 
@@ -420,7 +434,6 @@ func (k *Keeper) slashingSideMalicousVote(ctx sdk.Context, pack *SideSlashPackag
 
 	var toFeePool int64
 	var validatorsCompensation map[string]int64
-	var found bool
 	if slashAmt > 0 {
 		found, validatorsCompensation, err = k.validatorSet.AllocateSlashAmtToValidators(sideCtx, sideConsAddr, sdk.NewDec(slashAmt))
 		if err != nil {
@@ -434,6 +447,7 @@ func (k *Keeper) slashingSideMalicousVote(ctx sdk.Context, pack *SideSlashPackag
 		}
 	}
 
+	// Set or updated validator jail duration
 	jailUntil := header.Time.Add(k.DoubleSignUnbondDuration(sideCtx))
 	sr := SlashRecord{
 		ConsAddr:         sideConsAddr,
@@ -446,12 +460,9 @@ func (k *Keeper) slashingSideMalicousVote(ctx sdk.Context, pack *SideSlashPackag
 	}
 	k.setSlashRecord(sideCtx, sr)
 
-	// Set or updated validator jail duration
-	signInfo, found := k.getValidatorSigningInfo(sideCtx, sideConsAddr)
-	if !found {
-		return sdk.ErrInternal(fmt.Sprintf("Expected signing info for validator %s but not found", sdk.HexEncode(sideConsAddr)))
+	if jailUntil.After(signInfo.JailedUntil) {
+		signInfo.JailedUntil = jailUntil
 	}
-	signInfo.JailedUntil = jailUntil
 	k.setValidatorSigningInfo(sideCtx, sideConsAddr, signInfo)
 
 	if k.PbsbServer != nil {
