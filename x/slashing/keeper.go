@@ -414,6 +414,9 @@ func (k *Keeper) slashingSideMalicousVote(ctx sdk.Context, pack *SideSlashPackag
 	// because validator may edit vote addr, but previous vote addr would still point to this validator
 	// so validator can't escape from slashing by editing vote addr
 	// But once the voting private key is leaked, validator can't save itself by editing vote addr at the same time
+	//
+	// TODO: use snapshot to get mapping from vote addr to cons addr, then slash according to it;
+	//		 this will allow validator to edit it's vote addr when vote private key is leaked
 	sideConsAddr := []byte(validator.GetSideChainConsAddr())
 	signInfo, found := k.getValidatorSigningInfo(sideCtx, sideConsAddr)
 	if !found {
