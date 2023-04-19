@@ -420,7 +420,7 @@ func (k *Keeper) slashingSideMalicousVote(ctx sdk.Context, pack *SideSlashPackag
 		return sdk.ErrInternal(fmt.Sprintf("Expected signing info for validator %s but not found", sdk.HexEncode(sideConsAddr)))
 	}
 	// in duration of malicious vote slash, validator can only be slashed once, to protect validator from funds drained
-	if k.isMaliciousSlashed(sideCtx, sideConsAddr) && pack.SideTimestamp < uint64(signInfo.JailedUntil.Second()) {
+	if k.isMaliciousVoteSlashed(sideCtx, sideConsAddr) && pack.SideTimestamp < uint64(signInfo.JailedUntil.Second()) {
 		return ErrFailedToSlash(k.Codespace, "still in duration of lastest malicious vote slash")
 	} else if k.hasSlashRecord(sideCtx, sideConsAddr, MalicousVote, pack.SideHeight) {
 		return ErrDuplicateMalicousVoteClaim(k.Codespace)

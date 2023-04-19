@@ -151,7 +151,7 @@ func (k Keeper) getSlashRecordsByConsAddr(ctx sdk.Context, consAddr []byte) (sla
 	return
 }
 
-func (k Keeper) isMaliciousSlashed(ctx sdk.Context, consAddr []byte) bool {
+func (k Keeper) isMaliciousVoteSlashed(ctx sdk.Context, consAddr []byte) bool {
 	store := ctx.KVStore(k.storeKey)
 	consAddrPrefixKey := GetSlashRecordsByAddrIndexKey(consAddr)
 	iterator := sdk.KVStorePrefixIterator(store, consAddrPrefixKey)
