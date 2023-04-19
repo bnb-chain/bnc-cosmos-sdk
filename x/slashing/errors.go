@@ -22,13 +22,13 @@ const (
 	CodeSelfDelegationTooLowToUnjail CodeType = 105
 	CodeInvalidClaim                 CodeType = 106
 
-	CodeExpiredEvidence            CodeType = 201
-	CodeFailSlash                  CodeType = 202
-	CodeHandledEvidence            CodeType = 203
-	CodeInvalidEvidence            CodeType = 204
-	CodeInvalidSideChain           CodeType = 205
-	CodeDuplicateDowntimeClaim     CodeType = 206
-	CodeDuplicateMalicousVoteClaim CodeType = 207
+	CodeExpiredEvidence             CodeType = 201
+	CodeFailSlash                   CodeType = 202
+	CodeHandledEvidence             CodeType = 203
+	CodeInvalidEvidence             CodeType = 204
+	CodeInvalidSideChain            CodeType = 205
+	CodeDuplicateDowntimeClaim      CodeType = 206
+	CodeDuplicateMaliciousVoteClaim CodeType = 207
 )
 
 func ErrNoValidatorForAddress(codespace sdk.CodespaceType) sdk.Error {
@@ -87,8 +87,8 @@ func ErrDuplicateDowntimeClaim(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeDuplicateDowntimeClaim, "duplicate downtime claim")
 }
 
-func ErrDuplicateMalicousVoteClaim(codespace sdk.CodespaceType) sdk.Error {
-	return sdk.NewError(codespace, CodeDuplicateMalicousVoteClaim, "duplicate malicious vote claim")
+func ErrDuplicateMaliciousVoteClaim(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeDuplicateMaliciousVoteClaim, "duplicate malicious vote claim")
 }
 
 func ErrInvalidInput(codespace sdk.CodespaceType, msg string) sdk.Error {

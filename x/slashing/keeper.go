@@ -242,7 +242,7 @@ func (k *Keeper) ExecuteSynPackage(ctx sdk.Context, payload []byte, _ int64) sdk
 		if sideSlashPack.addrType == SideConsAddrType {
 			err = k.slashingSideDowntime(ctx, sideSlashPack)
 		} else if sideSlashPack.addrType == SideVoteAddrType {
-			err = k.slashingSideMalicousVote(ctx, sideSlashPack)
+			err = k.slashingSideMaliciousVote(ctx, sideSlashPack)
 		}
 	}
 	if err != nil {
@@ -388,7 +388,7 @@ func (k *Keeper) slashingSideDowntime(ctx sdk.Context, pack *SideSlashPackage) s
 	return nil
 }
 
-func (k *Keeper) slashingSideMalicousVote(ctx sdk.Context, pack *SideSlashPackage) sdk.Error {
+func (k *Keeper) slashingSideMaliciousVote(ctx sdk.Context, pack *SideSlashPackage) sdk.Error {
 	sideVoteAddr := pack.SideAddr
 	sideChainName, err := k.ScKeeper.GetDestChainName(pack.SideChainId)
 	if err != nil {
@@ -425,8 +425,8 @@ func (k *Keeper) slashingSideMalicousVote(ctx sdk.Context, pack *SideSlashPackag
 	// in duration of malicious vote slash, validator can only be slashed once, to protect validator from funds drained
 	if k.isMaliciousVoteSlashed(sideCtx, sideConsAddr) && pack.SideTimestamp < uint64(signInfo.JailedUntil.Second()) {
 		return ErrFailedToSlash(k.Codespace, "still in duration of lastest malicious vote slash")
-	} else if k.hasSlashRecord(sideCtx, sideConsAddr, MalicousVote, pack.SideHeight) {
-		return ErrDuplicateMalicousVoteClaim(k.Codespace)
+	} else if k.hasSlashRecord(sideCtx, sideConsAddr, MaliciousVote, pack.SideHeight) {
+		return ErrDuplicateMaliciousVoteClaim(k.Codespace)
 	}
 
 	slashAmt := k.DoubleSignSlashAmount(sideCtx)
@@ -454,7 +454,7 @@ func (k *Keeper) slashingSideMalicousVote(ctx sdk.Context, pack *SideSlashPackag
 	jailUntil := header.Time.Add(k.DoubleSignUnbondDuration(sideCtx))
 	sr := SlashRecord{
 		ConsAddr:         sideConsAddr,
-		InfractionType:   MalicousVote,
+		InfractionType:   MaliciousVote,
 		InfractionHeight: pack.SideHeight,
 		SlashHeight:      header.Height,
 		JailUntil:        jailUntil,
@@ -471,7 +471,7 @@ func (k *Keeper) slashingSideMalicousVote(ctx sdk.Context, pack *SideSlashPackag
 	if k.PbsbServer != nil {
 		event := SideSlashEvent{
 			Validator:              validator.GetOperator(),
-			InfractionType:         MalicousVote,
+			InfractionType:         MaliciousVote,
 			InfractionHeight:       int64(pack.SideHeight),
 			SlashHeight:            header.Height,
 			JailUtil:               jailUntil,

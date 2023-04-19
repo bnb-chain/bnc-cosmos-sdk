@@ -13,7 +13,7 @@ import (
 const (
 	DoubleSign byte = iota
 	Downtime
-	MalicousVote
+	MaliciousVote
 )
 
 type SlashRecord struct {
@@ -159,7 +159,7 @@ func (k Keeper) isMaliciousVoteSlashed(ctx sdk.Context, consAddr []byte) bool {
 
 	for ; iterator.Valid(); iterator.Next() {
 		slashRecord := MustUnmarshalSlashRecord(k.cdc, iterator.Key(), iterator.Value())
-		if slashRecord.InfractionType == MalicousVote {
+		if slashRecord.InfractionType == MaliciousVote {
 			return true
 		}
 	}
