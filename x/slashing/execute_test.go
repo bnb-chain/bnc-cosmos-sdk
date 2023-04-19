@@ -1,9 +1,10 @@
 package slashing
 
 import (
-	"github.com/cosmos/cosmos-sdk/bsc/rlp"
 	"testing"
 	"time"
+
+	"github.com/cosmos/cosmos-sdk/bsc/rlp"
 
 	"github.com/stretchr/testify/require"
 
@@ -33,8 +34,8 @@ func TestSideChainSlashDowntime(t *testing.T) {
 	sideHeight := uint64(100)
 	sideChainId := "bsc"
 	sideTimestamp := ctx.BlockHeader().Time.Add(-6 * 60 * 60 * time.Second)
-	claim := SideDowntimeSlashPackage{
-		SideConsAddr:  sideConsAddr,
+	claim := SideSlashPackage{
+		SideAddr:      sideConsAddr,
 		SideHeight:    sideHeight,
 		SideChainId:   sdk.ChainID(1),
 		SideTimestamp: uint64(sideTimestamp.Unix()),
@@ -74,22 +75,22 @@ func TestSideChainSlashDowntime(t *testing.T) {
 
 	claim.SideHeight = 0
 	bz, _ := rlp.EncodeToBytes(&claim)
-	_, result = keeper.checkSideDowntimeSlashPackage(bz)
+	_, result = keeper.checkSideSlashPackage(bz)
 	require.NotNil(t, result)
 
 	claim.SideHeight = sideHeight
-	claim.SideConsAddr = createSideAddr(21)
+	claim.SideAddr = createSideAddr(21)
 
 	result = keeper.slashingSideDowntime(ctx, &claim)
 	require.NotNil(t, result)
 
-	claim.SideConsAddr = sideConsAddr
+	claim.SideAddr = sideConsAddr
 	claim.SideTimestamp = uint64(ctx.BlockHeader().Time.Add(-24 * 60 * 60 * time.Second).Unix())
 	result = keeper.slashingSideDowntime(ctx, &claim)
 	require.EqualValues(t, CodeExpiredEvidence, result.Code(), "Expected got 201 err code, but got err: %v", result)
 
 	claim.SideTimestamp = uint64(ctx.BlockHeader().Time.Add(-6 * 60 * 60 * time.Second).Unix())
-	claim.SideConsAddr = sideConsAddr
+	claim.SideAddr = sideConsAddr
 	claim.SideChainId = sdk.ChainID(2)
 
 	result = keeper.slashingSideDowntime(ctx, &claim)
@@ -97,7 +98,7 @@ func TestSideChainSlashDowntime(t *testing.T) {
 	require.EqualValues(t, CodeInvalidSideChain, result.Code(), "Expected got 205 error code, but got err: %v", result)
 
 	claim.SideHeight = sideHeight
-	claim.SideConsAddr = createSideAddr(20)
+	claim.SideAddr = createSideAddr(20)
 	claim.SideChainId = sdk.ChainID(1)
 
 	result = keeper.slashingSideDowntime(ctx, &claim)
@@ -138,8 +139,8 @@ func TestSlashDowntimeBalanceVerify(t *testing.T) {
 
 	sideHeight := uint64(50)
 	sideTimestamp := ctx.BlockHeader().Time.Add(-6 * 60 * 60 * time.Second)
-	claim := SideDowntimeSlashPackage{
-		SideConsAddr:  sideConsAddr2,
+	claim := SideSlashPackage{
+		SideAddr:      sideConsAddr2,
 		SideHeight:    sideHeight,
 		SideChainId:   sdk.ChainID(1),
 		SideTimestamp: uint64(sideTimestamp.Unix()),
@@ -166,8 +167,8 @@ func TestSlashDowntimeBalanceVerify(t *testing.T) {
 
 	sideHeight = uint64(80)
 	sideTimestamp = ctx.BlockHeader().Time.Add(-3 * 60 * 60 * time.Second)
-	claim = SideDowntimeSlashPackage{
-		SideConsAddr:  sideConsAddr2,
+	claim = SideSlashPackage{
+		SideAddr:      sideConsAddr2,
 		SideHeight:    sideHeight,
 		SideChainId:   sdk.ChainID(1),
 		SideTimestamp: uint64(sideTimestamp.Unix()),
