@@ -65,6 +65,15 @@ func (k Keeper) ValidatorByConsAddr(ctx sdk.Context, addr sdk.ConsAddress) sdk.V
 	return val
 }
 
+// get the sdk.validator for a particular vote address
+func (k Keeper) ValidatorByVoteAddr(ctx sdk.Context, VoteAddress []byte) sdk.Validator {
+	val, found := k.GetValidatorBySideVoteAddr(ctx, VoteAddress)
+	if !found {
+		return nil
+	}
+	return val
+}
+
 // get the sdk.validator for a particular consensus address
 func (k Keeper) ValidatorBySideChainConsAddr(ctx sdk.Context, sideChainConsAddr []byte) sdk.Validator {
 	val, found := k.GetValidatorBySideConsAddr(ctx, sideChainConsAddr)
