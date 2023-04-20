@@ -13,6 +13,7 @@ import (
 const (
 	DoubleSign byte = iota
 	Downtime
+	MaliciousVote
 )
 
 type SlashRecord struct {
@@ -148,6 +149,21 @@ func (k Keeper) getSlashRecordsByConsAddr(ctx sdk.Context, consAddr []byte) (sla
 		slashRecords = append(slashRecords, slashRecord)
 	}
 	return
+}
+
+func (k Keeper) isMaliciousVoteSlashed(ctx sdk.Context, consAddr []byte) bool {
+	store := ctx.KVStore(k.storeKey)
+	consAddrPrefixKey := GetSlashRecordsByAddrIndexKey(consAddr)
+	iterator := sdk.KVStorePrefixIterator(store, consAddrPrefixKey)
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		slashRecord := MustUnmarshalSlashRecord(k.cdc, iterator.Key(), iterator.Value())
+		if slashRecord.InfractionType == MaliciousVote {
+			return true
+		}
+	}
+	return false
 }
 
 func (k Keeper) getSlashRecordsByConsAddrAndType(ctx sdk.Context, consAddr []byte, infractionType byte) (slashRecords []SlashRecord) {
