@@ -171,6 +171,15 @@ func IsUpgrade(name string) bool {
 	return UpgradeMgr.GetHeight() >= upgradeHeight
 }
 
+func IsUpgradeWithHeight(name string, height int64) bool {
+	upgradeHeight := UpgradeMgr.GetUpgradeHeight(name)
+	if upgradeHeight == 0 {
+		return false
+	}
+
+	return height >= upgradeHeight
+}
+
 func ShouldCommitStore(storeKeyName string) bool {
 	storeKeyHeight := UpgradeMgr.GetStoreKeyHeight(storeKeyName)
 	if storeKeyHeight == 0 {
