@@ -77,6 +77,11 @@ func handleMsgCreateSideChainValidator(ctx sdk.Context, msg MsgCreateSideChainVa
 }
 
 func handleMsgEditSideChainValidator(ctx sdk.Context, msg MsgEditSideChainValidator, k keeper.Keeper) sdk.Result {
+	if len(msg.SideConsAddr) != 0 {
+		if !sdk.IsUpgrade(sdk.BEP159) {
+			return ErrEditConsensusKeyBeforeBEP159(k.Codespace()).Result()
+		}
+	}
 	if scCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, msg.SideChainId); err != nil {
 		return ErrInvalidSideChainId(k.Codespace()).Result()
 	} else {

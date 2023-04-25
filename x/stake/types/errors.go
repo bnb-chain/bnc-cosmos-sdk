@@ -52,6 +52,10 @@ func ErrNoValidatorFound(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidValidator, "validator does not exist for that address")
 }
 
+func ErrEditConsensusKeyBeforeBEP159(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeUnauthorized, "side consensus address cannot be updated before BEP159")
+}
+
 func ErrValidatorOwnerExists(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidValidator, "validator already exist for this operator address, must use new validator operator address")
 }
