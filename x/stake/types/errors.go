@@ -68,6 +68,10 @@ func ErrValidatorSideConsAddrExists(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidValidator, "validator already exist for this sideConsAddr, must use new validator sideConsAddr")
 }
 
+func ErrValidatorSideVoteAddrExists(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidValidator, "validator already exist for this sideVoteAddr, must use new validator sideVoteAddr")
+}
+
 func ErrValidatorJailed(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidValidator, "validator for this address is currently jailed")
 }
@@ -243,6 +247,14 @@ func ErrInvalidSideChainId(codespace sdk.CodespaceType) sdk.Error {
 
 func ErrInvalidCrosschainPackage(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidCrossChainPackage, "invalid cross chain package")
+}
+
+func ErrNilValidatorSideVoteAddr(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidInput, "validator side-chain vote address is nil")
+}
+
+func ErrBadValidatorSideVoteAddr(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidInput, "validator side-chain vote address is invalid")
 }
 
 func ErrDeserializePackageFailed(msg string) sdk.Error {

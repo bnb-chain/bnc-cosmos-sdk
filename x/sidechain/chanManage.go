@@ -1,25 +1,15 @@
 package sidechain
 
 import (
-	"encoding/hex"
 	"time"
 
-	"github.com/cosmos/cosmos-sdk/bsc/rlp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/gov"
-	pTypes "github.com/cosmos/cosmos-sdk/x/paramHub/types"
 	"github.com/cosmos/cosmos-sdk/x/sidechain/types"
 )
 
 const (
 	SafeToleratePeriod = 2 * 7 * 24 * 60 * 60 * time.Second // 2 weeks
-
-	EnableOrDisableChannelKey = "enableOrDisableChannel"
-	AddOrUpdateChannelKey     = "addOrUpdateChannel"
-)
-
-var (
-	CrossChainContractAddr, _ = hex.DecodeString("0000000000000000000000000000000000002000")
 )
 
 func (k *Keeper) getLastChanPermissionChanges(ctx sdk.Context) []types.ChanPermissionSetting {
@@ -71,32 +61,5 @@ func (k *Keeper) getLastChanPermissionChanges(ctx sdk.Context) []types.ChanPermi
 func (k *Keeper) SaveChannelSettingChangeToIbc(ctx sdk.Context, sideChainId sdk.ChainID, channelId sdk.ChannelID, permission sdk.ChannelPermission) (seq uint64, sdkErr sdk.Error) {
 	valueBytes := []byte{byte(channelId), byte(permission)}
 
-	paramChange := pTypes.CSCParamChange{
-		Key:         EnableOrDisableChannelKey,
-		ValueBytes:  valueBytes,
-		TargetBytes: CrossChainContractAddr,
-	}
-
-	bz, err := rlp.EncodeToBytes(&paramChange)
-	if err != nil {
-		return 0, sdk.ErrInternal("failed to encode paramChange")
-	}
-	return k.ibcKeeper.CreateRawIBCPackageById(ctx, sideChainId, types.GovChannelId, sdk.SynCrossChainPackageType, bz)
-}
-
-func (k *Keeper) CreateNewChannelToIbc(ctx sdk.Context, sideChainId sdk.ChainID, channelId sdk.ChannelID, rewardConfig sdk.RewardConfig, handleContract []byte) (seq uint64, sdkErr sdk.Error) {
-	valueBytes := []byte{byte(channelId), byte(rewardConfig)}
-	valueBytes = append(valueBytes, handleContract...)
-
-	paramChange := pTypes.CSCParamChange{
-		Key:         AddOrUpdateChannelKey,
-		ValueBytes:  valueBytes,
-		TargetBytes: CrossChainContractAddr,
-	}
-
-	bz, err := rlp.EncodeToBytes(&paramChange)
-	if err != nil {
-		return 0, sdk.ErrInternal("failed to encode paramChange")
-	}
-	return k.ibcKeeper.CreateRawIBCPackageById(ctx, sideChainId, types.GovChannelId, sdk.SynCrossChainPackageType, bz)
+	return k.sendParamChangeToIbc(ctx, sideChainId, EnableOrDisableChannelKey, valueBytes, CrossChainContractAddr)
 }

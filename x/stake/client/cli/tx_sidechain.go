@@ -60,23 +60,38 @@ func GetCmdCreateSideChainValidator(cdc *codec.Codec) *cobra.Command {
 			return err
 		}
 
-		sideChainId, sideConsAddr, sideFeeAddr, err := getSideChainInfo(true, true)
+		sideChainId, sideConsAddr, sideFeeAddr, sideVoteAddr, err := getSideChainInfo(true, true)
 		if err != nil {
 			return err
 		}
 
 		var msg sdk.Msg
-		if viper.GetString(FlagAddressDelegator) != "" {
-			delAddr, err := sdk.AccAddressFromBech32(viper.GetString(FlagAddressDelegator))
-			if err != nil {
-				return err
-			}
+		if sideVoteAddr != nil {
+			if viper.GetString(FlagAddressDelegator) != "" {
+				delAddr, err := sdk.AccAddressFromBech32(viper.GetString(FlagAddressDelegator))
+				if err != nil {
+					return err
+				}
 
-			msg = stake.NewMsgCreateSideChainValidatorOnBehalfOf(delAddr, sdk.ValAddress(valAddr), amount, description,
-				commissionMsg, sideChainId, sideConsAddr, sideFeeAddr)
+				msg = stake.NewMsgCreateSideChainValidatorWithVoteAddrOnBehalfOf(delAddr, sdk.ValAddress(valAddr), amount, description,
+					commissionMsg, sideChainId, sideConsAddr, sideFeeAddr, sideVoteAddr)
+			} else {
+				msg = stake.NewMsgCreateSideChainValidatorWithVoteAddr(
+					sdk.ValAddress(valAddr), amount, description, commissionMsg, sideChainId, sideConsAddr, sideFeeAddr, sideVoteAddr)
+			}
 		} else {
-			msg = stake.NewMsgCreateSideChainValidator(
-				sdk.ValAddress(valAddr), amount, description, commissionMsg, sideChainId, sideConsAddr, sideFeeAddr)
+			if viper.GetString(FlagAddressDelegator) != "" {
+				delAddr, err := sdk.AccAddressFromBech32(viper.GetString(FlagAddressDelegator))
+				if err != nil {
+					return err
+				}
+
+				msg = stake.NewMsgCreateSideChainValidatorOnBehalfOf(delAddr, sdk.ValAddress(valAddr), amount, description,
+					commissionMsg, sideChainId, sideConsAddr, sideFeeAddr)
+			} else {
+				msg = stake.NewMsgCreateSideChainValidator(
+					sdk.ValAddress(valAddr), amount, description, commissionMsg, sideChainId, sideConsAddr, sideFeeAddr)
+			}
 		}
 
 		return utils.GenerateOrBroadcastMsgs(txBldr, cliCtx, []sdk.Msg{msg})
@@ -126,11 +141,18 @@ func GetCmdEditSideChainValidator(cdc *codec.Codec) *cobra.Command {
 			newRate = &rate
 		}
 
-		sideChainId, sideConsAddr, sideFeeAddr, err := getSideChainInfo(false, false)
+		sideChainId, sideConsAddr, sideFeeAddr, sideVoteAddr, err := getSideChainInfo(false, false)
 		if err != nil {
 			return err
 		}
-		msg := stake.NewMsgEditSideChainValidator(sideChainId, sdk.ValAddress(valAddr), description, newRate, sideFeeAddr, sideConsAddr)
+
+		var msg sdk.Msg
+		if sideVoteAddr != nil {
+			msg = stake.NewMsgEditSideChainValidatorWithVoteAddr(sideChainId, sdk.ValAddress(valAddr), description, newRate, sideFeeAddr, sideConsAddr, sideVoteAddr)
+		} else {
+			msg = stake.NewMsgEditSideChainValidator(sideChainId, sdk.ValAddress(valAddr), description, newRate, sideFeeAddr, sideConsAddr)
+
+		}
 		return utils.GenerateOrBroadcastMsgs(txBldr, cliCtx, []sdk.Msg{msg})
 	}
 
@@ -276,7 +298,7 @@ func getSideChainId() (sideChainId string, err error) {
 	return
 }
 
-func getSideChainInfo(requireConsAddr, requireFeeAddr bool) (sideChainId string, sideConsAddr, sideFeeAddr []byte, err error) {
+func getSideChainInfo(requireConsAddr, requireFeeAddr bool) (sideChainId string, sideConsAddr, sideFeeAddr, sideVoteAddr []byte, err error) {
 	sideChainId, err = getSideChainId()
 	if err != nil {
 		return
@@ -303,6 +325,14 @@ func getSideChainInfo(requireConsAddr, requireFeeAddr bool) (sideChainId string,
 		}
 	} else {
 		sideFeeAddr, err = sdk.HexDecode(sideFeeAddrStr)
+		if err != nil {
+			return
+		}
+	}
+
+	sideVoteAddrStr := viper.GetString(FlagSideVoteAddr)
+	if len(sideVoteAddrStr) != 0 {
+		sideVoteAddr, err = sdk.HexDecode(sideVoteAddrStr)
 		if err != nil {
 			return
 		}

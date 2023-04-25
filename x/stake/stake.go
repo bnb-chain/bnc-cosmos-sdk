@@ -35,11 +35,13 @@ type (
 	QueryTopValidatorsParams   = querier.QueryTopValidatorsParams
 	BaseParams                 = querier.BaseParams
 
-	MsgCreateSideChainValidator = types.MsgCreateSideChainValidator
-	MsgEditSideChainValidator   = types.MsgEditSideChainValidator
-	MsgSideChainDelegate        = types.MsgSideChainDelegate
-	MsgSideChainRedelegate      = types.MsgSideChainRedelegate
-	MsgSideChainUndelegate      = types.MsgSideChainUndelegate
+	MsgCreateSideChainValidator             = types.MsgCreateSideChainValidator
+	MsgEditSideChainValidator               = types.MsgEditSideChainValidator
+	MsgCreateSideChainValidatorWithVoteAddr = types.MsgCreateSideChainValidatorWithVoteAddr
+	MsgEditSideChainValidatorWithVoteAddr   = types.MsgEditSideChainValidatorWithVoteAddr
+	MsgSideChainDelegate                    = types.MsgSideChainDelegate
+	MsgSideChainRedelegate                  = types.MsgSideChainRedelegate
+	MsgSideChainUndelegate                  = types.MsgSideChainUndelegate
 
 	DistributionEvent      = types.DistributionEvent
 	DistributionData       = types.DistributionData
@@ -76,6 +78,7 @@ var (
 	LastTotalPowerKey                = keeper.LastTotalPowerKey
 	ValidatorsKey                    = keeper.ValidatorsKey
 	ValidatorsByConsAddrKey          = keeper.ValidatorsByConsAddrKey
+	ValidatorsByVoteAddrKey          = keeper.ValidatorsBySideVoteAddrKey
 	ValidatorsByPowerIndexKey        = keeper.ValidatorsByPowerIndexKey
 	DelegationKey                    = keeper.DelegationKey
 	GetUBDKey                        = keeper.GetUBDKey
@@ -128,6 +131,10 @@ var (
 	NewMsgSideChainRedelegate                = types.NewMsgSideChainRedelegate
 	NewMsgSideChainUndelegate                = types.NewMsgSideChainUndelegate
 
+	NewMsgCreateSideChainValidatorWithVoteAddr           = types.NewMsgCreateSideChainValidatorWithVoteAddr
+	NewMsgCreateSideChainValidatorWithVoteAddrOnBehalfOf = types.NewMsgCreateSideChainValidatorWithVoteAddrOnBehalfOf
+	NewMsgEditSideChainValidatorWithVoteAddr             = types.NewMsgEditSideChainValidatorWithVoteAddr
+
 	NewQuerier    = querier.NewQuerier
 	NewBaseParams = querier.NewBaseParams
 
@@ -174,6 +181,7 @@ var (
 	ErrValidatorOwnerExists         = types.ErrValidatorOwnerExists
 	ErrValidatorPubKeyExists        = types.ErrValidatorPubKeyExists
 	ErrValidatorSideConsAddrExist   = types.ErrValidatorSideConsAddrExists
+	ErrValidatorSideVoteAddrExist   = types.ErrValidatorSideVoteAddrExists
 	ErrInvalidDelegator             = types.ErrInvalidDelegator
 	ErrValidatorJailed              = types.ErrValidatorJailed
 	ErrInvalidProposal              = types.ErrInvalidProposal

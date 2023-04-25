@@ -52,11 +52,13 @@ var (
 		"claimHTLT":   {},
 		"refundHTLT":  {},
 
-		"side_create_validator": {},
-		"side_edit_validator":   {},
-		"side_delegate":         {},
-		"side_redelegate":       {},
-		"side_undelegate":       {},
+		"side_create_validator":                {},
+		"side_edit_validator":                  {},
+		"side_create_validator_with_vote_addr": {},
+		"side_edit_validator_with_vote_addr":   {},
+		"side_delegate":                        {},
+		"side_redelegate":                      {},
+		"side_undelegate":                      {},
 
 		"bsc_submit_evidence": {},
 		"side_chain_unjail":   {},

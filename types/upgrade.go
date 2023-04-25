@@ -23,6 +23,8 @@ const (
 	BEP171                      = "BEP171" //https://github.com/bnb-chain/BEPs/pull/171
 	BEP173                      = "BEP173" // https://github.com/bnb-chain/BEPs/pull/173
 	FixDoubleSignChainId        = "FixDoubleSignChainId"
+	BEP126                      = "BEP126" //https://github.com/binance-chain/BEPs/pull/126
+
 )
 
 var MainNetConfig = UpgradeConfig{
@@ -169,6 +171,15 @@ func IsUpgrade(name string) bool {
 	}
 
 	return UpgradeMgr.GetHeight() >= upgradeHeight
+}
+
+func IsUpgradeWithHeight(name string, height int64) bool {
+	upgradeHeight := UpgradeMgr.GetUpgradeHeight(name)
+	if upgradeHeight == 0 {
+		return false
+	}
+
+	return height >= upgradeHeight
 }
 
 func ShouldCommitStore(storeKeyName string) bool {

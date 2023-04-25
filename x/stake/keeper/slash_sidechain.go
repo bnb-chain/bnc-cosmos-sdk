@@ -75,19 +75,37 @@ func (k Keeper) SlashSideChain(ctx sdk.Context, sideChainId string, sideConsAddr
 		k.AddrPool.AddAddrs([]sdk.AccAddress{DelegationAccAddr})
 	}
 	if validator.IsBonded() {
-		ibcPackage := types.IbcValidatorSetPackage{
-			Type: types.JailPackageType,
-			ValidatorSet: []types.IbcValidator{
-				{
-					ConsAddr: validator.SideConsAddr,
-					FeeAddr:  validator.SideFeeAddr,
-					DistAddr: validator.DistributionAddr,
-					Power:    uint64(validator.GetPower().RawInt()),
+		if sdk.IsUpgrade(sdk.BEP126) {
+			ibcPackage := types.IbcValidatorWithVoteAddrSetPackage{
+				Type: types.JailPackageType,
+				ValidatorSet: []types.IbcValidatorWithVoteAddr{
+					{
+						ConsAddr: validator.SideConsAddr,
+						FeeAddr:  validator.SideFeeAddr,
+						DistAddr: validator.DistributionAddr,
+						Power:    uint64(validator.GetPower().RawInt()),
+						VoteAddr: validator.SideVoteAddr,
+					},
 				},
-			},
-		}
-		if _, err := k.SaveValidatorSetToIbc(ctx, sideChainId, ibcPackage); err != nil {
-			return nil, sdk.ZeroDec(), errors.New(err.Error())
+			}
+			if _, err := k.SaveValidatorWithVoteAddrSetToIbc(ctx, sideChainId, ibcPackage); err != nil {
+				return nil, sdk.ZeroDec(), errors.New(err.Error())
+			}
+		} else {
+			ibcPackage := types.IbcValidatorSetPackage{
+				Type: types.JailPackageType,
+				ValidatorSet: []types.IbcValidator{
+					{
+						ConsAddr: validator.SideConsAddr,
+						FeeAddr:  validator.SideFeeAddr,
+						DistAddr: validator.DistributionAddr,
+						Power:    uint64(validator.GetPower().RawInt()),
+					},
+				},
+			}
+			if _, err := k.SaveValidatorSetToIbc(ctx, sideChainId, ibcPackage); err != nil {
+				return nil, sdk.ZeroDec(), errors.New(err.Error())
+			}
 		}
 	}
 
