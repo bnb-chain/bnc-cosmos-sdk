@@ -1,5 +1,11 @@
 # Changelog
 
+##v0.26.3
+* [sdk] [\#289] (https://github.com/bnb-chain/bnc-cosmos-sdk/pull/289) feat: implement bep126
+* [sdk] [\#335] (https://github.com/bnb-chain/bnc-cosmos-sdk/pull/335) feat: implement new slash mechanism
+* [fix] [\#340] (https://github.com/bnb-chain/bnc-cosmos-sdk/pull/340) fix: use height in store for checking upgrade status
+* [fix] [\#341] (https://github.com/bnb-chain/bnc-cosmos-sdk/pull/341) dep: update dependency to fix security issue
+
 ##v0.26.2
 * [cli] [\#336] (https://github.com/bnb-chain/bnc-cosmos-sdk/pull/336) fix: fix merkle proof invalid issue of cli query
 
