@@ -47,10 +47,11 @@ type Validator struct {
 	SideChainId      string         `json:"side_chain_id,omitempty"`     // side chain id to distinguish different side chains
 	SideConsAddr     []byte         `json:"side_cons_addr,omitempty"`    // consensus address of the side chain validator, this replaces the `ConsPubKey`
 	SideFeeAddr      []byte         `json:"side_fee_addr,omitempty"`     // fee address on the side chain
-	SideVoteAddr     []byte         `json:"side_vote_addr,omitempty"`    // bls vote address on the side chain
 
 	StakeSnapshots   []sdk.Dec `json:"stake_snapshots,omitempty"`   // staked tokens snapshot over a period of time, e.g. 30 days
 	AccumulatedStake sdk.Dec   `json:"accumulated_stake,omitempty"` // accumulated stake, sum of StakeSnapshots
+
+	SideVoteAddr []byte `json:"side_vote_addr,omitempty"` // bls vote address on the side chain
 }
 
 // NewValidator - initialize a new validator
