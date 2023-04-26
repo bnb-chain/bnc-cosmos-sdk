@@ -1,5 +1,8 @@
 # Changelog
 
+##v0.26.4
+* [fix] [\#345] (https://github.com/bnb-chain/bnc-cosmos-sdk/pull/345) fix: fix validator unmarshal failed issue
+
 ##v0.26.3
 * [sdk] [\#289] (https://github.com/bnb-chain/bnc-cosmos-sdk/pull/289) feat: implement bep126
 * [sdk] [\#335] (https://github.com/bnb-chain/bnc-cosmos-sdk/pull/335) feat: implement new slash mechanism
