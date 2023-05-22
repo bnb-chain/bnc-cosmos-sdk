@@ -176,7 +176,7 @@ func GetCmdQuerySideChainSlashRecord(storeName string, cdc *codec.Codec) *cobra.
 			return nil
 		},
 	}
-	cmd.Flags().String(FlagInfractionType, "", "infraction type, 'DoubleSign;Downtime'")
+	cmd.Flags().String(FlagInfractionType, "", "infraction type, 'DoubleSign;Downtime;MaliciousVote'")
 	cmd.Flags().Int64(FlagInfractionHeight, 0, "infraction height")
 	cmd.Flags().String(FlagSideChainId, "", "chain-id of the side chain the validator belongs to")
 	cmd.MarkFlagRequired(FlagInfractionType)
@@ -264,7 +264,7 @@ func GetCmdQuerySideChainSlashRecords(cdc *codec.Codec) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().String(FlagInfractionType, "", "infraction type, 'DoubleSign;Downtime'")
+	cmd.Flags().String(FlagInfractionType, "", "infraction type, 'DoubleSign;Downtime;MaliciousVote'")
 	cmd.Flags().String(FlagSideChainId, "", "chain-id of the side chain the validator belongs to")
 	return cmd
 }
@@ -290,6 +290,8 @@ func convertInfractionType(infractionTypeS string) (byte, error) {
 		res = slashing.DoubleSign
 	} else if infractionTypeS == "Downtime" {
 		res = slashing.Downtime
+	} else if infractionTypeS == "MaliciousVote" {
+		res = slashing.MaliciousVote
 	} else {
 		return 0, errors.New("unknown infraction type")
 	}
