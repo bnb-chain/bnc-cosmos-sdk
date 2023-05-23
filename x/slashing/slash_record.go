@@ -32,6 +32,8 @@ func (r SlashRecord) HumanReadableString() (string, error) {
 		infraType = "DoubleSign"
 	} else if r.InfractionType == 1 {
 		infraType = "Downtime"
+	} else if r.InfractionType == 2 {
+		infraType = "MaliciousVote"
 	}
 
 	var consAddr string
