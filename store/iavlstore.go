@@ -103,8 +103,6 @@ func (st *IavlStore) Commit() CommitID {
 		}
 	}
 
-	st.resetDiff()
-
 	return CommitID{
 		Version: version,
 		Hash:    hash,
@@ -171,7 +169,7 @@ func (st *IavlStore) GetDiff() map[string][]byte {
 	return st.diff
 }
 
-func (st *IavlStore) resetDiff() {
+func (st *IavlStore) ResetDiff() {
 	st.diff = map[string][]byte{}
 }
 
