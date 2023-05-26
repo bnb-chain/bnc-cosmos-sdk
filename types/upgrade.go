@@ -23,8 +23,8 @@ const (
 	BEP171                      = "BEP171" //https://github.com/bnb-chain/BEPs/pull/171
 	BEP173                      = "BEP173" // https://github.com/bnb-chain/BEPs/pull/173
 	FixDoubleSignChainId        = "FixDoubleSignChainId"
-	BEP126                      = "BEP126" //https://github.com/binance-chain/BEPs/pull/126
-
+	BEP126                      = "BEP126"              //https://github.com/binance-chain/BEPs/pull/126
+	SecurityEnhancement         = "SecurityEnhancement" //TODO: update name
 )
 
 var MainNetConfig = UpgradeConfig{
