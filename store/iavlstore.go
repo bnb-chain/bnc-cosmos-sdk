@@ -65,7 +65,7 @@ func newIAVLStore(tree *iavl.MutableTree, numRecent int64, storeEvery int64) *Ia
 		Tree:       tree,
 		numRecent:  numRecent,
 		storeEvery: storeEvery,
-		diff:       map[string][]byte{},
+		diff:       nil,
 	}
 	return st
 }
@@ -163,6 +163,10 @@ func (st *IavlStore) Set(key, value []byte) {
 func (st *IavlStore) Get(key []byte) (value []byte) {
 	_, v := st.Tree.Get(key)
 	return v
+}
+
+func (st *IavlStore) EnableDiff() {
+	st.diff = map[string][]byte{}
 }
 
 func (st *IavlStore) GetDiff() map[string][]byte {
