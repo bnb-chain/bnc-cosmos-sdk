@@ -192,13 +192,13 @@ func (pkl PrivKeyLedgerSecp256k1) pubkeyLedgerSecp256k1() (pub tmcrypto.PubKey, 
 		return nil, fmt.Errorf("error fetching public key: %v", err)
 	}
 
-	var pk tmsecp256k1.PubKeySecp256k1
-
 	// re-serialize in the 33-byte compressed format
 	cmp, err := btcec.ParsePubKey(key[:])
 	if err != nil {
 		return nil, fmt.Errorf("error parsing public key: %v", err)
 	}
+
+	pk := make(tmsecp256k1.PubKeySecp256k1, tmsecp256k1.PubKeySize)
 	copy(pk[:], cmp.SerializeCompressed())
 
 	return pk, nil
