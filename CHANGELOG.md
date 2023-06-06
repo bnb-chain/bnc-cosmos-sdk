@@ -1,5 +1,9 @@
 # Changelog
 
+##v0.26.5
+* [cli] [\#348] (https://github.com/bnb-chain/bnc-cosmos-sdk/pull/348) fix: support querying history about malicious vote slash
+* [cli] [\#350] (https://github.com/bnb-chain/bnc-cosmos-sdk/pull/350) fix: reading pubkey from ledger panic
+
 ##v0.26.4
 * [fix] [\#345] (https://github.com/bnb-chain/bnc-cosmos-sdk/pull/345) fix: fix validator unmarshal failed issue
 
