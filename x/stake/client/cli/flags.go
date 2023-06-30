@@ -42,6 +42,8 @@ const (
 	FlagSideConsAddr = "side-cons-addr"
 	FlagSideFeeAddr  = "side-fee-addr"
 	FlagSideVoteAddr = "side-vote-addr"
+	FlagBLSWalletDir = "bls-wallet"
+	FlagBLSPassword  = "bls-password"
 )
 
 // common flagsets to add to various functions
@@ -86,9 +88,13 @@ func init() {
 	fsSideChainFull.String(FlagSideConsAddr, "", "Consensus address of the validator on side chain, please use hex format prefixed with 0x")
 	fsSideChainFull.String(FlagSideFeeAddr, "", "Address that validator collects fee rewards on side chain, please use hex format prefixed with 0x")
 	fsSideChainFull.String(FlagSideVoteAddr, "", "BLS public key that validator votes for block on side chain, please use hex format prefixed with 0x")
+	fsSideChainFull.String(FlagBLSWalletDir, "", "Absolute path of BLS wallet, should be provided if the side vote address is provided")
+	fsSideChainFull.String(FlagBLSPassword, "", "Password for BLS wallet")
 	fsSideChainEdit.String(FlagSideChainId, "", "Chain-id of the side chain the validator belongs to")
 	fsSideChainEdit.String(FlagSideFeeAddr, "", "Address that validator collects fee rewards on side chain, please use hex format prefixed with 0x")
 	fsSideChainEdit.String(FlagSideConsAddr, "", "consensus address of the validator on side chain, please use hex format prefixed with 0x")
 	fsSideChainEdit.String(FlagSideVoteAddr, "", "BLS public key that validator votes for block on side chain, please use hex format prefixed with 0x")
+	fsSideChainEdit.String(FlagBLSWalletDir, "", "Absolute path of BLS wallet, should be provided if the side vote address is provided")
+	fsSideChainEdit.String(FlagBLSPassword, "", "Password for BLS wallet")
 	fsSideChainId.String(FlagSideChainId, "", "Chain-id of the side chain the validator belongs to")
 }
