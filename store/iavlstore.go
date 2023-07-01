@@ -55,7 +55,7 @@ type IavlStore struct {
 	// so that nodes can know the waypoints their peers store.
 	storeEvery int64
 
-	diff map[string][]byte
+	diff map[string]struct{}
 }
 
 // CONTRACT: tree should be fully loaded.
@@ -153,10 +153,10 @@ func (st *IavlStore) CacheWrapWithTrace(w io.Writer, tc TraceContext) CacheWrap 
 
 // Implements KVStore.
 func (st *IavlStore) Set(key, value []byte) {
-	if st.diff != nil {
-		st.diff[string(key)] = value
-	}
 	st.Tree.Set(key, value)
+	if st.diff != nil {
+		st.diff[string(key)] = struct{}{}
+	}
 }
 
 // Implements KVStore.
@@ -166,15 +166,15 @@ func (st *IavlStore) Get(key []byte) (value []byte) {
 }
 
 func (st *IavlStore) EnableDiff() {
-	st.diff = map[string][]byte{}
+	st.diff = map[string]struct{}{}
 }
 
-func (st *IavlStore) GetDiff() map[string][]byte {
+func (st *IavlStore) GetDiff() map[string]struct{} {
 	return st.diff
 }
 
 func (st *IavlStore) ResetDiff() {
-	st.diff = map[string][]byte{}
+	st.diff = map[string]struct{}{}
 }
 
 // Implements KVStore.
@@ -185,6 +185,9 @@ func (st *IavlStore) Has(key []byte) (exists bool) {
 // Implements KVStore.
 func (st *IavlStore) Delete(key []byte) {
 	st.Tree.Remove(key)
+	if st.diff != nil {
+		st.diff[string(key)] = struct{}{}
+	}
 }
 
 // Implements KVStore
