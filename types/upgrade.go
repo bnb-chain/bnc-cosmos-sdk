@@ -25,7 +25,6 @@ const (
 	FixDoubleSignChainId        = "FixDoubleSignChainId"
 	BEP126                      = "BEP126"               //https://github.com/binance-chain/BEPs/pull/126
 	EnableReconciliation        = "EnableReconciliation" // enable blockchain reconciliation
-	DisableMessagesPhase1       = "DisableMessagePhase1" // disable message types
 )
 
 var MainNetConfig = UpgradeConfig{
