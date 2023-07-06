@@ -70,6 +70,24 @@ func (k Keeper) GetValidatorBySideVoteAddr(ctx sdk.Context, sideVoteAddr []byte)
 	return k.GetValidator(ctx, opAddr)
 }
 
+func (k Keeper) ClearUpSideVoteAddrs(ctx sdk.Context) {
+	store := ctx.KVStore(k.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, ValidatorsBySideVoteAddrKey)
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		address := iterator.Value()
+		validator, found := k.GetValidator(ctx, address)
+		if !found {
+			ctx.Logger().Error("ClearUpSideVoteAddrs can't load validator", "operator_addr", string(address))
+			continue
+		}
+		validator.SideVoteAddr = nil
+		k.SetValidator(ctx, validator)
+		store.Delete(iterator.Key())
+	}
+}
+
 func (k Keeper) mustGetValidatorBySideConsAddr(ctx sdk.Context, sideConsAddr []byte) types.Validator {
 	store := ctx.KVStore(k.storeKey)
 	opAddr := store.Get(GetValidatorBySideConsAddrKey(sideConsAddr))
