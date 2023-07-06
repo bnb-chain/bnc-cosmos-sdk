@@ -24,7 +24,7 @@ const (
 	BEP173                      = "BEP173" // https://github.com/bnb-chain/BEPs/pull/173
 	FixDoubleSignChainId        = "FixDoubleSignChainId"
 	BEP126                      = "BEP126" //https://github.com/binance-chain/BEPs/pull/126
-
+	BEP255                      = "BEP255" // https://github.com/bnb-chain/BEPs/pull/255
 )
 
 var MainNetConfig = UpgradeConfig{
