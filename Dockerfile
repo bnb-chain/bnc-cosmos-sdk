@@ -6,6 +6,8 @@ FROM golang:alpine AS build-env
 
 # Set up dependencies
 ENV PACKAGES make git libc-dev bash gcc linux-headers eudev-dev
+ENV CGO_CFLAGS="-O -D__BLST_PORTABLE__" 
+ENV CGO_CFLAGS_ALLOW="-O -D__BLST_PORTABLE__"
 
 # Set working directory for the build
 WORKDIR /go/src/github.com/cosmos/cosmos-sdk

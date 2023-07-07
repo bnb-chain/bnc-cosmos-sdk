@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/cosmos/cosmos-sdk/bsc"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/sidechain/types"
+	"github.com/prysmaticlabs/prysm/v4/crypto/bls"
 )
 
 const (
@@ -42,7 +44,7 @@ type MsgCreateSideChainValidatorWithVoteAddr struct {
 	SideChainId   string         `json:"side_chain_id"`
 	SideConsAddr  []byte         `json:"side_cons_addr"`
 	SideFeeAddr   []byte         `json:"side_fee_addr"`
-	SideVoteAddr  []byte         `json:"side_vote_addr"`
+	SideVoteAddr  []byte         `json:"side_vote_addr"` // may contain proof of possession
 }
 
 func NewMsgCreateSideChainValidator(valAddr sdk.ValAddress, delegation sdk.Coin,
@@ -212,7 +214,7 @@ func (msg MsgCreateSideChainValidatorWithVoteAddr) ValidateBasic() sdk.Error {
 		return err
 	}
 
-	if err := checkSideChainVoteAddr("SideVoteAddr", msg.SideVoteAddr); err != nil {
+	if err := checkSideChainVoteAddr("SideVoteAddr", msg.SideVoteAddr, msg.SideChainId); err != nil {
 		return err
 	}
 
@@ -259,6 +261,7 @@ type MsgEditSideChainValidatorWithVoteAddr struct {
 
 	SideConsAddr []byte `json:"side_cons_addr,omitempty"`
 
+	// may contain proof of possession
 	SideVoteAddr []byte `json:"side_vote_addr"`
 }
 
@@ -399,7 +402,7 @@ func (msg MsgEditSideChainValidatorWithVoteAddr) ValidateBasic() sdk.Error {
 
 	// if SideFeeAddr is empty, we do not update it.
 	if len(msg.SideVoteAddr) != 0 {
-		if err := checkSideChainVoteAddr("SideVoteAddr", msg.SideVoteAddr); err != nil {
+		if err := checkSideChainVoteAddr("SideVoteAddr", msg.SideVoteAddr, msg.SideChainId); err != nil {
 			return err
 		}
 	}
@@ -423,11 +426,33 @@ func checkSideChainAddr(addrName string, addr []byte) sdk.Error {
 	return nil
 }
 
-func checkSideChainVoteAddr(addrName string, addr []byte) sdk.Error {
-	if len(addr) != sdk.VoteAddrLen {
-		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected %s length is %d, got %d",
-			addrName, sdk.VoteAddrLen, len(addr)))
+func checkSideChainVoteAddr(addrName string, addr []byte, sideChainId string) sdk.Error {
+	if !sdk.IsUpgrade(sdk.BEP255) {
+		if len(addr) != sdk.VoteAddrLen {
+			return sdk.ErrInvalidAddress(fmt.Sprintf("Expected %s length is %d, got %d",
+				addrName, sdk.VoteAddrLen, len(addr)))
+		}
+	} else {
+		if len(addr) < sdk.VoteAddrLen {
+			return sdk.ErrInvalidAddress(fmt.Sprintf("Expected %s length is %d, got %d",
+				addrName, sdk.VoteAddrLen, len(addr)))
+		}
+		voteKey, err := bls.PublicKeyFromBytes(addr[:sdk.VoteAddrLen])
+		if err != nil {
+			return sdk.ErrInvalidAddress("Invalid side voter addr")
+		}
+		if len(addr) == sdk.VoteAddrLen+sdk.BLSSignatureLength {
+			sig, err := bls.SignatureFromBytes(addr[sdk.VoteAddrLen:])
+			if err == nil {
+				signingRoot := bsc.Keccak256(append(voteKey.Marshal(), []byte(sideChainId)...))
+				if sig.Verify(voteKey, signingRoot) {
+					return nil
+				}
+			}
+		}
+		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected valid signature by the provided side vote addr"))
 	}
+
 	return nil
 }
 

@@ -168,6 +168,7 @@ func handleMsgCreateSideChainValidatorWithVoteAddr(ctx sdk.Context, msg MsgCreat
 		return ErrValidatorSideConsAddrExist(k.Codespace()).Result()
 	}
 
+	msg.SideVoteAddr = msg.SideVoteAddr[:sdk.VoteAddrLen]
 	_, found = k.GetValidatorBySideVoteAddr(ctx, msg.SideVoteAddr)
 	if found {
 		return ErrValidatorSideVoteAddrExist(k.Codespace()).Result()
@@ -277,6 +278,7 @@ func handleMsgEditSideChainValidatorWithVoteAddr(ctx sdk.Context, msg MsgEditSid
 	}
 
 	if len(msg.SideVoteAddr) != 0 {
+		msg.SideVoteAddr = msg.SideVoteAddr[:sdk.VoteAddrLen]
 		_, found = k.GetValidatorBySideVoteAddr(ctx, msg.SideVoteAddr)
 		if found {
 			return ErrValidatorSideVoteAddrExist(k.Codespace()).Result()

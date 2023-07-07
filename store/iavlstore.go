@@ -54,6 +54,8 @@ type IavlStore struct {
 	// By default this value should be set the same across all nodes,
 	// so that nodes can know the waypoints their peers store.
 	storeEvery int64
+
+	diff map[string]struct{}
 }
 
 // CONTRACT: tree should be fully loaded.
@@ -63,12 +65,17 @@ func newIAVLStore(tree *iavl.MutableTree, numRecent int64, storeEvery int64) *Ia
 		Tree:       tree,
 		numRecent:  numRecent,
 		storeEvery: storeEvery,
+		diff:       nil,
 	}
 	return st
 }
 
 func (st *IavlStore) GetImmutableTree() *iavl.ImmutableTree {
 	return st.Tree.ImmutableTree
+}
+
+func (st *IavlStore) GetTree() *iavl.MutableTree {
+	return st.Tree
 }
 
 func (st *IavlStore) SetVersion(version int64) {
@@ -147,12 +154,27 @@ func (st *IavlStore) CacheWrapWithTrace(w io.Writer, tc TraceContext) CacheWrap 
 // Implements KVStore.
 func (st *IavlStore) Set(key, value []byte) {
 	st.Tree.Set(key, value)
+	if st.diff != nil {
+		st.diff[string(key)] = struct{}{}
+	}
 }
 
 // Implements KVStore.
 func (st *IavlStore) Get(key []byte) (value []byte) {
 	_, v := st.Tree.Get(key)
 	return v
+}
+
+func (st *IavlStore) EnableDiff() {
+	st.diff = map[string]struct{}{}
+}
+
+func (st *IavlStore) GetDiff() map[string]struct{} {
+	return st.diff
+}
+
+func (st *IavlStore) ResetDiff() {
+	st.diff = map[string]struct{}{}
 }
 
 // Implements KVStore.
@@ -163,6 +185,9 @@ func (st *IavlStore) Has(key []byte) (exists bool) {
 // Implements KVStore.
 func (st *IavlStore) Delete(key []byte) {
 	st.Tree.Remove(key)
+	if st.diff != nil {
+		st.diff[string(key)] = struct{}{}
+	}
 }
 
 // Implements KVStore

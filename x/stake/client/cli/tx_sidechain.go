@@ -1,16 +1,26 @@
 package cli
 
 import (
+	stdctx "context"
 	"fmt"
+	"time"
 
+	"github.com/cosmos/cosmos-sdk/bsc"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/utils"
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
 	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 	"github.com/cosmos/cosmos-sdk/x/stake"
+	"github.com/prysmaticlabs/prysm/v4/crypto/bls"
+	"github.com/prysmaticlabs/prysm/v4/crypto/bls/common"
+	validatorpb "github.com/prysmaticlabs/prysm/v4/proto/prysm/v1alpha1/validator-client"
+	"github.com/prysmaticlabs/prysm/v4/validator/accounts/iface"
+	"github.com/prysmaticlabs/prysm/v4/validator/accounts/wallet"
+	"github.com/prysmaticlabs/prysm/v4/validator/keymanager"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -332,10 +342,63 @@ func getSideChainInfo(requireConsAddr, requireFeeAddr bool) (sideChainId string,
 
 	sideVoteAddrStr := viper.GetString(FlagSideVoteAddr)
 	if len(sideVoteAddrStr) != 0 {
+		// check vote addr
 		sideVoteAddr, err = sdk.HexDecode(sideVoteAddrStr)
 		if err != nil {
 			return
 		}
+		if len(sideVoteAddr) != types.VoteAddrLen {
+			err = fmt.Errorf("Expected SideVoteAddr length is 48, got %d ", len(sideVoteAddr))
+			return
+		}
+		var voteKey bls.PublicKey
+		voteKey, err = bls.PublicKeyFromBytes(sideVoteAddr)
+		if err != nil {
+			err = fmt.Errorf("Invalid side vote addr")
+			return
+		}
+
+		// open bls wallet
+		blsWalletDir := viper.GetString(FlagBLSWalletDir)
+		if len(blsWalletDir) == 0 {
+			err = fmt.Errorf("Path of BLS wallet which containing the given side vote address should be provided")
+			return
+		}
+		var passphrase string
+		passphrase, err = getBLSPassword()
+		if err != nil {
+			return
+		}
+		var w *wallet.Wallet
+		w, err = wallet.OpenWallet(stdctx.Background(), &wallet.Config{
+			WalletDir:      blsWalletDir,
+			WalletPassword: passphrase,
+		})
+		if err != nil {
+			err = fmt.Errorf("Open BLS wallet failed")
+			return
+		}
+
+		// generate proof of possession
+		var km keymanager.IKeymanager
+		km, err = w.InitializeKeymanager(stdctx.Background(), iface.InitKeymanagerConfig{ListenForChanges: false})
+		if err != nil {
+			err = fmt.Errorf("Initialize key manager failed: %v", err)
+			return
+		}
+		signingRoot := bsc.Keccak256(append(voteKey.Marshal(), []byte(sideChainId)...)) // here sideChainId used as `domain` in bls spec
+		voteSignerTimeout := time.Second * 5
+		ctx, cancel := stdctx.WithTimeout(stdctx.Background(), voteSignerTimeout)
+		defer cancel()
+		var signature common.Signature
+		signature, err = km.Sign(ctx, &validatorpb.SignRequest{
+			PublicKey:   []byte(sideVoteAddr),
+			SigningRoot: signingRoot,
+		})
+		if err != nil {
+			return
+		}
+		sideVoteAddr = append(sideVoteAddr, signature.Marshal()...)
 	}
 	return
 }
@@ -347,4 +410,22 @@ func getValidatorAddr(flagName string) (valAddr sdk.ValAddress, err error) {
 		return
 	}
 	return sdk.ValAddressFromBech32(valAddrStr)
+}
+
+func getBLSPassword() (string, error) {
+	blsPassword := viper.GetString(FlagBLSPassword)
+	if len(blsPassword) > 0 {
+		return blsPassword, nil
+	}
+	return readPassphraseFromStdin()
+}
+
+func readPassphraseFromStdin() (string, error) {
+	buf := client.BufferStdin()
+	prompt := "Password to open bls wallet:"
+	passphrase, err := client.GetPasswordWithoutCheck(prompt, buf)
+	if err != nil {
+		return passphrase, fmt.Errorf("Error reading passphrase: %v", err)
+	}
+	return passphrase, nil
 }

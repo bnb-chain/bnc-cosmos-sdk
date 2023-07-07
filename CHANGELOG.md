@@ -1,5 +1,10 @@
 # Changelog
 
+##v0.26.6
+* [sdk] [\#349] (https://github.com/bnb-chain/bnc-cosmos-sdk/pull/349) feat: add upgrade config for bep255
+* [fix] [\#353] (https://github.com/bnb-chain/bnc-cosmos-sdk/pull/353) fix: add proof of possession for side vote addrs
+
+
 ##v0.26.5
 * [cli] [\#348] (https://github.com/bnb-chain/bnc-cosmos-sdk/pull/348) fix: support querying history about malicious vote slash
 * [cli] [\#350] (https://github.com/bnb-chain/bnc-cosmos-sdk/pull/350) fix: reading pubkey from ledger panic

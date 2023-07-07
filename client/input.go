@@ -42,6 +42,22 @@ func GetPassword(prompt string, buf *bufio.Reader) (pass string, err error) {
 	return pass, nil
 }
 
+// GetPasswordWithoutCheck will prompt for a password one-time
+// It won't enforces the password length
+func GetPasswordWithoutCheck(prompt string, buf *bufio.Reader) (pass string, err error) {
+	if inputIsTty() {
+		pass, err = speakeasy.FAsk(os.Stderr, prompt)
+	} else {
+		pass, err = readLineFromBuf(buf)
+	}
+
+	if err != nil {
+		return "", err
+	}
+
+	return
+}
+
 // GetSeed will request a seed phrase from stdin and trims off
 // leading/trailing spaces
 func GetSeed(prompt string, buf *bufio.Reader) (string, error) {
