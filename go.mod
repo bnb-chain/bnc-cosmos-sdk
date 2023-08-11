@@ -11,6 +11,8 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
 	github.com/mattn/go-isatty v0.0.18
+	github.com/binance-chain/tss v0.1.2
+    github.com/binance-chain/tss-lib v1.0.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
@@ -28,9 +30,15 @@ require (
 	github.com/tendermint/tendermint v0.35.9
 	github.com/zondax/ledger-cosmos-go v0.9.9
 	golang.org/x/crypto v0.7.0
+	github.com/btcsuite/btcd v0.20.0-beta
+	github.com/libp2p/go-libp2p v0.3.0
+    	github.com/libp2p/go-libp2p-circuit v0.1.1
+    	github.com/libp2p/go-libp2p-core v0.2.2
+    	github.com/libp2p/go-libp2p-kad-dht v0.2.0
+    	github.com/libp2p/go-libp2p-peerstore v0.1.3
+    	github.com/libp2p/go-libp2p-swarm v0.2.0
+    	github.com/libp2p/go-yamux v1.2.3
 )
-
-require github.com/btcsuite/btcd/btcec/v2 v2.3.2
 
 require (
 	contrib.go.opencensus.io/exporter/jaeger v0.2.1 // indirect
@@ -159,4 +167,7 @@ replace (
 	github.com/tendermint/tendermint => github.com/bnb-chain/bnc-tendermint v0.32.3-bc.10
 	github.com/zondax/ledger-cosmos-go => github.com/bnb-chain/ledger-cosmos-go v0.9.10-0.20230201065744-d644bede1667
 	golang.org/x/crypto => github.com/bnb-chain/tendermint-crypto v0.0.0-20230703075311-6ffc0fd47894
+	github.com/btcsuite/btcd => github.com/btcsuite/btcd v0.20.0-beta
+	github.com/libp2p/go-libp2p-kad-dht => 	github.com/libp2p/go-libp2p-kad-dht v0.2.0
+	github.com/libp2p/go-libp2p-testing => github.com/libp2p/go-libp2p-testing v0.0.4
 )

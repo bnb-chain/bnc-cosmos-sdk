@@ -1,6 +1,8 @@
 package keys
 
 import (
+	"github.com/binance-chain/tss/client"
+
 	"github.com/tendermint/tendermint/crypto"
 
 	ccrypto "github.com/cosmos/cosmos-sdk/crypto"
@@ -205,6 +207,22 @@ func (i tssInfo) GetPubKey() crypto.PubKey {
 
 func (i tssInfo) GetAddress() types.AccAddress {
 	return i.PubKey.Address().Bytes()
+}
+
+func newTssInfo(name, home, vault string, pubkey crypto.PubKey) (Info, error) {
+	if pubkey == nil {
+		if key, err := client.LoadPubkey(home, vault); err == nil {
+			pubkey = key
+		} else {
+			return nil, err
+		}
+	}
+	return &tssInfo{
+		Name:   name,
+		PubKey: pubkey,
+		Home:   home,
+		Vault:  vault,
+	}, nil
 }
 
 // encoding info
