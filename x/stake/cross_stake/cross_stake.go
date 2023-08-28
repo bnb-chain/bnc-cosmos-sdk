@@ -140,9 +140,6 @@ func (app *CrossStakeApp) ExecuteFailAckPackage(ctx sdk.Context, payload []byte)
 }
 
 func (app *CrossStakeApp) handleDelegate(ctx sdk.Context, pack *types.CrossStakeDelegateSynPackage, relayFee int64) (sdk.ExecuteResult, uint8, error) {
-	if sdk.IsUpgrade(sdk.BEPXXX) {
-		return sdk.ExecuteResult{}, uint8(sdk.ErrMsgNotSupported("").Code()), nil
-	}
 	var errCode uint8
 	sideChainId := app.stakeKeeper.DestChainName
 	if scCtx, err := app.stakeKeeper.ScKeeper.PrepareCtxForSideChain(ctx, sideChainId); err != nil {
@@ -267,9 +264,6 @@ func (app *CrossStakeApp) handleUndelegate(ctx sdk.Context, pack *types.CrossSta
 }
 
 func (app *CrossStakeApp) handleRedelegate(ctx sdk.Context, pack *types.CrossStakeRedelegateSynPackage, relayFee int64) (sdk.ExecuteResult, uint8, error) {
-	if sdk.IsUpgrade(sdk.BEPXXX) {
-		return sdk.ExecuteResult{}, uint8(sdk.ErrMsgNotSupported("").Code()), nil
-	}
 	var errCode uint8
 	sideChainId := app.stakeKeeper.DestChainName
 	if scCtx, err := app.stakeKeeper.ScKeeper.PrepareCtxForSideChain(ctx, sideChainId); err != nil {
