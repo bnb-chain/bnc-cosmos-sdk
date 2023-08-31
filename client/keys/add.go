@@ -129,7 +129,7 @@ func runAddCmd(cmd *cobra.Command, args []string) error {
 		var pubkey crypto.PubKey
 		if hexPubKey != "" {
 			// TODO: support more types
-			var secp secp256k1.PubKeySecp256k1
+			secp := make(secp256k1.PubKeySecp256k1, secp256k1.PubKeySize)
 			bytes, err := hex.DecodeString(hexPubKey)
 			if err != nil {
 				return fmt.Errorf("failed to decode tss pubkey")
