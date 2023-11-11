@@ -253,16 +253,16 @@ type MsgEditSideChainValidatorWithVoteAddr struct {
 	// distinguish if an update was intended.
 	//
 	// REF: #2373
-	CommissionRate *sdk.Dec `json:"commission_rate"`
+	CommissionRate *sdk.Dec `json:"commission_rate,omitempty"`
 
 	SideChainId string `json:"side_chain_id"`
 	// for SideFeeAddr and SideVoteAddr, we do not update the values if they are not provided.
-	SideFeeAddr []byte `json:"side_fee_addr"`
+	SideFeeAddr []byte `json:"side_fee_addr,omitempty"`
 
 	SideConsAddr []byte `json:"side_cons_addr,omitempty"`
 
 	// may contain proof of possession
-	SideVoteAddr []byte `json:"side_vote_addr"`
+	SideVoteAddr []byte `json:"side_vote_addr,omitempty"`
 }
 
 func NewMsgEditSideChainValidator(sideChainId string, validatorAddr sdk.ValAddress, description Description, commissionRate *sdk.Dec, sideFeeAddr, sideConsAddr []byte) MsgEditSideChainValidator {
