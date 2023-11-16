@@ -27,7 +27,8 @@ const (
 	BEP255                      = "BEP255" // https://github.com/bnb-chain/BEPs/pull/255
 
 	// TODO: to be determined
-	BEPXXX = "BEPXXX-DECO"
+	BCFusionFirstHardFork  = "BCFusionFirstHardFork"
+	BCFusionSecondHardFork = "BCFusionSecondHardFork"
 )
 
 var MainNetConfig = UpgradeConfig{

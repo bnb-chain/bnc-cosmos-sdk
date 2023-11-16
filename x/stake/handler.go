@@ -40,16 +40,28 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 			return handleMsgUndelegate(ctx, msg, k)
 		// case MsgSideChain
 		case types.MsgCreateSideChainValidator:
+			if sdk.IsUpgrade(sdk.BCFusionFirstHardFork) {
+				return sdk.ErrMsgNotSupported("").Result()
+			}
 			return handleMsgCreateSideChainValidator(ctx, msg, k)
 		case types.MsgEditSideChainValidator:
 			return handleMsgEditSideChainValidator(ctx, msg, k)
 		case types.MsgCreateSideChainValidatorWithVoteAddr:
+			if sdk.IsUpgrade(sdk.BCFusionFirstHardFork) {
+				return sdk.ErrMsgNotSupported("").Result()
+			}
 			return handleMsgCreateSideChainValidatorWithVoteAddr(ctx, msg, k)
 		case types.MsgEditSideChainValidatorWithVoteAddr:
 			return handleMsgEditSideChainValidatorWithVoteAddr(ctx, msg, k)
 		case types.MsgSideChainDelegate:
+			if sdk.IsUpgrade(sdk.BCFusionSecondHardFork) {
+				return sdk.ErrMsgNotSupported("").Result()
+			}
 			return handleMsgSideChainDelegate(ctx, msg, k)
 		case types.MsgSideChainRedelegate:
+			if sdk.IsUpgrade(sdk.BCFusionSecondHardFork) {
+				return sdk.ErrMsgNotSupported("").Result()
+			}
 			return handleMsgSideChainRedelegate(ctx, msg, k)
 		case types.MsgSideChainUndelegate:
 			return handleMsgSideChainUndelegate(ctx, msg, k)
@@ -127,9 +139,6 @@ func handleMsgRemoveValidatorAfterProposal(ctx sdk.Context, msg MsgRemoveValidat
 }
 
 func handleMsgCreateValidatorOpen(ctx sdk.Context, msg MsgCreateValidatorOpen, k keeper.Keeper) sdk.Result {
-	if sdk.IsUpgrade(sdk.BEPXXX) {
-		return sdk.ErrMsgNotSupported("").Result()
-	}
 	pubkey, err := sdk.GetConsPubKeyBech32(msg.PubKey)
 	if err != nil {
 		return ErrInvalidPubKey(k.Codespace()).Result()
@@ -146,9 +155,6 @@ func handleMsgCreateValidatorOpen(ctx sdk.Context, msg MsgCreateValidatorOpen, k
 }
 
 func handleMsgCreateValidator(ctx sdk.Context, msg MsgCreateValidator, k keeper.Keeper) sdk.Result {
-	if sdk.IsUpgrade(sdk.BEPXXX) {
-		return sdk.ErrMsgNotSupported("").Result()
-	}
 	// consensus pubkey only support ed25519
 	if _, ok := msg.PubKey.(ed25519.PubKeyEd25519); !ok {
 		return ErrInvalidPubKey(k.Codespace()).Result()
@@ -212,9 +218,6 @@ func handleMsgCreateValidator(ctx sdk.Context, msg MsgCreateValidator, k keeper.
 }
 
 func checkCreateProposal(ctx sdk.Context, keeper keeper.Keeper, govKeeper gov.Keeper, msg MsgCreateValidatorProposal) error {
-	if sdk.IsUpgrade(sdk.BEPXXX) {
-		return sdk.ErrMsgNotSupported("")
-	}
 	proposal := govKeeper.GetProposal(ctx, msg.ProposalId)
 	if proposal == nil {
 		return fmt.Errorf("proposal %d does not exist", msg.ProposalId)
@@ -363,9 +366,6 @@ func handleMsgDelegateV1(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper
 }
 
 func handleMsgDelegate(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper) sdk.Result {
-	if sdk.IsUpgrade(sdk.BEPXXX) {
-		return sdk.ErrMsgNotSupported("").Result()
-	}
 	validator, found := k.GetValidator(ctx, msg.ValidatorAddr)
 	if !found {
 		return ErrNoValidatorFound(k.Codespace()).Result()
@@ -458,9 +458,6 @@ func handleMsgUndelegate(ctx sdk.Context, msg types.MsgUndelegate, k keeper.Keep
 }
 
 func handleMsgBeginUnbonding(ctx sdk.Context, msg types.MsgBeginUnbonding, k keeper.Keeper) sdk.Result {
-	if sdk.IsUpgrade(sdk.BEPXXX) {
-		return sdk.ErrMsgNotSupported("").Result()
-	}
 	ubd, err := k.BeginUnbonding(ctx, msg.DelegatorAddr, msg.ValidatorAddr, msg.SharesAmount)
 	if err != nil {
 		return err.Result()
@@ -477,7 +474,7 @@ func handleMsgBeginUnbonding(ctx sdk.Context, msg types.MsgBeginUnbonding, k kee
 }
 
 func handleMsgRedelegate(ctx sdk.Context, msg types.MsgRedelegate, k keeper.Keeper) sdk.Result {
-	if sdk.IsUpgrade(sdk.BEPXXX) {
+	if sdk.IsUpgrade(sdk.BCFusionSecondHardFork) {
 		return sdk.ErrMsgNotSupported("").Result()
 	}
 	if msg.Amount.Denom != k.BondDenom(ctx) {

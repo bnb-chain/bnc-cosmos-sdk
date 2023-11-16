@@ -12,8 +12,15 @@ import (
 
 func EndBlocker(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.ValidatorUpdate, completedUbds []types.UnbondingDelegation) {
 	// only change validator set in breath block after BEP159
-	var events sdk.Events
-	var csEvents sdk.Events
+	var (
+		events       sdk.Events
+		csEvents     sdk.Events
+		refundEvents sdk.Events
+	)
+	if sdk.IsUpgrade(sdk.BCFusionSecondHardFork) {
+		refundEvents = handleRefundCrossStake(ctx, k)
+	}
+
 	if !sdk.IsUpgrade(sdk.BEP159) {
 		_, validatorUpdates, completedUbds, _, events = handleValidatorAndDelegations(ctx, k)
 	} else {
@@ -33,6 +40,9 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.Valid
 	}
 	if sdk.IsUpgrade(sdk.BEP153) {
 		events = events.AppendEvents(csEvents)
+	}
+	if sdk.IsUpgrade(sdk.BCFusionSecondHardFork) {
+		events = events.AppendEvents(refundEvents)
 	}
 	ctx.EventManager().EmitEvents(events)
 	return
@@ -251,4 +261,32 @@ func handleMatureUnbondingDelegations(k keeper.Keeper, ctx sdk.Context) ([]types
 	}
 
 	return completed, events
+}
+
+const (
+	maxProcessedRefundCount = 50
+)
+
+func handleRefundCrossStake(ctx sdk.Context, k keeper.Keeper) sdk.Events {
+	iterator := k.IteratorAllDelegations(ctx)
+	defer iterator.Close()
+	var refundEvents sdk.Events
+	count := 0
+	for ; iterator.Valid(); iterator.Next() {
+		delegation := types.MustUnmarshalDelegation(k.CDC(), iterator.Key(), iterator.Value())
+		if delegation.CrossStake {
+			result := handleMsgSideChainUndelegate(ctx, types.MsgSideChainUndelegate{
+				DelegatorAddr: delegation.DelegatorAddr,
+				ValidatorAddr: delegation.ValidatorAddr,
+				Amount:        sdk.NewCoin(k.BondDenom(ctx), delegation.GetShares().RawInt()),
+			}, k)
+			refundEvents = refundEvents.AppendEvents(result.Events)
+
+			count++
+		}
+		if count >= maxProcessedRefundCount {
+			break
+		}
+	}
+	return refundEvents
 }

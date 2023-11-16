@@ -61,6 +61,26 @@ func (k Keeper) GetValidatorBySideConsAddr(ctx sdk.Context, sideConsAddr []byte)
 	return k.GetValidator(ctx, opAddr)
 }
 
+func (k Keeper) GetSideChainTotalVotingPower(ctx sdk.Context, sideChainId string) sdk.Dec {
+	store := ctx.KVStore(k.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, ValidatorsByConsAddrKey)
+	defer iterator.Close()
+
+	votingPower := sdk.NewDecFromInt(0)
+	for ; iterator.Valid(); iterator.Next() {
+		address := iterator.Value()
+		validator, found := k.GetValidator(ctx, address)
+		if !found {
+			ctx.Logger().Error("GetSideChainTotalVotingPower can't load validator", "operator_addr", string(address))
+			continue
+		}
+		if validator.SideChainId == sideChainId && len(validator.GetSideChainConsAddr()) > 0 {
+			votingPower = votingPower.Add(validator.GetPower())
+		}
+	}
+	return votingPower
+}
+
 func (k Keeper) GetValidatorBySideVoteAddr(ctx sdk.Context, sideVoteAddr []byte) (validator types.Validator, found bool) {
 	store := ctx.KVStore(k.storeKey)
 	opAddr := store.Get(GetValidatorBySideVoteAddrKey(sideVoteAddr))

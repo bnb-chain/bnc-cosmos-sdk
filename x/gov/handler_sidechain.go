@@ -6,6 +6,16 @@ import (
 )
 
 func handleMsgSideChainSubmitProposal(ctx sdk.Context, keeper Keeper, msg MsgSideChainSubmitProposal) sdk.Result {
+	if sdk.IsUpgrade(sdk.BCFusionSecondHardFork) {
+		return sdk.ErrMsgNotSupported("").Result()
+	}
+	if sdk.IsUpgrade(sdk.BCFusionFirstHardFork) {
+		vp := keeper.vs.GetSideChainTotalVotingPower(ctx, msg.SideChainId)
+		if vp.LTE(sdk.NewDecFromInt(5_000_000)) {
+			return sdk.ErrMsgNotSupported("").Result()
+		}
+	}
+
 	if msg.ProposalType == ProposalTypeText && !sdk.IsUpgrade(sdk.BEP173) {
 		return ErrInvalidProposalType(keeper.codespace, msg.ProposalType).Result()
 	}

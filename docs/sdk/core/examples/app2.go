@@ -128,7 +128,7 @@ func (msg MsgIssue) GetInvolvedAddresses() []sdk.AccAddress {
 // Handle MsgIssue.
 func handleMsgIssue(keyIssue *sdk.KVStoreKey, keyAcc *sdk.KVStoreKey) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
-		if sdk.IsUpgrade(sdk.BEPXXX) {
+		if sdk.IsUpgrade(sdk.BCFusionFirstHardFork) {
 			return sdk.ErrMsgNotSupported("").Result()
 		}
 		issueMsg, ok := msg.(MsgIssue)
