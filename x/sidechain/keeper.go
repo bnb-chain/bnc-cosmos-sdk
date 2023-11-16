@@ -242,3 +242,7 @@ func EndBlock(ctx sdk.Context, k Keeper) {
 	}
 	return
 }
+
+func (k *Keeper) Config() *crossChainConfig {
+	return k.cfg
+}

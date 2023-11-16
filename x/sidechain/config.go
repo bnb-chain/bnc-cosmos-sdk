@@ -24,3 +24,15 @@ func newCrossChainCfg() *crossChainConfig {
 	}
 	return config
 }
+
+func (c *crossChainConfig) DestChainNameToID(name string) sdk.ChainID {
+	return c.destChainNameToID[name]
+}
+
+func (c *crossChainConfig) ChannelIDs() []sdk.ChannelID {
+	IDs := make([]sdk.ChannelID, 0, len(c.channelIDToName))
+	for _, id := range c.nameToChannelID {
+		IDs = append(IDs, id)
+	}
+	return IDs
+}

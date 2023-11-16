@@ -13,12 +13,14 @@ import (
 func EndBlocker(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.ValidatorUpdate, completedUbds []types.UnbondingDelegation) {
 	// only change validator set in breath block after BEP159
 	var (
-		events       sdk.Events
-		csEvents     sdk.Events
-		refundEvents sdk.Events
+		events             sdk.Events
+		csEvents           sdk.Events
+		refundEvents       sdk.Events
+		closeChannelEvents sdk.Events
 	)
 	if sdk.IsUpgrade(sdk.BCFusionSecondHardFork) {
 		refundEvents = handleRefundCrossStake(ctx, k)
+		closeChannelEvents = closeSideChainChannels(ctx, k)
 	}
 
 	if !sdk.IsUpgrade(sdk.BEP159) {
@@ -43,6 +45,7 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.Valid
 	}
 	if sdk.IsUpgrade(sdk.BCFusionSecondHardFork) {
 		events = events.AppendEvents(refundEvents)
+		events = events.AppendEvents(closeChannelEvents)
 	}
 	ctx.EventManager().EmitEvents(events)
 	return
@@ -279,6 +282,7 @@ func handleRefundCrossStake(ctx sdk.Context, k keeper.Keeper) sdk.Events {
 				DelegatorAddr: delegation.DelegatorAddr,
 				ValidatorAddr: delegation.ValidatorAddr,
 				Amount:        sdk.NewCoin(k.BondDenom(ctx), delegation.GetShares().RawInt()),
+				SideChainId:   k.ScKeeper.BscSideChainId(ctx),
 			}, k)
 			refundEvents = refundEvents.AppendEvents(result.Events)
 
@@ -289,4 +293,35 @@ func handleRefundCrossStake(ctx sdk.Context, k keeper.Keeper) sdk.Events {
 		}
 	}
 	return refundEvents
+}
+
+func closeSideChainChannels(ctx sdk.Context, k keeper.Keeper) sdk.Events {
+	var events sdk.Events
+	if sdk.IsUpgrade(sdk.BCFusionSecondHardFork) {
+		sideChainId := k.ScKeeper.BscSideChainId(ctx)
+		vp := k.GetSideChainTotalVotingPower(ctx, sideChainId)
+		if vp.LTE(sdk.NewDecFromInt(5_000_000)) {
+			// disable side chain channels
+			id := k.ScKeeper.Config().DestChainNameToID(sideChainId)
+
+			for _, channelId := range k.ScKeeper.Config().ChannelIDs() {
+				_, err := k.ScKeeper.SaveChannelSettingChangeToIbc(ctx, id, 0, sdk.ChannelForbidden)
+				if err != nil {
+					ctx.Logger().Error("closeSideChainChannels", "err", err.Error())
+					events.AppendEvent(sdk.NewEvent("failed to closeSideChainChannels ",
+						sdk.NewAttribute("sideChainId", sideChainId),
+						sdk.NewAttribute("channelId", fmt.Sprint(channelId)),
+						sdk.NewAttribute("error", err.Error()),
+					))
+					return events
+				}
+				events.AppendEvent(sdk.NewEvent("closeSideChainChannels",
+					sdk.NewAttribute("sideChainId", sideChainId),
+					sdk.NewAttribute("channelId", fmt.Sprint(channelId)),
+				))
+			}
+		}
+	}
+
+	return events
 }
