@@ -17,9 +17,6 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.Valid
 		csEvents     sdk.Events
 		refundEvents sdk.Events
 	)
-	if sdk.IsUpgrade(sdk.BCFusionSecondHardFork) {
-		refundEvents = handleRefundCrossStake(ctx, k)
-	}
 
 	if !sdk.IsUpgrade(sdk.BEP159) {
 		_, validatorUpdates, completedUbds, _, events = handleValidatorAndDelegations(ctx, k)
@@ -27,6 +24,13 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.Valid
 		k.DistributeInBlock(ctx, types.ChainIDForBeaconChain)
 		validatorUpdates = k.PopPendingABCIValidatorUpdate(ctx)
 	}
+
+	if sdk.IsUpgrade(sdk.BCFusionSecondHardFork) {
+		refundEvents = handleRefundCrossStake(ctx, k)
+		validatorUpdates, completedUbds, events = endRefundBlock(ctx, k)
+		refundEvents.AppendEvents(events)
+	}
+
 	if sdk.IsUpgrade(sdk.BEP128) {
 		sideChainIds, storePrefixes := k.ScKeeper.GetAllSideChainPrefixes(ctx)
 		if len(sideChainIds) == len(storePrefixes) {
@@ -303,4 +307,43 @@ func handleRefundCrossStake(ctx sdk.Context, k keeper.Keeper) sdk.Events {
 		}
 	}
 	return refundEvents
+}
+
+func endRefundBlock(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.ValidatorUpdate, completedUbds []types.UnbondingDelegation, events sdk.Events) {
+	var newVals []types.Validator
+	var completedREDs []types.DVVTriplet
+	newVals, validatorUpdates, completedUbds, completedREDs, events = handleValidatorAndDelegations(ctx, k)
+	ctx.Logger().Debug("endRefundBlock", "newValsLen", len(newVals), "newVals", newVals)
+	publishCompletedUBD(k, completedUbds, ChainIDForBeaconChain, ctx.BlockHeight())
+	publishCompletedRED(k, completedREDs, ChainIDForBeaconChain)
+	if k.PbsbServer != nil {
+		sideValidatorsEvent := types.ElectedValidatorsEvent{
+			Validators: newVals,
+			ChainId:    ChainIDForBeaconChain,
+		}
+		k.PbsbServer.Publish(sideValidatorsEvent)
+	}
+	if sdk.IsUpgrade(sdk.BEP159) {
+		storeValidatorsWithHeight(ctx, newVals, k)
+	}
+
+	if sdk.IsUpgrade(sdk.LaunchBscUpgrade) && k.ScKeeper != nil {
+		// distribute sidechain rewards
+		sideChainIds, storePrefixes := k.ScKeeper.GetAllSideChainPrefixes(ctx)
+		for i := range storePrefixes {
+			sideChainCtx := ctx.WithSideChainKeyPrefix(storePrefixes[i])
+			newVals, _, completedUbds, completedREDs, scEvents := handleValidatorAndDelegations(sideChainCtx, k)
+			for j := range scEvents {
+				scEvents[j] = scEvents[j].AppendAttributes(sdk.NewAttribute(types.AttributeKeySideChainId, sideChainIds[i]))
+			}
+			events = events.AppendEvents(scEvents)
+			// TODO: need to add UBDs for side chains to the return value
+
+			storeValidatorsWithHeight(sideChainCtx, newVals, k)
+
+			publishCompletedUBD(k, completedUbds, sideChainIds[i], ctx.BlockHeight())
+			publishCompletedRED(k, completedREDs, sideChainIds[i])
+		}
+	}
+	return
 }
