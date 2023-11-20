@@ -272,6 +272,11 @@ func handleRefundCrossStake(ctx sdk.Context, k keeper.Keeper) sdk.Events {
 	defer iterator.Close()
 	var refundEvents sdk.Events
 	count := 0
+	bcValidators := k.GetAllValidators(ctx)
+	bcValidatorsMap := make(map[string]types.Validator, len(bcValidators))
+	for _, v := range bcValidators {
+		bcValidatorsMap[v.OperatorAddr.String()] = v
+	}
 	for ; iterator.Valid(); iterator.Next() {
 		delegation := types.MustUnmarshalDelegation(k.CDC(), iterator.Key(), iterator.Value())
 		if delegation.CrossStake {
@@ -283,12 +288,14 @@ func handleRefundCrossStake(ctx sdk.Context, k keeper.Keeper) sdk.Events {
 			}, k)
 			refundEvents = refundEvents.AppendEvents(result.Events)
 		} else {
-			result := handleMsgUndelegate(ctx, types.MsgUndelegate{
-				DelegatorAddr: delegation.DelegatorAddr,
-				ValidatorAddr: delegation.ValidatorAddr,
-				Amount:        sdk.NewCoin(k.BondDenom(ctx), delegation.GetShares().RawInt()),
-			}, k)
-			refundEvents = refundEvents.AppendEvents(result.Events)
+			if _, exist := bcValidatorsMap[delegation.DelegatorAddr.String()]; !exist {
+				result := handleMsgUndelegate(ctx, types.MsgUndelegate{
+					DelegatorAddr: delegation.DelegatorAddr,
+					ValidatorAddr: delegation.ValidatorAddr,
+					Amount:        sdk.NewCoin(k.BondDenom(ctx), delegation.GetShares().RawInt()),
+				}, k)
+				refundEvents = refundEvents.AppendEvents(result.Events)
+			}
 		}
 		count++
 		if count >= maxProcessedRefundCount {
