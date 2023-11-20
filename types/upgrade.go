@@ -29,6 +29,11 @@ const (
 	// TODO: to be determined
 	BCFusionFirstHardFork  = "BCFusionFirstHardFork"
 	BCFusionSecondHardFork = "BCFusionSecondHardFork"
+	BCFusionThirdHardFork  = "BCFusionThirdHardFork"
+)
+
+var (
+	BCFusionStopGovThreshold int64 = 5_000_000
 )
 
 var MainNetConfig = UpgradeConfig{

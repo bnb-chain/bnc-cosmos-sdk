@@ -52,6 +52,9 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 			}
 			return handleMsgCreateSideChainValidatorWithVoteAddr(ctx, msg, k)
 		case types.MsgEditSideChainValidatorWithVoteAddr:
+			if sdk.IsUpgrade(sdk.BCFusionFirstHardFork) {
+				return sdk.ErrMsgNotSupported("").Result()
+			}
 			return handleMsgEditSideChainValidatorWithVoteAddr(ctx, msg, k)
 		case types.MsgSideChainDelegate:
 			if sdk.IsUpgrade(sdk.BCFusionSecondHardFork) {
@@ -59,7 +62,7 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 			}
 			return handleMsgSideChainDelegate(ctx, msg, k)
 		case types.MsgSideChainRedelegate:
-			if sdk.IsUpgrade(sdk.BCFusionSecondHardFork) {
+			if sdk.IsUpgrade(sdk.BCFusionFirstHardFork) {
 				return sdk.ErrMsgNotSupported("").Result()
 			}
 			return handleMsgSideChainRedelegate(ctx, msg, k)

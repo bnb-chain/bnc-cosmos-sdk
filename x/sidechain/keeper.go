@@ -93,6 +93,7 @@ func (k *Keeper) RegisterChannel(name string, id sdk.ChannelID, app sdk.CrossCha
 	if ok {
 		return fmt.Errorf("duplicated channel id")
 	}
+	k.cfg.channelIDs = append(k.cfg.channelIDs, id)
 	k.cfg.nameToChannelID[name] = id
 	k.cfg.channelIDToName[id] = name
 	k.cfg.channelIDToApp[id] = app

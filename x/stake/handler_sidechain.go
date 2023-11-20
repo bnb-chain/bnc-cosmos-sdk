@@ -278,9 +278,6 @@ func handleMsgEditSideChainValidatorWithVoteAddr(ctx sdk.Context, msg MsgEditSid
 	}
 
 	if len(msg.SideVoteAddr) != 0 {
-		if sdk.IsUpgrade(sdk.BCFusionFirstHardFork) {
-			return sdk.ErrMsgNotSupported("").Result()
-		}
 		msg.SideVoteAddr = msg.SideVoteAddr[:sdk.VoteAddrLen]
 		_, found = k.GetValidatorBySideVoteAddr(ctx, msg.SideVoteAddr)
 		if found {
