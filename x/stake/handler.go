@@ -28,6 +28,9 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 			return handleMsgRemoveValidatorAfterProposal(ctx, msg, k, govKeeper)
 		// Beacon Chain New Staking in BEP-159
 		case types.MsgCreateValidatorOpen:
+			if sdk.IsUpgrade(sdk.BCFusionFirstHardFork) {
+				return sdk.ErrMsgNotSupported("").Result()
+			}
 			if !sdk.IsUpgrade(sdk.BEP159Phase2) {
 				return sdk.ErrMsgNotSupported("BEP-159 Phase 2 not activated yet").Result()
 			}
@@ -83,8 +86,14 @@ func NewStakeHandler(k Keeper) sdk.Handler {
 		case types.MsgEditValidator:
 			return handleMsgEditValidator(ctx, msg, k)
 		case types.MsgDelegate:
+			if sdk.IsUpgrade(sdk.BCFusionSecondHardFork) {
+				return sdk.ErrMsgNotSupported("").Result()
+			}
 			return handleMsgDelegate(ctx, msg, k)
 		case types.MsgRedelegate:
+			if sdk.IsUpgrade(sdk.BCFusionSecondHardFork) {
+				return sdk.ErrMsgNotSupported("").Result()
+			}
 			return handleMsgRedelegate(ctx, msg, k)
 		case types.MsgBeginUnbonding:
 			return handleMsgBeginUnbonding(ctx, msg, k)
@@ -477,9 +486,6 @@ func handleMsgBeginUnbonding(ctx sdk.Context, msg types.MsgBeginUnbonding, k kee
 }
 
 func handleMsgRedelegate(ctx sdk.Context, msg types.MsgRedelegate, k keeper.Keeper) sdk.Result {
-	if sdk.IsUpgrade(sdk.BCFusionSecondHardFork) {
-		return sdk.ErrMsgNotSupported("").Result()
-	}
 	if msg.Amount.Denom != k.BondDenom(ctx) {
 		return ErrBadDenom(k.Codespace()).Result()
 	}

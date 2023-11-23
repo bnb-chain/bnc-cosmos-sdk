@@ -6,15 +6,12 @@ import (
 )
 
 func handleMsgSideChainSubmitProposal(ctx sdk.Context, keeper Keeper, msg MsgSideChainSubmitProposal) sdk.Result {
-	if sdk.IsUpgrade(sdk.BCFusionSecondHardFork) {
-		return sdk.ErrMsgNotSupported("").Result()
+	ctx, err := keeper.ScKeeper.PrepareCtxForSideChain(ctx, msg.SideChainId)
+	if err != nil {
+		return ErrInvalidSideChainId(keeper.codespace, msg.SideChainId).Result()
 	}
 	if sdk.IsUpgrade(sdk.BCFusionFirstHardFork) {
-		ctx, err := keeper.ScKeeper.PrepareCtxForSideChain(ctx, msg.SideChainId)
-		if err != nil {
-			return ErrInvalidSideChainId(keeper.codespace, msg.SideChainId).Result()
-		}
-		vp := keeper.vs.GetSideChainTotalVotingPower(ctx)
+		vp := keeper.vs.GetTotalVotingPower(ctx)
 		if vp.LTE(sdk.NewDecFromInt(sdk.BCFusionStopGovThreshold)) {
 			return sdk.ErrMsgNotSupported("").Result()
 		}
@@ -22,11 +19,6 @@ func handleMsgSideChainSubmitProposal(ctx sdk.Context, keeper Keeper, msg MsgSid
 
 	if msg.ProposalType == ProposalTypeText && !sdk.IsUpgrade(sdk.BEP173) {
 		return ErrInvalidProposalType(keeper.codespace, msg.ProposalType).Result()
-	}
-
-	ctx, err := keeper.ScKeeper.PrepareCtxForSideChain(ctx, msg.SideChainId)
-	if err != nil {
-		return ErrInvalidSideChainId(keeper.codespace, msg.SideChainId).Result()
 	}
 
 	result := handleMsgSubmitProposal(ctx, keeper,

@@ -20,9 +20,11 @@ func NewHandler(keeper Keeper) sdk.Handler {
 		case MsgVote:
 			return handleMsgVote(ctx, keeper, msg)
 		case MsgSideChainDeposit:
-			// TODO: refund the token to the depositor after second hard fork
 			return handleMsgSideChainDeposit(ctx, keeper, msg)
 		case MsgSideChainSubmitProposal:
+			if sdk.IsUpgrade(sdk.BCFusionSecondHardFork) {
+				return sdk.ErrMsgNotSupported("").Result()
+			}
 			return handleMsgSideChainSubmitProposal(ctx, keeper, msg)
 		case MsgSideChainVote:
 			return handleMsgSideChainVote(ctx, keeper, msg)

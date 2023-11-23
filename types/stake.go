@@ -76,7 +76,7 @@ type ValidatorSet interface {
 	ValidatorByConsAddr(Context, ConsAddress) Validator // get a particular validator by consensus address
 	ValidatorByVoteAddr(Context, []byte) Validator      // get a particular validator by vote address
 	TotalPower(Context) Dec                             // total power of the validator set
-	GetSideChainTotalVotingPower(ctx Context) Dec       // total voting power of the side chain validator set
+	GetTotalVotingPower(ctx Context) Dec                // total voting power of the validator set
 
 	// slash the validator and delegators of the validator, specifying offence height, offence power, and slash fraction
 	Slash(Context, ConsAddress, int64, int64, Dec)
