@@ -225,6 +225,16 @@ func (k *Keeper) incrSequence(ctx sdk.Context, destChainID sdk.ChainID, channelI
 	kvStore.Set(buildChannelSequenceKey(destChainID, channelID, prefix), sequenceBytes)
 }
 
+func (k *Keeper) IsBSCAllChannelClosed(ctx sdk.Context) bool {
+	kvStore := ctx.KVStore(k.storeKey)
+	return kvStore.Has(buildBSCAllChannelStatusPrefixKey(k.BscSideChainId(ctx)))
+}
+
+func (k *Keeper) SetBSCAllChannelClosed(ctx sdk.Context) {
+	kvStore := ctx.KVStore(k.storeKey)
+	kvStore.Set(buildBSCAllChannelStatusPrefixKey(k.BscSideChainId(ctx)), []byte{1})
+}
+
 func EndBlock(ctx sdk.Context, k Keeper) {
 	if sdk.IsUpgrade(sdk.LaunchBscUpgrade) && k.govKeeper != nil {
 		chanPermissions := k.getLastChanPermissionChanges(ctx)

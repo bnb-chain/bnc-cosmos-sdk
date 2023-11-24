@@ -86,14 +86,8 @@ func NewStakeHandler(k Keeper) sdk.Handler {
 		case types.MsgEditValidator:
 			return handleMsgEditValidator(ctx, msg, k)
 		case types.MsgDelegate:
-			if sdk.IsUpgrade(sdk.BCFusionSecondHardFork) {
-				return sdk.ErrMsgNotSupported("").Result()
-			}
 			return handleMsgDelegate(ctx, msg, k)
 		case types.MsgRedelegate:
-			if sdk.IsUpgrade(sdk.BCFusionSecondHardFork) {
-				return sdk.ErrMsgNotSupported("").Result()
-			}
 			return handleMsgRedelegate(ctx, msg, k)
 		case types.MsgBeginUnbonding:
 			return handleMsgBeginUnbonding(ctx, msg, k)
