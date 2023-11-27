@@ -65,7 +65,7 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 			}
 			return handleMsgSideChainDelegate(ctx, msg, k)
 		case types.MsgSideChainRedelegate:
-			if sdk.IsUpgrade(sdk.BCFusionFirstHardFork) {
+			if sdk.IsUpgrade(sdk.BCFusionSecondHardFork) {
 				return sdk.ErrMsgNotSupported("").Result()
 			}
 			return handleMsgSideChainRedelegate(ctx, msg, k)
