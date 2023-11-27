@@ -77,6 +77,6 @@ func saveChannelSetting(ctx sdk.Context, k Keeper,
 	))
 	// close bc side chain channel
 	k.sideKeeper.SetChannelSendPermission(ctx, destChainID, channelID, sdk.ChannelForbidden)
-
+	k.sideKeeper.SetBSCAllChannelClosed(ctx)
 	return events
 }
