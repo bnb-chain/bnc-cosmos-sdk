@@ -54,7 +54,7 @@ func closeSideChainChannels(ctx sdk.Context, k Keeper) sdk.Events {
 	if permissions[govChannelId] == sdk.ChannelAllow {
 		events = events.AppendEvents(saveChannelSetting(ctx, k, id, govChannelId))
 	}
-
+	k.sideKeeper.SetBSCAllChannelClosed(ctx)
 	return events
 }
 
@@ -77,6 +77,5 @@ func saveChannelSetting(ctx sdk.Context, k Keeper,
 	))
 	// close bc side chain channel
 	k.sideKeeper.SetChannelSendPermission(ctx, destChainID, channelID, sdk.ChannelForbidden)
-	k.sideKeeper.SetBSCAllChannelClosed(ctx)
 	return events
 }
