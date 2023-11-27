@@ -290,10 +290,9 @@ func handleRefundStake(ctx sdk.Context, k keeper.Keeper) sdk.Events {
 
 	for ; iterator.Valid(); iterator.Next() {
 		delegation := types.MustUnmarshalDelegation(k.CDC(), iterator.Key(), iterator.Value())
+		validator := bscValidatorsMap[delegation.ValidatorAddr.String()]
+		amount := validator.TokensFromShares(delegation.GetShares()).RawInt()
 		if delegation.CrossStake {
-			validator := bscValidatorsMap[delegation.ValidatorAddr.String()]
-			amount := validator.TokensFromShares(delegation.GetShares()).RawInt()
-
 			relayFeeCalc := fees.GetCalculator(types.CrossDistributeUndelegatedRelayFee)
 			if relayFeeCalc == nil {
 				ctx.Logger().Error("no fee calculator of distributeUndelegated")
@@ -310,6 +309,13 @@ func handleRefundStake(ctx sdk.Context, k keeper.Keeper) sdk.Events {
 				ValidatorAddr: delegation.ValidatorAddr,
 				Amount:        sdk.NewCoin(boundDenom, amount),
 				SideChainId:   k.ScKeeper.BscSideChainId(ctx),
+			}, k)
+			refundEvents = refundEvents.AppendEvents(result.Events)
+		} else {
+			result := handleMsgUndelegate(ctx, types.MsgUndelegate{
+				DelegatorAddr: delegation.DelegatorAddr,
+				ValidatorAddr: delegation.ValidatorAddr,
+				Amount:        sdk.NewCoin(boundDenom, amount),
 			}, k)
 			refundEvents = refundEvents.AppendEvents(result.Events)
 		}
