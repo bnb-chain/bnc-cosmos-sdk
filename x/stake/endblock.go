@@ -292,21 +292,16 @@ func handleRefundStake(ctx sdk.Context, k keeper.Keeper) sdk.Events {
 		validator := bscValidatorsMap[delegation.ValidatorAddr.String()]
 		amount := validator.TokensFromShares(delegation.GetShares()).RawInt()
 		if delegation.CrossStake {
-			result := handleMsgSideChainUndelegate(ctx.WithCrossStake(true), types.MsgSideChainUndelegate{
-				DelegatorAddr: delegation.DelegatorAddr,
-				ValidatorAddr: delegation.ValidatorAddr,
-				Amount:        sdk.NewCoin(boundDenom, amount),
-				SideChainId:   k.ScKeeper.BscSideChainId(ctx),
-			}, k)
-			refundEvents = refundEvents.AppendEvents(result.Events)
-		} else {
-			result := handleMsgUndelegate(ctx, types.MsgUndelegate{
-				DelegatorAddr: delegation.DelegatorAddr,
-				ValidatorAddr: delegation.ValidatorAddr,
-				Amount:        sdk.NewCoin(boundDenom, amount),
-			}, k)
-			refundEvents = refundEvents.AppendEvents(result.Events)
+			ctx = ctx.WithCrossStake(true)
 		}
+		result := handleMsgSideChainUndelegate(ctx, types.MsgSideChainUndelegate{
+			DelegatorAddr: delegation.DelegatorAddr,
+			ValidatorAddr: delegation.ValidatorAddr,
+			Amount:        sdk.NewCoin(boundDenom, amount),
+			SideChainId:   k.ScKeeper.BscSideChainId(ctx),
+		}, k)
+		refundEvents = refundEvents.AppendEvents(result.Events)
+
 		count++
 		if count >= maxProcessedRefundCount {
 			break
