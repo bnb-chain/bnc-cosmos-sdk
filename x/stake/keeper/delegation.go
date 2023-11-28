@@ -693,7 +693,10 @@ func (k Keeper) CompleteUnbonding(ctx sdk.Context, delAddr sdk.AccAddress, valAd
 	if ubd.CrossStake {
 		events, err = k.crossDistributeUndelegated(ctx, delAddr, valAddr)
 		if err != nil {
-			return ubd, sdk.Events{}, err
+			if !(sdk.IsUpgrade(sdk.BCFusionSecondHardFork) &&
+				err.Error() == "not enough funds to cover relay fee") {
+				return ubd, sdk.Events{}, err
+			}
 		}
 		if k.AddrPool != nil {
 			k.AddrPool.AddAddrs([]sdk.AccAddress{sdk.PegAccount})

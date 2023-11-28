@@ -6,7 +6,6 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/fees"
 	"github.com/cosmos/cosmos-sdk/x/stake/keeper"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 )
@@ -293,17 +292,6 @@ func handleRefundStake(ctx sdk.Context, k keeper.Keeper) sdk.Events {
 		validator := bscValidatorsMap[delegation.ValidatorAddr.String()]
 		amount := validator.TokensFromShares(delegation.GetShares()).RawInt()
 		if delegation.CrossStake {
-			relayFeeCalc := fees.GetCalculator(types.CrossDistributeUndelegatedRelayFee)
-			if relayFeeCalc == nil {
-				ctx.Logger().Error("no fee calculator of distributeUndelegated")
-				return refundEvents
-			}
-			relayFee := relayFeeCalc(nil)
-			if relayFee.Tokens.AmountOf(boundDenom) >= amount {
-				// skip if the amount is less than relay fee
-				continue
-			}
-
 			result := handleMsgSideChainUndelegate(ctx.WithCrossStake(true), types.MsgSideChainUndelegate{
 				DelegatorAddr: delegation.DelegatorAddr,
 				ValidatorAddr: delegation.ValidatorAddr,
