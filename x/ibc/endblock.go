@@ -63,17 +63,17 @@ func closeChannelOnSideChanAndKeeper(ctx sdk.Context, k Keeper,
 	var events sdk.Events
 	_, err := k.sideKeeper.SaveChannelSettingChangeToIbc(ctx, destChainID, channelID, sdk.ChannelForbidden)
 	if err != nil {
-		ctx.Logger().Error("closeSideChainChannels", "err", err.Error())
-		events.AppendEvent(sdk.NewEvent("failed to save channel setting change",
-			sdk.NewAttribute("sideChainId", fmt.Sprint(destChainID)),
-			sdk.NewAttribute("channelId", fmt.Sprint(channelID)),
-			sdk.NewAttribute("error", err.Error()),
+		ctx.Logger().Error("failed to save ibc channel change", "err", err.Error())
+		events.AppendEvent(sdk.NewEvent(EventTypeSaveIBCChannelSettingFailed,
+			sdk.NewAttribute(AttributeKeySideChainId, fmt.Sprint(destChainID)),
+			sdk.NewAttribute(AttributeKeyChannelId, fmt.Sprint(channelID)),
+			sdk.NewAttribute(AttributeKeyError, err.Error()),
 		))
 		return events
 	}
-	events.AppendEvent(sdk.NewEvent("succeed to save channel setting change",
-		sdk.NewAttribute("sideChainId", fmt.Sprint(destChainID)),
-		sdk.NewAttribute("channelId", fmt.Sprint(channelID)),
+	events.AppendEvent(sdk.NewEvent(EventTypeSaveIBCChannelSettingSucceed,
+		sdk.NewAttribute(AttributeKeySideChainId, fmt.Sprint(destChainID)),
+		sdk.NewAttribute(AttributeKeyChannelId, fmt.Sprint(channelID)),
 	))
 	// close bc side chain channel
 	k.sideKeeper.SetChannelSendPermission(ctx, destChainID, channelID, sdk.ChannelForbidden)
