@@ -93,6 +93,7 @@ func (k *Keeper) RegisterChannel(name string, id sdk.ChannelID, app sdk.CrossCha
 	if ok {
 		return fmt.Errorf("duplicated channel id")
 	}
+	k.cfg.channelIDs = append(k.cfg.channelIDs, id)
 	k.cfg.nameToChannelID[name] = id
 	k.cfg.channelIDToName[id] = name
 	k.cfg.channelIDToApp[id] = app
@@ -224,6 +225,16 @@ func (k *Keeper) incrSequence(ctx sdk.Context, destChainID sdk.ChainID, channelI
 	kvStore.Set(buildChannelSequenceKey(destChainID, channelID, prefix), sequenceBytes)
 }
 
+func (k *Keeper) IsBSCAllChannelClosed(ctx sdk.Context) bool {
+	kvStore := ctx.KVStore(k.storeKey)
+	return kvStore.Has(buildBSCAllChannelStatusPrefixKey(k.BscSideChainId(ctx)))
+}
+
+func (k *Keeper) SetBSCAllChannelClosed(ctx sdk.Context) {
+	kvStore := ctx.KVStore(k.storeKey)
+	kvStore.Set(buildBSCAllChannelStatusPrefixKey(k.BscSideChainId(ctx)), []byte{1})
+}
+
 func EndBlock(ctx sdk.Context, k Keeper) {
 	if sdk.IsUpgrade(sdk.LaunchBscUpgrade) && k.govKeeper != nil {
 		chanPermissions := k.getLastChanPermissionChanges(ctx)
@@ -241,4 +252,8 @@ func EndBlock(ctx sdk.Context, k Keeper) {
 		}
 	}
 	return
+}
+
+func (k *Keeper) Config() *crossChainConfig {
+	return k.cfg
 }

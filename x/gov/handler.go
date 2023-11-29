@@ -22,6 +22,9 @@ func NewHandler(keeper Keeper) sdk.Handler {
 		case MsgSideChainDeposit:
 			return handleMsgSideChainDeposit(ctx, keeper, msg)
 		case MsgSideChainSubmitProposal:
+			if sdk.IsUpgrade(sdk.SecondSunsetFork) {
+				return sdk.ErrMsgNotSupported("").Result()
+			}
 			return handleMsgSideChainSubmitProposal(ctx, keeper, msg)
 		case MsgSideChainVote:
 			return handleMsgSideChainVote(ctx, keeper, msg)

@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -14,6 +15,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/fees"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 	abci "github.com/tendermint/tendermint/abci/types"
+)
+
+var (
+	ErrNotEnoughRelayerFeeForCrossPkg = sdk.ErrInternal("not enough funds to cover relay fee")
+	ErrNoFeeCalculator                = sdk.ErrInternal("no fee calculator of distributeUndelegated")
 )
 
 // return a specific delegation
@@ -43,6 +49,11 @@ func (k Keeper) GetAllDelegations(ctx sdk.Context) (delegations []types.Delegati
 		delegations = append(delegations, delegation)
 	}
 	return delegations
+}
+
+func (k Keeper) IteratorAllDelegations(ctx sdk.Context) sdk.Iterator {
+	store := ctx.KVStore(k.storeKey)
+	return sdk.KVStorePrefixIterator(store, DelegationKey)
 }
 
 // return a given amount of all the delegations from a delegator
@@ -688,7 +699,12 @@ func (k Keeper) CompleteUnbonding(ctx sdk.Context, delAddr sdk.AccAddress, valAd
 	if ubd.CrossStake {
 		events, err = k.crossDistributeUndelegated(ctx, delAddr, valAddr)
 		if err != nil {
-			return ubd, sdk.Events{}, err
+			if sdk.IsUpgrade(sdk.SecondSunsetFork) &&
+				errors.Is(err, ErrNotEnoughRelayerFeeForCrossPkg) {
+				k.Logger(ctx).Error("not enough funds to cover relay fee, skip crossDistribute")
+			} else {
+				return ubd, sdk.Events{}, err
+			}
 		}
 		if k.AddrPool != nil {
 			k.AddrPool.AddAddrs([]sdk.AccAddress{sdk.PegAccount})
@@ -822,11 +838,11 @@ func (k Keeper) crossDistributeUndelegated(ctx sdk.Context, delAddr sdk.AccAddre
 	amount := k.BankKeeper.GetCoins(ctx, delAddr).AmountOf(denom)
 	relayFeeCalc := fees.GetCalculator(types.CrossDistributeUndelegatedRelayFee)
 	if relayFeeCalc == nil {
-		return sdk.Events{}, sdk.ErrInternal("no fee calculator of distributeUndelegated")
+		return sdk.Events{}, ErrNoFeeCalculator
 	}
 	relayFee := relayFeeCalc(nil)
 	if relayFee.Tokens.AmountOf(denom) >= amount {
-		return sdk.Events{}, sdk.ErrInternal("not enough funds to cover relay fee")
+		return sdk.Events{}, ErrNotEnoughRelayerFeeForCrossPkg
 	}
 	bscRelayFee := bsc.ConvertBCAmountToBSCAmount(relayFee.Tokens.AmountOf(denom))
 	bscTransferAmount := new(big.Int).Sub(bsc.ConvertBCAmountToBSCAmount(amount), bscRelayFee)

@@ -6,13 +6,19 @@ import (
 )
 
 func handleMsgSideChainSubmitProposal(ctx sdk.Context, keeper Keeper, msg MsgSideChainSubmitProposal) sdk.Result {
-	if msg.ProposalType == ProposalTypeText && !sdk.IsUpgrade(sdk.BEP173) {
-		return ErrInvalidProposalType(keeper.codespace, msg.ProposalType).Result()
-	}
-
 	ctx, err := keeper.ScKeeper.PrepareCtxForSideChain(ctx, msg.SideChainId)
 	if err != nil {
 		return ErrInvalidSideChainId(keeper.codespace, msg.SideChainId).Result()
+	}
+	if sdk.IsUpgrade(sdk.FirstSunsetFork) {
+		vp := keeper.vs.GetAllStatusVotingPower(ctx)
+		if vp.LTE(sdk.NewDecFromInt(sdk.BCFusionStopGovThreshold)) {
+			return sdk.ErrMsgNotSupported("").Result()
+		}
+	}
+
+	if msg.ProposalType == ProposalTypeText && !sdk.IsUpgrade(sdk.BEP173) {
+		return ErrInvalidProposalType(keeper.codespace, msg.ProposalType).Result()
 	}
 
 	result := handleMsgSubmitProposal(ctx, keeper,

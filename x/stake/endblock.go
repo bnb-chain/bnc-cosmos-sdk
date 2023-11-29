@@ -12,16 +12,24 @@ import (
 
 func EndBlocker(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.ValidatorUpdate, completedUbds []types.UnbondingDelegation) {
 	// only change validator set in breath block after BEP159
-	var events sdk.Events
-	var csEvents sdk.Events
+	var (
+		events   sdk.Events
+		csEvents sdk.Events
+	)
+
 	if !sdk.IsUpgrade(sdk.BEP159) {
 		_, validatorUpdates, completedUbds, _, events = handleValidatorAndDelegations(ctx, k)
 	} else {
 		k.DistributeInBlock(ctx, types.ChainIDForBeaconChain)
 		validatorUpdates = k.PopPendingABCIValidatorUpdate(ctx)
 	}
+
+	var (
+		sideChainIds  []string
+		storePrefixes [][]byte
+	)
 	if sdk.IsUpgrade(sdk.BEP128) {
-		sideChainIds, storePrefixes := k.ScKeeper.GetAllSideChainPrefixes(ctx)
+		sideChainIds, storePrefixes = k.ScKeeper.GetAllSideChainPrefixes(ctx)
 		if len(sideChainIds) == len(storePrefixes) {
 			for i := range storePrefixes {
 				sideChainCtx := ctx.WithSideChainKeyPrefix(storePrefixes[i])
@@ -31,9 +39,18 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.Valid
 			panic("sideChainIds does not equal to sideChainStores")
 		}
 	}
+
+	if len(storePrefixes) > 0 && sdk.IsUpgrade(sdk.SecondSunsetFork) {
+		for i := range storePrefixes {
+			sideChainCtx := ctx.WithSideChainKeyPrefix(storePrefixes[i])
+			events.AppendEvents(handleRefundStake(sideChainCtx, k))
+		}
+	}
+
 	if sdk.IsUpgrade(sdk.BEP153) {
 		events = events.AppendEvents(csEvents)
 	}
+
 	ctx.EventManager().EmitEvents(events)
 	return
 }
@@ -251,4 +268,37 @@ func handleMatureUnbondingDelegations(k keeper.Keeper, ctx sdk.Context) ([]types
 	}
 
 	return completed, events
+}
+
+const (
+	maxProcessedRefundCount = 10
+)
+
+func handleRefundStake(ctx sdk.Context, k keeper.Keeper) sdk.Events {
+	iterator := k.IteratorAllDelegations(ctx)
+	defer iterator.Close()
+	var refundEvents sdk.Events
+	count := 0
+	boundDenom := k.BondDenom(ctx)
+
+	for ; iterator.Valid(); iterator.Next() {
+		delegation := types.MustUnmarshalDelegation(k.CDC(), iterator.Key(), iterator.Value())
+		if delegation.CrossStake {
+			ctx = ctx.WithCrossStake(true)
+		}
+		result := handleMsgSideChainUndelegate(ctx, types.MsgSideChainUndelegate{
+			DelegatorAddr: delegation.DelegatorAddr,
+			ValidatorAddr: delegation.ValidatorAddr,
+			Amount:        sdk.NewCoin(boundDenom, delegation.GetShares().RawInt()),
+			SideChainId:   k.ScKeeper.BscSideChainId(ctx),
+		}, k)
+		refundEvents = refundEvents.AppendEvents(result.Events)
+
+		count++
+		if count >= maxProcessedRefundCount {
+			break
+		}
+	}
+
+	return refundEvents
 }

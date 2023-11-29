@@ -102,6 +102,11 @@ func (k Keeper) Codespace() sdk.CodespaceType {
 	return k.codespace
 }
 
+// return the cdc
+func (k Keeper) CDC() *codec.Codec {
+	return k.cdc
+}
+
 //_______________________________________________________________________
 
 // load the pool

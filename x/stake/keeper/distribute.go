@@ -368,7 +368,8 @@ func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) sdk.E
 	// cross distribute reward
 	for _, addr := range crossStakeAddrSet {
 		balance := k.BankKeeper.GetCoins(ctx, addr).AmountOf(bondDenom)
-		if balance >= types.MinRewardThreshold {
+		if balance >= types.MinRewardThreshold ||
+			(sdk.IsUpgrade(sdk.SecondSunsetFork) && balance >= types.MinRewardThresholdAfterSecondSunsetFork) {
 			event, err := crossDistributeReward(k, ctx, addr, balance)
 			if err != nil {
 				panic(err)
