@@ -26,10 +26,9 @@ const (
 	BEP126                      = "BEP126" //https://github.com/binance-chain/BEPs/pull/126
 	BEP255                      = "BEP255" // https://github.com/bnb-chain/BEPs/pull/255
 
-	// TODO: to be determined
-	BCFusionFirstHardFork  = "BCFusionFirstHardFork"
-	BCFusionSecondHardFork = "BCFusionSecondHardFork"
-	BCFusionThirdHardFork  = "BCFusionThirdHardFork"
+	FirstSunsetFork  = "FirstSunsetFork"
+	SecondSunsetFork = "SecondSunsetFork"
+	FinalSunsetFork  = "FinalSunsetFork"
 )
 
 var (

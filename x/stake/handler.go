@@ -28,7 +28,7 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 			return handleMsgRemoveValidatorAfterProposal(ctx, msg, k, govKeeper)
 		// Beacon Chain New Staking in BEP-159
 		case types.MsgCreateValidatorOpen:
-			if sdk.IsUpgrade(sdk.BCFusionFirstHardFork) {
+			if sdk.IsUpgrade(sdk.FirstSunsetFork) {
 				return sdk.ErrMsgNotSupported("").Result()
 			}
 			if !sdk.IsUpgrade(sdk.BEP159Phase2) {
@@ -43,29 +43,29 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 			return handleMsgUndelegate(ctx, msg, k)
 		// case MsgSideChain
 		case types.MsgCreateSideChainValidator:
-			if sdk.IsUpgrade(sdk.BCFusionFirstHardFork) {
+			if sdk.IsUpgrade(sdk.FirstSunsetFork) {
 				return sdk.ErrMsgNotSupported("").Result()
 			}
 			return handleMsgCreateSideChainValidator(ctx, msg, k)
 		case types.MsgEditSideChainValidator:
 			return handleMsgEditSideChainValidator(ctx, msg, k)
 		case types.MsgCreateSideChainValidatorWithVoteAddr:
-			if sdk.IsUpgrade(sdk.BCFusionFirstHardFork) {
+			if sdk.IsUpgrade(sdk.FirstSunsetFork) {
 				return sdk.ErrMsgNotSupported("").Result()
 			}
 			return handleMsgCreateSideChainValidatorWithVoteAddr(ctx, msg, k)
 		case types.MsgEditSideChainValidatorWithVoteAddr:
-			if sdk.IsUpgrade(sdk.BCFusionFirstHardFork) {
+			if sdk.IsUpgrade(sdk.FirstSunsetFork) {
 				return sdk.ErrMsgNotSupported("").Result()
 			}
 			return handleMsgEditSideChainValidatorWithVoteAddr(ctx, msg, k)
 		case types.MsgSideChainDelegate:
-			if sdk.IsUpgrade(sdk.BCFusionSecondHardFork) {
+			if sdk.IsUpgrade(sdk.SecondSunsetFork) {
 				return sdk.ErrMsgNotSupported("").Result()
 			}
 			return handleMsgSideChainDelegate(ctx, msg, k)
 		case types.MsgSideChainRedelegate:
-			if sdk.IsUpgrade(sdk.BCFusionSecondHardFork) {
+			if sdk.IsUpgrade(sdk.SecondSunsetFork) {
 				return sdk.ErrMsgNotSupported("").Result()
 			}
 			return handleMsgSideChainRedelegate(ctx, msg, k)

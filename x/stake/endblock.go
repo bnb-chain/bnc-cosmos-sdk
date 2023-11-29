@@ -40,7 +40,7 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.Valid
 		}
 	}
 
-	if len(storePrefixes) > 0 && sdk.IsUpgrade(sdk.BCFusionSecondHardFork) {
+	if len(storePrefixes) > 0 && sdk.IsUpgrade(sdk.SecondSunsetFork) {
 		for i := range storePrefixes {
 			sideChainCtx := ctx.WithSideChainKeyPrefix(storePrefixes[i])
 			events.AppendEvents(handleRefundStake(sideChainCtx, k))
@@ -279,25 +279,17 @@ func handleRefundStake(ctx sdk.Context, k keeper.Keeper) sdk.Events {
 	defer iterator.Close()
 	var refundEvents sdk.Events
 	count := 0
-
-	bscValidators := k.GetAllValidators(ctx)
-	bscValidatorsMap := make(map[string]types.Validator, len(bscValidators))
-	for _, validator := range bscValidators {
-		bscValidatorsMap[validator.OperatorAddr.String()] = validator
-	}
 	boundDenom := k.BondDenom(ctx)
 
 	for ; iterator.Valid(); iterator.Next() {
 		delegation := types.MustUnmarshalDelegation(k.CDC(), iterator.Key(), iterator.Value())
-		validator := bscValidatorsMap[delegation.ValidatorAddr.String()]
-		amount := validator.TokensFromShares(delegation.GetShares()).RawInt()
 		if delegation.CrossStake {
 			ctx = ctx.WithCrossStake(true)
 		}
 		result := handleMsgSideChainUndelegate(ctx, types.MsgSideChainUndelegate{
 			DelegatorAddr: delegation.DelegatorAddr,
 			ValidatorAddr: delegation.ValidatorAddr,
-			Amount:        sdk.NewCoin(boundDenom, amount),
+			Amount:        sdk.NewCoin(boundDenom, delegation.GetShares().RawInt()),
 			SideChainId:   k.ScKeeper.BscSideChainId(ctx),
 		}, k)
 		refundEvents = refundEvents.AppendEvents(result.Events)
@@ -308,7 +300,5 @@ func handleRefundStake(ctx sdk.Context, k keeper.Keeper) sdk.Events {
 		}
 	}
 
-	_, ubdEvents := handleMatureUnbondingDelegations(k, ctx)
-	refundEvents = refundEvents.AppendEvents(ubdEvents)
 	return refundEvents
 }

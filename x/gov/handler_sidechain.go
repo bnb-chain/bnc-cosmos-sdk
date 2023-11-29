@@ -10,7 +10,7 @@ func handleMsgSideChainSubmitProposal(ctx sdk.Context, keeper Keeper, msg MsgSid
 	if err != nil {
 		return ErrInvalidSideChainId(keeper.codespace, msg.SideChainId).Result()
 	}
-	if sdk.IsUpgrade(sdk.BCFusionFirstHardFork) {
+	if sdk.IsUpgrade(sdk.FirstSunsetFork) {
 		vp := keeper.vs.GetAllStatusVotingPower(ctx)
 		if vp.LTE(sdk.NewDecFromInt(sdk.BCFusionStopGovThreshold)) {
 			return sdk.ErrMsgNotSupported("").Result()

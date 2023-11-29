@@ -24,7 +24,7 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) {
 	keeper.packageCollector.collectedPackages = keeper.packageCollector.collectedPackages[:0]
 	event := sdk.NewEvent(ibcEventType, attributes...)
 	events.AppendEvent(event)
-	if sdk.IsUpgrade(sdk.BCFusionThirdHardFork) && !keeper.sideKeeper.IsBSCAllChannelClosed(ctx) {
+	if sdk.IsUpgrade(sdk.FinalSunsetFork) && !keeper.sideKeeper.IsBSCAllChannelClosed(ctx) {
 		events = events.AppendEvents(closeSideChainChannels(ctx, keeper))
 	}
 	ctx.EventManager().EmitEvents(events)
@@ -47,31 +47,31 @@ func closeSideChainChannels(ctx sdk.Context, k Keeper) sdk.Events {
 			continue
 		}
 
-		events = events.AppendEvents(saveChannelSetting(ctx, k, id, channelId))
+		events = events.AppendEvents(closeChannelOnSideChanAndKeeper(ctx, k, id, channelId))
 	}
 
 	// disable side chain gov channel
 	if permissions[govChannelId] == sdk.ChannelAllow {
-		events = events.AppendEvents(saveChannelSetting(ctx, k, id, govChannelId))
+		events = events.AppendEvents(closeChannelOnSideChanAndKeeper(ctx, k, id, govChannelId))
 	}
 	k.sideKeeper.SetBSCAllChannelClosed(ctx)
 	return events
 }
 
-func saveChannelSetting(ctx sdk.Context, k Keeper,
+func closeChannelOnSideChanAndKeeper(ctx sdk.Context, k Keeper,
 	destChainID sdk.ChainID, channelID sdk.ChannelID) sdk.Events {
 	var events sdk.Events
 	_, err := k.sideKeeper.SaveChannelSettingChangeToIbc(ctx, destChainID, channelID, sdk.ChannelForbidden)
 	if err != nil {
 		ctx.Logger().Error("closeSideChainChannels", "err", err.Error())
-		events.AppendEvent(sdk.NewEvent("failed to closeSideChainChannels ",
+		events.AppendEvent(sdk.NewEvent("failed to save channel setting change",
 			sdk.NewAttribute("sideChainId", fmt.Sprint(destChainID)),
 			sdk.NewAttribute("channelId", fmt.Sprint(channelID)),
 			sdk.NewAttribute("error", err.Error()),
 		))
 		return events
 	}
-	events.AppendEvent(sdk.NewEvent("closeSideChainChannels",
+	events.AppendEvent(sdk.NewEvent("succeed to save channel setting change",
 		sdk.NewAttribute("sideChainId", fmt.Sprint(destChainID)),
 		sdk.NewAttribute("channelId", fmt.Sprint(channelID)),
 	))
