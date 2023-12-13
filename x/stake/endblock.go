@@ -286,12 +286,14 @@ func handleRefundStake(ctx sdk.Context, k keeper.Keeper) sdk.Events {
 		if delegation.CrossStake {
 			ctx = ctx.WithCrossStake(true)
 		}
+		ctx.Logger().Info("handleRefundStake", "delegation", delegation)
 		result := handleMsgSideChainUndelegate(ctx, types.MsgSideChainUndelegate{
 			DelegatorAddr: delegation.DelegatorAddr,
 			ValidatorAddr: delegation.ValidatorAddr,
 			Amount:        sdk.NewCoin(boundDenom, delegation.GetShares().RawInt()),
 			SideChainId:   k.DestChainName,
 		}, k)
+		ctx.Logger().Info("handleRefundStake", "result", result)
 		refundEvents = refundEvents.AppendEvents(result.Events)
 
 		count++
