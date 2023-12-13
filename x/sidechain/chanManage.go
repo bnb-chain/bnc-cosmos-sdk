@@ -60,6 +60,6 @@ func (k *Keeper) getLastChanPermissionChanges(ctx sdk.Context) []types.ChanPermi
 
 func (k *Keeper) SaveChannelSettingChangeToIbc(ctx sdk.Context, sideChainId sdk.ChainID, channelId sdk.ChannelID, permission sdk.ChannelPermission) (seq uint64, sdkErr sdk.Error) {
 	valueBytes := []byte{byte(channelId), byte(permission)}
-
+	ctx.Logger().Info("SaveChannelSettingChangeToIbc", "sideChainId", sideChainId, "channelId", channelId, "permission", permission, "valueBytes", valueBytes, "k", k)
 	return k.sendParamChangeToIbc(ctx, sideChainId, EnableOrDisableChannelKey, valueBytes, CrossChainContractAddr)
 }
