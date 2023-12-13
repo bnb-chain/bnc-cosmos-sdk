@@ -290,7 +290,7 @@ func handleRefundStake(ctx sdk.Context, k keeper.Keeper) sdk.Events {
 			DelegatorAddr: delegation.DelegatorAddr,
 			ValidatorAddr: delegation.ValidatorAddr,
 			Amount:        sdk.NewCoin(boundDenom, delegation.GetShares().RawInt()),
-			SideChainId:   k.ScKeeper.BscSideChainId(ctx),
+			SideChainId:   k.DestChainName,
 		}, k)
 		refundEvents = refundEvents.AppendEvents(result.Events)
 
