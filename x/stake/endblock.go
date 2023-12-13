@@ -42,8 +42,7 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.Valid
 
 	if len(storePrefixes) > 0 && sdk.IsUpgrade(sdk.SecondSunsetFork) {
 		for i := range storePrefixes {
-			sideChainCtx := ctx.WithSideChainKeyPrefix(storePrefixes[i])
-			events.AppendEvents(handleRefundStake(sideChainCtx, k))
+			events.AppendEvents(handleRefundStake(ctx, storePrefixes[i], k))
 		}
 	}
 
@@ -274,12 +273,13 @@ const (
 	maxProcessedRefundCount = 10
 )
 
-func handleRefundStake(ctx sdk.Context, k keeper.Keeper) sdk.Events {
-	iterator := k.IteratorAllDelegations(ctx)
+func handleRefundStake(ctx sdk.Context, sideChainPrefix []byte, k keeper.Keeper) sdk.Events {
+	sideChainCtx := ctx.WithSideChainKeyPrefix(sideChainPrefix)
+	iterator := k.IteratorAllDelegations(sideChainCtx)
 	defer iterator.Close()
 	var refundEvents sdk.Events
 	count := 0
-	boundDenom := k.BondDenom(ctx)
+	boundDenom := k.BondDenom(sideChainCtx)
 
 	for ; iterator.Valid(); iterator.Next() {
 		delegation := types.MustUnmarshalDelegation(k.CDC(), iterator.Key(), iterator.Value())
