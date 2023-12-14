@@ -37,6 +37,10 @@ func NewKeeper(storeKey sdk.StoreKey, paramSpace param.Subspace, codespace sdk.C
 	}
 }
 
+func (k *Keeper) SetSideChainKeeper(sidechainKeeper sidechain.Keeper) {
+	k.sideKeeper = sidechainKeeper
+}
+
 func (k *Keeper) CreateIBCSyncPackage(ctx sdk.Context, destChainName string, channelName string, packageLoad []byte) (uint64, sdk.Error) {
 	relayerFee, err := k.GetRelayerFeeParam(ctx, destChainName)
 	if err != nil {
