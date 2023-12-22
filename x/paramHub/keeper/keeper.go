@@ -1,8 +1,13 @@
 package keeper
 
 import (
+	"encoding/hex"
 	"fmt"
+	"math/big"
 	"time"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/tendermint/tendermint/libs/log"
 
 	"github.com/cosmos/cosmos-sdk/bsc/rlp"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -13,7 +18,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/params"
 	"github.com/cosmos/cosmos-sdk/x/sidechain"
 	sTypes "github.com/cosmos/cosmos-sdk/x/sidechain/types"
-	"github.com/tendermint/tendermint/libs/log"
 )
 
 var (
@@ -128,6 +132,28 @@ func (keeper *Keeper) EndBreatheBlock(ctx sdk.Context) {
 		}
 	}
 	return
+}
+
+func (keeper *Keeper) SetSyncFeeAfterFirstSunsetFork(ctx sdk.Context) {
+	log := keeper.Logger(ctx)
+	if sdk.IsUpgrade(sdk.FirstSunsetFork) && keeper.ScKeeper != nil {
+		log.Info("Set sync fee to 0.05 BNB after first sunset hardfork")
+		sideChainIds, storePrefixes := keeper.ScKeeper.GetAllSideChainPrefixes(ctx)
+		cscChanges := make([]types.CSCParamChange, 0, 1)
+		fee := new(big.Int).Mul(big.NewInt(5), big.NewInt(1e10))
+		fee = new(big.Int).Div(fee, big.NewInt(100))
+		cscChanges = append(cscChanges, types.CSCParamChange{
+			Key:         "syncFee",
+			Value:       hex.EncodeToString(fee.FillBytes(make([]byte, 32))),
+			Target:      "0000000000000000000000000000000000001008",
+			ValueBytes:  fee.FillBytes(make([]byte, 32)),
+			TargetBytes: common.HexToAddress("0x0000000000000000000000000000000000001008").Bytes(),
+		})
+		for idx := range storePrefixes {
+			sideChainCtx := ctx.WithSideChainKeyPrefix(storePrefixes[idx])
+			keeper.notifyOnUpdate(sideChainCtx, types.CSCParamChanges{Changes: cscChanges, ChainID: sideChainIds[idx]})
+		}
+	}
 }
 
 func (keeper *Keeper) EndBlock(ctx sdk.Context) {
