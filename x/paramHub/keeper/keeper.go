@@ -136,7 +136,7 @@ func (keeper *Keeper) EndBreatheBlock(ctx sdk.Context) {
 
 func (keeper *Keeper) SetSyncFeeAfterFirstSunsetFork(ctx sdk.Context) {
 	log := keeper.Logger(ctx)
-	if sdk.IsUpgrade(sdk.FirstSunsetFork) && keeper.ScKeeper != nil {
+	if keeper.ScKeeper != nil {
 		log.Info("Set sync fee to 0.05 BNB after first sunset hardfork")
 		sideChainIds, storePrefixes := keeper.ScKeeper.GetAllSideChainPrefixes(ctx)
 		cscChanges := make([]types.CSCParamChange, 0, 1)
