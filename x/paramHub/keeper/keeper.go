@@ -140,7 +140,7 @@ func (keeper *Keeper) SetSyncFeeAfterFirstSunsetFork(ctx sdk.Context) {
 		log.Info("Set sync fee to 0.05 BNB after first sunset hardfork")
 		sideChainIds, storePrefixes := keeper.ScKeeper.GetAllSideChainPrefixes(ctx)
 		cscChanges := make([]types.CSCParamChange, 0, 1)
-		fee := new(big.Int).Mul(big.NewInt(5), big.NewInt(1e10))
+		fee := new(big.Int).Mul(big.NewInt(5), big.NewInt(1e18))
 		fee = new(big.Int).Div(fee, big.NewInt(100))
 		cscChanges = append(cscChanges, types.CSCParamChange{
 			Key:         "syncFee",
