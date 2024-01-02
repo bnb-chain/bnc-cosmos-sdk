@@ -282,8 +282,8 @@ func handleRefundStake(ctx sdk.Context, sideChainPrefix []byte, k keeper.Keeper)
 	count := 0
 	boundDenom := k.BondDenom(sideChainCtx)
 
-	unBoundingDelegation := k.DequeueAllMatureUnbondingQueue(sideChainCtx, ctx.BlockHeader().Time)
-	if len(unBoundingDelegation) >= maxUnboundPerDay {
+	unBoundingDelegationSize := k.GetUnbondingSizeInQueue(sideChainCtx, ctx.BlockHeader().Time)
+	if unBoundingDelegationSize >= maxUnboundPerDay {
 		ctx.Logger().Info("unBoundingDelegation exceed the maxUnboundPerDay")
 		return refundEvents
 	}
