@@ -281,7 +281,7 @@ func handleRefundStake(ctx sdk.Context, sideChainPrefix []byte, k keeper.Keeper)
 	var refundEvents sdk.Events
 	count := 0
 	boundDenom := k.BondDenom(sideChainCtx)
-
+	bscSideChainId := k.ScKeeper.BscSideChainId(ctx)
 	unBoundingDelegationSize := k.GetUnbondingSizeInQueue(sideChainCtx, ctx.BlockHeader().Time)
 	if unBoundingDelegationSize >= maxUnboundPerDay {
 		ctx.Logger().Info("unBoundingDelegation exceed the maxUnboundPerDay")
@@ -293,7 +293,7 @@ func handleRefundStake(ctx sdk.Context, sideChainPrefix []byte, k keeper.Keeper)
 		if delegation.CrossStake {
 			ctx = ctx.WithCrossStake(true)
 		}
-		bscSideChainId := k.ScKeeper.BscSideChainId(ctx)
+
 		result := handleMsgSideChainUndelegate(ctx, types.MsgSideChainUndelegate{
 			DelegatorAddr: delegation.DelegatorAddr,
 			ValidatorAddr: delegation.ValidatorAddr,
