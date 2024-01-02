@@ -271,6 +271,7 @@ func handleMatureUnbondingDelegations(k keeper.Keeper, ctx sdk.Context) ([]types
 
 const (
 	maxProcessedRefundCount = 10
+	maxUnboundPerDay        = 100
 )
 
 func handleRefundStake(ctx sdk.Context, sideChainPrefix []byte, k keeper.Keeper) sdk.Events {
@@ -281,19 +282,32 @@ func handleRefundStake(ctx sdk.Context, sideChainPrefix []byte, k keeper.Keeper)
 	count := 0
 	boundDenom := k.BondDenom(sideChainCtx)
 
+	unBoundingDelegation := k.DequeueAllMatureUnbondingQueue(sideChainCtx, ctx.BlockHeader().Time)
+	if len(unBoundingDelegation) >= maxUnboundPerDay {
+		ctx.Logger().Info("unBoundingDelegation exceed the maxUnboundPerDay")
+		return refundEvents
+	}
+
 	for ; iterator.Valid(); iterator.Next() {
 		delegation := types.MustUnmarshalDelegation(k.CDC(), iterator.Key(), iterator.Value())
 		if delegation.CrossStake {
 			ctx = ctx.WithCrossStake(true)
 		}
+		bscSideChainId := k.ScKeeper.BscSideChainId(ctx)
 		result := handleMsgSideChainUndelegate(ctx, types.MsgSideChainUndelegate{
 			DelegatorAddr: delegation.DelegatorAddr,
 			ValidatorAddr: delegation.ValidatorAddr,
 			Amount:        sdk.NewCoin(boundDenom, delegation.GetShares().RawInt()),
-			SideChainId:   k.ScKeeper.BscSideChainId(ctx),
+			SideChainId:   bscSideChainId,
 		}, k)
 		refundEvents = refundEvents.AppendEvents(result.Events)
 
+		ctx.Logger().Info("handleRefundStake after SecondSunsetFork",
+			"delegator", delegation.DelegatorAddr.String(),
+			"validator", delegation.ValidatorAddr.String(),
+			"amount", delegation.GetShares().String(),
+			"sideChainId", bscSideChainId,
+		)
 		count++
 		if count >= maxProcessedRefundCount {
 			break
