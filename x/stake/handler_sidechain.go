@@ -442,15 +442,9 @@ func handleMsgSideChainUndelegate(ctx sdk.Context, msg MsgSideChainUndelegate, k
 		events sdk.Events
 	)
 
-	validator, found := k.GetValidator(ctx, msg.ValidatorAddr)
-	if !found {
-		return types.ErrNoValidatorFound(k.Codespace()).Result()
-	}
-
-	if sdk.IsUpgrade(sdk.FirstSunsetFork) && !validator.IsSelfDelegator(msg.DelegatorAddr) {
+	if sdk.IsUpgrade(sdk.FirstSunsetFork) {
 		// unbound the delegation directly, do not wait for the breathe block
 		// this is to prevent too many user get the coins back in the breathe block
-		// but self delegation still needs to wait until the unbonding period
 
 		ubd, events, err = k.UnboundDelegation(ctx, msg.DelegatorAddr, msg.ValidatorAddr, shares)
 		if err != nil {
