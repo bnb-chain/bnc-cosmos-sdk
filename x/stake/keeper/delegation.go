@@ -658,9 +658,25 @@ func (k Keeper) getBeginInfo(ctx sdk.Context, valSrcAddr sdk.ValAddress) (
 	}
 }
 
+func (k Keeper) UnboundDelegation(ctx sdk.Context,
+	delAddr sdk.AccAddress, valAddr sdk.ValAddress, sharesAmount sdk.Dec,
+) (types.UnbondingDelegation, sdk.Events, sdk.Error) {
+	ubd, err := k.BeginUnbonding(ctx, delAddr, valAddr, sharesAmount, false)
+	if err != nil {
+		return ubd, nil, err
+	}
+	ubd, events, err := k.CompleteUnbonding(ctx, ubd.DelegatorAddr, ubd.ValidatorAddr)
+	if err != nil {
+		return ubd, events, err
+	}
+
+	return ubd, events, nil
+}
+
 // begin unbonding an unbonding record
 func (k Keeper) BeginUnbonding(ctx sdk.Context,
-	delAddr sdk.AccAddress, valAddr sdk.ValAddress, sharesAmount sdk.Dec) (types.UnbondingDelegation, sdk.Error) {
+	delAddr sdk.AccAddress, valAddr sdk.ValAddress, sharesAmount sdk.Dec,
+	enqueue bool) (types.UnbondingDelegation, sdk.Error) {
 
 	// TODO quick fix, instead we should use an index, see https://github.com/cosmos/cosmos-sdk/issues/1402
 	_, found := k.GetUnbondingDelegation(ctx, delAddr, valAddr)
@@ -677,6 +693,9 @@ func (k Keeper) BeginUnbonding(ctx sdk.Context,
 	balance := sdk.NewCoin(k.BondDenom(ctx), returnAmount.RawInt())
 
 	completionTime := ctx.BlockHeader().Time.Add(k.UnbondingTime(ctx))
+	if !enqueue {
+		completionTime = ctx.BlockHeader().Time
+	}
 	ubd := types.UnbondingDelegation{
 		DelegatorAddr:  delAddr,
 		ValidatorAddr:  valAddr,
@@ -687,7 +706,9 @@ func (k Keeper) BeginUnbonding(ctx sdk.Context,
 		CrossStake:     ctx.CrossStake(),
 	}
 	k.SetUnbondingDelegation(ctx, ubd)
-	k.InsertUnbondingQueue(ctx, ubd)
+	if enqueue {
+		k.InsertUnbondingQueue(ctx, ubd)
+	}
 
 	return ubd, nil
 }

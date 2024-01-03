@@ -227,9 +227,28 @@ func (app *CrossStakeApp) handleUndelegate(ctx sdk.Context, pack *types.CrossSta
 		}, errCode, nil
 	}
 
-	_, err := app.stakeKeeper.BeginUnbonding(ctx.WithCrossStake(true), delAddr, pack.Validator, shares)
-	if err != nil {
-		return sdk.ExecuteResult{}, errCode, err
+	validator, found := app.stakeKeeper.GetValidator(ctx, pack.Validator)
+	if !found {
+		errCode = CrossStakeErrBadDelegation
+		return sdk.ExecuteResult{
+			Err: types.ErrNoValidatorFound(app.stakeKeeper.Codespace()),
+		}, errCode, nil
+	}
+
+	if sdk.IsUpgrade(sdk.FirstSunsetFork) && !validator.IsSelfDelegator(delAddr) {
+		// unbound the delegation directly, do not wait for the breathe block
+		// this is to prevent too many user get the coins back in the breathe block
+		// but self delegation still needs to wait until the unbonding period
+
+		_, _, err := app.stakeKeeper.UnboundDelegation(ctx.WithCrossStake(true), delAddr, pack.Validator, shares)
+		if err != nil {
+			return sdk.ExecuteResult{}, errCode, err
+		}
+	} else {
+		_, err := app.stakeKeeper.BeginUnbonding(ctx.WithCrossStake(true), delAddr, pack.Validator, shares, false)
+		if err != nil {
+			return sdk.ExecuteResult{}, errCode, err
+		}
 	}
 
 	// publish undelegate event
