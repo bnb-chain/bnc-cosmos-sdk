@@ -60,12 +60,12 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 			}
 			return handleMsgEditSideChainValidatorWithVoteAddr(ctx, msg, k)
 		case types.MsgSideChainDelegate:
-			if sdk.IsUpgrade(sdk.SecondSunsetFork) {
+			if sdk.IsUpgrade(sdk.FirstSunsetFork) {
 				return sdk.ErrMsgNotSupported("").Result()
 			}
 			return handleMsgSideChainDelegate(ctx, msg, k)
 		case types.MsgSideChainRedelegate:
-			if sdk.IsUpgrade(sdk.SecondSunsetFork) {
+			if sdk.IsUpgrade(sdk.FirstSunsetFork) {
 				return sdk.ErrMsgNotSupported("").Result()
 			}
 			return handleMsgSideChainRedelegate(ctx, msg, k)
