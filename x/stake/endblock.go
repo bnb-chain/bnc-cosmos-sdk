@@ -270,8 +270,7 @@ func handleMatureUnbondingDelegations(k keeper.Keeper, ctx sdk.Context) ([]types
 }
 
 const (
-	maxProcessedRefundCount   = 10
-	maxUnboundPerBreatheBlock = 100
+	maxProcessedRefundCount = 10
 )
 
 func handleRefundStake(ctx sdk.Context, sideChainPrefix []byte, k keeper.Keeper) sdk.Events {
@@ -282,11 +281,6 @@ func handleRefundStake(ctx sdk.Context, sideChainPrefix []byte, k keeper.Keeper)
 	count := 0
 	boundDenom := k.BondDenom(sideChainCtx)
 	bscSideChainId := k.ScKeeper.BscSideChainId(ctx)
-	unBoundingDelegationSize := k.GetUnbondingSizeInQueue(sideChainCtx, ctx.BlockHeader().Time.Add(k.UnbondingTime(ctx)))
-	if unBoundingDelegationSize >= maxUnboundPerBreatheBlock {
-		ctx.Logger().Info("unBoundingDelegation exceed the maxUnboundPerBreatheBlock")
-		return refundEvents
-	}
 
 	for ; iterator.Valid(); iterator.Next() {
 		delegation := types.MustUnmarshalDelegation(k.CDC(), iterator.Key(), iterator.Value())

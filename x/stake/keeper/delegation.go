@@ -322,16 +322,6 @@ func (k Keeper) UnbondingQueueIterator(ctx sdk.Context, endTime time.Time) sdk.I
 	return store.Iterator(UnbondingQueueKey, sdk.InclusiveEndBytes(GetUnbondingDelegationTimeKey(endTime)))
 }
 
-func (k Keeper) GetUnbondingSizeInQueue(ctx sdk.Context, endTime time.Time) int {
-	unbondingTimesliceIterator := k.UnbondingQueueIterator(ctx, endTime)
-	defer unbondingTimesliceIterator.Close()
-	size := 0
-	for ; unbondingTimesliceIterator.Valid(); unbondingTimesliceIterator.Next() {
-		size++
-	}
-	return size
-}
-
 // Returns a concatenated list of all the timeslices before currTime, and deletes the timeslices from the queue
 func (k Keeper) DequeueAllMatureUnbondingQueue(ctx sdk.Context, currTime time.Time) (matureUnbonds []types.DVPair) {
 	store := ctx.KVStore(k.storeKey)
