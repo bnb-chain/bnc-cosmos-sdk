@@ -437,9 +437,24 @@ func handleMsgSideChainUndelegate(ctx sdk.Context, msg MsgSideChainUndelegate, k
 		return err.Result()
 	}
 
-	ubd, err := k.BeginUnbonding(ctx, msg.DelegatorAddr, msg.ValidatorAddr, shares)
-	if err != nil {
-		return err.Result()
+	var (
+		ubd    types.UnbondingDelegation
+		events sdk.Events
+	)
+
+	if sdk.IsUpgrade(sdk.FirstSunsetFork) {
+		// unbound the delegation directly, do not wait for the breathe block
+		// this is to prevent too many user get the coins back in the breathe block
+
+		ubd, events, err = k.UnboundDelegation(ctx, msg.DelegatorAddr, msg.ValidatorAddr, shares)
+		if err != nil {
+			return err.Result()
+		}
+	} else {
+		ubd, err = k.BeginUnbonding(ctx, msg.DelegatorAddr, msg.ValidatorAddr, shares, true)
+		if err != nil {
+			return err.Result()
+		}
 	}
 
 	finishTime := types.MsgCdc.MustMarshalBinaryLengthPrefixed(ubd.MinTime)
@@ -468,7 +483,7 @@ func handleMsgSideChainUndelegate(ctx sdk.Context, msg MsgSideChainUndelegate, k
 		k.PbsbServer.Publish(event)
 	}
 
-	return sdk.Result{Data: finishTime, Tags: tags}
+	return sdk.Result{Data: finishTime, Tags: tags, Events: events}
 }
 
 // we allow the self-delegator delegating/redelegating to its validator.

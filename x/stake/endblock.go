@@ -280,20 +280,28 @@ func handleRefundStake(ctx sdk.Context, sideChainPrefix []byte, k keeper.Keeper)
 	var refundEvents sdk.Events
 	count := 0
 	boundDenom := k.BondDenom(sideChainCtx)
+	bscSideChainId := k.ScKeeper.BscSideChainId(ctx)
 
 	for ; iterator.Valid(); iterator.Next() {
 		delegation := types.MustUnmarshalDelegation(k.CDC(), iterator.Key(), iterator.Value())
 		if delegation.CrossStake {
 			ctx = ctx.WithCrossStake(true)
 		}
+
 		result := handleMsgSideChainUndelegate(ctx, types.MsgSideChainUndelegate{
 			DelegatorAddr: delegation.DelegatorAddr,
 			ValidatorAddr: delegation.ValidatorAddr,
 			Amount:        sdk.NewCoin(boundDenom, delegation.GetShares().RawInt()),
-			SideChainId:   k.ScKeeper.BscSideChainId(ctx),
+			SideChainId:   bscSideChainId,
 		}, k)
 		refundEvents = refundEvents.AppendEvents(result.Events)
 
+		ctx.Logger().Info("handleRefundStake after SecondSunsetFork",
+			"delegator", delegation.DelegatorAddr.String(),
+			"validator", delegation.ValidatorAddr.String(),
+			"amount", delegation.GetShares().String(),
+			"sideChainId", bscSideChainId,
+		)
 		count++
 		if count >= maxProcessedRefundCount {
 			break

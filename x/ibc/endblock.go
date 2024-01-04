@@ -63,7 +63,8 @@ func closeChannelOnSideChanAndKeeper(ctx sdk.Context, k Keeper,
 	var events sdk.Events
 	_, err := k.sideKeeper.SaveChannelSettingChangeToIbc(ctx, destChainID, channelID, sdk.ChannelForbidden)
 	if err != nil {
-		ctx.Logger().Error("failed to save ibc channel change", "err", err.Error())
+		ctx.Logger().Error("failed to save ibc channel change after FinalSunsetFork",
+			"sideChainId", destChainID, "channelId", channelID, "err", err.Error())
 		events.AppendEvent(sdk.NewEvent(EventTypeSaveIBCChannelSettingFailed,
 			sdk.NewAttribute(AttributeKeySideChainId, fmt.Sprint(destChainID)),
 			sdk.NewAttribute(AttributeKeyChannelId, fmt.Sprint(channelID)),
@@ -77,5 +78,7 @@ func closeChannelOnSideChanAndKeeper(ctx sdk.Context, k Keeper,
 	))
 	// close bc side chain channel
 	k.sideKeeper.SetChannelSendPermission(ctx, destChainID, channelID, sdk.ChannelForbidden)
+
+	ctx.Logger().Info("close side chain channel after FinalSunsetFork", "sideChainId", destChainID, "channelId", channelID)
 	return events
 }

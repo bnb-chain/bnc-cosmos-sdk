@@ -305,7 +305,7 @@ func TestQueryDelegation(t *testing.T) {
 	require.NotNil(t, err)
 
 	// Query unbonging delegation
-	keeper.BeginUnbonding(ctx, addrAcc2, val1.OperatorAddr, sdk.NewDec(sdk.NewDecWithoutFra(10).RawInt()))
+	keeper.BeginUnbonding(ctx, addrAcc2, val1.OperatorAddr, sdk.NewDec(sdk.NewDecWithoutFra(10).RawInt()), true)
 
 	query = abci.RequestQuery{
 		Path: "/custom/stake/unbondingDelegation",
