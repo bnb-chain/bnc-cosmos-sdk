@@ -442,19 +442,9 @@ func handleMsgSideChainUndelegate(ctx sdk.Context, msg MsgSideChainUndelegate, k
 		events sdk.Events
 	)
 
-	if sdk.IsUpgrade(sdk.FirstSunsetFork) {
-		// unbound the delegation directly, do not wait for the breathe block
-		// this is to prevent too many user get the coins back in the breathe block
-
-		ubd, events, err = k.UnboundDelegation(ctx, msg.DelegatorAddr, msg.ValidatorAddr, shares)
-		if err != nil {
-			return err.Result()
-		}
-	} else {
-		ubd, err = k.BeginUnbonding(ctx, msg.DelegatorAddr, msg.ValidatorAddr, shares, true)
-		if err != nil {
-			return err.Result()
-		}
+	ubd, err = k.BeginUnbonding(ctx, msg.DelegatorAddr, msg.ValidatorAddr, shares, true)
+	if err != nil {
+		return err.Result()
 	}
 
 	finishTime := types.MsgCdc.MustMarshalBinaryLengthPrefixed(ubd.MinTime)
