@@ -236,7 +236,7 @@ func (app *CrossStakeApp) handleUndelegate(ctx sdk.Context, pack *types.CrossSta
 			return sdk.ExecuteResult{}, errCode, err
 		}
 	} else {
-		_, err := app.stakeKeeper.BeginUnbonding(ctx.WithCrossStake(true), delAddr, pack.Validator, shares, false)
+		_, err := app.stakeKeeper.BeginUnbonding(ctx.WithCrossStake(true), delAddr, pack.Validator, shares, true)
 		if err != nil {
 			return sdk.ExecuteResult{}, errCode, err
 		}
