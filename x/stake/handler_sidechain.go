@@ -497,11 +497,23 @@ func handleMsgSideChainStakeMigration(ctx sdk.Context, msg MsgSideChainStakeMigr
 		return sdkErr.Result()
 	}
 
+	// unbond immediately
 	ubd, sdkErr := k.BeginUnbonding(ctx, msg.RefundAddress, msg.Validator, shares, false)
 	if sdkErr != nil {
 		return sdkErr.Result()
 	}
+	ubd, events, sdkErr := k.CompleteUnbonding(ctx, ubd.DelegatorAddr, ubd.ValidatorAddr)
+	if sdkErr != nil {
+		return sdkErr.Result()
+	}
 
+	// send coins to pegAccount
+	_, sdkErr = k.BankKeeper.SendCoins(ctx, msg.RefundAddress, sdk.PegAccount, sdk.Coins{ubd.Balance})
+	if sdkErr != nil {
+		return sdkErr.Result()
+	}
+
+	// send cross-chain package
 	bscAmount := bsc.ConvertBCAmountToBSCAmount(ubd.Balance.Amount)
 	stakeMigrationSynPackage := types.StakeMigrationSynPackage{
 		OperatorAddress:  msg.OperatorAddress,
@@ -559,7 +571,8 @@ func handleMsgSideChainStakeMigration(ctx sdk.Context, msg MsgSideChainStakeMigr
 	txTags = append(txTags, sdk.MakeTag(types.TagStakeMigrationSendSequence, []byte(strconv.FormatUint(sendSeq, 10))))
 
 	return sdk.Result{
-		Tags: txTags,
+		Tags:   txTags,
+		Events: events,
 	}
 }
 
