@@ -162,7 +162,7 @@ func (k Keeper) RemoveDelegationByVal(ctx sdk.Context, delAddr sdk.AccAddress, v
 	store.Delete(GetDelegationKeyByValIndexKey(valAddr, delAddr))
 }
 
-//_____________________________________________________________________________________
+// _____________________________________________________________________________________
 
 func (k Keeper) SetSimplifiedDelegations(ctx sdk.Context, height int64, validator sdk.ValAddress, simDels []types.SimplifiedDelegation) {
 	store := ctx.KVStore(k.storeKey)
@@ -185,7 +185,7 @@ func (k Keeper) RemoveSimplifiedDelegations(ctx sdk.Context, height int64, valid
 	store.Delete(GetSimplifiedDelegationsKey(height, validator))
 }
 
-//_____________________________________________________________________________________
+// _____________________________________________________________________________________
 
 // return a given amount of all the delegator unbonding-delegations
 func (k Keeper) GetUnbondingDelegations(ctx sdk.Context, delegator sdk.AccAddress,
@@ -336,7 +336,7 @@ func (k Keeper) DequeueAllMatureUnbondingQueue(ctx sdk.Context, currTime time.Ti
 	return matureUnbonds
 }
 
-//_____________________________________________________________________________________
+// _____________________________________________________________________________________
 
 // return a given amount of all the delegator redelegations
 func (k Keeper) GetRedelegations(ctx sdk.Context, delegator sdk.AccAddress,
@@ -489,7 +489,7 @@ func (k Keeper) DequeueAllMatureRedelegationQueue(ctx sdk.Context, currTime time
 	return matureRedelegations
 }
 
-//_____________________________________________________________________________________
+// _____________________________________________________________________________________
 
 func (k Keeper) SyncDelegationByValDel(ctx sdk.Context, valAddr sdk.ValAddress, delAddr sdk.AccAddress) {
 	delegation, found := k.GetDelegation(ctx, delAddr, valAddr)
@@ -619,7 +619,7 @@ func (k Keeper) unbond(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValA
 	return amount, nil
 }
 
-//______________________________________________________________________________________________________
+// ______________________________________________________________________________________________________
 
 // get info for begin functions: MinTime and CreationHeight
 func (k Keeper) getBeginInfo(ctx sdk.Context, valSrcAddr sdk.ValAddress) (
@@ -886,7 +886,7 @@ func (k Keeper) crossDistributeUndelegated(ctx sdk.Context, delAddr sdk.AccAddre
 		return sdk.Events{}, sdk.ErrInternal(err.Error())
 	}
 
-	sendSeq, sdkErr := k.ibcKeeper.CreateRawIBCPackageByIdWithFee(ctx.DepriveSideChainKeyPrefix(), k.DestChainId, types.CrossStakeChannelID,
+	sendSeq, sdkErr := k.IbcKeeper.CreateRawIBCPackageByIdWithFee(ctx.DepriveSideChainKeyPrefix(), k.DestChainId, types.CrossStakeChannelID,
 		sdk.SynCrossChainPackageType, encodedPackage, *bscRelayFee)
 	if sdkErr != nil {
 		return sdk.Events{}, sdkErr

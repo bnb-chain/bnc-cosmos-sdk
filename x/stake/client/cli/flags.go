@@ -8,14 +8,16 @@ import (
 
 // nolint
 const (
-	FlagAddressDelegator    = "address-delegator"
-	FlagAddressValidator    = "validator"
-	FlagAddressValidatorSrc = "addr-validator-source"
-	FlagAddressValidatorDst = "addr-validator-dest"
-	FlagPubKey              = "pubkey"
-	FlagAmount              = "amount"
-	FlagSharesAmount        = "shares-amount"
-	FlagSharesPercent       = "shares-percent"
+	FlagAddressDelegator           = "address-delegator"
+	FlagAddressValidator           = "validator"
+	FlagAddressValidatorSrc        = "addr-validator-source"
+	FlagAddressValidatorDst        = "addr-validator-dest"
+	FlagAddressSmartChainOperator  = "address-smart-chain-operator"
+	FlagAddressSmartChainDelegator = "address-smart-chain-delegator"
+	FlagPubKey                     = "pubkey"
+	FlagAmount                     = "amount"
+	FlagSharesAmount               = "shares-amount"
+	FlagSharesPercent              = "shares-percent"
 
 	FlagMoniker  = "moniker"
 	FlagIdentity = "identity"
@@ -48,19 +50,21 @@ const (
 
 // common flagsets to add to various functions
 var (
-	fsPk                = flag.NewFlagSet("", flag.ContinueOnError)
-	fsAmount            = flag.NewFlagSet("", flag.ContinueOnError)
-	fsShares            = flag.NewFlagSet("", flag.ContinueOnError)
-	fsDescriptionCreate = flag.NewFlagSet("", flag.ContinueOnError)
-	fsCommissionCreate  = flag.NewFlagSet("", flag.ContinueOnError)
-	fsCommissionUpdate  = flag.NewFlagSet("", flag.ContinueOnError)
-	fsDescriptionEdit   = flag.NewFlagSet("", flag.ContinueOnError)
-	fsValidator         = flag.NewFlagSet("", flag.ContinueOnError)
-	fsDelegator         = flag.NewFlagSet("", flag.ContinueOnError)
-	fsRedelegation      = flag.NewFlagSet("", flag.ContinueOnError)
-	fsSideChainFull     = flag.NewFlagSet("", flag.ContinueOnError)
-	fsSideChainEdit     = flag.NewFlagSet("", flag.ContinueOnError)
-	fsSideChainId       = flag.NewFlagSet("", flag.ContinueOnError)
+	fsPk                  = flag.NewFlagSet("", flag.ContinueOnError)
+	fsAmount              = flag.NewFlagSet("", flag.ContinueOnError)
+	fsShares              = flag.NewFlagSet("", flag.ContinueOnError)
+	fsDescriptionCreate   = flag.NewFlagSet("", flag.ContinueOnError)
+	fsCommissionCreate    = flag.NewFlagSet("", flag.ContinueOnError)
+	fsCommissionUpdate    = flag.NewFlagSet("", flag.ContinueOnError)
+	fsDescriptionEdit     = flag.NewFlagSet("", flag.ContinueOnError)
+	fsValidator           = flag.NewFlagSet("", flag.ContinueOnError)
+	fsDelegator           = flag.NewFlagSet("", flag.ContinueOnError)
+	fsRedelegation        = flag.NewFlagSet("", flag.ContinueOnError)
+	fsSideChainFull       = flag.NewFlagSet("", flag.ContinueOnError)
+	fsSideChainEdit       = flag.NewFlagSet("", flag.ContinueOnError)
+	fsSideChainId         = flag.NewFlagSet("", flag.ContinueOnError)
+	fsSmartChainOperator  = flag.NewFlagSet("", flag.ContinueOnError)
+	fsSmartChainDelegator = flag.NewFlagSet("", flag.ContinueOnError)
 )
 
 func init() {
@@ -97,4 +101,6 @@ func init() {
 	fsSideChainEdit.String(FlagBLSWalletDir, "", "Absolute path of BLS wallet, should be provided if the side vote address is provided")
 	fsSideChainEdit.String(FlagBLSPassword, "", "Password for BLS wallet")
 	fsSideChainId.String(FlagSideChainId, "", "Chain-id of the side chain the validator belongs to")
+	fsSmartChainOperator.String(FlagAddressSmartChainOperator, "", "Smart chain address of the operator")
+	fsSmartChainDelegator.String(FlagAddressSmartChainDelegator, "", "Smart chain address of the delegator")
 }

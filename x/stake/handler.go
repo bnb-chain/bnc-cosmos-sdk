@@ -71,6 +71,11 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 			return handleMsgSideChainRedelegate(ctx, msg, k)
 		case types.MsgSideChainUndelegate:
 			return handleMsgSideChainUndelegate(ctx, msg, k)
+		case types.MsgSideChainStakeMigration:
+			if !sdk.IsUpgrade(sdk.FirstSunsetFork) {
+				return sdk.ErrMsgNotSupported("FirstSunset not activated yet").Result()
+			}
+			return handleMsgSideChainStakeMigration(ctx, msg, k)
 		default:
 			return sdk.ErrTxDecode("invalid message parse in staking module").Result()
 		}
@@ -97,7 +102,7 @@ func NewStakeHandler(k Keeper) sdk.Handler {
 	}
 }
 
-//_____________________________________________________________________
+// _____________________________________________________________________
 
 // These functions assume everything has been authenticated,
 // now we just perform action and save

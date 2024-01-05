@@ -3,8 +3,12 @@ package stake
 import (
 	"bytes"
 	"fmt"
+	"strconv"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
+	"github.com/cosmos/cosmos-sdk/bsc"
+	"github.com/cosmos/cosmos-sdk/bsc/rlp"
+	"github.com/cosmos/cosmos-sdk/pubsub"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/stake/keeper"
 	"github.com/cosmos/cosmos-sdk/x/stake/tags"
@@ -474,6 +478,88 @@ func handleMsgSideChainUndelegate(ctx sdk.Context, msg MsgSideChainUndelegate, k
 	}
 
 	return sdk.Result{Data: finishTime, Tags: tags, Events: events}
+}
+
+func handleMsgSideChainStakeMigration(ctx sdk.Context, msg MsgSideChainStakeMigration, k keeper.Keeper) sdk.Result {
+	if scCtx, err := k.ScKeeper.PrepareCtxForSideChain(ctx, k.DestChainName); err != nil {
+		return ErrInvalidSideChainId(k.Codespace()).Result()
+	} else {
+		ctx = scCtx
+	}
+
+	denom := k.BondDenom(ctx)
+	if msg.Amount.Denom != denom {
+		return ErrBadDenom(k.Codespace()).Result()
+	}
+
+	shares, sdkErr := k.ValidateUnbondAmount(ctx, msg.RefundAddress, msg.Validator, msg.Amount.Amount)
+	if sdkErr != nil {
+		return sdkErr.Result()
+	}
+
+	ubd, sdkErr := k.BeginUnbonding(ctx, msg.RefundAddress, msg.Validator, shares, false)
+	if sdkErr != nil {
+		return sdkErr.Result()
+	}
+
+	bscAmount := bsc.ConvertBCAmountToBSCAmount(ubd.Balance.Amount)
+	stakeMigrationSynPackage := types.StakeMigrationSynPackage{
+		OperatorAddress:  msg.OperatorAddress,
+		DelegatorAddress: msg.DelegatorAddress,
+		RefundAddress:    msg.RefundAddress,
+		Amount:           bscAmount,
+	}
+
+	encodedPackage, err := rlp.EncodeToBytes(stakeMigrationSynPackage)
+	if err != nil {
+		return sdk.ErrInternal("encode stake migration package error").Result()
+	}
+
+	relayFee := bsc.ConvertBCAmountToBSCAmount(types.StakeMigrationRelayFee)
+	sendSeq, sdkErr := k.IbcKeeper.CreateRawIBCPackageByIdWithFee(ctx, k.DestChainId, types.StakeMigrationChannelID, sdk.SynCrossChainPackageType,
+		encodedPackage, *relayFee)
+	if sdkErr != nil {
+		return sdkErr.Result()
+	}
+
+	if k.PbsbServer != nil && ctx.IsDeliverTx() {
+		uEvent := types.ChainUndelegateEvent{
+			UndelegateEvent: types.UndelegateEvent{
+				StakeEvent: types.StakeEvent{
+					IsFromTx: true,
+				},
+				Delegator: msg.RefundAddress,
+				Validator: msg.Validator,
+				Amount:    msg.Amount.Amount,
+				Denom:     msg.Amount.Denom,
+				TxHash:    ctx.Value(baseapp.TxHashKey).(string),
+			},
+			ChainId: k.DestChainName,
+		}
+		k.PbsbServer.Publish(uEvent)
+
+		ctEvent := pubsub.CrossTransferEvent{
+			ChainId:    k.DestChainName,
+			RelayerFee: types.StakeMigrationRelayFee,
+			Type:       types.TransferOutType,
+			From:       msg.RefundAddress.String(),
+			Denom:      denom,
+			To:         []pubsub.CrossReceiver{{sdk.PegAccount.String(), ubd.Balance.Amount}},
+		}
+		k.PbsbServer.Publish(ctEvent)
+	}
+
+	finishTime := types.MsgCdc.MustMarshalBinaryLengthPrefixed(ubd.MinTime)
+	txTags := sdk.NewTags(
+		tags.Delegator, []byte(msg.RefundAddress.String()),
+		tags.SrcValidator, []byte(msg.Validator.String()),
+		tags.EndTime, finishTime,
+	)
+	txTags = append(txTags, sdk.MakeTag(types.TagStakeMigrationSendSequence, []byte(strconv.FormatUint(sendSeq, 10))))
+
+	return sdk.Result{
+		Tags: txTags,
+	}
 }
 
 // we allow the self-delegator delegating/redelegating to its validator.
