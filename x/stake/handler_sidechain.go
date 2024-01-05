@@ -555,6 +555,7 @@ func handleMsgSideChainStakeMigration(ctx sdk.Context, msg MsgSideChainStakeMigr
 		tags.SrcValidator, []byte(msg.Validator.String()),
 		tags.EndTime, finishTime,
 	)
+	txTags = append(txTags, sdk.GetPegInTag(denom, ubd.Balance.Amount))
 	txTags = append(txTags, sdk.MakeTag(types.TagStakeMigrationSendSequence, []byte(strconv.FormatUint(sendSeq, 10))))
 
 	return sdk.Result{
