@@ -14,7 +14,7 @@ const (
 
 	TagStakeMigrationSendSequence = "StakeMigrationSendSequence"
 
-	MsgTypeSideChainStakeMigration = "stake_migration"
+	MsgTypeSideChainStakeMigration = "side_stake_migration"
 
 	StakeMigrationRelayFee int64 = 500000 // decimal 8
 )
