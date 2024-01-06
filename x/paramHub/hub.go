@@ -177,6 +177,7 @@ func init() {
 		"side_delegate":                        fees.FixedFeeCalculatorGen,
 		"side_redelegate":                      fees.FixedFeeCalculatorGen,
 		"side_undelegate":                      fees.FixedFeeCalculatorGen,
+		"side_stake_migration":                 fees.FixedFeeCalculatorGen,
 		"bsc_submit_evidence":                  fees.FixedFeeCalculatorGen,
 		"side_chain_unjail":                    fees.FixedFeeCalculatorGen,
 		"dexList":                              fees.FixedFeeCalculatorGen,
