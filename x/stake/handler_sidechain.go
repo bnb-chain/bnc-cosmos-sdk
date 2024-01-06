@@ -526,7 +526,7 @@ func handleMsgSideChainStakeMigration(ctx sdk.Context, msg MsgSideChainStakeMigr
 	}
 
 	bscRelayFee := bsc.ConvertBCAmountToBSCAmount(relayFee.Amount)
-	sendSeq, sdkErr := k.IbcKeeper.CreateRawIBCPackageByIdWithFee(ctx, k.DestChainId, types.StakeMigrationChannelID, sdk.SynCrossChainPackageType,
+	sendSeq, sdkErr := k.IbcKeeper.CreateRawIBCPackageByIdWithFee(ctx.DepriveSideChainKeyPrefix(), k.DestChainId, types.StakeMigrationChannelID, sdk.SynCrossChainPackageType,
 		encodedPackage, *bscRelayFee)
 	if sdkErr != nil {
 		return sdkErr.Result()
