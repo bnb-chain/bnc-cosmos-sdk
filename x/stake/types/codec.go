@@ -23,6 +23,7 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(MsgSideChainDelegate{}, "cosmos-sdk/MsgSideChainDelegate", nil)
 	cdc.RegisterConcrete(MsgSideChainRedelegate{}, "cosmos-sdk/MsgSideChainRedelegate", nil)
 	cdc.RegisterConcrete(MsgSideChainUndelegate{}, "cosmos-sdk/MsgSideChainUndelegate", nil)
+	cdc.RegisterConcrete(MsgSideChainStakeMigration{}, "cosmos-sdk/MsgSideChainStakeMigration", nil)
 
 	cdc.RegisterConcrete(&Params{}, "params/StakeParamSet", nil)
 }
