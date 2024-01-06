@@ -347,7 +347,7 @@ func (app *CrossStakeApp) handleDistributeRewardRefund(ctx sdk.Context, pack *ty
 		return sdk.ExecuteResult{}, err
 	}
 
-	// publish  event
+	// publish event
 	if app.stakeKeeper.PbsbServer != nil && ctx.IsDeliverTx() {
 		app.stakeKeeper.AddrPool.AddAddrs([]sdk.AccAddress{sdk.PegAccount, refundAddr})
 		PublishCrossStakeEvent(ctx, app.stakeKeeper, sdk.PegAccount.String(), []pubsub.CrossReceiver{{refundAddr.String(), pack.Amount.Int64()}},

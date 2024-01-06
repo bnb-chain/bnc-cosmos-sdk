@@ -73,9 +73,11 @@ func (app *StakeMigrationApp) handleRefund(ctx sdk.Context, pack *types.StakeMig
 	}
 
 	// publish event
-	if app.stakeKeeper.PbsbServer != nil && ctx.IsDeliverTx() {
+	if app.stakeKeeper.AddrPool != nil && ctx.IsDeliverTx() {
 		app.stakeKeeper.AddrPool.AddAddrs([]sdk.AccAddress{sdk.PegAccount, pack.RefundAddress})
-		PublishStakeMigrationEvent(ctx, app.stakeKeeper, sdk.PegAccount.String(), []pubsub.CrossReceiver{{pack.RefundAddress.String(), pack.Amount.Int64()}},
+	}
+	if app.stakeKeeper.PbsbServer != nil && ctx.IsDeliverTx() {
+		PublishStakeMigrationRefundEvent(ctx, app.stakeKeeper, sdk.PegAccount.String(), []pubsub.CrossReceiver{{pack.RefundAddress.String(), pack.Amount.Int64()}},
 			app.stakeKeeper.BondDenom(ctx), types.TransferInType, 0)
 	}
 

@@ -315,11 +315,11 @@ func GetCmdSideChainStakeMigration(cdc *codec.Codec) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			operatorAddr, err := getSmartChainAddr(FlagAddressSmartChainOperator)
+			operatorAddr, err := getSmartChainAddr(FlagAddressSmartChainValidator)
 			if err != nil {
 				return err
 			}
-			delAddr, err := getSmartChainAddr(FlagAddressSmartChainDelegator)
+			delAddr, err := getSmartChainAddr(FlagAddressSmartChainBeneficiary)
 			if err != nil {
 				return err
 			}
@@ -340,8 +340,8 @@ func GetCmdSideChainStakeMigration(cdc *codec.Codec) *cobra.Command {
 
 	cmd.Flags().AddFlagSet(fsAmount)
 	cmd.Flags().AddFlagSet(fsValidator)
-	cmd.Flags().AddFlagSet(fsSmartChainOperator)
-	cmd.Flags().AddFlagSet(fsSmartChainDelegator)
+	cmd.Flags().AddFlagSet(fsSmartChainValidator)
+	cmd.Flags().AddFlagSet(fsSmartChainBeneficiary)
 
 	return cmd
 }

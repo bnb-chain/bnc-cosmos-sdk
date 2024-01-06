@@ -72,8 +72,8 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 		case types.MsgSideChainUndelegate:
 			return handleMsgSideChainUndelegate(ctx, msg, k)
 		case types.MsgSideChainStakeMigration:
-			if !sdk.IsUpgrade(sdk.FirstSunsetFork) {
-				return sdk.ErrMsgNotSupported("FirstSunset not activated yet").Result()
+			if !sdk.IsUpgrade(sdk.FirstSunsetFork) || sdk.IsUpgrade(sdk.SecondSunsetFork) {
+				return sdk.ErrMsgNotSupported("MsgSideChainStakeMigration is only enabled between FirstSunsetFork and SecondSunsetFork").Result()
 			}
 			return handleMsgSideChainStakeMigration(ctx, msg, k)
 		default:

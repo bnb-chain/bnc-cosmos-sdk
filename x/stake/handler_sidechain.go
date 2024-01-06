@@ -492,23 +492,21 @@ func handleMsgSideChainStakeMigration(ctx sdk.Context, msg MsgSideChainStakeMigr
 		return ErrBadDenom(k.Codespace()).Result()
 	}
 
-	shares, sdkErr := k.ValidateUnbondAmount(ctx, msg.RefundAddress, msg.Validator, msg.Amount.Amount)
+	shares, sdkErr := k.ValidateUnbondAmount(ctx, msg.RefundAddr, msg.ValidatorSrcAddr, msg.Amount.Amount)
 	if sdkErr != nil {
 		return sdkErr.Result()
 	}
 
 	// unbond immediately
-	ubd, sdkErr := k.BeginUnbonding(ctx, msg.RefundAddress, msg.Validator, shares, false)
-	if sdkErr != nil {
-		return sdkErr.Result()
-	}
-	ubd, events, sdkErr := k.CompleteUnbonding(ctx, ubd.DelegatorAddr, ubd.ValidatorAddr)
+	ubd, events, sdkErr := k.UnboundDelegation(ctx, msg.RefundAddr, msg.ValidatorSrcAddr, shares)
 	if sdkErr != nil {
 		return sdkErr.Result()
 	}
 
 	// send coins to pegAccount
-	_, sdkErr = k.BankKeeper.SendCoins(ctx, msg.RefundAddress, sdk.PegAccount, sdk.Coins{ubd.Balance})
+	relayFee := sdk.NewCoin(denom, types.StakeMigrationRelayFee)
+	transferAmt := sdk.Coins{ubd.Balance}.Plus(sdk.Coins{relayFee})
+	_, sdkErr = k.BankKeeper.SendCoins(ctx, msg.RefundAddr, sdk.PegAccount, transferAmt)
 	if sdkErr != nil {
 		return sdkErr.Result()
 	}
@@ -516,9 +514,9 @@ func handleMsgSideChainStakeMigration(ctx sdk.Context, msg MsgSideChainStakeMigr
 	// send cross-chain package
 	bscAmount := bsc.ConvertBCAmountToBSCAmount(ubd.Balance.Amount)
 	stakeMigrationSynPackage := types.StakeMigrationSynPackage{
-		OperatorAddress:  msg.OperatorAddress,
-		DelegatorAddress: msg.DelegatorAddress,
-		RefundAddress:    msg.RefundAddress,
+		OperatorAddress:  msg.ValidatorDstAddr,
+		DelegatorAddress: msg.DelegatorAddr,
+		RefundAddress:    msg.RefundAddr,
 		Amount:           bscAmount,
 	}
 
@@ -527,9 +525,9 @@ func handleMsgSideChainStakeMigration(ctx sdk.Context, msg MsgSideChainStakeMigr
 		return sdk.ErrInternal("encode stake migration package error").Result()
 	}
 
-	relayFee := bsc.ConvertBCAmountToBSCAmount(types.StakeMigrationRelayFee)
+	bscRelayFee := bsc.ConvertBCAmountToBSCAmount(relayFee.Amount)
 	sendSeq, sdkErr := k.IbcKeeper.CreateRawIBCPackageByIdWithFee(ctx, k.DestChainId, types.StakeMigrationChannelID, sdk.SynCrossChainPackageType,
-		encodedPackage, *relayFee)
+		encodedPackage, *bscRelayFee)
 	if sdkErr != nil {
 		return sdkErr.Result()
 	}
@@ -540,8 +538,8 @@ func handleMsgSideChainStakeMigration(ctx sdk.Context, msg MsgSideChainStakeMigr
 				StakeEvent: types.StakeEvent{
 					IsFromTx: true,
 				},
-				Delegator: msg.RefundAddress,
-				Validator: msg.Validator,
+				Delegator: msg.RefundAddr,
+				Validator: msg.ValidatorSrcAddr,
 				Amount:    msg.Amount.Amount,
 				Denom:     msg.Amount.Denom,
 				TxHash:    ctx.Value(baseapp.TxHashKey).(string),
@@ -554,7 +552,7 @@ func handleMsgSideChainStakeMigration(ctx sdk.Context, msg MsgSideChainStakeMigr
 			ChainId:    k.DestChainName,
 			RelayerFee: types.StakeMigrationRelayFee,
 			Type:       types.TransferOutType,
-			From:       msg.RefundAddress.String(),
+			From:       msg.RefundAddr.String(),
 			Denom:      denom,
 			To:         []pubsub.CrossReceiver{{sdk.PegAccount.String(), ubd.Balance.Amount}},
 		}
@@ -563,8 +561,8 @@ func handleMsgSideChainStakeMigration(ctx sdk.Context, msg MsgSideChainStakeMigr
 
 	finishTime := types.MsgCdc.MustMarshalBinaryLengthPrefixed(ubd.MinTime)
 	txTags := sdk.NewTags(
-		tags.Delegator, []byte(msg.RefundAddress.String()),
-		tags.SrcValidator, []byte(msg.Validator.String()),
+		tags.Delegator, []byte(msg.RefundAddr.String()),
+		tags.SrcValidator, []byte(msg.ValidatorSrcAddr.String()),
 		tags.EndTime, finishTime,
 	)
 	txTags = append(txTags, sdk.GetPegInTag(denom, ubd.Balance.Amount))
