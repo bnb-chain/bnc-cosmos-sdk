@@ -32,7 +32,7 @@ const (
 )
 
 var (
-	BCFusionStopGovThreshold int64 = 5_000_000
+	BCFusionStopGovThreshold int64 = 5_000_000_00000000 // 5M BNB
 )
 
 var MainNetConfig = UpgradeConfig{
