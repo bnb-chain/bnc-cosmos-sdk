@@ -28,7 +28,7 @@ type StakeMigrationSynPackage struct {
 
 type MsgSideChainStakeMigration struct {
 	ValidatorSrcAddr sdk.ValAddress        `json:"validator_src_addr"`
-	ValidatorDstAddr sdk.SmartChainAddress `json:"ValidatorDstAddr"`
+	ValidatorDstAddr sdk.SmartChainAddress `json:"validator_dst_addr"`
 	DelegatorAddr    sdk.SmartChainAddress `json:"delegator_addr"`
 	RefundAddr       sdk.AccAddress        `json:"refund_addr"`
 	Amount           sdk.Coin              `json:"amount"`
