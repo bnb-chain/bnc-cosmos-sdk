@@ -548,6 +548,12 @@ func handleMsgSideChainStakeMigration(ctx sdk.Context, msg MsgSideChainStakeMigr
 		}
 		k.PbsbServer.Publish(uEvent)
 
+		completedUBDEvent := types.CompletedUBDEvent{
+			CompUBDs: []types.UnbondingDelegation{ubd},
+			ChainId:  k.DestChainName,
+		}
+		k.PbsbServer.Publish(completedUBDEvent)
+
 		ctEvent := pubsub.CrossTransferEvent{
 			ChainId:    k.DestChainName,
 			RelayerFee: types.StakeMigrationRelayFee,

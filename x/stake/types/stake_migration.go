@@ -60,10 +60,10 @@ func (msg MsgSideChainStakeMigration) ValidateBasic() sdk.Error {
 		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected validator address length is %d, actual length is %d", sdk.AddrLen, len(msg.ValidatorSrcAddr)))
 	}
 	if msg.ValidatorDstAddr.IsEmpty() {
-		return sdk.ErrInvalidAddress("operator address is empty")
+		return sdk.ErrInvalidAddress("smart chain operator address is empty")
 	}
 	if msg.DelegatorAddr.IsEmpty() {
-		return sdk.ErrInvalidAddress("delegator address is empty")
+		return sdk.ErrInvalidAddress("smart chain beneficiary address is empty")
 	}
 	if len(msg.RefundAddr) != sdk.AddrLen {
 		return sdk.ErrInvalidAddress(fmt.Sprintf("Expected refund address length is %d, actual length is %d", sdk.AddrLen, len(msg.RefundAddr)))
