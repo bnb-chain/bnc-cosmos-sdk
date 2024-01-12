@@ -303,6 +303,19 @@ func handleRefundStake(ctx sdk.Context, sideChainPrefix []byte, k keeper.Keeper)
 			Amount:        sdk.NewCoin(boundDenom, delegation.GetShares().RawInt()),
 			SideChainId:   bscSideChainId,
 		}, k)
+		if !result.IsOK() {
+			// If the delegator has another unbounding delegation,
+			// the refund will be processed after the unbounding delegation is completed.
+			ctx.Logger().Error("handleRefundStake failed",
+				"delegator", delegation.DelegatorAddr.String(),
+				"validator", delegation.ValidatorAddr.String(),
+				"amount", delegation.GetShares().String(),
+				"sideChainId", bscSideChainId,
+				"result", fmt.Sprintf("%+v", result),
+			)
+			continue
+		}
+
 		refundEvents = refundEvents.AppendEvents(result.Events)
 
 		ctx.Logger().Info("handleRefundStake after SecondSunsetFork",
