@@ -304,6 +304,9 @@ func handleRefundStake(ctx sdk.Context, sideChainPrefix []byte, k keeper.Keeper)
 			SideChainId:   bscSideChainId,
 		}, k)
 		refundEvents = refundEvents.AppendEvents(result.Events)
+		if result.IsOK() && delegation.CrossStake {
+			k.SetAutoUnDelegate(sideChainCtx, delegation.DelegatorAddr, delegation.ValidatorAddr)
+		}
 
 		ctx.Logger().Info("handleRefundStake after SecondSunsetFork",
 			"delegator", delegation.DelegatorAddr.String(),

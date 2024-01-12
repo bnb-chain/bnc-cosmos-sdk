@@ -74,10 +74,11 @@ type CrossStakeDistributeRewardSynPackage struct {
 }
 
 type CrossStakeDistributeUndelegatedSynPackage struct {
-	EventType CrossStakeEventType
-	Recipient sdk.SmartChainAddress
-	Validator sdk.ValAddress
-	Amount    *big.Int
+	EventType        CrossStakeEventType
+	Recipient        sdk.SmartChainAddress
+	Validator        sdk.ValAddress
+	Amount           *big.Int
+	IsAutoUnDelegate bool
 }
 
 type RefundError uint32
