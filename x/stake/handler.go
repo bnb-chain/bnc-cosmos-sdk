@@ -70,6 +70,9 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 			}
 			return handleMsgSideChainRedelegate(ctx, msg, k)
 		case types.MsgSideChainUndelegate:
+			if sdk.IsUpgrade(sdk.SecondSunsetFork) {
+				return sdk.ErrMsgNotSupported("").Result()
+			}
 			return handleMsgSideChainUndelegate(ctx, msg, k)
 		case types.MsgSideChainStakeMigration:
 			if !sdk.IsUpgrade(sdk.FirstSunsetFork) || sdk.IsUpgrade(sdk.SecondSunsetFork) {
