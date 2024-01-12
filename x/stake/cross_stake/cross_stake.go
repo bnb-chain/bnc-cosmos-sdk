@@ -38,17 +38,9 @@ func (app *CrossStakeApp) ExecuteSynPackage(ctx sdk.Context, payload []byte, rel
 	var errCode uint8
 	switch p := pack.(type) {
 	case *types.CrossStakeDelegateSynPackage:
-		if sdk.IsUpgrade(sdk.FirstSunsetFork) {
-			result, errCode, err = sdk.ExecuteResult{}, CrossStakeErrBadDelegation, sdk.ErrMsgNotSupported("")
-		} else {
-			result, errCode, err = app.handleDelegate(ctx, p, relayFee)
-		}
+		result, errCode, err = app.handleDelegate(ctx, p, relayFee)
 	case *types.CrossStakeUndelegateSynPackage:
-		if sdk.IsUpgrade(sdk.SecondSunsetFork) {
-			result, errCode, err = sdk.ExecuteResult{}, CrossStakeErrBadDelegation, sdk.ErrMsgNotSupported("")
-		} else {
-			result, errCode, err = app.handleUndelegate(ctx, p, relayFee)
-		}
+		result, errCode, err = app.handleUndelegate(ctx, p, relayFee)
 	case *types.CrossStakeRedelegateSynPackage:
 		result, errCode, err = app.handleRedelegate(ctx, p, relayFee)
 	default:
