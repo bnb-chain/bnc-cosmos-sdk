@@ -84,6 +84,17 @@ func DeserializeCrossStakeFailAckPackage(serializedPackage []byte) (interface{},
 			}
 			return &pack, nil
 		},
+		func(serializedPackage []byte) (interface{}, error) {
+			var pack types.CrossStakeDistributeUndelegatedSynPackageV2
+			err := rlp.DecodeBytes(serializedPackage, &pack)
+			if err != nil {
+				return nil, err
+			}
+			if pack.EventType != types.CrossStakeTypeDistributeUndelegated {
+				return nil, fmt.Errorf("wrong cross stake event type")
+			}
+			return &pack, nil
+		},
 	}
 
 	var pack interface{}

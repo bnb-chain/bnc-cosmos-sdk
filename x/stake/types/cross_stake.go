@@ -74,6 +74,13 @@ type CrossStakeDistributeRewardSynPackage struct {
 }
 
 type CrossStakeDistributeUndelegatedSynPackage struct {
+	EventType CrossStakeEventType
+	Recipient sdk.SmartChainAddress
+	Validator sdk.ValAddress
+	Amount    *big.Int
+}
+
+type CrossStakeDistributeUndelegatedSynPackageV2 struct {
 	EventType        CrossStakeEventType
 	Recipient        sdk.SmartChainAddress
 	Validator        sdk.ValAddress
