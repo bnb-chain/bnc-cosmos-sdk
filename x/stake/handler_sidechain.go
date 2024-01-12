@@ -571,7 +571,12 @@ func handleMsgSideChainStakeMigration(ctx sdk.Context, msg MsgSideChainStakeMigr
 		tags.SrcValidator, []byte(msg.ValidatorSrcAddr.String()),
 		tags.EndTime, finishTime,
 	)
-	txTags = append(txTags, sdk.GetPegInTag(denom, ubd.Balance.Amount))
+
+	for _, coin := range transferAmt {
+		if coin.Amount > 0 {
+			txTags = append(txTags, sdk.GetPegInTag(coin.Denom, coin.Amount))
+		}
+	}
 	txTags = append(txTags, sdk.MakeTag(types.TagStakeMigrationSendSequence, []byte(strconv.FormatUint(sendSeq, 10))))
 
 	return sdk.Result{
