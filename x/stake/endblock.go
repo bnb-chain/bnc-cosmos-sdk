@@ -307,6 +307,13 @@ func handleRefundStake(ctx sdk.Context, sideChainPrefix []byte, k keeper.Keeper)
 		}, k)
 		refundEvents = refundEvents.AppendEvents(result.Events)
 		if !result.IsOK() {
+			ctx.Logger().Debug("handleRefundStake failed",
+				"delegator", delegation.DelegatorAddr.String(),
+				"validator", delegation.ValidatorAddr.String(),
+				"amount", delegation.GetShares().String(),
+				"sideChainId", bscSideChainId,
+				"result", fmt.Sprintf("%+v", result),
+			)
 			// this is to prevent too many delegation is in unbounded state
 			// if too many delegation is in unbounded state, it will cause too many iteration in the block
 			failedCount++
