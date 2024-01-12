@@ -127,6 +127,14 @@ func (app *CrossStakeApp) ExecuteFailAckPackage(ctx sdk.Context, payload []byte)
 			Recipient: p.Recipient,
 		}
 		result, err = app.handleDistributeUndelegatedRefund(ctx, refundPackage)
+	case *types.CrossStakeDistributeUndelegatedSynPackageV2:
+		bcAmount := bsc.ConvertBSCAmountToBCAmount(p.Amount)
+		refundPackage := &types.CrossStakeRefundPackage{
+			EventType: types.CrossStakeTypeDistributeUndelegated,
+			Amount:    big.NewInt(bcAmount),
+			Recipient: p.Recipient,
+		}
+		result, err = app.handleDistributeUndelegatedRefund(ctx, refundPackage)
 	default:
 		app.stakeKeeper.Logger(ctx).Error("unknown cross stake fail ack event type", "err", err.Error(), "package", string(payload))
 		return sdk.ExecuteResult{}

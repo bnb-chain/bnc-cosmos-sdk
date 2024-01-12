@@ -80,6 +80,14 @@ type CrossStakeDistributeUndelegatedSynPackage struct {
 	Amount    *big.Int
 }
 
+type CrossStakeDistributeUndelegatedSynPackageV2 struct {
+	EventType        CrossStakeEventType
+	Recipient        sdk.SmartChainAddress
+	Validator        sdk.ValAddress
+	Amount           *big.Int
+	IsAutoUnDelegate bool
+}
+
 type RefundError uint32
 
 const (

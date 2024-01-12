@@ -279,7 +279,8 @@ func handleMatureUnbondingDelegations(k keeper.Keeper, ctx sdk.Context) ([]types
 }
 
 const (
-	maxProcessedRefundCount = 10
+	maxProcessedRefundCount  = 10
+	maxProcessedRefundFailed = 200
 )
 
 func handleRefundStake(ctx sdk.Context, sideChainPrefix []byte, k keeper.Keeper) sdk.Events {
@@ -287,7 +288,8 @@ func handleRefundStake(ctx sdk.Context, sideChainPrefix []byte, k keeper.Keeper)
 	iterator := k.IteratorAllDelegations(sideChainCtx)
 	defer iterator.Close()
 	var refundEvents sdk.Events
-	count := 0
+	succeedCount := 0
+	failedCount := 0
 	boundDenom := k.BondDenom(sideChainCtx)
 	bscSideChainId := k.ScKeeper.BscSideChainId(ctx)
 
@@ -304,6 +306,27 @@ func handleRefundStake(ctx sdk.Context, sideChainPrefix []byte, k keeper.Keeper)
 			SideChainId:   bscSideChainId,
 		}, k)
 		refundEvents = refundEvents.AppendEvents(result.Events)
+		if !result.IsOK() {
+			ctx.Logger().Debug("handleRefundStake failed",
+				"delegator", delegation.DelegatorAddr.String(),
+				"validator", delegation.ValidatorAddr.String(),
+				"amount", delegation.GetShares().String(),
+				"sideChainId", bscSideChainId,
+				"result", fmt.Sprintf("%+v", result),
+			)
+			// this is to prevent too many delegation is in unbounded state
+			// if too many delegation is in unbounded state, it will cause too many iteration in the block
+			failedCount++
+			if failedCount >= maxProcessedRefundFailed {
+				break
+			}
+
+			continue
+		}
+
+		if result.IsOK() && delegation.CrossStake {
+			k.SetAutoUnDelegate(sideChainCtx, delegation.DelegatorAddr, delegation.ValidatorAddr)
+		}
 
 		ctx.Logger().Info("handleRefundStake after SecondSunsetFork",
 			"delegator", delegation.DelegatorAddr.String(),
@@ -311,8 +334,8 @@ func handleRefundStake(ctx sdk.Context, sideChainPrefix []byte, k keeper.Keeper)
 			"amount", delegation.GetShares().String(),
 			"sideChainId", bscSideChainId,
 		)
-		count++
-		if count >= maxProcessedRefundCount {
+		succeedCount++
+		if succeedCount >= maxProcessedRefundCount {
 			break
 		}
 	}

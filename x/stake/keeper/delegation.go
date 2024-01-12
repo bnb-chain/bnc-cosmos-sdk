@@ -739,6 +739,20 @@ func (k Keeper) CompleteUnbonding(ctx sdk.Context, delAddr sdk.AccAddress, valAd
 	return ubd, events, nil
 }
 
+func (k Keeper) IsAutoUnDelegate(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) bool {
+	store := ctx.KVStore(k.storeKey)
+	key := GetAutoUnDelegateIndexKey(delAddr, valAddr)
+
+	return store.Has(key)
+}
+
+func (k Keeper) SetAutoUnDelegate(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) {
+	store := ctx.KVStore(k.storeKey)
+
+	key := GetAutoUnDelegateIndexKey(delAddr, valAddr)
+	store.Set(key, []byte{}) // index, store empty bytes
+}
+
 // complete unbonding an unbonding record
 func (k Keeper) BeginRedelegation(ctx sdk.Context, delAddr sdk.AccAddress,
 	valSrcAddr, valDstAddr sdk.ValAddress, sharesAmount sdk.Dec) (types.Redelegation, sdk.Error) {
@@ -875,12 +889,24 @@ func (k Keeper) crossDistributeUndelegated(ctx sdk.Context, delAddr sdk.AccAddre
 		return sdk.Events{}, sdk.ErrInternal(err.Error())
 	}
 
-	transferPackage := types.CrossStakeDistributeUndelegatedSynPackage{
-		EventType: types.CrossStakeTypeDistributeUndelegated,
-		Amount:    bscTransferAmount,
-		Recipient: recipient,
-		Validator: valAddr,
+	var transferPackage interface{}
+	if !sdk.IsUpgrade(sdk.SecondSunsetFork) {
+		transferPackage = types.CrossStakeDistributeUndelegatedSynPackage{
+			EventType: types.CrossStakeTypeDistributeUndelegated,
+			Amount:    bscTransferAmount,
+			Recipient: recipient,
+			Validator: valAddr,
+		}
+	} else {
+		transferPackage = types.CrossStakeDistributeUndelegatedSynPackageV2{
+			EventType:        types.CrossStakeTypeDistributeUndelegated,
+			Amount:           bscTransferAmount,
+			Recipient:        recipient,
+			Validator:        valAddr,
+			IsAutoUnDelegate: k.IsAutoUnDelegate(ctx, delAddr, valAddr),
+		}
 	}
+
 	encodedPackage, err := rlp.EncodeToBytes(transferPackage)
 	if err != nil {
 		return sdk.Events{}, sdk.ErrInternal(err.Error())
