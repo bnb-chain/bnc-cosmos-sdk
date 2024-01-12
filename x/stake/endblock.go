@@ -320,6 +320,8 @@ func handleRefundStake(ctx sdk.Context, sideChainPrefix []byte, k keeper.Keeper)
 			if failedCount >= maxProcessedRefundFailed {
 				break
 			}
+
+			continue
 		}
 
 		if result.IsOK() && delegation.CrossStake {
