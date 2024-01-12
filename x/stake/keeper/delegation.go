@@ -890,12 +890,15 @@ func (k Keeper) crossDistributeUndelegated(ctx sdk.Context, delAddr sdk.AccAddre
 	}
 
 	transferPackage := types.CrossStakeDistributeUndelegatedSynPackage{
-		EventType:        types.CrossStakeTypeDistributeUndelegated,
-		Amount:           bscTransferAmount,
-		Recipient:        recipient,
-		Validator:        valAddr,
-		IsAutoUnDelegate: k.IsAutoUnDelegate(ctx, delAddr, valAddr),
+		EventType: types.CrossStakeTypeDistributeUndelegated,
+		Amount:    bscTransferAmount,
+		Recipient: recipient,
+		Validator: valAddr,
 	}
+	if sdk.IsUpgrade(sdk.SecondSunsetFork) {
+		transferPackage.IsAutoUnDelegate = k.IsAutoUnDelegate(ctx, delAddr, valAddr)
+	}
+
 	encodedPackage, err := rlp.EncodeToBytes(transferPackage)
 	if err != nil {
 		return sdk.Events{}, sdk.ErrInternal(err.Error())
