@@ -879,8 +879,14 @@ func (k Keeper) crossDistributeUndelegated(ctx sdk.Context, delAddr sdk.AccAddre
 	if relayFee.Tokens.AmountOf(denom) >= amount {
 		return sdk.Events{}, ErrNotEnoughRelayerFeeForCrossPkg
 	}
+
 	bscRelayFee := bsc.ConvertBCAmountToBSCAmount(relayFee.Tokens.AmountOf(denom))
-	bscTransferAmount := new(big.Int).Sub(bsc.ConvertBCAmountToBSCAmount(amount), bscRelayFee)
+	var bscTransferAmount *big.Int
+	if sdk.IsUpgrade(sdk.SecondSunsetFork) && k.IsAutoUnDelegate(ctx, delAddr, valAddr) {
+		bscTransferAmount = bsc.ConvertBCAmountToBSCAmount(amount)
+	} else {
+		bscTransferAmount = new(big.Int).Sub(bsc.ConvertBCAmountToBSCAmount(amount), bscRelayFee)
+	}
 
 	delBscAddrAcc := types.GetStakeCAoB(delAddr.Bytes(), types.DelegateCAoBSalt)
 	delBscAddr := hex.EncodeToString(delBscAddrAcc.Bytes())
