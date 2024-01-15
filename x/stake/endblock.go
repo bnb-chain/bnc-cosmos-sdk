@@ -341,6 +341,10 @@ func handleRefundStake(ctx sdk.Context, sideChainPrefix []byte, k keeper.Keeper)
 			break
 		}
 	}
+	ctx.Logger().Info("handleRefundStake processed count",
+		"succeedCount", succeedCount,
+		"failedCount", failedCount,
+		"sideChainId", bscSideChainId)
 
 	return refundEvents
 }
