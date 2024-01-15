@@ -297,6 +297,8 @@ func handleRefundStake(ctx sdk.Context, sideChainPrefix []byte, k keeper.Keeper)
 		delegation := types.MustUnmarshalDelegation(k.CDC(), iterator.Key(), iterator.Value())
 		if delegation.CrossStake {
 			ctx = ctx.WithCrossStake(true)
+		} else {
+			ctx = ctx.WithCrossStake(false)
 		}
 
 		result := handleMsgSideChainUndelegate(ctx, types.MsgSideChainUndelegate{
