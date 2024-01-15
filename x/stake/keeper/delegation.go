@@ -871,7 +871,13 @@ func (k Keeper) ValidateUnbondAmount(
 func (k Keeper) crossDistributeUndelegated(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) (sdk.Events, sdk.Error) {
 	denom := k.BondDenom(ctx)
 	amount := k.BankKeeper.GetCoins(ctx, delAddr).AmountOf(denom)
-	relayFeeCalc := fees.GetCalculator(types.CrossDistributeUndelegatedRelayFee)
+
+	var relayFeeCalc fees.FeeCalculator
+	if sdk.IsUpgrade(sdk.SecondSunsetFork) && k.IsAutoUnDelegate(ctx, delAddr, valAddr) {
+		relayFeeCalc = fees.FreeFeeCalculator()
+	} else {
+		relayFeeCalc = fees.GetCalculator(types.CrossDistributeUndelegatedRelayFee)
+	}
 	if relayFeeCalc == nil {
 		return sdk.Events{}, ErrNoFeeCalculator
 	}
@@ -881,12 +887,7 @@ func (k Keeper) crossDistributeUndelegated(ctx sdk.Context, delAddr sdk.AccAddre
 	}
 
 	bscRelayFee := bsc.ConvertBCAmountToBSCAmount(relayFee.Tokens.AmountOf(denom))
-	var bscTransferAmount *big.Int
-	if sdk.IsUpgrade(sdk.SecondSunsetFork) && k.IsAutoUnDelegate(ctx, delAddr, valAddr) {
-		bscTransferAmount = bsc.ConvertBCAmountToBSCAmount(amount)
-	} else {
-		bscTransferAmount = new(big.Int).Sub(bsc.ConvertBCAmountToBSCAmount(amount), bscRelayFee)
-	}
+	bscTransferAmount := new(big.Int).Sub(bsc.ConvertBCAmountToBSCAmount(amount), bscRelayFee)
 
 	delBscAddrAcc := types.GetStakeCAoB(delAddr.Bytes(), types.DelegateCAoBSalt)
 	delBscAddr := hex.EncodeToString(delBscAddrAcc.Bytes())
