@@ -7,6 +7,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/gov"
 )
 
+const (
+	mirrorChannelID     = 4
+	mirrorSyncChannelID = 5
+)
+
 func EndBlocker(ctx sdk.Context, keeper Keeper) {
 	if len(keeper.packageCollector.collectedPackages) == 0 {
 		return
@@ -37,12 +42,23 @@ func closeSideChainChannels(ctx sdk.Context, k Keeper) sdk.Events {
 	id := k.sideKeeper.Config().DestChainNameToID(sideChainId)
 	govChannelId := sdk.ChannelID(gov.ProposalTypeManageChanPermission)
 	permissions := k.sideKeeper.GetChannelSendPermissions(ctx, id)
-	for _, channelId := range k.sideKeeper.Config().ChannelIDs() {
+	channels := k.sideKeeper.Config().ChannelIDs()
+	channelsMap := make(map[sdk.ChannelID]sdk.ChannelPermission)
+	for _, channelId := range channels {
+		channelsMap[channelId] = permissions[channelId]
+	}
+	// mirror, mirrorSync channel was enabled by BEP84(https://github.com/bnb-chain/BEPs/blob/master/BEPs/BEP84.md)
+	// Those channels were bsc side channels, so they would not be in the bc store.
+	channelsMap[mirrorChannelID] = sdk.ChannelAllow
+	channelsMap[mirrorSyncChannelID] = sdk.ChannelAllow
+
+	// close all side chain channels except gov channel
+	for channelId, permission := range channelsMap {
 		if channelId == govChannelId {
 			// skip gov channel
 			continue
 		}
-		if permissions[channelId] == sdk.ChannelForbidden {
+		if permission == sdk.ChannelForbidden {
 			// skip forbidden channel
 			continue
 		}
