@@ -873,7 +873,8 @@ func (k Keeper) crossDistributeUndelegated(ctx sdk.Context, delAddr sdk.AccAddre
 	amount := k.BankKeeper.GetCoins(ctx, delAddr).AmountOf(denom)
 
 	var relayFeeCalc fees.FeeCalculator
-	if sdk.IsUpgrade(sdk.SecondSunsetFork) && k.IsAutoUnDelegate(ctx, delAddr, valAddr) {
+	isAutoUnDelegate := k.IsAutoUnDelegate(ctx, delAddr, valAddr)
+	if sdk.IsUpgrade(sdk.SecondSunsetFork) && isAutoUnDelegate {
 		relayFeeCalc = fees.FreeFeeCalculator()
 	} else {
 		relayFeeCalc = fees.GetCalculator(types.CrossDistributeUndelegatedRelayFee)
@@ -910,7 +911,7 @@ func (k Keeper) crossDistributeUndelegated(ctx sdk.Context, delAddr sdk.AccAddre
 			Amount:           bscTransferAmount,
 			Recipient:        recipient,
 			Validator:        valAddr,
-			IsAutoUnDelegate: k.IsAutoUnDelegate(ctx, delAddr, valAddr),
+			IsAutoUnDelegate: isAutoUnDelegate,
 		}
 	}
 
