@@ -309,7 +309,7 @@ func handleRefundStake(ctx sdk.Context, sideChainPrefix []byte, k keeper.Keeper)
 		}, k)
 		refundEvents = refundEvents.AppendEvents(result.Events)
 		if !result.IsOK() {
-			ctx.Logger().Debug("handleRefundStake failed",
+			ctx.Logger().Info("handleRefundStake failed",
 				"delegator", delegation.DelegatorAddr.String(),
 				"validator", delegation.ValidatorAddr.String(),
 				"amount", delegation.GetShares().String(),

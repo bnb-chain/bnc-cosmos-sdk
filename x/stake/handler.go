@@ -48,6 +48,9 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 			}
 			return handleMsgCreateSideChainValidator(ctx, msg, k)
 		case types.MsgEditSideChainValidator:
+			if sdk.IsUpgrade(sdk.FirstSunsetFork) {
+				return sdk.ErrMsgNotSupported("").Result()
+			}
 			return handleMsgEditSideChainValidator(ctx, msg, k)
 		case types.MsgCreateSideChainValidatorWithVoteAddr:
 			if sdk.IsUpgrade(sdk.FirstSunsetFork) {
