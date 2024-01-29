@@ -16,7 +16,7 @@ const (
 
 	MsgTypeSideChainStakeMigration = "side_stake_migration"
 
-	StakeMigrationRelayFee int64 = 500000 // decimal 8
+	StakeMigrationRelayFee int64 = 200000 // 0.002BNB, decimal 8
 )
 
 type StakeMigrationSynPackage struct {
