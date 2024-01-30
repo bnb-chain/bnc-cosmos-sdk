@@ -43,22 +43,25 @@ func closeSideChainChannels(ctx sdk.Context, k Keeper) sdk.Events {
 	govChannelId := sdk.ChannelID(gov.ProposalTypeManageChanPermission)
 	permissions := k.sideKeeper.GetChannelSendPermissions(ctx, id)
 	channels := k.sideKeeper.Config().ChannelIDs()
-	channelsMap := make(map[sdk.ChannelID]sdk.ChannelPermission)
-	for _, channelId := range channels {
-		channelsMap[channelId] = permissions[channelId]
-	}
+
 	// mirror, mirrorSync channel was enabled by BEP84(https://github.com/bnb-chain/BEPs/blob/master/BEPs/BEP84.md)
 	// Those channels were bsc side channels, so they would not be in the bc store.
-	channelsMap[mirrorChannelID] = sdk.ChannelAllow
-	channelsMap[mirrorSyncChannelID] = sdk.ChannelAllow
+	if _, exist := permissions[mirrorChannelID]; !exist {
+		channels = append(channels, mirrorChannelID)
+		permissions[mirrorChannelID] = sdk.ChannelAllow
+	}
+	if _, exist := permissions[mirrorSyncChannelID]; !exist {
+		channels = append(channels, mirrorSyncChannelID)
+		permissions[mirrorSyncChannelID] = sdk.ChannelAllow
+	}
 
 	// close all side chain channels except gov channel
-	for channelId, permission := range channelsMap {
+	for _, channelId := range channels {
 		if channelId == govChannelId {
 			// skip gov channel
 			continue
 		}
-		if permission == sdk.ChannelForbidden {
+		if permissions[channelId] == sdk.ChannelForbidden {
 			// skip forbidden channel
 			continue
 		}
