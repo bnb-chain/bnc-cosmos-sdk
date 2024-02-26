@@ -51,6 +51,7 @@ func AddCommands(root *cobra.Command, cdc *codec.Codec) {
 			GetCmdSideChainDelegate(cdc),
 			GetCmdSideChainRedelegate(cdc),
 			GetCmdSideChainUnbond(cdc),
+			GetCmdSideChainStakeMigration(cdc),
 		)...,
 	)
 	stakingCmd.AddCommand(client.LineBreak)

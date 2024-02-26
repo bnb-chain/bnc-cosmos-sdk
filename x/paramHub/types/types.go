@@ -59,6 +59,7 @@ var (
 		"side_delegate":                        {},
 		"side_redelegate":                      {},
 		"side_undelegate":                      {},
+		"side_stake_migration":                 {},
 
 		"bsc_submit_evidence": {},
 		"side_chain_unjail":   {},
@@ -292,7 +293,7 @@ type SCParam interface {
 	subspace.ParamSet
 	UpdateCheck() error
 	// native means weather the parameter stored in native store context or side chain store context
-	//GetParamAttribute() (string, bool)
+	// GetParamAttribute() (string, bool)
 	GetParamAttribute() (string, bool)
 }
 

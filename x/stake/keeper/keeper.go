@@ -33,7 +33,7 @@ type Keeper struct {
 
 	// the two keepers are optional,
 	// if you want to enable side chains, you need call `SetupForSideChain`
-	ibcKeeper *ibc.Keeper
+	IbcKeeper *ibc.Keeper
 	ScKeeper  *sidechain.Keeper
 
 	DestChainId   sdk.ChainID
@@ -62,7 +62,7 @@ func NewKeeper(cdc *codec.Codec, key, rewardKey, tkey sdk.StoreKey, ck bank.Keep
 }
 
 func (k Keeper) initIbc() {
-	if k.ibcKeeper == nil {
+	if k.IbcKeeper == nil {
 		return
 	}
 	err := k.ScKeeper.RegisterChannel(ChannelName, ChannelId, &k)
@@ -73,7 +73,7 @@ func (k Keeper) initIbc() {
 
 func (k *Keeper) SetupForSideChain(scKeeper *sidechain.Keeper, ibcKeeper *ibc.Keeper) {
 	k.ScKeeper = scKeeper
-	k.ibcKeeper = ibcKeeper
+	k.IbcKeeper = ibcKeeper
 	k.initIbc()
 }
 
@@ -100,6 +100,11 @@ func (k Keeper) WithHooks(sh sdk.StakingHooks) Keeper {
 // return the codespace
 func (k Keeper) Codespace() sdk.CodespaceType {
 	return k.codespace
+}
+
+// return the cdc
+func (k Keeper) CDC() *codec.Codec {
+	return k.cdc
 }
 
 //_______________________________________________________________________

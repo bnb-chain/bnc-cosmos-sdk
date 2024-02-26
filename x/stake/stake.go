@@ -42,6 +42,7 @@ type (
 	MsgSideChainDelegate                    = types.MsgSideChainDelegate
 	MsgSideChainRedelegate                  = types.MsgSideChainRedelegate
 	MsgSideChainUndelegate                  = types.MsgSideChainUndelegate
+	MsgSideChainStakeMigration              = types.MsgSideChainStakeMigration
 
 	DistributionEvent      = types.DistributionEvent
 	DistributionData       = types.DistributionData

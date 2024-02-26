@@ -127,6 +127,14 @@ func (app *CrossStakeApp) ExecuteFailAckPackage(ctx sdk.Context, payload []byte)
 			Recipient: p.Recipient,
 		}
 		result, err = app.handleDistributeUndelegatedRefund(ctx, refundPackage)
+	case *types.CrossStakeDistributeUndelegatedSynPackageV2:
+		bcAmount := bsc.ConvertBSCAmountToBCAmount(p.Amount)
+		refundPackage := &types.CrossStakeRefundPackage{
+			EventType: types.CrossStakeTypeDistributeUndelegated,
+			Amount:    big.NewInt(bcAmount),
+			Recipient: p.Recipient,
+		}
+		result, err = app.handleDistributeUndelegatedRefund(ctx, refundPackage)
 	default:
 		app.stakeKeeper.Logger(ctx).Error("unknown cross stake fail ack event type", "err", err.Error(), "package", string(payload))
 		return sdk.ExecuteResult{}
@@ -227,7 +235,7 @@ func (app *CrossStakeApp) handleUndelegate(ctx sdk.Context, pack *types.CrossSta
 		}, errCode, nil
 	}
 
-	_, err := app.stakeKeeper.BeginUnbonding(ctx.WithCrossStake(true), delAddr, pack.Validator, shares)
+	_, err := app.stakeKeeper.BeginUnbonding(ctx.WithCrossStake(true), delAddr, pack.Validator, shares, true)
 	if err != nil {
 		return sdk.ExecuteResult{}, errCode, err
 	}
@@ -347,7 +355,7 @@ func (app *CrossStakeApp) handleDistributeRewardRefund(ctx sdk.Context, pack *ty
 		return sdk.ExecuteResult{}, err
 	}
 
-	// publish  event
+	// publish event
 	if app.stakeKeeper.PbsbServer != nil && ctx.IsDeliverTx() {
 		app.stakeKeeper.AddrPool.AddAddrs([]sdk.AccAddress{sdk.PegAccount, refundAddr})
 		PublishCrossStakeEvent(ctx, app.stakeKeeper, sdk.PegAccount.String(), []pubsub.CrossReceiver{{refundAddr.String(), pack.Amount.Int64()}},
@@ -368,7 +376,7 @@ func (app *CrossStakeApp) handleDistributeUndelegatedRefund(ctx sdk.Context, pac
 		return sdk.ExecuteResult{}, err
 	}
 
-	// publish  event
+	// publish event
 	if app.stakeKeeper.PbsbServer != nil && ctx.IsDeliverTx() {
 		app.stakeKeeper.AddrPool.AddAddrs([]sdk.AccAddress{sdk.PegAccount, refundAddr})
 		PublishCrossStakeEvent(ctx, app.stakeKeeper, sdk.PegAccount.String(), []pubsub.CrossReceiver{{refundAddr.String(), pack.Amount.Int64()}},

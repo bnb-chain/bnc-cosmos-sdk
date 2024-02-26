@@ -202,7 +202,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 			}
 			totalRewardDec = sdk.NewDec(totalReward)
 
-			//distribute commission
+			// distribute commission
 			commission = totalRewardDec.Mul(validator.Commission.Rate)
 			if commission.RawInt() > 0 {
 				if _, _, err := k.BankKeeper.AddCoins(ctx, validator.GetFeeAddr(), sdk.Coins{sdk.NewCoin(bondDenom, commission.RawInt())}); err != nil {
@@ -213,7 +213,7 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 				}
 			}
 
-			//calculate rewards for delegators
+			// calculate rewards for delegators
 			remainReward := totalRewardDec.Sub(commission)
 			ctx.Logger().Info("FeeCalculation commission", "rate", validator.Commission.Rate, "commission", commission, "remainReward", remainReward, "delegations", delegations)
 			rewards = allocate(simDelsToSharers(delegations), remainReward)
@@ -233,12 +233,12 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 				toSaveRewards = append(toSaveRewards, toSaveReward)
 			}
 
-			//track validator and distribution address mapping
+			// track validator and distribution address mapping
 			toSaveValDistAddrs = append(toSaveValDistAddrs, types.StoredValDistAddr{
 				Validator:      validator.OperatorAddr,
 				DistributeAddr: validator.DistributionAddr})
 
-			//update address pool
+			// update address pool
 			changedAddrs := [2]sdk.AccAddress{validator.FeeAddr, validator.DistributionAddr}
 			if k.AddrPool != nil {
 				k.AddrPool.AddAddrs(changedAddrs[:])
@@ -255,14 +255,14 @@ func (k Keeper) DistributeInBreathBlock(ctx sdk.Context, sideChainId string) sdk
 				ValTokens:      validator.GetTokens(),
 				TotalReward:    totalRewardDec,
 				Commission:     commission,
-				Rewards:        nil, //do not publish rewards in breathe blocks
+				Rewards:        nil, // do not publish rewards in breathe blocks
 			})
 		}
 	}
 
 	ctx.Logger().Info("FeeCalculation DistributeInBreathBlock", "toSaveRewards", toSaveRewards)
-	if len(toSaveRewards) > 0 { //to save rewards
-		//1) get batch size from parameters, 2) hard limit to make sure rewards can be distributed in a day
+	if len(toSaveRewards) > 0 { // to save rewards
+		// 1) get batch size from parameters, 2) hard limit to make sure rewards can be distributed in a day
 		batchSize := getDistributionBatchSize(k.GetParams(ctx).RewardDistributionBatchSize, int64(len(toSaveRewards)))
 		batchCount := int64(len(toSaveRewards)) / batchSize
 		if int64(len(toSaveRewards))%batchSize != 0 {
@@ -328,7 +328,7 @@ func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) sdk.E
 	var toPublish []types.DistributionData         // data to be published in blocks
 	var toPublishRewards []types.Reward            // rewards to be published in blocks
 
-	var changedAddrs []sdk.AccAddress //changed addresses
+	var changedAddrs []sdk.AccAddress // changed addresses
 
 	bondDenom := k.BondDenom(ctx)
 	var events sdk.Events
@@ -368,7 +368,8 @@ func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) sdk.E
 	// cross distribute reward
 	for _, addr := range crossStakeAddrSet {
 		balance := k.BankKeeper.GetCoins(ctx, addr).AmountOf(bondDenom)
-		if balance >= types.MinRewardThreshold {
+		if balance >= types.MinRewardThreshold ||
+			(sdk.IsUpgrade(sdk.SecondSunsetFork) && balance >= types.MinRewardThresholdAfterSecondSunsetFork) {
 			event, err := crossDistributeReward(k, ctx, addr, balance)
 			if err != nil {
 				panic(err)
@@ -386,7 +387,7 @@ func (k Keeper) distributeSingleBatch(ctx sdk.Context, sideChainId string) sdk.E
 		k.removeRewardValDistAddrs(ctx)
 	}
 
-	//update address pool
+	// update address pool
 	if k.AddrPool != nil {
 		k.AddrPool.AddAddrs(changedAddrs[:])
 	}
@@ -467,7 +468,7 @@ func crossDistributeReward(k Keeper, ctx sdk.Context, rewardCAoB sdk.AccAddress,
 		return sdk.Events{}, err
 	}
 
-	sendSeq, sdkErr := k.ibcKeeper.CreateRawIBCPackageByIdWithFee(ctx.DepriveSideChainKeyPrefix(), k.DestChainId, types.CrossStakeChannelID, sdk.SynCrossChainPackageType,
+	sendSeq, sdkErr := k.IbcKeeper.CreateRawIBCPackageByIdWithFee(ctx.DepriveSideChainKeyPrefix(), k.DestChainId, types.CrossStakeChannelID, sdk.SynCrossChainPackageType,
 		encodedPackage, *bscRelayFee)
 	if sdkErr != nil {
 		return sdk.Events{}, sdkErr

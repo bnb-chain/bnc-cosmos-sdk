@@ -50,6 +50,8 @@ var (
 	// Keys for reward store prefix
 	RewardBatchKey       = []byte{0x01} // key for batch of rewards
 	RewardValDistAddrKey = []byte{0x02} // key for rewards' validator <-> distribution address mapping
+
+	AutoUndelegateIndexKey = []byte{0x61} // prefix for each key for an auto undelegate, by validator operator
 )
 
 const (
@@ -339,4 +341,15 @@ func GetREDsByDelToValDstIndexKey(delAddr sdk.AccAddress, valDstAddr sdk.ValAddr
 
 func GetValLatestUpdateConsAddrTimeKey(valAddr sdk.ValAddress) []byte {
 	return append(ValLatestUpdateConsAddrTimeKey, valAddr.Bytes()...)
+}
+
+// gets the prefix keyspace for the indexes of auto unDelegate delegations for a validator
+func GetAutoUnDelegateByValIndexKey(valAddr sdk.ValAddress) []byte {
+	return append(AutoUndelegateIndexKey, valAddr.Bytes()...)
+}
+
+// gets the index-key for an auto unDelegate delegation, stored by validator-index
+// VALUE: none (key rearrangement used)
+func GetAutoUnDelegateIndexKey(delAddr sdk.AccAddress, valAddr sdk.ValAddress) []byte {
+	return append(GetAutoUnDelegateByValIndexKey(valAddr), delAddr.Bytes()...)
 }
