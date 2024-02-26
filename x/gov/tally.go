@@ -45,8 +45,10 @@ func Tally(ctx sdk.Context, keeper Keeper, proposal Proposal) (passes bool, refu
 		// if delegator tally voting power
 		valAddrStr := sdk.ValAddress(vote.Voter).String()
 		if val, ok := currValidators[valAddrStr]; ok {
-			val.Vote = vote.Option
-			currValidators[valAddrStr] = val
+			if val.DelegatorShares.GT(sdk.ZeroDec()) {
+				val.Vote = vote.Option
+				currValidators[valAddrStr] = val
+			}
 		} else {
 
 			keeper.ds.IterateDelegations(ctx, vote.Voter, func(index int64, delegation sdk.Delegation) (stop bool) {

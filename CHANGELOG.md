@@ -1,5 +1,9 @@
 # Changelog
 
+##v0.26.7
+* [sdk] [\#381] (https://github.com/bnb-chain/bnc-cosmos-sdk/pull/381) feat: implement BEP-333(BNB Chain Fusion) 
+* [fix] [\#356] (https://github.com/bnb-chain/bnc-cosmos-sdk/pull/356) fix: fix nil validator when publishing message
+
 ##v0.26.6
 * [sdk] [\#349] (https://github.com/bnb-chain/bnc-cosmos-sdk/pull/349) feat: add upgrade config for bep255
 * [fix] [\#353] (https://github.com/bnb-chain/bnc-cosmos-sdk/pull/353) fix: add proof of possession for side vote addrs

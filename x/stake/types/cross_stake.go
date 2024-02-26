@@ -38,7 +38,8 @@ const (
 	DelegateCAoBSalt string = "Delegate"
 	RewardCAoBSalt   string = "Reward"
 
-	MinRewardThreshold int64 = 1e8
+	MinRewardThreshold                      int64 = 1e8
+	MinRewardThresholdAfterSecondSunsetFork int64 = 1e7
 )
 
 type CrossStakeAckPackage struct {
@@ -77,6 +78,14 @@ type CrossStakeDistributeUndelegatedSynPackage struct {
 	Recipient sdk.SmartChainAddress
 	Validator sdk.ValAddress
 	Amount    *big.Int
+}
+
+type CrossStakeDistributeUndelegatedSynPackageV2 struct {
+	EventType        CrossStakeEventType
+	Recipient        sdk.SmartChainAddress
+	Validator        sdk.ValAddress
+	Amount           *big.Int
+	IsAutoUnDelegate bool
 }
 
 type RefundError uint32

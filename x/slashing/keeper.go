@@ -370,7 +370,7 @@ func (k *Keeper) slashingSideDowntime(ctx sdk.Context, pack *SideSlashPackage) s
 	//}
 	k.setValidatorSigningInfo(sideCtx, sideConsAddr, signInfo)
 
-	if k.PbsbServer != nil {
+	if k.PbsbServer != nil && validator != nil {
 		event := SideSlashEvent{
 			Validator:              validator.GetOperator(),
 			InfractionType:         Downtime,

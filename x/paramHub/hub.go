@@ -140,6 +140,12 @@ func RegisterUpgradeBeginBlocker(paramHub *ParamHub) {
 		}
 		paramHub.UpdateFeeParams(ctx, updateFeeParams)
 	})
+	sdk.UpgradeMgr.RegisterBeginBlocker(sdk.FirstSunsetFork, func(ctx sdk.Context) {
+		updateFeeParams := []param.FeeParam{
+			&param.FixedFeeParams{MsgType: "side_stake_migration", Fee: SideChainStakeMigrationFee, FeeFor: sdk.FeeForProposer},
+		}
+		paramHub.UpdateFeeParams(ctx, updateFeeParams)
+	})
 }
 
 func EndBreatheBlock(ctx sdk.Context, paramHub *ParamHub) {
@@ -171,6 +177,7 @@ func init() {
 		"side_delegate":                        fees.FixedFeeCalculatorGen,
 		"side_redelegate":                      fees.FixedFeeCalculatorGen,
 		"side_undelegate":                      fees.FixedFeeCalculatorGen,
+		"side_stake_migration":                 fees.FixedFeeCalculatorGen,
 		"bsc_submit_evidence":                  fees.FixedFeeCalculatorGen,
 		"side_chain_unjail":                    fees.FixedFeeCalculatorGen,
 		"dexList":                              fees.FixedFeeCalculatorGen,

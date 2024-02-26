@@ -12,16 +12,24 @@ import (
 
 func EndBlocker(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.ValidatorUpdate, completedUbds []types.UnbondingDelegation) {
 	// only change validator set in breath block after BEP159
-	var events sdk.Events
-	var csEvents sdk.Events
+	var (
+		events   sdk.Events
+		csEvents sdk.Events
+	)
+
 	if !sdk.IsUpgrade(sdk.BEP159) {
 		_, validatorUpdates, completedUbds, _, events = handleValidatorAndDelegations(ctx, k)
 	} else {
 		k.DistributeInBlock(ctx, types.ChainIDForBeaconChain)
 		validatorUpdates = k.PopPendingABCIValidatorUpdate(ctx)
 	}
+
+	var (
+		sideChainIds  []string
+		storePrefixes [][]byte
+	)
 	if sdk.IsUpgrade(sdk.BEP128) {
-		sideChainIds, storePrefixes := k.ScKeeper.GetAllSideChainPrefixes(ctx)
+		sideChainIds, storePrefixes = k.ScKeeper.GetAllSideChainPrefixes(ctx)
 		if len(sideChainIds) == len(storePrefixes) {
 			for i := range storePrefixes {
 				sideChainCtx := ctx.WithSideChainKeyPrefix(storePrefixes[i])
@@ -31,9 +39,26 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.Valid
 			panic("sideChainIds does not equal to sideChainStores")
 		}
 	}
+
+	if len(storePrefixes) > 0 && sdk.IsUpgrade(sdk.SecondSunsetFork) {
+		for i := range storePrefixes {
+			events.AppendEvents(handleRefundStake(ctx, storePrefixes[i], k))
+		}
+	}
+
+	if len(storePrefixes) > 0 && sdk.IsUpgrade(sdk.FirstSunsetFork) {
+		for i := range storePrefixes {
+			sideChainCtx := ctx.WithSideChainKeyPrefix(storePrefixes[i])
+			_, unBoundedEvents := handleMatureUnbondingDelegations(k, sideChainCtx)
+
+			events = append(events, unBoundedEvents...)
+		}
+	}
+
 	if sdk.IsUpgrade(sdk.BEP153) {
 		events = events.AppendEvents(csEvents)
 	}
+
 	ctx.EventManager().EmitEvents(events)
 	return
 }
@@ -251,4 +276,75 @@ func handleMatureUnbondingDelegations(k keeper.Keeper, ctx sdk.Context) ([]types
 	}
 
 	return completed, events
+}
+
+const (
+	maxProcessedRefundCount  = 10
+	maxProcessedRefundFailed = 200
+)
+
+func handleRefundStake(ctx sdk.Context, sideChainPrefix []byte, k keeper.Keeper) sdk.Events {
+	sideChainCtx := ctx.WithSideChainKeyPrefix(sideChainPrefix)
+	iterator := k.IteratorAllDelegations(sideChainCtx)
+	defer iterator.Close()
+	var refundEvents sdk.Events
+	succeedCount := 0
+	failedCount := 0
+	boundDenom := k.BondDenom(sideChainCtx)
+	bscSideChainId := k.ScKeeper.BscSideChainId(ctx)
+
+	for ; iterator.Valid(); iterator.Next() {
+		delegation := types.MustUnmarshalDelegation(k.CDC(), iterator.Key(), iterator.Value())
+		if delegation.CrossStake {
+			ctx = ctx.WithCrossStake(true)
+		} else {
+			ctx = ctx.WithCrossStake(false)
+		}
+
+		result := handleMsgSideChainUndelegate(ctx, types.MsgSideChainUndelegate{
+			DelegatorAddr: delegation.DelegatorAddr,
+			ValidatorAddr: delegation.ValidatorAddr,
+			Amount:        sdk.NewCoin(boundDenom, delegation.GetShares().RawInt()),
+			SideChainId:   bscSideChainId,
+		}, k)
+		refundEvents = refundEvents.AppendEvents(result.Events)
+		if !result.IsOK() {
+			ctx.Logger().Info("handleRefundStake failed",
+				"delegator", delegation.DelegatorAddr.String(),
+				"validator", delegation.ValidatorAddr.String(),
+				"amount", delegation.GetShares().String(),
+				"sideChainId", bscSideChainId,
+				"result", fmt.Sprintf("%+v", result),
+			)
+			// this is to prevent too many delegation is in unbounded state
+			// if too many delegation is in unbounded state, it will cause too many iteration in the block
+			failedCount++
+			if failedCount >= maxProcessedRefundFailed {
+				break
+			}
+
+			continue
+		}
+
+		if result.IsOK() && delegation.CrossStake {
+			k.SetAutoUnDelegate(sideChainCtx, delegation.DelegatorAddr, delegation.ValidatorAddr)
+		}
+
+		ctx.Logger().Info("handleRefundStake after SecondSunsetFork",
+			"delegator", delegation.DelegatorAddr.String(),
+			"validator", delegation.ValidatorAddr.String(),
+			"amount", delegation.GetShares().String(),
+			"sideChainId", bscSideChainId,
+		)
+		succeedCount++
+		if succeedCount >= maxProcessedRefundCount {
+			break
+		}
+	}
+	ctx.Logger().Info("handleRefundStake processed count",
+		"succeedCount", succeedCount,
+		"failedCount", failedCount,
+		"sideChainId", bscSideChainId)
+
+	return refundEvents
 }

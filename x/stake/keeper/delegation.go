@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -14,6 +15,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/fees"
 	"github.com/cosmos/cosmos-sdk/x/stake/types"
 	abci "github.com/tendermint/tendermint/abci/types"
+)
+
+var (
+	ErrNotEnoughRelayerFeeForCrossPkg = sdk.ErrInternal("not enough funds to cover relay fee")
+	ErrNoFeeCalculator                = sdk.ErrInternal("no fee calculator of distributeUndelegated")
 )
 
 // return a specific delegation
@@ -43,6 +49,11 @@ func (k Keeper) GetAllDelegations(ctx sdk.Context) (delegations []types.Delegati
 		delegations = append(delegations, delegation)
 	}
 	return delegations
+}
+
+func (k Keeper) IteratorAllDelegations(ctx sdk.Context) sdk.Iterator {
+	store := ctx.KVStore(k.storeKey)
+	return sdk.KVStorePrefixIterator(store, DelegationKey)
 }
 
 // return a given amount of all the delegations from a delegator
@@ -151,7 +162,7 @@ func (k Keeper) RemoveDelegationByVal(ctx sdk.Context, delAddr sdk.AccAddress, v
 	store.Delete(GetDelegationKeyByValIndexKey(valAddr, delAddr))
 }
 
-//_____________________________________________________________________________________
+// _____________________________________________________________________________________
 
 func (k Keeper) SetSimplifiedDelegations(ctx sdk.Context, height int64, validator sdk.ValAddress, simDels []types.SimplifiedDelegation) {
 	store := ctx.KVStore(k.storeKey)
@@ -174,7 +185,7 @@ func (k Keeper) RemoveSimplifiedDelegations(ctx sdk.Context, height int64, valid
 	store.Delete(GetSimplifiedDelegationsKey(height, validator))
 }
 
-//_____________________________________________________________________________________
+// _____________________________________________________________________________________
 
 // return a given amount of all the delegator unbonding-delegations
 func (k Keeper) GetUnbondingDelegations(ctx sdk.Context, delegator sdk.AccAddress,
@@ -325,7 +336,7 @@ func (k Keeper) DequeueAllMatureUnbondingQueue(ctx sdk.Context, currTime time.Ti
 	return matureUnbonds
 }
 
-//_____________________________________________________________________________________
+// _____________________________________________________________________________________
 
 // return a given amount of all the delegator redelegations
 func (k Keeper) GetRedelegations(ctx sdk.Context, delegator sdk.AccAddress,
@@ -478,7 +489,7 @@ func (k Keeper) DequeueAllMatureRedelegationQueue(ctx sdk.Context, currTime time
 	return matureRedelegations
 }
 
-//_____________________________________________________________________________________
+// _____________________________________________________________________________________
 
 func (k Keeper) SyncDelegationByValDel(ctx sdk.Context, valAddr sdk.ValAddress, delAddr sdk.AccAddress) {
 	delegation, found := k.GetDelegation(ctx, delAddr, valAddr)
@@ -608,7 +619,7 @@ func (k Keeper) unbond(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValA
 	return amount, nil
 }
 
-//______________________________________________________________________________________________________
+// ______________________________________________________________________________________________________
 
 // get info for begin functions: MinTime and CreationHeight
 func (k Keeper) getBeginInfo(ctx sdk.Context, valSrcAddr sdk.ValAddress) (
@@ -637,9 +648,25 @@ func (k Keeper) getBeginInfo(ctx sdk.Context, valSrcAddr sdk.ValAddress) (
 	}
 }
 
+func (k Keeper) UnboundDelegation(ctx sdk.Context,
+	delAddr sdk.AccAddress, valAddr sdk.ValAddress, sharesAmount sdk.Dec,
+) (types.UnbondingDelegation, sdk.Events, sdk.Error) {
+	ubd, err := k.BeginUnbonding(ctx, delAddr, valAddr, sharesAmount, false)
+	if err != nil {
+		return ubd, nil, err
+	}
+	ubd, events, err := k.CompleteUnbonding(ctx, ubd.DelegatorAddr, ubd.ValidatorAddr)
+	if err != nil {
+		return ubd, events, err
+	}
+
+	return ubd, events, nil
+}
+
 // begin unbonding an unbonding record
 func (k Keeper) BeginUnbonding(ctx sdk.Context,
-	delAddr sdk.AccAddress, valAddr sdk.ValAddress, sharesAmount sdk.Dec) (types.UnbondingDelegation, sdk.Error) {
+	delAddr sdk.AccAddress, valAddr sdk.ValAddress, sharesAmount sdk.Dec,
+	enqueue bool) (types.UnbondingDelegation, sdk.Error) {
 
 	// TODO quick fix, instead we should use an index, see https://github.com/cosmos/cosmos-sdk/issues/1402
 	_, found := k.GetUnbondingDelegation(ctx, delAddr, valAddr)
@@ -656,6 +683,9 @@ func (k Keeper) BeginUnbonding(ctx sdk.Context,
 	balance := sdk.NewCoin(k.BondDenom(ctx), returnAmount.RawInt())
 
 	completionTime := ctx.BlockHeader().Time.Add(k.UnbondingTime(ctx))
+	if !enqueue {
+		completionTime = ctx.BlockHeader().Time
+	}
 	ubd := types.UnbondingDelegation{
 		DelegatorAddr:  delAddr,
 		ValidatorAddr:  valAddr,
@@ -666,7 +696,9 @@ func (k Keeper) BeginUnbonding(ctx sdk.Context,
 		CrossStake:     ctx.CrossStake(),
 	}
 	k.SetUnbondingDelegation(ctx, ubd)
-	k.InsertUnbondingQueue(ctx, ubd)
+	if enqueue {
+		k.InsertUnbondingQueue(ctx, ubd)
+	}
 
 	return ubd, nil
 }
@@ -688,7 +720,12 @@ func (k Keeper) CompleteUnbonding(ctx sdk.Context, delAddr sdk.AccAddress, valAd
 	if ubd.CrossStake {
 		events, err = k.crossDistributeUndelegated(ctx, delAddr, valAddr)
 		if err != nil {
-			return ubd, sdk.Events{}, err
+			if sdk.IsUpgrade(sdk.SecondSunsetFork) &&
+				errors.Is(err, ErrNotEnoughRelayerFeeForCrossPkg) {
+				k.Logger(ctx).Error("not enough funds to cover relay fee, skip crossDistribute")
+			} else {
+				return ubd, sdk.Events{}, err
+			}
 		}
 		if k.AddrPool != nil {
 			k.AddrPool.AddAddrs([]sdk.AccAddress{sdk.PegAccount})
@@ -700,6 +737,20 @@ func (k Keeper) CompleteUnbonding(ctx sdk.Context, delAddr sdk.AccAddress, valAd
 	}
 	k.RemoveUnbondingDelegation(ctx, ubd)
 	return ubd, events, nil
+}
+
+func (k Keeper) IsAutoUnDelegate(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) bool {
+	store := ctx.KVStore(k.storeKey)
+	key := GetAutoUnDelegateIndexKey(delAddr, valAddr)
+
+	return store.Has(key)
+}
+
+func (k Keeper) SetAutoUnDelegate(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) {
+	store := ctx.KVStore(k.storeKey)
+
+	key := GetAutoUnDelegateIndexKey(delAddr, valAddr)
+	store.Set(key, []byte{}) // index, store empty bytes
 }
 
 // complete unbonding an unbonding record
@@ -820,14 +871,22 @@ func (k Keeper) ValidateUnbondAmount(
 func (k Keeper) crossDistributeUndelegated(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) (sdk.Events, sdk.Error) {
 	denom := k.BondDenom(ctx)
 	amount := k.BankKeeper.GetCoins(ctx, delAddr).AmountOf(denom)
-	relayFeeCalc := fees.GetCalculator(types.CrossDistributeUndelegatedRelayFee)
+
+	var relayFeeCalc fees.FeeCalculator
+	isAutoUnDelegate := k.IsAutoUnDelegate(ctx, delAddr, valAddr)
+	if sdk.IsUpgrade(sdk.SecondSunsetFork) && isAutoUnDelegate {
+		relayFeeCalc = fees.FreeFeeCalculator()
+	} else {
+		relayFeeCalc = fees.GetCalculator(types.CrossDistributeUndelegatedRelayFee)
+	}
 	if relayFeeCalc == nil {
-		return sdk.Events{}, sdk.ErrInternal("no fee calculator of distributeUndelegated")
+		return sdk.Events{}, ErrNoFeeCalculator
 	}
 	relayFee := relayFeeCalc(nil)
 	if relayFee.Tokens.AmountOf(denom) >= amount {
-		return sdk.Events{}, sdk.ErrInternal("not enough funds to cover relay fee")
+		return sdk.Events{}, ErrNotEnoughRelayerFeeForCrossPkg
 	}
+
 	bscRelayFee := bsc.ConvertBCAmountToBSCAmount(relayFee.Tokens.AmountOf(denom))
 	bscTransferAmount := new(big.Int).Sub(bsc.ConvertBCAmountToBSCAmount(amount), bscRelayFee)
 
@@ -838,18 +897,30 @@ func (k Keeper) crossDistributeUndelegated(ctx sdk.Context, delAddr sdk.AccAddre
 		return sdk.Events{}, sdk.ErrInternal(err.Error())
 	}
 
-	transferPackage := types.CrossStakeDistributeUndelegatedSynPackage{
-		EventType: types.CrossStakeTypeDistributeUndelegated,
-		Amount:    bscTransferAmount,
-		Recipient: recipient,
-		Validator: valAddr,
+	var transferPackage interface{}
+	if !sdk.IsUpgrade(sdk.SecondSunsetFork) {
+		transferPackage = types.CrossStakeDistributeUndelegatedSynPackage{
+			EventType: types.CrossStakeTypeDistributeUndelegated,
+			Amount:    bscTransferAmount,
+			Recipient: recipient,
+			Validator: valAddr,
+		}
+	} else {
+		transferPackage = types.CrossStakeDistributeUndelegatedSynPackageV2{
+			EventType:        types.CrossStakeTypeDistributeUndelegated,
+			Amount:           bscTransferAmount,
+			Recipient:        recipient,
+			Validator:        valAddr,
+			IsAutoUnDelegate: isAutoUnDelegate,
+		}
 	}
+
 	encodedPackage, err := rlp.EncodeToBytes(transferPackage)
 	if err != nil {
 		return sdk.Events{}, sdk.ErrInternal(err.Error())
 	}
 
-	sendSeq, sdkErr := k.ibcKeeper.CreateRawIBCPackageByIdWithFee(ctx.DepriveSideChainKeyPrefix(), k.DestChainId, types.CrossStakeChannelID,
+	sendSeq, sdkErr := k.IbcKeeper.CreateRawIBCPackageByIdWithFee(ctx.DepriveSideChainKeyPrefix(), k.DestChainId, types.CrossStakeChannelID,
 		sdk.SynCrossChainPackageType, encodedPackage, *bscRelayFee)
 	if sdkErr != nil {
 		return sdk.Events{}, sdkErr

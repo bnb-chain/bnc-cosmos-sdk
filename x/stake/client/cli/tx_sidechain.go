@@ -15,6 +15,8 @@ import (
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
 	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 	"github.com/cosmos/cosmos-sdk/x/stake"
+	sTypes "github.com/cosmos/cosmos-sdk/x/stake/types"
+
 	"github.com/prysmaticlabs/prysm/v4/crypto/bls"
 	"github.com/prysmaticlabs/prysm/v4/crypto/bls/common"
 	validatorpb "github.com/prysmaticlabs/prysm/v4/proto/prysm/v1alpha1/validator-client"
@@ -161,7 +163,6 @@ func GetCmdEditSideChainValidator(cdc *codec.Codec) *cobra.Command {
 			msg = stake.NewMsgEditSideChainValidatorWithVoteAddr(sideChainId, sdk.ValAddress(valAddr), description, newRate, sideFeeAddr, sideConsAddr, sideVoteAddr)
 		} else {
 			msg = stake.NewMsgEditSideChainValidator(sideChainId, sdk.ValAddress(valAddr), description, newRate, sideFeeAddr, sideConsAddr)
-
 		}
 		return utils.GenerateOrBroadcastMsgs(txBldr, cliCtx, []sdk.Msg{msg})
 	}
@@ -263,7 +264,7 @@ func GetCmdSideChainRedelegate(cdc *codec.Codec) *cobra.Command {
 func GetCmdSideChainUnbond(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "bsc-unbond",
-		Short: "",
+		Short: "Undelegate illiquid tokens from the validator",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			txBldr := authtxb.NewTxBuilderFromCLI().WithCodec(cdc)
 			cliCtx := context.NewCLIContext().
@@ -297,6 +298,51 @@ func GetCmdSideChainUnbond(cdc *codec.Codec) *cobra.Command {
 	cmd.Flags().AddFlagSet(fsAmount)
 	cmd.Flags().AddFlagSet(fsValidator)
 	cmd.Flags().AddFlagSet(fsSideChainId)
+	return cmd
+}
+
+func GetCmdSideChainStakeMigration(cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "bsc-stake-migration",
+		Short: "Migrate delegation from Beacon Chain to Smart Chain",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			txBldr := authtxb.NewTxBuilderFromCLI().WithCodec(cdc)
+			cliCtx := context.NewCLIContext().
+				WithCodec(cdc).
+				WithAccountDecoder(authcmd.GetAccountDecoder(cdc))
+
+			valAddr, err := getValidatorAddr(FlagAddressValidator)
+			if err != nil {
+				return err
+			}
+			operatorAddr, err := getSmartChainAddr(FlagAddressSmartChainValidator)
+			if err != nil {
+				return err
+			}
+			delAddr, err := getSmartChainAddr(FlagAddressSmartChainBeneficiary)
+			if err != nil {
+				return err
+			}
+			refundAddr, err := cliCtx.GetFromAddress()
+			if err != nil {
+				return err
+			}
+
+			amount, err := getAmount()
+			if err != nil {
+				return err
+			}
+
+			msg := sTypes.NewMsgSideChainStakeMigration(valAddr, operatorAddr, delAddr, refundAddr, amount)
+			return utils.GenerateOrBroadcastMsgs(txBldr, cliCtx, []sdk.Msg{msg})
+		},
+	}
+
+	cmd.Flags().AddFlagSet(fsAmount)
+	cmd.Flags().AddFlagSet(fsValidator)
+	cmd.Flags().AddFlagSet(fsSmartChainValidator)
+	cmd.Flags().AddFlagSet(fsSmartChainBeneficiary)
+
 	return cmd
 }
 
@@ -410,6 +456,15 @@ func getValidatorAddr(flagName string) (valAddr sdk.ValAddress, err error) {
 		return
 	}
 	return sdk.ValAddressFromBech32(valAddrStr)
+}
+
+func getSmartChainAddr(flagName string) (addr sdk.SmartChainAddress, err error) {
+	addrStr := viper.GetString(flagName)
+	if len(addrStr) == 0 {
+		err = fmt.Errorf("%s is required", flagName)
+		return
+	}
+	return sdk.NewSmartChainAddress(addrStr)
 }
 
 func getBLSPassword() (string, error) {

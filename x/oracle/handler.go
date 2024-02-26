@@ -17,6 +17,9 @@ func NewHandler(keeper Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 		switch msg := msg.(type) {
 		case types.ClaimMsg:
+			if sdk.IsUpgrade(sdk.FinalSunsetFork) {
+				return sdk.ErrMsgNotSupported("").Result()
+			}
 			return handleClaimMsg(ctx, keeper, msg)
 		default:
 			errMsg := "Unrecognized oracle msg type"

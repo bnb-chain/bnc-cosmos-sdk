@@ -37,6 +37,7 @@ const (
 	SideChainDelegateFee        = 1e5
 	SideChainRedelegateFee      = 3e5
 	SideChainUndelegateFee      = 2e5
+	SideChainStakeMigrationFee  = 3e5
 
 	// beacon chain stake fee
 	EditChainValidatorFee = 1e8
@@ -73,7 +74,7 @@ const (
 	CrossBindRelayFee        = 2e6
 	CrossUnbindRelayFee      = 2e6
 
-	//MiniToken fee
+	// MiniToken fee
 	TinyIssueFee   = 2e8
 	MiniIssueFee   = 3e8
 	MiniSetUriFee  = 37500
@@ -87,7 +88,7 @@ const (
 var DefaultGenesisState = param.GenesisState{
 	FeeGenesis: FeeGenesisState,
 
-	//Add other param genesis here
+	// Add other param genesis here
 }
 
 // ---------   Definition about fee prams  ------------------- //
@@ -131,4 +132,4 @@ var FeeGenesisState = []param.FeeParam{
 	},
 }
 
-//----------  End definition about fee param ---------------- //
+// ----------  End definition about fee param ---------------- //

@@ -28,6 +28,9 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 			return handleMsgRemoveValidatorAfterProposal(ctx, msg, k, govKeeper)
 		// Beacon Chain New Staking in BEP-159
 		case types.MsgCreateValidatorOpen:
+			if sdk.IsUpgrade(sdk.FirstSunsetFork) {
+				return sdk.ErrMsgNotSupported("").Result()
+			}
 			if !sdk.IsUpgrade(sdk.BEP159Phase2) {
 				return sdk.ErrMsgNotSupported("BEP-159 Phase 2 not activated yet").Result()
 			}
@@ -40,19 +43,45 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 			return handleMsgUndelegate(ctx, msg, k)
 		// case MsgSideChain
 		case types.MsgCreateSideChainValidator:
+			if sdk.IsUpgrade(sdk.FirstSunsetFork) {
+				return sdk.ErrMsgNotSupported("").Result()
+			}
 			return handleMsgCreateSideChainValidator(ctx, msg, k)
 		case types.MsgEditSideChainValidator:
+			if sdk.IsUpgrade(sdk.FirstSunsetFork) {
+				return sdk.ErrMsgNotSupported("").Result()
+			}
 			return handleMsgEditSideChainValidator(ctx, msg, k)
 		case types.MsgCreateSideChainValidatorWithVoteAddr:
+			if sdk.IsUpgrade(sdk.FirstSunsetFork) {
+				return sdk.ErrMsgNotSupported("").Result()
+			}
 			return handleMsgCreateSideChainValidatorWithVoteAddr(ctx, msg, k)
 		case types.MsgEditSideChainValidatorWithVoteAddr:
+			if sdk.IsUpgrade(sdk.FirstSunsetFork) {
+				return sdk.ErrMsgNotSupported("").Result()
+			}
 			return handleMsgEditSideChainValidatorWithVoteAddr(ctx, msg, k)
 		case types.MsgSideChainDelegate:
+			if sdk.IsUpgrade(sdk.FirstSunsetFork) {
+				return sdk.ErrMsgNotSupported("").Result()
+			}
 			return handleMsgSideChainDelegate(ctx, msg, k)
 		case types.MsgSideChainRedelegate:
+			if sdk.IsUpgrade(sdk.FirstSunsetFork) {
+				return sdk.ErrMsgNotSupported("").Result()
+			}
 			return handleMsgSideChainRedelegate(ctx, msg, k)
 		case types.MsgSideChainUndelegate:
+			if sdk.IsUpgrade(sdk.SecondSunsetFork) {
+				return sdk.ErrMsgNotSupported("").Result()
+			}
 			return handleMsgSideChainUndelegate(ctx, msg, k)
+		case types.MsgSideChainStakeMigration:
+			if !sdk.IsUpgrade(sdk.FirstSunsetFork) || sdk.IsUpgrade(sdk.SecondSunsetFork) {
+				return sdk.ErrMsgNotSupported("MsgSideChainStakeMigration is only enabled between FirstSunsetFork and SecondSunsetFork").Result()
+			}
+			return handleMsgSideChainStakeMigration(ctx, msg, k)
 		default:
 			return sdk.ErrTxDecode("invalid message parse in staking module").Result()
 		}
@@ -79,7 +108,7 @@ func NewStakeHandler(k Keeper) sdk.Handler {
 	}
 }
 
-//_____________________________________________________________________
+// _____________________________________________________________________
 
 // These functions assume everything has been authenticated,
 // now we just perform action and save
@@ -446,7 +475,7 @@ func handleMsgUndelegate(ctx sdk.Context, msg types.MsgUndelegate, k keeper.Keep
 }
 
 func handleMsgBeginUnbonding(ctx sdk.Context, msg types.MsgBeginUnbonding, k keeper.Keeper) sdk.Result {
-	ubd, err := k.BeginUnbonding(ctx, msg.DelegatorAddr, msg.ValidatorAddr, msg.SharesAmount)
+	ubd, err := k.BeginUnbonding(ctx, msg.DelegatorAddr, msg.ValidatorAddr, msg.SharesAmount, true)
 	if err != nil {
 		return err.Result()
 	}

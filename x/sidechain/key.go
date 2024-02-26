@@ -20,6 +20,8 @@ var (
 	PrefixForReceiveSequenceKey = []byte{0xf1}
 
 	PrefixForChannelPermissionKey = []byte{0xc0}
+
+	PrefixForBSCAllChannelStatus = []byte{0xc1}
 )
 
 func GetSideChainStorePrefixKey(sideChainId string) []byte {
@@ -50,4 +52,8 @@ func buildChannelPermissionsPrefixKey(destChainID sdk.ChainID) []byte {
 	copy(key[:prefixLength], PrefixForChannelPermissionKey)
 	binary.BigEndian.PutUint16(key[prefixLength:prefixLength+destChainIDLength], uint16(destChainID))
 	return key
+}
+
+func buildBSCAllChannelStatusPrefixKey(sideChainId string) []byte {
+	return append(PrefixForBSCAllChannelStatus, []byte(sideChainId)...)
 }

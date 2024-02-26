@@ -25,6 +25,14 @@ const (
 	FixDoubleSignChainId        = "FixDoubleSignChainId"
 	BEP126                      = "BEP126" //https://github.com/binance-chain/BEPs/pull/126
 	BEP255                      = "BEP255" // https://github.com/bnb-chain/BEPs/pull/255
+
+	FirstSunsetFork  = "FirstSunsetFork"
+	SecondSunsetFork = "SecondSunsetFork"
+	FinalSunsetFork  = "FinalSunsetFork"
+)
+
+var (
+	BCFusionStopGovThreshold int64 = 5_000_000_00000000 // 5M BNB
 )
 
 var MainNetConfig = UpgradeConfig{
