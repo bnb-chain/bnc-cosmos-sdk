@@ -49,10 +49,12 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) (validatorUpdates []abci.Valid
 	if len(storePrefixes) > 0 && sdk.IsUpgrade(sdk.FirstSunsetFork) {
 		for i := range storePrefixes {
 			sideChainCtx := ctx.WithSideChainKeyPrefix(storePrefixes[i])
-			_, unBoundedEvents := handleMatureUnbondingDelegations(k, sideChainCtx)
+			ubd, unBoundedEvents := handleMatureUnbondingDelegations(k, sideChainCtx)
 
 			events = append(events, unBoundedEvents...)
+			publishCompletedUBD(k, ubd, sideChainIds[i], ctx.BlockHeight())
 		}
+
 	}
 
 	if sdk.IsUpgrade(sdk.BEP153) {
