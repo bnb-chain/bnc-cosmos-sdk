@@ -461,16 +461,17 @@ func handleMsgSideChainUndelegate(ctx sdk.Context, msg MsgSideChainUndelegate, k
 
 	// publish undelegate event
 	if k.PbsbServer != nil && ctx.IsDeliverTx() {
+		txHash, isFromTx := ctx.Value(baseapp.TxHashKey).(string)
 		event := types.ChainUndelegateEvent{
 			UndelegateEvent: types.UndelegateEvent{
 				StakeEvent: types.StakeEvent{
-					IsFromTx: true,
+					IsFromTx: isFromTx,
 				},
 				Delegator: msg.DelegatorAddr,
 				Validator: msg.ValidatorAddr,
 				Amount:    msg.Amount.Amount,
 				Denom:     msg.Amount.Denom,
-				TxHash:    ctx.Value(baseapp.TxHashKey).(string),
+				TxHash:    txHash,
 			},
 			ChainId: msg.SideChainId,
 		}
