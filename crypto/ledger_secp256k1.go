@@ -163,9 +163,23 @@ func convertDERtoBER(signatureDER []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	sig := sigDER.Serialize() // 0x30 <total length> 0x02 <length of R> <R> 0x02 <length of S> <S>
-	r := new(big.Int).SetBytes(sig[4:36])
-	s := new(big.Int).SetBytes(sig[38:70])
+
+	// Total length of returned signature is 1 byte for each magic and length
+	// (6 total), plus lengths of R and S.
+	// 	totalLen := 6 + len(canonR) + len(canonS)
+	// 	b := make([]byte, 0, totalLen)
+	// 	b = append(b, asn1SequenceID)
+	// 	b = append(b, byte(totalLen-2))
+	// 	b = append(b, asn1IntegerID)
+	// 	b = append(b, byte(len(canonR)))
+	// 	b = append(b, canonR...)
+	// 	b = append(b, asn1IntegerID)
+	// 	b = append(b, byte(len(canonS)))
+	// 	b = append(b, canonS...)
+	sig := sigDER.Serialize()
+	lenOfR := int(sig[3])
+	r := new(big.Int).SetBytes(sig[4 : 4+lenOfR])
+	s := new(big.Int).SetBytes(sig[4+lenOfR+2:])
 	sigBER := tmbtcec.Signature{R: r, S: s}
 	return sigBER.Serialize(), nil
 }
