@@ -1,5 +1,9 @@
 # Changelog
 
+##v0.26.9
+* [fix] [\#389] (https://github.com/bnb-chain/bnc-cosmos-sdk/pull/389) fix: publish ChainUndelegate event
+* [fix] [\#390] (https://github.com/bnb-chain/bnc-cosmos-sdk/pull/390) fix: ledger sig conversion
+
 ##v0.26.8
 * [fix] [\#388] (https://github.com/bnb-chain/bnc-cosmos-sdk/pull/388) fix: publish completed UnbondingDelegation events to kafka in EndBlock
 
