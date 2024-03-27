@@ -40,13 +40,17 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 			return handleMsgUndelegate(ctx, msg, k)
 		// case MsgSideChain
 		case types.MsgCreateSideChainValidator:
-			return handleMsgCreateSideChainValidator(ctx, msg, k)
+			return sdk.ErrMsgNotSupported("Temporarily unavailable").Result()
+			// return handleMsgCreateSideChainValidator(ctx, msg, k)
 		case types.MsgEditSideChainValidator:
-			return handleMsgEditSideChainValidator(ctx, msg, k)
+			return sdk.ErrMsgNotSupported("Temporarily unavailable").Result()
+			// return handleMsgEditSideChainValidator(ctx, msg, k)
 		case types.MsgCreateSideChainValidatorWithVoteAddr:
-			return handleMsgCreateSideChainValidatorWithVoteAddr(ctx, msg, k)
+			return sdk.ErrMsgNotSupported("Temporarily unavailable").Result()
+			// return handleMsgCreateSideChainValidatorWithVoteAddr(ctx, msg, k)
 		case types.MsgEditSideChainValidatorWithVoteAddr:
-			return handleMsgEditSideChainValidatorWithVoteAddr(ctx, msg, k)
+			return sdk.ErrMsgNotSupported("Temporarily unavailable").Result()
+			// return handleMsgEditSideChainValidatorWithVoteAddr(ctx, msg, k)
 		case types.MsgSideChainDelegate:
 			return handleMsgSideChainDelegate(ctx, msg, k)
 		case types.MsgSideChainRedelegate:
