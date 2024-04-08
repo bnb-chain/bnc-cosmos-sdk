@@ -43,25 +43,29 @@ func NewHandler(k keeper.Keeper, govKeeper gov.Keeper) sdk.Handler {
 			return handleMsgUndelegate(ctx, msg, k)
 		// case MsgSideChain
 		case types.MsgCreateSideChainValidator:
-			if sdk.IsUpgrade(sdk.FirstSunsetFork) {
-				return sdk.ErrMsgNotSupported("").Result()
-			}
-			return handleMsgCreateSideChainValidator(ctx, msg, k)
+			return sdk.ErrMsgNotSupported("Temporarily unavailable").Result()
+			//if sdk.IsUpgrade(sdk.FirstSunsetFork) {
+			//	return sdk.ErrMsgNotSupported("").Result()
+			//}
+			//return handleMsgCreateSideChainValidator(ctx, msg, k)
 		case types.MsgEditSideChainValidator:
-			if sdk.IsUpgrade(sdk.FirstSunsetFork) {
-				return sdk.ErrMsgNotSupported("").Result()
-			}
-			return handleMsgEditSideChainValidator(ctx, msg, k)
+			return sdk.ErrMsgNotSupported("Temporarily unavailable").Result()
+			//if sdk.IsUpgrade(sdk.FirstSunsetFork) {
+			//	return sdk.ErrMsgNotSupported("").Result()
+			//}
+			//return handleMsgEditSideChainValidator(ctx, msg, k)
 		case types.MsgCreateSideChainValidatorWithVoteAddr:
-			if sdk.IsUpgrade(sdk.FirstSunsetFork) {
-				return sdk.ErrMsgNotSupported("").Result()
-			}
-			return handleMsgCreateSideChainValidatorWithVoteAddr(ctx, msg, k)
+			return sdk.ErrMsgNotSupported("Temporarily unavailable").Result()
+			//if sdk.IsUpgrade(sdk.FirstSunsetFork) {
+			//	return sdk.ErrMsgNotSupported("").Result()
+			//}
+			//return handleMsgCreateSideChainValidatorWithVoteAddr(ctx, msg, k)
 		case types.MsgEditSideChainValidatorWithVoteAddr:
-			if sdk.IsUpgrade(sdk.FirstSunsetFork) {
-				return sdk.ErrMsgNotSupported("").Result()
-			}
-			return handleMsgEditSideChainValidatorWithVoteAddr(ctx, msg, k)
+			return sdk.ErrMsgNotSupported("Temporarily unavailable").Result()
+			//if sdk.IsUpgrade(sdk.FirstSunsetFork) {
+			//	return sdk.ErrMsgNotSupported("").Result()
+			//}
+			//return handleMsgEditSideChainValidatorWithVoteAddr(ctx, msg, k)
 		case types.MsgSideChainDelegate:
 			if sdk.IsUpgrade(sdk.FirstSunsetFork) {
 				return sdk.ErrMsgNotSupported("").Result()
