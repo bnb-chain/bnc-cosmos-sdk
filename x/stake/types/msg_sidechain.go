@@ -7,7 +7,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/bsc"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/sidechain/types"
-	"github.com/prysmaticlabs/prysm/v4/crypto/bls"
+	"github.com/prysmaticlabs/prysm/v5/crypto/bls"
 )
 
 const (
